@@ -12,6 +12,29 @@ describe("auth pilot source guards", () => {
     expect(homeSource).not.toContain('process.env.NODE_ENV !== "production"');
   });
 
+  it("renders signed-in shell state instead of the public login CTA", () => {
+    const layoutSource = readFileSync(join(process.cwd(), "src/app/layout.tsx"), "utf8");
+    const homeSource = readFileSync(join(process.cwd(), "src/app/page.tsx"), "utf8");
+    const loginSource = readFileSync(join(process.cwd(), "src/app/login/page.tsx"), "utf8");
+
+    expect(layoutSource).toContain("await auth()");
+    expect(layoutSource).toContain("user.image");
+    expect(layoutSource).toContain("getFallbackInitials");
+    expect(layoutSource).toContain("getRoleDashboardHref");
+    expect(layoutSource).toContain("signOut");
+    expect(layoutSource).toContain("ออกจากระบบ");
+
+    expect(homeSource).toContain("await auth()");
+    expect(homeSource).toContain("user ? (");
+    expect(homeSource).toContain("เข้าสู่ระบบด้วย Google");
+    expect(homeSource).toContain("เข้าสู่ระบบแล้ว");
+
+    expect(loginSource).toContain("await auth()");
+    expect(loginSource).toContain('signIn("google"');
+    expect(loginSource).toContain("signOut");
+    expect(loginSource).toContain("เข้าสู่ระบบแล้ว");
+  });
+
   it("keeps dev login server actions disabled outside development", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/app/dev-login/actions.ts"), "utf8");
 

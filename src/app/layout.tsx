@@ -1,6 +1,14 @@
+/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { auth, signOut } from "@/auth";
 import { PageShell } from "@/components/ui/PageShell";
+import {
+  getFallbackInitials,
+  getRoleDashboardHref,
+  getRoleDashboardLabel,
+  getSessionDisplayName
+} from "@/lib/auth/sessionUi";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
@@ -9,7 +17,14 @@ export const metadata: Metadata = {
   description: "Project Presentation, Feedback & Evidence System"
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
+  const user = session?.user;
+  const displayName = getSessionDisplayName(user);
+  const initials = getFallbackInitials(displayName);
+  const dashboardHref = getRoleDashboardHref(user?.role);
+  const dashboardLabel = getRoleDashboardLabel(user?.role);
+
   return (
     <html lang="th">
       <body className="font-sans">
@@ -19,7 +34,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/" className="text-base font-semibold leading-6 text-ink hover:text-brand">
                 ระบบประเมินการนำเสนอโครงงาน
               </Link>
-              <nav className="grid grid-cols-3 gap-2 text-sm sm:flex sm:flex-wrap sm:items-center">
+
+              <nav className="flex flex-wrap items-center gap-2 text-sm">
                 <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/admin">
                   ผู้ดูแลระบบ
                 </a>
@@ -29,9 +45,51 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/student">
                   นักศึกษา
                 </a>
-                <a className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-teal-800" href="/login">
-                  เข้าสู่ระบบ
-                </a>
+
+                {user ? (
+                  <div className="flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:w-auto sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {user.image ? (
+                        <img
+                          src={user.image}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          className="h-10 w-10 rounded-full border border-slate-200 bg-slate-100 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/20 bg-brand/10 text-sm font-semibold text-brand">
+                          {initials}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-ink">{displayName}</div>
+                        {user.email && user.email !== displayName ? (
+                          <div className="truncate text-xs text-muted">{user.email}</div>
+                        ) : null}
+                        <div className="text-xs font-semibold text-brand">{user.role}</div>
+                      </div>
+                    </div>
+
+                    <a className="button-secondary whitespace-nowrap" href={dashboardHref}>
+                      {dashboardLabel}
+                    </a>
+                    <form
+                      action={async () => {
+                        "use server";
+                        await signOut({ redirectTo: "/" });
+                      }}
+                    >
+                      <button type="submit" className="button-secondary whitespace-nowrap">
+                        ออกจากระบบ
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <a className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-teal-800" href="/login">
+                    เข้าสู่ระบบ
+                  </a>
+                )}
+
                 {process.env.NODE_ENV === "development" ? (
                   <a className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 hover:bg-red-100" href="/dev-login">
                     Dev login
@@ -46,3 +104,4 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
+
