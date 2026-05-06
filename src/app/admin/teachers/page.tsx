@@ -8,6 +8,8 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminTeachersPage({
   searchParams
 }: {
@@ -86,4 +88,3 @@ export default async function AdminTeachersPage({
     </div>
   );
 }
-
