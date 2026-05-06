@@ -36,15 +36,19 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
               </Link>
 
               <nav className="flex flex-wrap items-center gap-2 text-sm">
-                <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/admin">
-                  ผู้ดูแลระบบ
-                </a>
-                <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/teacher">
-                  อาจารย์
-                </a>
-                <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/student">
-                  นักศึกษา
-                </a>
+                {!user ? (
+                  <>
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/admin">
+                      ผู้ดูแลระบบ
+                    </a>
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/teacher">
+                      อาจารย์
+                    </a>
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/student">
+                      นักศึกษา
+                    </a>
+                  </>
+                ) : null}
 
                 {user ? (
                   <div className="flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:w-auto sm:flex-row sm:items-center">
