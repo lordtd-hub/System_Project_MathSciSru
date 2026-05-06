@@ -12,11 +12,12 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { findDuplicateActiveProjectGroups, getCurrentDashboardProjects } from "@/lib/admin/dashboardProjects";
+import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { prisma } from "@/lib/db";
 import { getNextActionForAdmin } from "@/lib/lifecycle/nextActions";
 import { lifecycleV2Steps, projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
-import { confirmProjectAdvisor, openCourseRound } from "./actions";
+import { confirmProjectAdvisor, openCourseRound, resetCourseOfferingTestData } from "./actions";
 
 function countByStatus(projects: Array<{ status: string }>, status: string) {
   return projects.filter((project) => project.status === status).length;
@@ -68,6 +69,7 @@ export default async function AdminDashboardPage({
   const proposalRound = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROPOSAL");
   const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
   const progress1BlockedReason = progress1Eligibility.notReady.flatMap((item) => item.reasons)[0];
+  const testingToolsEnabled = isAdminTestingToolsEnabled();
   const failAlertProjects = projects.filter((project) => shouldAlertAdminForFailVotes(project.proposalVotes));
   const pendingAdminProjects = projects.filter((project) => project.status === "PENDING_ADMIN");
   const nextAction = getNextActionForAdmin(projects.map((project) => ({ status: project.status, proposalVotes: project.proposalVotes })));
@@ -89,6 +91,25 @@ export default async function AdminDashboardPage({
         actions={<a className="button-secondary" href="/admin/teachers">จัดการอาจารย์</a>}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {testingToolsEnabled && activeOffering ? (
+        <WarningAlert title="โหมดทดสอบระบบเปิดอยู่">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm">
+              ใช้สำหรับช่วงลองระบบเท่านั้น ปุ่มนี้จะล้าง course offering ปัจจุบันพร้อมข้อมูลนิสิต/โปรเจค/รอบสอบ/คะแนน/รายงานที่ผูกกับรายวิชานี้ แล้วให้เริ่ม import ใหม่
+            </p>
+            <form action={resetCourseOfferingTestData}>
+              <input type="hidden" name="course_offering_id" value={activeOffering.id} />
+              <SubmitButton
+                className="button-secondary"
+                pendingText="กำลังล้างข้อมูล..."
+                confirmMessage={`ยืนยันล้างข้อมูลทดสอบของ ${activeOffering.term.displayName} หรือไม่? ใช้เฉพาะช่วงทดสอบก่อนใช้งานจริง`}
+              >
+                ล้างข้อมูลทดสอบรายวิชานี้
+              </SubmitButton>
+            </form>
+          </div>
+        </WarningAlert>
+      ) : null}
       <NextActionCard action={nextAction} />
       <GuidancePanel
         title="คำแนะนำสำหรับผู้ดูแลระบบ"

@@ -6,6 +6,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
 import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
+import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
+import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
@@ -140,6 +142,23 @@ export async function createAcademicSetup(formData: FormData) {
 
   revalidatePath("/admin");
   redirect("/admin?success=project_advisor_confirmed");
+}
+
+export async function resetCourseOfferingTestData(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  if (!isAdminTestingToolsEnabled()) redirect("/admin?error=test_tools_disabled");
+
+  const courseOfferingId = String(formData.get("course_offering_id") ?? "");
+  if (!courseOfferingId) redirect("/admin?error=course_offering_missing");
+
+  await resetCourseOfferingForTesting(prisma, courseOfferingId, adminUserId);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/import-students");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/rounds");
+  revalidatePath("/admin/proposals");
+  redirect("/admin?success=test_course_reset");
 }
 
 export async function importStudents(formData: FormData) {

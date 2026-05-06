@@ -37,6 +37,7 @@ successMessages.course_offering_opened = "เปิดรายวิชาเ�
 successMessages.students_imported = "นำเข้านักศึกษาในรายวิชานี้เรียบร้อยแล้ว";
 successMessages.teacher_baseline_seeded = "เพิ่มข้อมูลอาจารย์พื้นฐานเรียบร้อยแล้ว";
 successMessages.teacher_email_updated = "บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อ refresh สิทธิ์";
+successMessages.test_course_reset = "ล้างข้อมูลทดสอบของรายวิชาเรียบร้อยแล้ว";
 errorMessages.invalid_year = "ปีการศึกษาไม่ถูกต้อง กรุณากรอกเป็นปี พ.ศ. เช่น 2569";
 errorMessages.invalid_term = "ภาคเรียนไม่ถูกต้อง กรุณาเลือก 1, 2 หรือ summer";
 errorMessages.invalid_course_title = "ชื่อรายวิชายาวเกินไป";
@@ -51,6 +52,7 @@ errorMessages.progress_1_must_close_first = "ต้องเปิดและ�
 errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบ Progress 2 ก่อน แล้วจึงเปิด Final Presentation";
 errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มี submission/attempt/schedule/exception แล้ว";
 errorMessages.round_reset_not_needed = "รอบนี้ยังไม่ได้เปิด จึงไม่ต้องรีเซต";
+errorMessages.test_tools_disabled = "โหมดทดสอบระบบยังไม่ได้เปิดใช้งาน";
 
 export function ActionFeedback({
   success,

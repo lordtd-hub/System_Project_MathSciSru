@@ -21,4 +21,10 @@ describe("admin dashboard duplicate and batch round UX", () => {
     expect(pageSource).toContain("พบข้อมูล demo ซ้ำ");
     expect(pageSource).toContain("cmd /c npm.cmd run dev:reset-demo");
   });
+
+  it("keeps destructive testing cleanup behind an explicit testing mode gate", () => {
+    expect(pageSource).toContain("isAdminTestingToolsEnabled");
+    expect(pageSource).toContain("resetCourseOfferingTestData");
+    expect(pageSource).toContain("ล้างข้อมูลทดสอบรายวิชานี้");
+  });
 });
