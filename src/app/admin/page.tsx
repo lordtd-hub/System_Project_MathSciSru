@@ -88,7 +88,18 @@ export default async function AdminDashboardPage({
       <PageHeader
         title="แดชบอร์ดผู้ดูแลระบบ"
         description="ติดตาม lifecycle ทั้งระบบ ยืนยันโปรเจค จัดการ Proposal แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
-        actions={<a className="button-secondary" href="/admin/teachers">จัดการอาจารย์</a>}
+        actions={
+          <>
+            <span
+              className={`inline-flex min-h-11 items-center rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm ${
+                testingToolsEnabled ? "border-amber-200 bg-amber-50 text-amber-900" : "border-line bg-white text-muted"
+              }`}
+            >
+              โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
+            </span>
+            <a className="button-secondary" href="/admin/teachers">จัดการอาจารย์</a>
+          </>
+        }
       />
       <ActionFeedback success={params.success} error={params.error} />
       {testingToolsEnabled && activeOffering ? (

@@ -25,6 +25,7 @@ describe("admin dashboard duplicate and batch round UX", () => {
   it("keeps destructive testing cleanup behind an explicit testing mode gate", () => {
     expect(pageSource).toContain("isAdminTestingToolsEnabled");
     expect(pageSource).toContain("resetCourseOfferingTestData");
+    expect(pageSource).toContain("โหมดทดสอบ:");
     expect(pageSource).toContain("ล้างข้อมูลทดสอบรายวิชานี้");
   });
 });
