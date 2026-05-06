@@ -1,0 +1,915 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GlobalRole {
+  ADMIN
+  TEACHER
+  STUDENT
+  PENDING_TEACHER
+}
+
+enum TeacherClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TermType {
+  SEMESTER_1
+  SEMESTER_2
+  SUMMER
+}
+
+enum ProjectStatus {
+  STUDENT_PROFILE
+  DRAFT
+  PENDING_ADVISOR
+  PENDING_ADMIN
+  PROPOSAL_PENDING
+  PROPOSAL_REVIEW
+  PROPOSAL_ADMIN_DECISION
+  TOPIC_APPROVED
+  IN_PROGRESS
+  FINAL_DONE
+  REPORT_REVIEW
+  REPORT_APPROVED
+  ADVISOR_SCORING
+  ORIGIN_SUBMITTED
+  PROPOSAL_SUBMITTED
+  PROPOSAL_UNDER_REVIEW
+  PROPOSAL_PASSED
+  PROPOSAL_REVISION_REQUIRED
+  PROPOSAL_FAILED
+  COMMITTEE_ASSIGNED_FOR_REPROPOSAL
+  REPROPOSAL_SUBMITTED
+  REPROPOSAL_UNDER_REVIEW
+  REPROPOSAL_PASSED
+  REPROPOSAL_FAILED
+  READY_FOR_PROGRESS_1
+  IN_PROGRESS_1
+  IN_PROGRESS_2
+  READY_FOR_FINAL
+  COMPLETED
+}
+
+enum SourceType {
+  STUDENT_INITIATED
+  ADVISOR_SUGGESTED
+  TOPIC_BANK
+  COURSEWORK_EXTENSION
+  RESEARCH_EXTENSION
+  COMMUNITY_OR_INDUSTRY_PROBLEM
+  REVISED_FROM_FAILED_PROPOSAL
+  OTHER
+}
+
+enum AssessmentRoundType {
+  PROPOSAL
+  REPROPOSAL
+  PROGRESS_1
+  PROGRESS_2
+  FINAL_PRESENTATION
+}
+
+enum AssessmentStatus {
+  DRAFT
+  SUBMISSION_OPEN
+  SUBMISSION_CLOSED
+  SCORING_OPEN
+  SCORING_CLOSED
+  RELEASED
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  LOCKED
+  RETURNED_FOR_REVISION
+}
+
+enum AttemptType {
+  MAIN_PROPOSAL
+  REPROPOSAL
+  PROGRESS_1
+  PROGRESS_2
+  FINAL_PRESENTATION
+}
+
+enum Decision {
+  PASS
+  PASS_WITH_REVISION
+  NOT_PASS
+}
+
+enum ScoreStatus {
+  DRAFT
+  SUBMITTED
+  LOCKED
+}
+
+enum CommitteeRole {
+  ADVISOR
+  HEAD
+  MEMBER
+  EXTERNAL_MEMBER
+  COMMITTEE_MEMBER
+  EXTERNAL_COMMITTEE_MEMBER
+}
+
+enum AdvisorRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ProposalVoteDecision {
+  PASS
+  REVISE
+  FAIL
+}
+
+enum ScheduleProposalStatus {
+  PROPOSED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+enum ScheduleApprovalDecision {
+  PENDING
+  APPROVE
+  REJECT
+}
+
+enum AssessmentSubmissionKind {
+  PROGRESS_1
+  PROGRESS_2
+  FINAL_PRESENT
+}
+
+enum ReportReviewDecision {
+  PASS
+  FAIL
+}
+
+enum AdvisorScoreStatus {
+  LOCKED
+  DRAFT
+  SUBMITTED
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum CourseStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  EXCUSED
+}
+
+model User {
+  id          String     @id @default(cuid())
+  googleSub   String?    @unique @map("google_sub")
+  email       String?    @unique
+  emailDomain String?    @map("email_domain")
+  name        String?
+  globalRole  GlobalRole @default(STUDENT) @map("global_role")
+  active      Boolean    @default(true)
+  lastLoginAt DateTime?  @map("last_login_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  student                Student?
+  teacher                Teacher?
+  teacherClaims          TeacherAccountClaim[]           @relation("ClaimUser")
+  reviewedTeacherClaims  TeacherAccountClaim[]           @relation("ClaimReviewer")
+  originVersions         ProjectOriginVersion[]
+  submissionVersions     PresentationSubmissionVersion[]
+  evaluatorAssignments   EvaluatorAssignment[]
+  decidedProposalResults ProjectProposalResult[]
+  closedAssessmentRounds AssessmentRound[]               @relation("AssessmentRoundClosedByAdmin")
+  scoreReleases          ScoreRelease[]
+  timelineEvents         ProjectTimelineEvent[]
+  statusHistoryEvents    ProjectStatusHistory[]
+  appointedCommittees    CommitteeAssignment[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
+
+  @@map("users")
+}
+
+model Student {
+  id             String   @id @default(cuid())
+  userId         String?  @unique @map("user_id")
+  studentCode    String   @unique @map("student_code")
+  firstNameTh    String   @map("first_name_th")
+  lastNameTh     String   @map("last_name_th")
+  generatedEmail String   @unique @map("generated_email")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user                    User?                    @relation(fields: [userId], references: [id])
+  profile                 StudentProfile?
+  projects                Project[]
+  advisorRequests         AdvisorRequest[]
+  scheduleProposals       ExamScheduleProposal[]
+  assessmentSubmissions   AssessmentSubmission[]
+  reportVersions          ReportVersion[]
+  presentationSubmissions PresentationSubmission[]
+
+  @@map("students")
+}
+
+model Teacher {
+  id                  String   @id @default(cuid())
+  userId              String?  @unique @map("user_id")
+  academicPrefix      String   @map("academic_prefix")
+  firstNameTh         String   @map("first_name_th")
+  lastNameTh          String   @map("last_name_th")
+  email               String?  @unique
+  department          String   @default("Mathematics")
+  isInternal          Boolean  @default(true) @map("is_internal")
+  active              Boolean  @default(true)
+  canEvaluateProposal Boolean  @default(true) @map("can_evaluate_proposal")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user                 User?                  @relation(fields: [userId], references: [id])
+  claims               TeacherAccountClaim[]
+  tentativeOrigins     ProjectOrigin[]
+  evaluatorAssignments EvaluatorAssignment[]
+  advisorRequests      AdvisorRequest[]
+  committeeAssignments CommitteeAssignment[]
+  scheduleApprovals    ExamScheduleApproval[]
+  proposalVotes        ProposalVote[]
+  reportReviews        ReportReview[]
+  advisorScores        AdvisorScore[]
+  notifications        Notification[]
+
+  @@unique([academicPrefix, firstNameTh, lastNameTh])
+  @@map("teachers")
+}
+
+model TeacherAccountClaim {
+  id                    String             @id @default(cuid())
+  teacherId             String             @map("teacher_id")
+  userId                String             @map("user_id")
+  claimedEmail          String             @map("claimed_email")
+  googleSub             String             @map("google_sub")
+  claimedNameFromGoogle String?            @map("claimed_name_from_google")
+  status                TeacherClaimStatus @default(PENDING)
+  requestedAt           DateTime           @default(now()) @map("requested_at")
+  reviewedByAdminId     String?            @map("reviewed_by_admin_id")
+  reviewedAt            DateTime?          @map("reviewed_at")
+  adminNote             String?            @map("admin_note")
+
+  teacher         Teacher @relation(fields: [teacherId], references: [id])
+  user            User    @relation("ClaimUser", fields: [userId], references: [id])
+  reviewedByAdmin User?   @relation("ClaimReviewer", fields: [reviewedByAdminId], references: [id])
+
+  @@unique([teacherId, userId])
+  @@map("teacher_account_claims")
+}
+
+model AcademicYear {
+  id        String    @id @default(cuid())
+  yearBe    Int       @unique @map("year_be")
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+  active    Boolean   @default(true)
+
+  terms Term[]
+
+  @@map("academic_years")
+}
+
+model Term {
+  id             String       @id @default(cuid())
+  academicYearId String       @map("academic_year_id")
+  termType       TermType     @map("term_type")
+  displayName    String       @map("display_name")
+  status         CourseStatus @default(DRAFT)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  academicYear    AcademicYear     @relation(fields: [academicYearId], references: [id])
+  courseOfferings CourseOffering[]
+
+  @@unique([academicYearId, termType])
+  @@map("terms")
+}
+
+model CourseOffering {
+  id                      String       @id @default(cuid())
+  termId                  String       @map("term_id")
+  courseTitle             String       @default("Mathematical Project Course") @map("course_title")
+  presentationTotalWeight Decimal      @default(40) @map("presentation_total_weight") @db.Decimal(5, 2)
+  status                  CourseStatus @default(DRAFT)
+
+  term              Term                   @relation(fields: [termId], references: [id])
+  projects          Project[]
+  assessmentRounds  AssessmentRound[]
+  scheduleProposals ExamScheduleProposal[]
+
+  @@map("course_offerings")
+}
+
+model Project {
+  id               String        @id @default(cuid())
+  courseOfferingId String        @map("course_offering_id")
+  studentId        String        @map("student_id")
+  currentTitleTh   String?       @map("current_title_th")
+  currentTitleEn   String?       @map("current_title_en")
+  status           ProjectStatus @default(DRAFT)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  courseOffering          CourseOffering           @relation(fields: [courseOfferingId], references: [id])
+  student                 Student                  @relation(fields: [studentId], references: [id])
+  origin                  ProjectOrigin?
+  statusHistory           ProjectStatusHistory[]
+  advisorRequests         AdvisorRequest[]
+  committeeAssignments    CommitteeAssignment[]
+  scheduleProposals       ExamScheduleProposal[]
+  assessmentSubmissions   AssessmentSubmission[]
+  reportVersions          ReportVersion[]
+  proposalVotes           ProposalVote[]
+  advisorScore            AdvisorScore?
+  notifications           Notification[]
+  attempts                AssessmentAttempt[]
+  presentationSubmissions PresentationSubmission[]
+  proposalResults         ProjectProposalResult[]
+  scoreReleases           ScoreRelease[]
+  timelineEvents          ProjectTimelineEvent[]
+  roundExceptions         ProjectRoundException[]
+
+  @@unique([courseOfferingId, studentId])
+  @@map("projects")
+}
+
+model StudentProfile {
+  id            String    @id @default(cuid())
+  studentId     String    @unique @map("student_id")
+  phone         String?
+  lineId        String?   @map("line_id")
+  preferredName String?   @map("preferred_name")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@map("student_profiles")
+}
+
+model AdvisorRequest {
+  id               String               @id @default(cuid())
+  projectId        String               @map("project_id")
+  studentId        String               @map("student_id")
+  advisorTeacherId String               @map("advisor_teacher_id")
+  status           AdvisorRequestStatus @default(PENDING)
+  studentMessage   String?              @map("student_message")
+  advisorComment   String?              @map("advisor_comment")
+  requestedAt      DateTime             @default(now()) @map("requested_at")
+  reviewedAt       DateTime?            @map("reviewed_at")
+  reminderDueAt    DateTime?            @map("reminder_due_at")
+
+  project        Project @relation(fields: [projectId], references: [id])
+  student        Student @relation(fields: [studentId], references: [id])
+  advisorTeacher Teacher @relation(fields: [advisorTeacherId], references: [id])
+
+  @@index([projectId, status])
+  @@map("advisor_requests")
+}
+
+model ProjectStatusHistory {
+  id           String         @id @default(cuid())
+  projectId    String         @map("project_id")
+  fromStatus   ProjectStatus? @map("from_status")
+  toStatus     ProjectStatus  @map("to_status")
+  reason       String?
+  actorUserId  String?        @map("actor_user_id")
+  occurredAt   DateTime       @default(now()) @map("occurred_at")
+  metadataJson Json?          @map("metadata_json")
+
+  project Project @relation(fields: [projectId], references: [id])
+  actor   User?   @relation(fields: [actorUserId], references: [id])
+
+  @@index([projectId, occurredAt])
+  @@map("project_status_history")
+}
+
+model ProposalVote {
+  id                  String               @id @default(cuid())
+  projectId           String               @map("project_id")
+  assessmentAttemptId String?              @map("assessment_attempt_id")
+  teacherId           String               @map("teacher_id")
+  vote                ProposalVoteDecision
+  comment             String?
+  visibleToStudent    Boolean              @default(true) @map("visible_to_student")
+  submittedAt         DateTime             @default(now()) @map("submitted_at")
+
+  project           Project            @relation(fields: [projectId], references: [id])
+  assessmentAttempt AssessmentAttempt? @relation(fields: [assessmentAttemptId], references: [id])
+  teacher           Teacher            @relation(fields: [teacherId], references: [id])
+
+  @@unique([projectId, teacherId, assessmentAttemptId])
+  @@map("proposal_votes")
+}
+
+model CommitteeAssignment {
+  id                String        @id @default(cuid())
+  projectId         String        @map("project_id")
+  teacherId         String        @map("teacher_id")
+  role              CommitteeRole
+  appointedByUserId String?       @map("appointed_by_user_id")
+  appointedAt       DateTime      @default(now()) @map("appointed_at")
+  active            Boolean       @default(true)
+
+  project     Project @relation(fields: [projectId], references: [id])
+  teacher     Teacher @relation(fields: [teacherId], references: [id])
+  appointedBy User?   @relation(fields: [appointedByUserId], references: [id])
+
+  @@unique([projectId, teacherId, role])
+  @@map("committee_assignments")
+}
+
+model ExamScheduleProposal {
+  id                  String                   @id @default(cuid())
+  projectId           String                   @map("project_id")
+  courseOfferingId    String?                  @map("course_offering_id")
+  assessmentRoundId   String?                  @map("assessment_round_id")
+  roundType           AssessmentRoundType?     @map("round_type")
+  assessmentKind      AssessmentSubmissionKind @map("assessment_kind")
+  proposedStartAt     DateTime                 @map("proposed_start_at")
+  proposedEndAt       DateTime?                @map("proposed_end_at")
+  room                String?
+  note                String?
+  status              ScheduleProposalStatus   @default(PROPOSED)
+  proposedByStudentId String                   @map("proposed_by_student_id")
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+
+  project           Project                @relation(fields: [projectId], references: [id])
+  courseOffering    CourseOffering?        @relation(fields: [courseOfferingId], references: [id])
+  assessmentRound   AssessmentRound?       @relation(fields: [assessmentRoundId], references: [id])
+  proposedByStudent Student                @relation(fields: [proposedByStudentId], references: [id])
+  approvals         ExamScheduleApproval[]
+
+  @@unique([projectId, assessmentRoundId])
+  @@index([projectId, assessmentKind, status])
+  @@index([courseOfferingId, roundType, status])
+  @@map("exam_schedule_proposals")
+}
+
+model ExamScheduleApproval {
+  id                 String                   @id @default(cuid())
+  scheduleProposalId String                   @map("schedule_proposal_id")
+  teacherId          String                   @map("teacher_id")
+  decision           ScheduleApprovalDecision @default(PENDING)
+  comment            String?
+  decidedAt          DateTime?                @map("decided_at")
+
+  scheduleProposal ExamScheduleProposal @relation(fields: [scheduleProposalId], references: [id])
+  teacher          Teacher              @relation(fields: [teacherId], references: [id])
+
+  @@unique([scheduleProposalId, teacherId])
+  @@map("exam_schedule_approvals")
+}
+
+model AssessmentSubmission {
+  id           String                   @id @default(cuid())
+  projectId    String                   @map("project_id")
+  studentId    String                   @map("student_id")
+  kind         AssessmentSubmissionKind
+  title        String?
+  materialLink String                   @map("material_link")
+  contentJson  Json?                    @map("content_json")
+  submittedAt  DateTime                 @default(now()) @map("submitted_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([projectId, kind])
+  @@map("assessment_submissions")
+}
+
+model ReportVersion {
+  id                   String   @id @default(cuid())
+  projectId            String   @map("project_id")
+  versionNo            Int      @map("version_no")
+  driveLink            String   @map("drive_link")
+  submittedByStudentId String   @map("submitted_by_student_id")
+  submittedAt          DateTime @default(now()) @map("submitted_at")
+
+  project            Project        @relation(fields: [projectId], references: [id])
+  submittedByStudent Student        @relation(fields: [submittedByStudentId], references: [id])
+  reviews            ReportReview[]
+
+  @@unique([projectId, versionNo])
+  @@map("report_versions")
+}
+
+model ReportReview {
+  id                String               @id @default(cuid())
+  reportVersionId   String               @map("report_version_id")
+  reviewerTeacherId String               @map("reviewer_teacher_id")
+  decision          ReportReviewDecision
+  comment           String?
+  reviewedAt        DateTime             @default(now()) @map("reviewed_at")
+
+  reportVersion   ReportVersion @relation(fields: [reportVersionId], references: [id])
+  reviewerTeacher Teacher       @relation(fields: [reviewerTeacherId], references: [id])
+
+  @@unique([reportVersionId, reviewerTeacherId])
+  @@map("report_reviews")
+}
+
+model AdvisorScore {
+  id                   String             @id @default(cuid())
+  projectId            String             @unique @map("project_id")
+  advisorTeacherId     String             @map("advisor_teacher_id")
+  score                Decimal?           @db.Decimal(5, 2)
+  responsibilityScore  Int?               @map("responsibility_score")
+  researchProcessScore Int?               @map("research_process_score")
+  problemSolvingScore  Int?               @map("problem_solving_score")
+  communicationScore   Int?               @map("communication_score")
+  professionalismScore Int?               @map("professionalism_score")
+  comment              String?
+  status               AdvisorScoreStatus @default(LOCKED)
+  reportClosedAt       DateTime?          @map("report_closed_at")
+  unlockedAt           DateTime?          @map("unlocked_at")
+  submittedAt          DateTime?          @map("submitted_at")
+
+  project        Project @relation(fields: [projectId], references: [id])
+  advisorTeacher Teacher @relation(fields: [advisorTeacherId], references: [id])
+
+  @@map("advisor_scores")
+}
+
+model Notification {
+  id         String             @id @default(cuid())
+  projectId  String?            @map("project_id")
+  userId     String?            @map("user_id")
+  teacherId  String?            @map("teacher_id")
+  title      String
+  body       String?
+  kind       String
+  emailReady Boolean            @default(false) @map("email_ready")
+  status     NotificationStatus @default(UNREAD)
+  createdAt  DateTime           @default(now()) @map("created_at")
+  readAt     DateTime?          @map("read_at")
+
+  project Project? @relation(fields: [projectId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+  teacher Teacher? @relation(fields: [teacherId], references: [id])
+
+  @@index([userId, status])
+  @@index([teacherId, status])
+  @@map("notifications")
+}
+
+model ProjectOrigin {
+  id                    String           @id @default(cuid())
+  projectId             String           @unique @map("project_id")
+  initialProjectTitleTh String           @map("initial_project_title_th")
+  initialProjectTitleEn String?          @map("initial_project_title_en")
+  sourceType            SourceType       @map("source_type")
+  sourceDetail          String?          @map("source_detail")
+  reasonForTopic        String           @map("reason_for_topic")
+  expectedMathArea      String           @map("expected_math_area")
+  tentativeAdvisorId    String?          @map("tentative_advisor_id")
+  consultationSummary   String           @map("consultation_summary")
+  initialReferences     String           @map("initial_references")
+  materialLink          String           @map("material_link")
+  declarationAccepted   Boolean          @map("declaration_accepted")
+  status                SubmissionStatus @default(DRAFT)
+  submittedAt           DateTime?        @map("submitted_at")
+  lockedAt              DateTime?        @map("locked_at")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  project          Project                @relation(fields: [projectId], references: [id])
+  tentativeAdvisor Teacher?               @relation(fields: [tentativeAdvisorId], references: [id])
+  versions         ProjectOriginVersion[]
+
+  @@map("project_origins")
+}
+
+model ProjectOriginVersion {
+  id              String   @id @default(cuid())
+  projectOriginId String   @map("project_origin_id")
+  versionNo       Int      @map("version_no")
+  snapshotJson    Json     @map("snapshot_json")
+  savedByUserId   String   @map("saved_by_user_id")
+  savedAt         DateTime @default(now()) @map("saved_at")
+
+  projectOrigin ProjectOrigin @relation(fields: [projectOriginId], references: [id])
+  savedByUser   User          @relation(fields: [savedByUserId], references: [id])
+
+  @@unique([projectOriginId, versionNo])
+  @@map("project_origin_versions")
+}
+
+model AssessmentRound {
+  id                         String              @id @default(cuid())
+  courseOfferingId           String              @map("course_offering_id")
+  roundType                  AssessmentRoundType @map("round_type")
+  name                       String
+  courseWeight               Decimal             @map("course_weight") @db.Decimal(5, 2)
+  rawScoreMax                Int                 @default(100) @map("raw_score_max")
+  status                     AssessmentStatus    @default(DRAFT)
+  submissionOpenAt           DateTime?           @map("submission_open_at")
+  submissionDeadline         DateTime?           @map("submission_deadline")
+  scoringDeadline            DateTime?           @map("scoring_deadline")
+  showScoreToStudent         Boolean             @default(false) @map("show_score_to_student")
+  showFeedbackToStudent      Boolean             @default(false) @map("show_feedback_to_student")
+  showEvaluatorNameToStudent Boolean             @default(false) @map("show_evaluator_name_to_student")
+  closedAt                   DateTime?           @map("closed_at")
+  closedByAdminId            String?             @map("closed_by_admin_id")
+  createdAt                  DateTime            @default(now()) @map("created_at")
+  updatedAt                  DateTime            @updatedAt @map("updated_at")
+
+  courseOffering    CourseOffering          @relation(fields: [courseOfferingId], references: [id])
+  closedByAdmin     User?                   @relation("AssessmentRoundClosedByAdmin", fields: [closedByAdminId], references: [id])
+  attempts          AssessmentAttempt[]
+  projectExceptions ProjectRoundException[]
+  scheduleProposals ExamScheduleProposal[]
+
+  @@unique([courseOfferingId, roundType])
+  @@map("assessment_rounds")
+}
+
+model ProjectRoundException {
+  id                String    @id @default(cuid())
+  projectId         String    @map("project_id")
+  assessmentRoundId String    @map("assessment_round_id")
+  exceptionType     String    @map("exception_type")
+  reason            String
+  status            String    @default("OPEN")
+  extendedDeadline  DateTime? @map("extended_deadline")
+  reopenedAt        DateTime? @map("reopened_at")
+  reopenedById      String?   @map("reopened_by_id")
+  resolvedAt        DateTime? @map("resolved_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  project         Project         @relation(fields: [projectId], references: [id])
+  assessmentRound AssessmentRound @relation(fields: [assessmentRoundId], references: [id])
+
+  @@index([projectId, assessmentRoundId, status])
+  @@map("project_round_exceptions")
+}
+
+model AssessmentAttempt {
+  id                  String           @id @default(cuid())
+  projectId           String           @map("project_id")
+  assessmentRoundId   String           @map("assessment_round_id")
+  attemptNo           Int              @map("attempt_no")
+  attemptType         AttemptType      @map("attempt_type")
+  previousAttemptId   String?          @map("previous_attempt_id")
+  status              AssessmentStatus @default(DRAFT)
+  isOfficialScore     Boolean          @default(false) @map("is_official_score")
+  officialScore       Decimal?         @map("official_score") @db.Decimal(5, 2)
+  finalDecision       Decision?        @map("final_decision")
+  finalDecisionReason String?          @map("final_decision_reason")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  closedAt            DateTime?        @map("closed_at")
+
+  project                Project                 @relation(fields: [projectId], references: [id])
+  assessmentRound        AssessmentRound         @relation(fields: [assessmentRoundId], references: [id])
+  previousAttempt        AssessmentAttempt?      @relation("AttemptChain", fields: [previousAttemptId], references: [id])
+  nextAttempts           AssessmentAttempt[]     @relation("AttemptChain")
+  presentationSubmission PresentationSubmission?
+  evaluatorAssignments   EvaluatorAssignment[]
+  proposalResult         ProjectProposalResult?
+  scoreRelease           ScoreRelease?
+  proposalVotes          ProposalVote[]
+
+  @@unique([projectId, assessmentRoundId, attemptNo])
+  @@map("assessment_attempts")
+}
+
+model PresentationSubmission {
+  id                  String           @id @default(cuid())
+  assessmentAttemptId String           @unique @map("assessment_attempt_id")
+  projectId           String           @map("project_id")
+  studentId           String           @map("student_id")
+  titleTh             String           @map("title_th")
+  titleEn             String?          @map("title_en")
+  abstractText        String           @map("abstract_text")
+  contentJson         Json             @map("content_json")
+  materialLink        String           @map("material_link")
+  declarationAccepted Boolean          @map("declaration_accepted")
+  status              SubmissionStatus @default(DRAFT)
+  submittedAt         DateTime?        @map("submitted_at")
+  lockedAt            DateTime?        @map("locked_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  assessmentAttempt AssessmentAttempt               @relation(fields: [assessmentAttemptId], references: [id])
+  project           Project                         @relation(fields: [projectId], references: [id])
+  student           Student                         @relation(fields: [studentId], references: [id])
+  versions          PresentationSubmissionVersion[]
+
+  @@map("presentation_submissions")
+}
+
+model PresentationSubmissionVersion {
+  id                       String   @id @default(cuid())
+  presentationSubmissionId String   @map("presentation_submission_id")
+  versionNo                Int      @map("version_no")
+  snapshotJson             Json     @map("snapshot_json")
+  savedByUserId            String   @map("saved_by_user_id")
+  savedAt                  DateTime @default(now()) @map("saved_at")
+
+  presentationSubmission PresentationSubmission @relation(fields: [presentationSubmissionId], references: [id])
+  savedByUser            User                   @relation(fields: [savedByUserId], references: [id])
+
+  @@unique([presentationSubmissionId, versionNo])
+  @@map("presentation_submission_versions")
+}
+
+model Rubric {
+  id        String              @id @default(cuid())
+  roundType AssessmentRoundType @map("round_type")
+  name      String
+  version   Int                 @default(1)
+  active    Boolean             @default(true)
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  items RubricItem[]
+
+  @@unique([roundType, version])
+  @@map("rubrics")
+}
+
+model RubricItem {
+  id           String  @id @default(cuid())
+  rubricId     String  @map("rubric_id")
+  groupKey     String  @map("group_key")
+  groupLabelTh String  @map("group_label_th")
+  itemKey      String  @map("item_key")
+  itemLabelTh  String  @map("item_label_th")
+  points       Int
+  displayOrder Int     @map("display_order")
+  isCritical   Boolean @default(false) @map("is_critical")
+  evidenceHint String? @map("evidence_hint")
+
+  rubric     Rubric      @relation(fields: [rubricId], references: [id])
+  scoreItems ScoreItem[]
+
+  @@unique([rubricId, itemKey])
+  @@map("rubric_items")
+}
+
+model EvaluatorAssignment {
+  id                           String           @id @default(cuid())
+  assessmentAttemptId          String           @map("assessment_attempt_id")
+  evaluatorUserId              String           @map("evaluator_user_id")
+  teacherId                    String?          @map("teacher_id")
+  evaluatorDisplayNameSnapshot String           @map("evaluator_display_name_snapshot")
+  isRequired                   Boolean          @default(false) @map("is_required")
+  status                       AssignmentStatus @default(ASSIGNED)
+  assignedAt                   DateTime         @default(now()) @map("assigned_at")
+
+  assessmentAttempt AssessmentAttempt @relation(fields: [assessmentAttemptId], references: [id])
+  evaluatorUser     User              @relation(fields: [evaluatorUserId], references: [id])
+  teacher           Teacher?          @relation(fields: [teacherId], references: [id])
+  scoreSubmission   ScoreSubmission?
+
+  @@unique([assessmentAttemptId, evaluatorUserId])
+  @@map("evaluator_assignments")
+}
+
+model ScoreSubmission {
+  id                    String      @id @default(cuid())
+  evaluatorAssignmentId String      @unique @map("evaluator_assignment_id")
+  totalScore            Decimal     @default(0) @map("total_score") @db.Decimal(5, 2)
+  overallComment        String?     @map("overall_comment")
+  status                ScoreStatus @default(DRAFT)
+  submittedAt           DateTime?   @map("submitted_at")
+  lockedAt              DateTime?   @map("locked_at")
+
+  evaluatorAssignment EvaluatorAssignment        @relation(fields: [evaluatorAssignmentId], references: [id])
+  scoreItems          ScoreItem[]
+  proposalDecision    ProposalEvaluatorDecision?
+
+  @@map("score_submissions")
+}
+
+model ScoreItem {
+  id                String  @id @default(cuid())
+  scoreSubmissionId String  @map("score_submission_id")
+  rubricItemId      String  @map("rubric_item_id")
+  checked           Boolean @default(false)
+  pointsAwarded     Int     @default(0) @map("points_awarded")
+  comment           String?
+
+  scoreSubmission ScoreSubmission @relation(fields: [scoreSubmissionId], references: [id])
+  rubricItem      RubricItem      @relation(fields: [rubricItemId], references: [id])
+
+  @@unique([scoreSubmissionId, rubricItemId])
+  @@map("score_items")
+}
+
+model ProposalEvaluatorDecision {
+  id                String   @id @default(cuid())
+  scoreSubmissionId String   @unique @map("score_submission_id")
+  decision          Decision
+  reason            String?
+
+  scoreSubmission ScoreSubmission @relation(fields: [scoreSubmissionId], references: [id])
+
+  @@map("proposal_evaluator_decisions")
+}
+
+model ProjectProposalResult {
+  id                  String   @id @default(cuid())
+  assessmentAttemptId String   @unique @map("assessment_attempt_id")
+  projectId           String   @map("project_id")
+  averageScore        Decimal  @default(0) @map("average_score") @db.Decimal(5, 2)
+  submittedCount      Int      @default(0) @map("submitted_count")
+  missingCount        Int      @default(0) @map("missing_count")
+  passCount           Int      @default(0) @map("pass_count")
+  revisionCount       Int      @default(0) @map("revision_count")
+  notPassCount        Int      @default(0) @map("not_pass_count")
+  finalDecision       Decision @map("final_decision")
+  finalDecisionReason String?  @map("final_decision_reason")
+  decidedByAdminId    String   @map("decided_by_admin_id")
+  decidedAt           DateTime @default(now()) @map("decided_at")
+
+  assessmentAttempt AssessmentAttempt @relation(fields: [assessmentAttemptId], references: [id])
+  project           Project           @relation(fields: [projectId], references: [id])
+  decidedByAdmin    User              @relation(fields: [decidedByAdminId], references: [id])
+
+  @@map("project_proposal_results")
+}
+
+model ScoreRelease {
+  id                  String   @id @default(cuid())
+  assessmentAttemptId String   @unique @map("assessment_attempt_id")
+  projectId           String   @map("project_id")
+  showScore           Boolean  @default(false) @map("show_score")
+  showFeedback        Boolean  @default(true) @map("show_feedback")
+  releasedByAdminId   String   @map("released_by_admin_id")
+  releasedAt          DateTime @default(now()) @map("released_at")
+
+  assessmentAttempt AssessmentAttempt @relation(fields: [assessmentAttemptId], references: [id])
+  project           Project           @relation(fields: [projectId], references: [id])
+  releasedByAdmin   User              @relation(fields: [releasedByAdminId], references: [id])
+
+  @@map("score_releases")
+}
+
+model ProjectTimelineEvent {
+  id                String   @id @default(cuid())
+  projectId         String   @map("project_id")
+  eventType         String   @map("event_type")
+  eventTitle        String   @map("event_title")
+  eventDescription  String?  @map("event_description")
+  actorUserId       String?  @map("actor_user_id")
+  occurredAt        DateTime @default(now()) @map("occurred_at")
+  relatedEntityType String?  @map("related_entity_type")
+  relatedEntityId   String?  @map("related_entity_id")
+  metadataJson      Json?    @map("metadata_json")
+
+  project Project @relation(fields: [projectId], references: [id])
+  actor   User?   @relation(fields: [actorUserId], references: [id])
+
+  @@map("project_timeline_events")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?  @map("actor_user_id")
+  action       String
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id")
+  beforeJson   Json?    @map("before_json")
+  afterJson    Json?    @map("after_json")
+  occurredAt   DateTime @default(now()) @map("occurred_at")
+  metadataJson Json?    @map("metadata_json")
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@map("audit_logs")
+}

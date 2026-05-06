@@ -1,0 +1,1276 @@
+# Implementation Progress
+
+## Current status
+
+- Last completed task: Final closeout / completion workflow through `COMPLETED`
+- Current task: Stabilization, hardening, and pre-production review
+- Known blockers: None for the current Lifecycle v2 implementation. Production deployment and real Google OAuth credential testing are still pending.
+- Current baseline: Lifecycle v2 is implemented through Admin-only `COMPLETED`; self-scheduling, Progress 1 scoring, Progress 2 scoring, Final Presentation scoring, report approval, Advisor score 25%, and closeout are functional.
+- Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
+- Next step: Production deployment preparation, real Google OAuth credential test, Supabase/Vercel setup, and final production security review.
+
+Historical note: The original Task 01-10 checklist below is retained as the initial MVP sequence. Later 2026-05-06 sections supersede early Proposal-only limitations.
+
+## Task checklist
+
+- [x] Task 01 - Scaffold
+- [x] Task 02 - Prisma schema
+- [x] Task 03 - Seed teachers and proposal rubric
+- [x] Task 04 - Student Excel import
+- [x] Task 05 - Google auth and teacher account claim
+- [x] Task 06 - Academic year and term setup
+- [x] Task 07 - Project Origin Form
+- [x] Task 08 - Proposal Submission Form
+- [x] Task 09 - Proposal checklist scoring
+- [x] Task 10 - Admin proposal summary and release
+
+## Decisions / assumptions
+
+- Implemented a simple server-action UI for MVP 1 instead of complex client workflows.
+- Student import accepts pasted CSV exported from Excel; `xlsx` is installed for a richer file-upload parser later.
+- Google OAuth is wired with NextAuth JWT sessions and stores Google `sub` in the app `User` record.
+- Proposal feedback shown to students is anonymous; admin summary keeps evaluator names available through assignments.
+- Advisor visibility is database-ready through tentative advisor fields, but a full advisor dashboard is left outside MVP 1 UI.
+- Migration SQL was not generated because no live local PostgreSQL connection was available during this run.
+- Added Thai production deployment guidance to `README.md`, including Supabase PostgreSQL, Vercel environment variables, separate local/production secrets, and production migration command `npx prisma migrate deploy`.
+- Added `docker-compose.yml` for local PostgreSQL development with `postgres:16`, container `project_assessment_postgres`, exposed port `5432`, and persistent volume `project_assessment_pgdata`.
+- Confirmed `.env.example` uses `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/project_assessment?schema=public"`.
+- Created a local ignored `.env` from `.env.example` so Prisma validation can read the development `DATABASE_URL`; this file must not be committed.
+
+## Validation
+
+- `cmd /c npm.cmd install` - passed
+- `cmd /c npx.cmd prisma generate` with example `DATABASE_URL` - passed
+- `cmd /c npm.cmd run prisma:format` with example `DATABASE_URL` - passed
+- `cmd /c npm.cmd run prisma:validate` with example `DATABASE_URL` - passed
+- `cmd /c npm.cmd run typecheck` - passed
+- `cmd /c npm.cmd run test` - passed, 7 tests
+- `cmd /c npm.cmd run lint` - passed
+- `cmd /c npm.cmd run build` - passed
+- `cmd /c npm.cmd run prisma:migrate -- --name init --skip-seed` - blocked by local PostgreSQL/schema engine connection error
+
+## 2026-05-05 Documentation update
+
+- Added README section: `Development vs Production`.
+- Clarified that local PostgreSQL in Docker is for development only.
+- Clarified that production must use Supabase PostgreSQL and Vercel environment variables.
+- Clarified that production migrations use `npx prisma migrate deploy`, not `prisma migrate dev`.
+- Confirmed no Progress 1, Progress 2, Final, external committee, or AUN-QA export implementation was added.
+
+## 2026-05-06 Project Lifecycle v2 update
+
+- Updated `PROJECT_SPEC.md` with clean Lifecycle v2 workflow:
+  - `STUDENT_PROFILE`
+  - `DRAFT`
+  - `PENDING_ADVISOR`
+  - `PENDING_ADMIN`
+  - `PROPOSAL_PENDING`
+  - `PROPOSAL_REVIEW`
+  - `PROPOSAL_ADMIN_DECISION`
+  - `TOPIC_APPROVED`
+  - `IN_PROGRESS`
+  - `FINAL_DONE`
+  - `REPORT_REVIEW`
+  - `REPORT_APPROVED`
+  - `ADVISOR_SCORING`
+  - `COMPLETED`
+- Updated `DATA_MODEL_DRAFT.md` with Lifecycle v2 data model addendum.
+- Updated `RUBRICS_CHECKLIST.md` with Proposal vote and visibility v2 notes.
+- Updated `prisma/schema.prisma`:
+  - Added new ProjectStatus values while retaining legacy values for compatibility.
+  - Added committee roles `HEAD`, `MEMBER`, `EXTERNAL_MEMBER`.
+  - Added enums for advisor requests, proposal votes, schedule approvals, report review, advisor score lock state, notifications.
+  - Added models: `StudentProfile`, `AdvisorRequest`, `ProjectStatusHistory`, `ProposalVote`, `CommitteeAssignment`, `ExamScheduleProposal`, `ExamScheduleApproval`, `AssessmentSubmission`, `ReportVersion`, `ReportReview`, `AdvisorScore`, `Notification`.
+- Added migration: `prisma/migrations/20260506034510_lifecycle_v2/migration.sql`.
+- Updated routes/pages:
+  - `src/app/admin/page.tsx` shows Lifecycle v2 status counts and notification skeleton.
+  - `src/app/student/page.tsx` shows Thai status labels, lifecycle steps, committee/schedule skeleton.
+  - `src/app/teacher/page.tsx` shows advisor/committee lifecycle guidance and schedule approval notification skeleton.
+  - `src/app/admin/proposals/page.tsx` shows v2 PASS/REVISE/FAIL vote counts and Admin alert when FAIL votes are at least 50%.
+  - `src/app/student/feedback/page.tsx` now reflects v2 Proposal visibility: comments visible immediately, teacher names visible, score hidden.
+- Updated server actions:
+  - Imported students now start at `STUDENT_PROFILE`.
+  - Student project origin/advisor selection moves project to `PENDING_ADVISOR` and writes status history.
+  - Proposal submission moves project to `PROPOSAL_PENDING` and writes status history.
+  - Teacher score submission also writes `ProposalVote` with `PASS`/`REVISE`/`FAIL`.
+  - Admin final proposal decision updates lifecycle status and writes `ProjectStatusHistory`.
+- Added service files:
+  - `src/lib/lifecycle/statusLabels.ts`
+  - `src/lib/lifecycle/transitions.ts`
+- Added tests in `src/lib/lifecycle/transitions.test.ts` for:
+  - advisor reject returns `DRAFT`
+  - advisor approve goes `PENDING_ADMIN`
+  - admin confirm goes `PROPOSAL_PENDING`
+  - proposal FAIL final decision returns `DRAFT` and keeps history
+  - proposal PASS final decision goes `TOPIC_APPROVED`
+  - FAIL vote ratio >= 50 creates Admin alert condition
+  - schedule confirmed only when all committee approvals are `APPROVE`
+  - advisor score remains locked until report is closed by advisor
+- Exact command results:
+  - `cmd /c npm.cmd run prisma:format` - passed
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run prisma:migrate -- --name lifecycle_v2` - migration applied; Prisma Client generation initially hit Windows `EPERM` file lock.
+  - `cmd /c npx.cmd prisma generate` - first retry hit same `EPERM`; stopped stale Node worker processes and reran successfully.
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 15 tests
+  - `cmd /c npm.cmd run build` - passed
+- Remaining limitations:
+  - No deep Progress 1 scoring UI.
+  - No deep Progress 2 scoring UI.
+  - No deep Final scoring UI.
+  - No external committee magic link.
+  - No full AUN-QA export.
+  - Advisor/admin approval actions and schedule proposal forms are database-ready/skeleton-visible but not fully workflow-complete.
+
+## 2026-05-06 Lifecycle v2 foundation verification
+
+- Verification result: Lifecycle v2 foundation is complete for documentation, state model, Prisma schema, service rules, tests, and current skeleton visibility.
+- Checked `PROJECT_SPEC.md`: contains all v2 statuses from `STUDENT_PROFILE` through `COMPLETED`.
+- Checked `DATA_MODEL_DRAFT.md`: contains v2 addendum for profile, advisor request, status history, proposal votes, committee assignment, schedule proposal/approval, assessment submission, report version/review, advisor score, and notifications.
+- Checked `prisma/schema.prisma`: supports:
+  - `StudentProfile`
+  - `AdvisorRequest`
+  - `ProjectStatusHistory`
+  - `ProposalVote` with `PASS` / `REVISE` / `FAIL`
+  - `CommitteeAssignment` with `ADVISOR` / `HEAD` / `MEMBER` / `EXTERNAL_MEMBER`
+  - `ExamScheduleProposal`
+  - `ExamScheduleApproval`
+  - `AssessmentSubmission`
+  - `ReportVersion`
+  - `ReportReview`
+  - `AdvisorScore`
+  - `Notification`
+- Checked lifecycle service:
+  - advisor reject returns `DRAFT`
+  - advisor approve goes `PENDING_ADMIN`
+  - admin confirm goes `PROPOSAL_PENDING`
+  - proposal PASS final decision goes `TOPIC_APPROVED`
+  - proposal FAIL final decision returns `DRAFT` and keeps history
+  - FAIL vote ratio >= 50 triggers Admin alert condition
+  - schedule confirms only when all committee approvals are `APPROVE`
+  - advisor score lock rule exists
+- Checked route foundation:
+  - Student Proposal feedback route shows comments immediately from `ProposalVote`.
+  - Proposal scores remain hidden from student feedback.
+  - Teacher names are visible with Proposal comments.
+  - Admin Proposal route uses FAIL vote alert condition.
+- Missing item fixed:
+  - Added explicit `AdvisorScore.reportClosedAt` field so the advisor "ปิดเล่ม" gate is database-ready, not just implied by `unlockedAt`.
+  - Added stronger test case to keep advisor score locked when advisor closes report but not all reviewers have passed.
+  - Added migration `prisma/migrations/20260506035154_advisor_score_report_closed_gate/migration.sql`.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format` - passed
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run prisma:migrate -- --name advisor_score_report_closed_gate` - passed after approved Prisma engine access
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 15 tests
+  - `cmd /c npm.cmd run build` - passed
+- Remaining limitations:
+  - Detailed modern UI has not been implemented.
+  - Full advisor/admin approval actions are not implemented yet.
+  - Schedule proposal forms are not implemented yet.
+  - No deep Progress 1 scoring.
+  - No deep Progress 2 scoring.
+  - No deep Final scoring.
+  - No external committee magic link.
+  - No full AUN-QA export.
+- Validation after README/progress update:
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 7 tests
+  - `cmd /c npm.cmd run build` - passed
+
+## 2026-05-05 Local Docker PostgreSQL update
+
+- Checked for `docker-compose.yml`; it did not exist.
+- Added `docker-compose.yml` for local PostgreSQL development only.
+- Added Thai README instructions for:
+  - `docker compose up -d`
+  - copying `.env.example` to `.env`
+  - running migration
+  - running seed
+  - running dev server
+- Confirmed no Progress 1, Progress 2, Final, external committee, or AUN-QA export implementation was added.
+- Validation:
+  - `cmd /c npm.cmd run prisma:format` - passed
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 7 tests
+  - `cmd /c npm.cmd run build` - passed
+
+## 2026-05-06 Local database setup
+
+- Checked `.env` exists: passed.
+- Checked `DATABASE_URL` is set: `.env` contains `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/project_assessment?schema=public"`.
+- Attempted Docker status check with `docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"`: blocked by Windows Docker API permission in the sandbox, but Prisma was able to connect to PostgreSQL through `localhost:5432`.
+- Ran `cmd /c npm.cmd run prisma:migrate -- --name init`: first attempt failed with `P3015` because an old empty migration directory `prisma/migrations/20260505153000_init` existed without `migration.sql`.
+- Fixed root cause by removing the empty migration directory only. No database reset or database deletion was performed.
+- Reran `cmd /c npm.cmd run prisma:migrate -- --name init`: passed. Created and applied `prisma/migrations/20260506032223_init/migration.sql`; Prisma Client generated successfully.
+- Ran `cmd /c npm.cmd run prisma:seed`: first sandboxed attempt failed while accessing Prisma engine download/check; rerun with approval passed.
+- Ran `cmd /c npm.cmd run prisma:validate`: passed.
+- Ran `cmd /c npm.cmd run typecheck`: passed.
+- Ran `cmd /c npm.cmd test`: passed, 7 tests.
+- Ran `cmd /c npm.cmd run build`: passed.
+- Confirmed no Progress 1, Progress 2, Final, external committee, or AUN-QA export implementation was added.
+
+## 2026-05-06 Lifecycle v2 guided UI update
+
+- Implemented modern guided Lifecycle v2 UI skeletons with Thai labels and no empty placeholder pages.
+- Reusable components added:
+  - `StatusBadge`
+  - `LifecycleStepper`
+  - `NextActionCard`
+  - `GuidancePanel`
+  - `EmptyState`
+  - `TimelineCard`
+  - `TaskListCard`
+  - `InfoAlert` / `WarningAlert` / `SuccessAlert`
+  - `FormSection`
+  - `MaterialLinkField`
+  - `MarkdownLatexEditor`
+  - `PageHeader`
+- UI business logic added:
+  - `getNextActionForStudent(status)`
+  - `getNextActionForTeacher(tasks)`
+  - `getNextActionForAdmin(projects)`
+  - proposal student visibility helper for hidden score / visible comment + teacher name behavior.
+- Routes updated or added:
+  - `/`
+  - `/admin`
+  - `/admin/students`
+  - `/admin/teachers`
+  - `/admin/claims`
+  - `/admin/proposals`
+  - `/admin/committee`
+  - `/student`
+  - `/student/profile`
+  - `/student/project`
+  - `/student/proposal`
+  - `/student/schedule`
+  - `/student/report`
+  - `/teacher`
+  - `/teacher/advisor-requests`
+  - `/teacher/proposals`
+  - `/teacher/schedules`
+  - `/teacher/reports`
+  - `/teacher/scoring/[assignmentId]`
+- Student UI now shows:
+  - profile summary
+  - project summary
+  - lifecycle status badge
+  - LifecycleStepper
+  - next-action guidance
+  - task checklist
+  - advisor/proposal/schedule/report cards
+  - timeline/evidence preview
+  - Proposal comments visible immediately with teacher names while Proposal scores remain hidden.
+- Teacher UI now shows:
+  - account/role status
+  - advisor request cards with 7-day warning
+  - Proposal scoring task list
+  - guided Proposal scoring page with grouped rubric, abstract preview, warnings, vote, and comment reminder
+  - schedule approval skeleton
+  - report review skeleton
+  - advisor final gate and Advisor score 25% lock skeleton.
+- Admin UI now shows:
+  - top KPI cards
+  - project status overview by Lifecycle v2 status
+  - pending Admin confirmation action using `confirmProjectAdvisor`
+  - proposal fail-ratio alert surface
+  - committee assignment skeleton with advisor shown as ADVISOR
+  - teacher/students management routes
+  - recent evidence timeline.
+- Tests added/updated:
+  - next-action helpers for student/teacher/admin
+  - proposal score hidden from student
+  - proposal comment visible to student with teacher name
+  - existing lifecycle tests continue covering FAIL ratio >= 50, schedule approval, advisor score lock, and status transitions.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 19 tests
+  - `cmd /c npm.cmd run build` - passed, 26 routes generated
+  - Started local dev server at `http://127.0.0.1:3000` for route verification access.
+  - Checked required visible routes on the dev server with `Invoke-WebRequest`; all returned HTTP 200:
+    `/`, `/admin`, `/admin/students`, `/admin/teachers`, `/admin/claims`, `/admin/proposals`, `/admin/committee`, `/student`, `/student/profile`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, `/teacher`, `/teacher/advisor-requests`, `/teacher/proposals`, `/teacher/schedules`, `/teacher/reports`.
+- Remaining limitations:
+  - Progress 1 scoring UI remains skeleton only.
+  - Progress 2 scoring UI remains skeleton only.
+  - Final scoring UI remains skeleton only.
+  - Schedule proposal and schedule approval buttons are UI-ready but not fully wired to mutation actions.
+  - Report version submission, review PASS/FAIL mutation, report close action, and Advisor score submission are UI-ready skeletons only.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Report/article numeric rubric scoring was not implemented.
+
+## 2026-05-06 Development login and demo data
+
+- Implemented development-only mock login/session support:
+  - Added `/dev-login`.
+  - Added red warning banner: `Development login only`.
+  - Added role/user selection for Admin, Student, approved Teacher, and pending teacher claim state.
+  - Added dev session cookie helper in `src/lib/auth/devSession.ts`.
+  - Updated `src/auth.ts` so `auth()` reads the dev session only when `NODE_ENV=development`, while production continues to rely on Google/NextAuth.
+  - Set local `.env` `INITIAL_ADMIN_EMAIL="dev.admin@sru.ac.th"` for development admin testing.
+- Implemented demo seed:
+  - Added `prisma/seed-demo.ts`.
+  - Added `npm run prisma:seed:demo`.
+  - Seeded `ภาคเรียนที่ 1 ปีการศึกษา 2568`.
+  - Seeded `Mathematical Project Course`.
+  - Seeded 11 internal teachers with development `@sru.ac.th` emails and linked dev users.
+  - Seeded 3 demo students:
+    - `65123456789 สมชาย ใจดี`
+    - `65123456790 สมหญิง รักเรียน`
+    - `65123456791 สมปอง ตั้งใจ`
+  - Seeded projects in `DRAFT`, `PENDING_ADVISOR`, and `PROPOSAL_REVIEW`.
+  - Seeded advisor requests, Proposal submission, Proposal vote/comment, evaluator assignments, profiles, and timeline events.
+- Routes fixed for browser-visible testing:
+  - `/student` now shows selected dev student name, status badge, lifecycle stepper, next action, cards, quick actions, and timeline.
+  - `/teacher` now shows selected approved teacher name, profile/status card, next action, tasks, proposal tasks, notification/empty states.
+  - `/admin` now shows admin dashboard cards, project overview, pending confirmations, proposal/admin guidance, and timeline.
+- Browser-visible acceptance verification:
+  - Restarted local dev server at `http://127.0.0.1:3000`.
+  - Verified with real cookie-based dev sessions using `WebRequestSession`, not just unauthenticated HTTP 200.
+  - Confirmed these routes returned visible expected content and were not guard-only pages:
+    `/student`, `/teacher`, `/admin`, `/student/profile`, `/student/project`, `/student/proposal`, `/teacher/advisor-requests`, `/teacher/proposals`, `/admin/students`, `/admin/teachers`, `/admin/claims`, `/admin/proposals`, `/admin/committee`.
+- Tests added:
+  - `src/lib/auth/devSession.test.ts`
+  - Covers dev login enabled only in development.
+  - Covers selected student session data used by student dashboard.
+  - Covers selected approved teacher session data and confirms it is not pending.
+  - Covers pending teacher claim state.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:seed:demo` - first sandboxed attempt failed with `spawn EPERM` from `tsx/esbuild`; reran with approval and passed.
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 23 tests
+  - `cmd /c npm.cmd run build` - passed, 27 routes generated
+- Remaining limitations:
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Numeric report/article scoring was not implemented.
+  - Schedule approval/report/advisor score mutation actions remain skeleton-only.
+
+## 2026-05-06 End-to-End Lifecycle Review
+
+- Full Lifecycle v2 review completed against the local development PostgreSQL database only.
+- Added automated lifecycle review command:
+  - `tests/e2e/lifecycle-v2.ts`
+  - `npm run e2e:lifecycle`
+  - The runner refuses to execute unless `DATABASE_URL` contains `localhost` or `127.0.0.1`.
+  - It creates an isolated E2E course offering instead of resetting or deleting the database.
+- Added lifecycle review report:
+  - `E2E_LIFECYCLE_REVIEW.md`
+  - Final verdict: `PASS: simulated lifecycle completed`
+- Workflow fixes made during the review:
+  - `src/app/student/actions.ts`
+    - Student project/origin submission now creates a pending `AdvisorRequest`.
+    - Proposal submission now moves the project to `PROPOSAL_REVIEW`.
+    - Proposal submission now creates required evaluator assignments for internal proposal teachers.
+  - `src/app/teacher/actions.ts`
+    - Added real advisor request approve/reject transition action.
+    - Advisor approve moves project to `PENDING_ADMIN`.
+    - Advisor reject moves project back to `DRAFT` and keeps status history.
+    - Proposal score submission now requires an overall comment when submitting.
+    - When all proposal assignments are submitted, the project can move to `PROPOSAL_ADMIN_DECISION`.
+  - `src/app/teacher/advisor-requests/page.tsx`
+    - Replaced disabled buttons with real approve/reject forms.
+  - `src/app/admin/actions.ts`
+    - Added real committee assignment action with HEAD/MEMBER/advisor validation.
+    - Committee assignment moves project to `IN_PROGRESS`.
+  - `src/app/admin/committee/page.tsx`
+    - Replaced disabled committee save button with real assignment form.
+- Lifecycle steps tested by `npm run e2e:lifecycle`:
+  - Admin opens/selects `ภาคเรียนที่ 1 ปีการศึกษา 2568`.
+  - Admin creates/selects `Mathematical Project Course`.
+  - Admin imports demo students and verifies generated emails:
+    - `65123456789@student.sru.ac.th`
+    - `65123456790@student.sru.ac.th`
+    - `65123456791@student.sru.ac.th`
+  - Student dev-login scope verifies the selected student only sees their own E2E project.
+  - Student profile completion unlocks `DRAFT`.
+  - Student creates project, selects advisor, and sends advisor request.
+  - Advisor approve path moves `PENDING_ADVISOR -> PENDING_ADMIN`.
+  - Advisor reject path moves `PENDING_ADVISOR -> DRAFT` with history retained.
+  - 7-day advisor reminder condition is created and detected.
+  - Admin confirmation moves `PENDING_ADMIN -> PROPOSAL_PENDING`.
+  - Proposal invalid material link is rejected.
+  - Proposal Google Drive link is accepted.
+  - Proposal submission moves `PROPOSAL_PENDING -> PROPOSAL_REVIEW`.
+  - Three teachers score Proposal using a 100-point grouped checklist.
+  - Proposal comments are visible immediately with teacher names.
+  - Proposal scores remain hidden from the student.
+  - FAIL vote ratio `>= 50%` creates an admin alert condition without auto-deciding.
+  - Admin final PASS moves to `TOPIC_APPROVED`.
+  - Admin final FAIL moves to `DRAFT` and keeps history.
+  - Admin assigns advisor as `ADVISOR`, plus `HEAD` and `MEMBER`.
+  - Committee assignment moves to `IN_PROGRESS`.
+  - Progress 1 schedule reject path does not confirm.
+  - Progress 1 approve-all path confirms schedule.
+  - Progress 2 and Final Present skeleton submissions/schedules are recorded.
+  - Final Present completion moves project to `FINAL_DONE`.
+  - Report version 1 FAIL and version 2 PASS loop works.
+  - Reviewer who already PASSed does not need to review the new report version.
+  - All report reviewers PASS moves to `REPORT_APPROVED`.
+  - Advisor score remains locked before advisor closes report.
+  - Advisor clicks close report and advisor score unlocks.
+  - Advisor score 25% is submitted.
+  - Admin completes project and final status becomes `COMPLETED`.
+  - Browser-visible route check verifies `/student`, `/teacher`, and `/admin` render with dev sessions and do not show guard-only pages.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 26 tests
+  - `cmd /c npm.cmd run build` - passed, 27 routes generated
+  - Started local route verification server with `npx.cmd next dev --turbo --hostname 127.0.0.1 --port 3000` because standard `next dev` hung on route compilation in this environment.
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed, 18 lifecycle steps
+- Remaining limitations:
+  - Later skeleton stages in the E2E runner use direct Prisma/service-level actions rather than full browser clicks for every Progress/Final/Report control.
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Numeric report/article scoring was not implemented.
+
+## 2026-05-06 Beginner-friendly Turbo dev command
+
+- Added reliable local dev server script:
+  - `package.json`
+  - `"dev:turbo": "next dev --turbo --hostname 127.0.0.1 --port 3000"`
+- Kept existing `"dev": "next dev"` unchanged.
+- Updated `README.md` in Thai:
+  - If `npm run dev` hangs while compiling routes, use `npm run dev:turbo`.
+  - Open `http://127.0.0.1:3000`.
+  - UI smoke check now mentions either `npm run dev` or `npm run dev:turbo`.
+- Business logic was not changed.
+- Commands run:
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 26 tests
+  - `cmd /c npm.cmd run build` - first attempt timed out while an old local dev server process was still listening on port 3000; stopped the local server process and reran successfully.
+  - `cmd /c npm.cmd run build` - passed, 27 routes generated
+- Remaining limitations:
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Numeric report/article scoring was not implemented.
+
+## 2026-05-06 UI foundation repair
+
+- Root cause diagnosed:
+  - The project is using Tailwind CSS v3.4.17, and the Tailwind/PostCSS setup was basically compatible.
+  - `src/app/layout.tsx` did import `./globals.css`.
+  - The browser was showing raw/default UI because the dev server was serving HTML that referenced `/_next/static/css/app/layout.css?...`, but that CSS URL returned `404`.
+  - This happened after running `next build` while the dev server was still running; production build output rewrote `.next` and left the running dev server with stale/missing CSS assets.
+  - The original Tailwind content glob was also broad but incomplete versus the requested app/components/lib paths, so it was tightened.
+- Files fixed:
+  - `tailwind.config.ts`
+    - Updated content paths to explicitly include:
+      - `./src/app/**/*.{js,ts,jsx,tsx,mdx}`
+      - `./src/components/**/*.{js,ts,jsx,tsx,mdx}`
+      - `./src/lib/**/*.{js,ts,jsx,tsx,mdx}`
+  - `src/app/globals.css`
+    - Rebuilt Tailwind v3 global CSS foundation with `@tailwind base`, `@tailwind components`, and `@tailwind utilities`.
+    - Added Thai-friendly font stack, slate page background, readable default text, link reset, styled forms, panels, buttons, stat cards, and app shell/container classes.
+  - `src/app/layout.tsx`
+    - Rebuilt root layout with clean Thai metadata, sticky styled header/nav, dev-login shortcut in development, and `PageShell`.
+  - Added UI foundation components:
+    - `src/components/ui/PageShell.tsx`
+    - `src/components/ui/SectionCard.tsx`
+    - `src/components/ui/Button.tsx`
+    - `src/components/ui/FormControls.tsx`
+  - `README.md`
+    - Added UI smoke check checklist for `/admin`, `/student`, and `/teacher`.
+  - `src/components/ui/uiFoundation.test.ts`
+    - Added tests that verify Tailwind directives, layout CSS import/PageShell use, and Tailwind content paths.
+- Routes visually fixed by the global CSS/layout foundation:
+  - `/`
+  - `/admin`
+  - `/admin/students`
+  - `/admin/teachers`
+  - `/admin/claims`
+  - `/admin/proposals`
+  - `/admin/committee`
+  - `/student`
+  - `/student/profile`
+  - `/student/project`
+  - `/student/proposal`
+  - `/student/schedule`
+  - `/student/report`
+  - `/teacher`
+  - `/teacher/advisor-requests`
+  - `/teacher/proposals`
+  - `/teacher/schedules`
+  - `/teacher/reports`
+- Browser/CSS verification:
+  - Restarted local dev server after `next build`.
+  - Confirmed `/_next/static/css/app/layout.css?...` returns HTTP 200.
+  - Confirmed CSS length is `78900` bytes and contains generated `.panel`, `.button-secondary`, and background-color rules.
+  - Confirmed `/admin`, `/student`, and `/teacher` return Tailwind classes and are not guard-only pages under dev sessions.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 26 tests
+  - `cmd /c npm.cmd run build` - passed, 27 routes generated
+- Remaining limitations:
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Numeric report/article scoring was not implemented.
+  - Schedule approval/report/advisor score mutation actions remain skeleton-only.
+
+## 2026-05-06 UX workflow-awareness cleanup
+
+- UX problems fixed:
+  - Admin Proposal final decision now shows visible Thai success feedback after save.
+  - Admin Proposal round close now shows "ปิดรอบแล้ว", a closed timestamp based on the updated round time, and disables the close button.
+  - Admin Proposal Summary was refocused on proposal decision data only: student, title, project status, submitted/missing counts, PASS/REVISE/FAIL counts, FAIL ratio, average score, final decision, and collapsible details.
+  - Teacher claims are kept on `/admin/claims` with clearer copy: "คำขอผูกบัญชีอาจารย์" and guidance explaining that this only links @sru.ac.th Google accounts to seeded teacher profiles.
+  - Student dashboard now groups actions into `available_now`, `read_only_history`, `locked_future`, and `blocked_waiting_for`, so completed/future stages are not presented as primary editable actions.
+  - Progress/Final schedule cards now show workflow states such as "ยังไม่ถึงขั้นตอน", "ดำเนินการได้ตอนนี้", "รอกรรมการอนุมัติวันสอบ", "ส่งเอกสารแล้ว", and "ดูย้อนหลัง".
+  - Important actions now use disabled/pending submit states and confirmations for close round, final decision, and committee assignment.
+- Files changed:
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/components/ui/SubmitButton.tsx`
+  - `src/app/admin/actions.ts`
+  - `src/app/admin/page.tsx`
+  - `src/app/admin/claims/page.tsx`
+  - `src/app/admin/committee/page.tsx`
+  - `src/app/admin/proposals/page.tsx`
+  - `src/app/student/actions.ts`
+  - `src/app/student/page.tsx`
+  - `src/app/student/profile/page.tsx`
+  - `src/app/student/project/page.tsx`
+  - `src/app/student/proposal/page.tsx`
+  - `src/app/student/schedule/page.tsx`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/advisor-requests/page.tsx`
+  - `src/app/teacher/scoring/[assignmentId]/page.tsx`
+  - `src/lib/lifecycle/nextActions.ts`
+  - `src/lib/lifecycle/nextActions.test.ts`
+  - `src/app/admin/proposals/proposalSummaryUx.test.ts`
+  - `src/components/ui/actionFeedback.test.tsx`
+  - `UX_WORKFLOW_REVIEW.md`
+- Tests added:
+  - Action feedback renders Thai success/error messages.
+  - Proposal Summary page excludes teacher claims and includes visible closed/final-decision UX markers.
+  - Student available actions depend on lifecycle status.
+  - Completed assessment cards become read-only and future assessments are locked.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - initial parallel run hit stale `.next/types` while build regenerated Next files; rerun passed
+  - `cmd /c npm.cmd test` - passed, 32 tests
+  - `cmd /c npm.cmd run build` - passed, 27 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - first run passed steps 1-17 but route visibility hit a stale local server on port 3000; rerun with a temporary local Next dev server passed all 18 steps
+- Remaining limitations:
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Numeric report/article scoring was not implemented.
+  - Later Progress/Final/Report mutation workflows remain skeleton-level where they were already skeleton-level.
+
+## 2026-05-06 AssessmentRound closed timestamp fix
+
+- Fixed the unreliable closed timestamp:
+  - Added explicit `AssessmentRound.closedAt` mapped to `closed_at`.
+  - Added explicit `AssessmentRound.closedByAdminId` mapped to `closed_by_admin_id`.
+  - Added `AssessmentRound.closedByAdmin` relation to `User` and `User.closedAssessmentRounds`.
+  - Added migration `prisma/migrations/20260506070000_assessment_round_closed_at/migration.sql`.
+- Updated close Proposal round action:
+  - Uses `buildCloseAssessmentRoundData(adminUserId)`.
+  - Sets `status = SCORING_CLOSED`.
+  - Sets `closedAt = current timestamp`.
+  - Sets `closedByAdminId = current admin user`.
+  - Keeps the existing success redirect message `ปิดรอบ Proposal แล้ว`.
+- Updated Admin Proposal Summary:
+  - Displays `round.closedAt`, never `round.updatedAt`, as `closed_at`.
+  - Displays `closed_by` when the closing admin user is available.
+  - If a legacy closed round has `closedAt = null`, it shows a clear no-timestamp message instead of a fake timestamp.
+  - Keeps visible closed badge and disabled close button.
+- Tests added/updated:
+  - `src/lib/assessments/roundClosure.test.ts` verifies closing data includes `closedAt` and `closedByAdminId`.
+  - `src/app/admin/proposals/proposalSummaryUx.test.ts` verifies the UI uses `closedAt`, includes `closedByAdmin`, and does not render `round.updatedAt.toLocaleString`.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format` - passed
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npx.cmd prisma generate` - passed, required after schema change
+  - `cmd /c npm.cmd run typecheck` - initial parallel run hit stale `.next/types` while build regenerated Next files; rerun passed
+  - `cmd /c npm.cmd test` - passed, 34 tests
+  - `cmd /c npm.cmd run build` - passed, 27 routes generated
+  - `cmd /c npm.cmd run prisma:migrate -- --skip-generate` - first sandboxed attempt could not fetch/check Prisma schema engine; rerun with approval passed and applied `20260506070000_assessment_round_closed_at`
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed all 18 lifecycle steps with a temporary local Next dev server
+- Remaining limitations:
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External committee magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Numeric report/article scoring was not implemented.
+## 2026-05-06 Duplicate demo data and course-level rounds fix
+
+- Fixed duplicate-looking Admin dashboard data by selecting one current project per `courseOfferingId + studentId` and adding a dev-only duplicate warning.
+- Changed `AssessmentRound` from project-like/name-scoped uniqueness to course-level uniqueness: `courseOfferingId + roundType`.
+- Added `ProjectRoundException` for per-project exceptions under a shared course-level round.
+- Updated default seed, demo seed, and E2E lifecycle setup to upsert/reuse course-level rounds for Proposal, Progress 1, Progress 2, and Final Presentation.
+- Reworked lifecycle E2E to use stable `e2e-lifecycle-course-offering`, clean only known local demo/E2E records, and assert reruns keep exactly 3 E2E projects plus one Proposal round.
+- Added safe local cleanup/reset scripts:
+  - `npm run prisma:seed:demo:clean`
+  - `cmd /c npm.cmd run dev:reset-demo`
+- Added Admin dashboard course round cards and exception counts.
+- Tests added:
+  - `src/lib/admin/dashboardProjects.test.ts`
+  - `src/lib/assessments/courseRounds.test.ts`
+  - `src/app/admin/adminDashboardUx.test.ts`
+  - `tests/e2e/lifecycleSeedSafety.test.ts`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format`
+  - `cmd /c npm.cmd run prisma:validate`
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+  - `cmd /c npm.cmd run e2e:lifecycle` twice
+- Remaining limitation:
+  - E2E route visibility check is non-blocking because local Next dynamic routes can timeout; database lifecycle and duplicate guards remain enforced.
+## 2026-05-06 Course-level Progress 1 opening flow
+
+- Added `/admin/rounds` for course-level round management across Proposal, Progress 1, Progress 2, and Final Presentation.
+- Added `openCourseRound` and `closeCourseRound` server actions; opening Progress 1 uses `upsert` on `courseOfferingId + roundType`, so repeated opens do not create duplicate rows.
+- Added `getRoundEligibility(courseOfferingId, roundType)` and Progress 1 readiness checks:
+  - Proposal final decision must be PASS.
+  - Committee must include ADVISOR, HEAD, and MEMBER.
+  - Blocking project exceptions keep projects in not-ready list.
+- Updated `/admin` to show round status and the next recommended action after Proposal closes.
+- Updated `/admin/proposals` to show a next-action panel after Proposal is closed.
+- Updated `/admin/committee` to link to the Progress 1 opening page after committee save.
+- Updated `/student/schedule` so Progress 1 scheduling stays locked until the course-level Progress 1 round is open and the project is eligible.
+- Tests added:
+  - `src/lib/assessments/roundEligibility.test.ts`
+  - `src/app/admin/rounds/roundsUx.test.ts`
+- E2E updated:
+  - Verifies closing Proposal does not auto-open Progress 1.
+  - Opens one course-level Progress 1 round before scheduling.
+  - Verifies duplicate Progress 1 rounds are not created.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format`
+  - `cmd /c npm.cmd run prisma:validate`
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+  - `cmd /c npm.cmd run e2e:lifecycle`
+- Remaining limitation:
+  - Progress 1 scoring remains intentionally unimplemented; this only opens/closes the course-level window and gates scheduling.
+## 2026-05-06 Desktop-first responsive UI pass
+
+- Added responsive UI foundation rules in `src/app/globals.css`:
+  - mobile stacked cards
+  - 44px-ish touch targets via `min-h-11`
+  - no horizontal body overflow
+  - responsive table/card behavior under 640px
+  - mobile-friendly full-width buttons
+- Updated app header/nav to stack cleanly on phones while staying desktop-friendly.
+- Updated shared UI components:
+  - `PageHeader` stacks actions on mobile.
+  - `NextActionCard` primary action is full-width on mobile.
+  - `TaskListCard` uses button-style task links.
+  - `StatusBadge` has larger touch/readability height.
+- Updated high-risk pages:
+  - `/admin/proposals`, `/admin/students`, `/admin/teachers` use `responsive-table`.
+  - `/teacher/scoring/[assignmentId]` uses collapsible rubric groups, larger checkbox rows, sticky score/action affordances.
+  - `/student/proposal` keeps the submit action visible on long mobile forms.
+  - `/teacher/proposals`, `/teacher/schedules`, `/admin/claims` stack action controls on mobile.
+- Added `RESPONSIVE_UI_REVIEW.md` with desktop/mobile/tablet manual checklist.
+- Updated `UX_WORKFLOW_REVIEW.md` with desktop/mobile acceptance notes.
+- Tests added/updated:
+  - `src/app/responsiveUiSource.test.ts`
+  - `src/components/ui/uiFoundation.test.ts`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate`
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+  - `cmd /c npm.cmd run e2e:lifecycle`
+- Remaining limitation:
+  - Automated visual viewport screenshots were not added; manual responsive checklist is provided.
+
+## 2026-05-06 Markdown + LaTeX workflow restoration
+
+- Added reusable Markdown/LaTeX components:
+  - `src/components/ui/MarkdownLatexEditor.tsx` with live preview, Thai helper text, disabled/read-only support, and mobile-friendly layout.
+  - `src/components/ui/MarkdownLatexViewer.tsx` using `react-markdown`, `remark-math`, `rehype-katex`, and `rehype-sanitize`.
+- Kept KaTeX CSS imported globally in `src/app/layout.tsx` and added mobile overflow handling for long equations in `src/app/globals.css`.
+- Updated real workflow inputs to accept Markdown + LaTeX:
+  - Student project/origin long explanation fields.
+  - Student Proposal abstract, motivation, objectives, methods, outcomes, timeline, and questions.
+  - Student schedule/report skeleton notes.
+  - Teacher Proposal reason/comment, advisor request comment, schedule comment, report/advisor comments.
+- Updated read-only/feedback displays to render Markdown + LaTeX safely:
+  - Student Proposal comments.
+  - Student Feedback Proposal comments/reasons.
+  - Student Report review comments.
+  - Teacher Proposal scoring submission details.
+  - Admin Proposal summary comments/final reasons.
+- Added development check page: `/dev/latex-test`.
+- Added tests:
+  - `src/components/ui/markdownLatex.test.ts`
+  - inline math rendering
+  - display math rendering
+  - raw `<script>` safety
+  - workflow source checks for Student Proposal, Teacher scoring comment, and Student feedback score hiding
+- Updated E2E lifecycle data so Proposal abstract and teacher comment include LaTeX, and asserted the LaTeX teacher comment is stored as student-visible feedback while Proposal score remains hidden.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate`
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+  - `cmd /c npm.cmd run e2e:lifecycle`
+- Remaining limitation:
+  - Progress 1/2/Final scoring remains intentionally unimplemented; only skeleton notes/comments now support Markdown + LaTeX.
+
+## 2026-05-06 Duplicate data and course-level round management cleanup
+
+- Verified schema constraints already enforce:
+  - one current `Project` per `courseOfferingId + studentId`
+  - one course-level `AssessmentRound` per `courseOfferingId + roundType`
+  - one project attempt per `projectId + assessmentRoundId + attemptNo`
+- Confirmed demo seed and E2E lifecycle use stable IDs and upsert/reuse course-level rounds instead of creating per-project rounds.
+- Tightened Admin dashboard UX:
+  - dashboard shortcut now sends Admin to `/admin/rounds`
+  - old duplicate/disabled round card section is hidden behind an opt-in legacy flag and not shown by default
+  - current project list still deduplicates by student/course before rendering status groups
+- Strengthened tests:
+  - `src/app/admin/rounds/roundsUx.test.ts` now checks the open action uses `assessmentRound.upsert` and does not create project-level rounds.
+  - `src/app/admin/adminDashboardUx.test.ts` now checks the dashboard links course-level round management to `/admin/rounds`.
+- Updated docs:
+  - `PROJECT_SPEC.md`
+  - `DATA_MODEL_DRAFT.md`
+  - `README.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format`
+  - `cmd /c npm.cmd run prisma:validate`
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+  - `cmd /c npm.cmd run e2e:lifecycle`
+  - `cmd /c npm.cmd run e2e:lifecycle` again
+  - local Prisma count query after second E2E: `projects = 3`, each of `PROPOSAL`, `PROGRESS_1`, `PROGRESS_2`, `FINAL_PRESENTATION` has `_count = 1`
+- Remaining limitation:
+  - Progress 1/2/Final scoring remains intentionally unimplemented; round management only opens/closes the course-level windows and gates skeleton scheduling.
+
+## 2026-05-06 Real-login pilot auth hardening
+
+- Verified and tightened pilot role resolution:
+  - `INITIAL_ADMIN_EMAIL` is normalized and is the only Google email that resolves to `ADMIN`.
+  - Other `@sru.ac.th` users resolve to `PENDING_TEACHER` unless their teacher profile email is linked after Admin-approved claim.
+  - Approved linked teacher emails resolve to `TEACHER`.
+  - Imported `{student_code}@student.sru.ac.th` emails resolve to `STUDENT`.
+  - Non-imported `@student.sru.ac.th` emails are denied.
+- Hardened auth/dev-login UX:
+  - Linked teacher email sets are trimmed/lowercased before role resolution.
+  - Home page dev-login guidance now uses `isDevLoginEnabled()` instead of any non-production environment.
+  - Existing dev-login server actions remain guarded by `NODE_ENV=development`.
+- Tests added:
+  - `src/lib/auth/roleResolution.test.ts`
+  - `src/app/authPilotSource.test.ts`
+- Docs added:
+  - `SECURITY_REVIEW.md`
+  - `PRODUCTION_CHECKLIST.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 19 test files / 67 tests
+  - `cmd /c npm.cmd run build` - passed, 29 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed lifecycle/database checks; route visibility check remained non-blocking because fetch to the local server was skipped by the script
+- Remaining limitations:
+  - Detailed Progress 1 scoring was not implemented.
+  - Detailed Progress 2 scoring was not implemented.
+  - Detailed Final scoring was not implemented.
+  - External magic links were not implemented.
+  - Full AUN-QA export was not implemented.
+  - Production deployment was not performed.
+  - Numeric report scoring was not implemented.
+
+## 2026-05-06 Protected route/action auth audit
+
+- Audited protected pages and server actions after the real-login pilot update.
+- Verified Admin-only pages/actions use Admin guards and reject teacher/student/pending/unauthorized users.
+- Verified teacher work pages/actions require approved `TEACHER`; pending teacher accounts are limited to the claim flow.
+- Verified student pages/actions require `STUDENT` and now also explicitly stop when the session email is not found in imported `Student.generatedEmail` roster data.
+- Fixed guard hygiene:
+  - `src/auth.ts` now normalizes Google email once before role resolution and user upsert.
+  - `/student/origin`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback` now show a roster-missing state for student-role sessions that do not match imported students.
+  - `/student/project` no longer loads teacher options before the imported student/project record is confirmed.
+- Added focused guard audit test:
+  - `src/app/authGuardAudit.test.ts`
+- Commands run:
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 20 test files / 72 tests
+  - `cmd /c npm.cmd run build` - passed, 29 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed lifecycle/database checks; route visibility check remained non-blocking because fetch to the local server was skipped by the script
+- Remaining limitations:
+  - No lifecycle workflow changes were made.
+  - No scheduling/scoring/report features were implemented.
+  - Detailed Progress 1 scoring, Progress 2 scoring, Final scoring, external magic links, full AUN-QA export, production deployment, and numeric report scoring remain intentionally unimplemented.
+
+## 2026-05-06 Phase 2A scheduling and Progress 1 scoring
+
+- Fixed the scheduling data path to use course-level `AssessmentRound` records:
+  - `ExamScheduleProposal` now stores `courseOfferingId`, `assessmentRoundId`, `roundType`, optional `note`, and a unique `projectId + assessmentRoundId` key.
+  - Student schedule submits update the existing project/round schedule instead of creating duplicate active schedule rows.
+  - E2E schedule helpers now upsert schedules and approvals under the shared course-level round.
+- Implemented Phase 2A self-scheduling UI/action:
+  - `/student/schedule` shows Progress 1 / Progress 2 / Final Presentation round state, locked reasons, submitted requests, and Markdown/LaTeX notes.
+  - `submitExamSchedule` enforces server-side student ownership, imported roster access, `IN_PROGRESS` status, open course-level round, valid date/time, and no Proposal scheduling.
+  - Progress 1 scheduling checks committee readiness and the course-level Progress 1 round gate.
+- Added Teacher/Admin schedule visibility:
+  - `/teacher/schedules` shows schedules relevant to advisor/committee teachers and rejects pending teacher claims through existing teacher guards.
+  - `/admin/schedules` shows all submitted schedule requests for the course offering.
+- Added minimal Progress 1 scoring:
+  - `/teacher/progress1` lets active HEAD/MEMBER teachers save Progress 1 scores only for assigned `IN_PROGRESS` projects.
+  - Server action validates ranges, computes total server-side, stores scorer identity, upserts the attempt/evaluator/score rows, and supports Markdown/LaTeX comments.
+  - Rubric weights: progress 30, problem-solving 20, research/results 20, presentation 20, overall 10.
+- `/student` robustness:
+  - Source audit confirms the route fails closed for unauthenticated/unauthorized users, imported students without current projects get an empty next-action state, and imported students with projects get the normal dashboard.
+  - The previous optional E2E route visibility fetch did not reproduce a 500 in this run; with a local dev server attempt it timed out because the dev server process became unresponsive, while lifecycle/database E2E completed successfully.
+- Tests added/updated:
+  - `src/lib/scheduling/scheduleRules.test.ts`
+  - `src/lib/scoring/progress1Scoring.test.ts`
+  - `src/app/scheduleProgressSource.test.ts`
+  - `src/app/authGuardAudit.test.ts`
+- Files changed:
+  - `prisma/schema.prisma`
+  - `prisma/migrations/20260506100000_schedule_round_links/migration.sql`
+  - `src/app/student/actions.ts`
+  - `src/app/student/schedule/page.tsx`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/page.tsx`
+  - `src/app/teacher/schedules/page.tsx`
+  - `src/app/teacher/progress1/page.tsx`
+  - `src/app/admin/schedules/page.tsx`
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/lib/scheduling/scheduleRules.ts`
+  - `src/lib/scoring/progress1Scoring.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format` - passed
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 23 test files / 81 tests
+  - `cmd /c npm.cmd run build` - passed, 31 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed twice; second/third runs kept 3 projects and one course-level round per major type
+- Remaining limitations:
+  - Progress 1 scoring is functional, but no Progress 1 completion/grade-release automation was added.
+  - At that time, Progress 2 scoring, Final scoring, report approval loop implementation changes, Advisor score 25% changes, external magic links, full AUN-QA export, production deployment, and numeric report scoring remained intentionally out of scope.
+
+## 2026-05-06 Progress 2 scoring
+
+- Implemented Progress 2 scoring by reusing the Progress 1 scoring pattern.
+- Added `/teacher/progress2`:
+  - Approved teachers only.
+  - Active `HEAD` / `MEMBER` committee assignments only.
+  - Shows a safe empty/setup state if no course-level Progress 2 round is available.
+  - Uses the same five scoring criteria: progress 30, problem-solving 20, research/results 20, presentation 20, overall 10.
+  - Supports Markdown/LaTeX comments through the existing safe editor.
+- Added `submitProgress2Score`:
+  - Validates ranges server-side.
+  - Computes total server-side.
+  - Uses the existing course-level `AssessmentRound` where `roundType = PROGRESS_2`.
+  - Upserts `AssessmentAttempt`, `EvaluatorAssignment`, `ScoreSubmission`, and `ScoreItem` to avoid duplicate records for the same scorer/project/round.
+  - Records a `PROGRESS_2_SCORE_SUBMITTED` timeline event.
+  - Does not advance lifecycle, mark `FINAL_DONE`, jump to report review, or change proposal state.
+- Updated HTTP route visibility checks to include `/teacher/progress2`.
+- Tests added/updated:
+  - Progress 2 rubric validation in `src/lib/scoring/progress1Scoring.test.ts`.
+  - Progress 2 source guard/duplicate-safety checks in `src/app/scheduleProgressSource.test.ts`.
+  - Route guard audit includes `src/app/teacher/progress2/page.tsx`.
+- Files changed:
+  - `src/lib/scoring/progress1Scoring.ts`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/progress2/page.tsx`
+  - `src/app/teacher/page.tsx`
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/app/authGuardAudit.test.ts`
+  - `src/app/scheduleProgressSource.test.ts`
+  - `src/lib/scoring/progress1Scoring.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 23 test files / 84 tests
+  - `cmd /c npm.cmd run build` - passed, 32 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed with `/teacher/progress2` route visibility
+- Remaining limitations:
+  - Progress 1 / Progress 2 scoring are functional, but completion/release automation was not added.
+  - At that time, Final scoring, report approval loop implementation changes, Advisor score 25% changes, external magic links, full AUN-QA export, production deployment, and numeric report scoring remained intentionally out of scope.
+
+## 2026-05-06 Documentation consistency audit before Final scoring
+
+- Audited current workflow/status documentation:
+  - `IMPLEMENTATION_PROGRESS.md`
+  - `PROJECT_SPEC.md`
+  - `DATA_MODEL_DRAFT.md`
+  - `E2E_LIFECYCLE_REVIEW.md`
+  - `UX_WORKFLOW_REVIEW.md`
+  - `SECURITY_REVIEW.md`
+  - `RESPONSIVE_UI_REVIEW.md`
+  - `CODEX_TASKS.md`
+  - `AGENTS.md`
+- Confirmed current implementation direction:
+  - Lifecycle v2 remains the only active workflow.
+  - `AssessmentRound` remains course-level with one row per `courseOfferingId + roundType`.
+  - Self-scheduling uses project-level schedule proposals under course-level rounds.
+  - Progress 1 / Progress 2 scoring are functional for assigned HEAD/MEMBER teachers.
+  - Real-login pilot, teacher claim approval, imported student roster access, and development-only dev login remain unchanged.
+  - Proposal comments remain visible to students while proposal scores remain hidden.
+  - Duplicate prevention remains based on `Project(courseOfferingId, studentId)` and `AssessmentRound(courseOfferingId, roundType)`.
+- Stale documentation fixed:
+  - `PROJECT_SPEC.md` no longer says Progress 1 / Progress 2 scoring are unimplemented.
+  - `DATA_MODEL_DRAFT.md` now states Progress 1 / Progress 2 both reuse the existing assessment scoring tables.
+  - `UX_WORKFLOW_REVIEW.md` and `RESPONSIVE_UI_REVIEW.md` now treat Progress 1 / Progress 2 scoring as part of the current baseline.
+  - `E2E_LIFECYCLE_REVIEW.md` now describes embedded HTTP route visibility checks instead of optional dev route fetches.
+- Unresolved ambiguity documented:
+  - `AGENTS.md` and `CODEX_TASKS.md` still describe the original MVP 1 / Proposal-only starting point. They are retained as historical task guidance; the current baseline and roadmap are governed by `PROJECT_SPEC.md`, `IMPLEMENTATION_PROGRESS.md`, and the latest user task.
+
+## 2026-05-06 Final Presentation scoring
+
+- Implemented Final Presentation scoring using the established Progress scoring architecture.
+- Added `/teacher/final`:
+  - Approved teachers only.
+  - Active `HEAD` / `MEMBER` committee assignments only.
+  - Shows a safe setup/empty state if no course-level Final Presentation round is available.
+  - Uses the existing safe Markdown/LaTeX comment editor.
+- Added `submitFinalPresentationScore`:
+  - Uses the existing course-level `AssessmentRound` where `roundType = FINAL_PRESENTATION`.
+  - Does not create per-project rounds.
+  - Validates rubric ranges server-side.
+  - Computes total server-side.
+  - Upserts `AssessmentAttempt`, `EvaluatorAssignment`, `ScoreSubmission`, and `ScoreItem` to avoid duplicate score records for the same scorer/project/round.
+  - Records `FINAL_PRESENTATION_SCORE_SUBMITTED` timeline events.
+  - Does not mark `FINAL_DONE`, start `REPORT_REVIEW`, mark `COMPLETED`, or unlock Advisor score automatically.
+- Final rubric handling:
+  - Research/results 30
+  - Execution/problem-solving 20
+  - Presentation 20
+  - Overall 10
+  - Raw rubric total is 80; stored `ScoreSubmission.totalScore` is normalized as `raw / 80 * 100`.
+  - No hidden remaining criterion was added.
+- Tests added/updated:
+  - `src/lib/scoring/finalScoring.test.ts`
+  - `src/app/scheduleProgressSource.test.ts`
+  - `src/app/authGuardAudit.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+- Files changed:
+  - `src/lib/scoring/finalScoring.ts`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/final/page.tsx`
+  - `src/app/teacher/page.tsx`
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/app/authGuardAudit.test.ts`
+  - `src/app/scheduleProgressSource.test.ts`
+  - `src/lib/scoring/finalScoring.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+  - `PROJECT_SPEC.md`
+  - `DATA_MODEL_DRAFT.md`
+  - `E2E_LIFECYCLE_REVIEW.md`
+  - `UX_WORKFLOW_REVIEW.md`
+  - `RESPONSIVE_UI_REVIEW.md`
+  - `SECURITY_REVIEW.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 24 test files / 87 tests
+  - `cmd /c npm.cmd run build` - passed, 33 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed with `/teacher/final` route visibility
+- Remaining roadmap at that time:
+  - Report approval loop
+  - Advisor score 25%
+  - Later production/deployment tasks
+
+## 2026-05-06 HTTP route visibility QA
+
+- Improved the lifecycle E2E route visibility step so it performs real HTTP checks against a local Next server instead of skipping when no external dev server is running.
+- The route check now covers:
+  - `/student/schedule`
+  - `/teacher/schedules`
+  - `/teacher/progress1`
+  - `/admin/schedules`
+- Verified role behavior over HTTP:
+  - Imported student can access `/student/schedule`.
+  - Approved teacher can access `/teacher/schedules` and `/teacher/progress1`.
+  - Admin can access `/admin/schedules`.
+  - Pending teacher cannot see teacher schedule/progress scoring content.
+  - Student cannot see teacher/admin schedule or Progress 1 scoring content.
+  - Anonymous user cannot see student schedule data.
+- The HTTP check uses an Auth.js session cookie generated with `next-auth/jwt`, not the development-login cookie, so production dev-login restrictions remain intact.
+- Bugs found:
+  - Previous optional route check could skip due to a missing/unresponsive external dev server.
+  - A production-mode HTTP check initially rejected the test host; the E2E server now sets `AUTH_TRUST_HOST=true` only inside the route-check process.
+- Fixes applied:
+  - `tests/e2e/lifecycle-v2.ts` starts an embedded production-mode Next server after `next build`.
+  - Route visibility failures now fail the E2E step instead of being reported as a non-blocking skip.
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 23 test files / 81 tests
+  - `cmd /c npm.cmd run build` - passed, 31 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed with HTTP route visibility checks
+
+## 2026-05-06 Report approval loop
+
+- Pre-check result:
+  - Reused existing `ReportVersion` and `ReportReview` models.
+  - Existing `/student/report` and `/teacher/reports` were skeleton pages; no parallel report system was added.
+  - No Prisma schema change was required.
+- Implemented student report submission:
+  - `/student/report` now submits a Google Drive/Docs/Classroom report link with optional Markdown/LaTeX note.
+  - Submission is allowed at `FINAL_DONE`.
+  - First submission moves the project to `REPORT_REVIEW`.
+  - Resubmission is allowed only when the latest report version has a `FAIL` review / revision request.
+  - `REPORT_APPROVED`, `ADVISOR_SCORING`, and `COMPLETED` block resubmission.
+- Implemented teacher report review:
+  - `/teacher/reports` now shows assigned report projects and latest report version.
+  - Approved teachers only; pending teachers and students are blocked by page/action guards.
+  - Advisor or active `HEAD`/`MEMBER` may review.
+  - Teachers can approve (`PASS`) or request revision (`FAIL`) with Markdown/LaTeX comments.
+  - `ReportReview` is upserted by `reportVersionId + reviewerTeacherId`, so repeat saves update instead of creating duplicates.
+  - Active `HEAD`/`MEMBER` approvals are required for `REPORT_APPROVED`; a reviewer who already passed an earlier version remains counted, matching the existing lifecycle review behavior.
+- Lifecycle behavior:
+  - `FINAL_DONE` -> student report submission -> `REPORT_REVIEW`.
+  - Teacher `FAIL` keeps the project in `REPORT_REVIEW` and lets the student submit a new version.
+  - Required reviewer `PASS` completion moves the project to `REPORT_APPROVED`.
+  - The loop stops at `REPORT_APPROVED`; it does not move to `ADVISOR_SCORING` or `COMPLETED`.
+- Duplicate/history handling:
+  - New report submissions increment `ReportVersion.versionNo`.
+  - Optional student notes are stored as `ProjectTimelineEvent` entries linked to the `ReportVersion`.
+  - Teacher comments remain in `ReportReview`.
+- Tests added/updated:
+  - `src/lib/reports/reportWorkflow.test.ts`
+  - `src/app/reportWorkflowActions.test.ts`
+  - `tests/e2e/lifecycle-v2.ts` now includes HTTP checks for `/student/report` and `/teacher/reports`.
+- Files changed:
+  - `src/lib/reports/reportWorkflow.ts`
+  - `src/app/student/actions.ts`
+  - `src/app/student/report/page.tsx`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/reports/page.tsx`
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/lib/reports/reportWorkflow.test.ts`
+  - `src/app/reportWorkflowActions.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+  - `PROJECT_SPEC.md`
+  - `DATA_MODEL_DRAFT.md`
+  - `E2E_LIFECYCLE_REVIEW.md`
+  - `UX_WORKFLOW_REVIEW.md`
+  - `SECURITY_REVIEW.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 26 test files / 95 tests
+  - `cmd /c npm.cmd run build` - passed, 33 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed with `/student/report` and `/teacher/reports` route visibility
+- Remaining roadmap:
+  - Advisor score 25%
+  - Final closeout / completion workflow
+  - Production deployment preparation
+
+## 2026-05-06 Advisor score 25%
+
+- Pre-check result:
+  - Reused the existing `AdvisorScore` model instead of creating an advisor-specific assessment round.
+  - Existing `AdvisorScore` stored only total/comment/status, so rubric score columns were added to keep the 25% component auditable.
+  - Existing `AssessmentRound` remains course-level only and is not used for Advisor score.
+- Data model changes:
+  - Added migration `prisma/migrations/20260506104500_advisor_score_rubric_fields/migration.sql`.
+  - Added nullable Advisor rubric fields to `AdvisorScore`:
+    - `responsibilityScore`
+    - `researchProcessScore`
+    - `problemSolvingScore`
+    - `communicationScore`
+    - `professionalismScore`
+  - `AdvisorScore.projectId` remains unique, preventing duplicate advisor score rows per project.
+- Implemented Advisor score workflow:
+  - Added `/teacher/advisor-score`.
+  - Added `submitAdvisorScore`.
+  - Only approved `TEACHER` users can access the route/action.
+  - Only the project advisor can submit; HEAD/MEMBER are rejected unless they are also advisor.
+  - Available only for `REPORT_APPROVED` or existing `ADVISOR_SCORING` projects.
+  - First submission from `REPORT_APPROVED` moves the project to `ADVISOR_SCORING`.
+  - Re-submission updates the same `AdvisorScore` row.
+  - Submission does not mark the project `COMPLETED`.
+- Rubric:
+  - Responsibility / punctuality: 25
+  - Research process and independence: 25
+  - Problem-solving and improvement: 25
+  - Communication with advisor: 15
+  - Overall professionalism: 10
+  - Stored total is a 100-point raw Advisor score; final 25% weighting remains for later aggregation.
+- Tests added/updated:
+  - `src/lib/scoring/advisorScoring.test.ts`
+  - `src/app/advisorScoreSource.test.ts`
+  - `src/app/authGuardAudit.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+- Files changed:
+  - `prisma/schema.prisma`
+  - `prisma/migrations/20260506104500_advisor_score_rubric_fields/migration.sql`
+  - `src/lib/scoring/advisorScoring.ts`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/advisor-score/page.tsx`
+  - `src/app/teacher/page.tsx`
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/lib/scoring/advisorScoring.test.ts`
+  - `src/app/advisorScoreSource.test.ts`
+  - `src/app/authGuardAudit.test.ts`
+  - `src/app/reportWorkflowActions.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+  - `PROJECT_SPEC.md`
+  - `DATA_MODEL_DRAFT.md`
+  - `E2E_LIFECYCLE_REVIEW.md`
+  - `UX_WORKFLOW_REVIEW.md`
+  - `SECURITY_REVIEW.md`
+  - `RESPONSIVE_UI_REVIEW.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:format` - passed
+  - `cmd /c npm.cmd run prisma:migrate -- --skip-generate` - initial advisory lock timeout; re-run with `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` timed out but migration status later showed database up to date
+  - `cmd /c npx.cmd prisma migrate status` - passed, database schema up to date
+  - `cmd /c npx.cmd prisma generate` - passed after stopping stale workspace Node/Prisma processes that held the engine file
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 28 test files / 100 tests
+  - `cmd /c npm.cmd run build` - passed, 34 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed with `/teacher/advisor-score` route visibility
+- Remaining roadmap:
+  - Final closeout / completion workflow
+  - Production deployment preparation
+
+## 2026-05-06 Final closeout / completion workflow
+
+- Pre-check result:
+  - No existing app-level closeout action/page existed; lifecycle E2E was simulating `COMPLETED` directly.
+  - Reused existing `AssessmentAttempt` / `ScoreSubmission`, `ReportVersion` / `ReportReview`, `AdvisorScore`, `ProjectStatusHistory`, and `ProjectTimelineEvent` models.
+  - No Prisma schema change was needed.
+- Completion eligibility:
+  - Added `getCompletionEligibility(projectId)` and pure `evaluateCompletionEligibility`.
+  - A project can become `COMPLETED` only when:
+    - current state is `ADVISOR_SCORING`
+    - Progress 1 score exists
+    - Progress 2 score exists
+    - Final Presentation score exists
+    - report approval evidence exists
+    - Advisor score exists
+    - latest report version has no unresolved revision request
+- Admin closeout:
+  - Added `/admin/closeout`.
+  - Added Admin-only `completeProjectCloseout`.
+  - The action re-checks eligibility server-side before updating status.
+  - Eligible closeout writes `ProjectStatusHistory`, `ProjectTimelineEvent`, and `AuditLog`.
+  - Completed projects are refused on repeated closeout attempts, preventing duplicate completion history.
+- UX updates:
+  - Admin dashboard links closeout work to `/admin/closeout`.
+  - Student `ADVISOR_SCORING` wording is neutral: waiting for Admin closeout.
+  - Success feedback key `project_completed` added.
+- Tests added/updated:
+  - `src/lib/lifecycle/completionEligibility.test.ts`
+  - `src/app/closeoutSource.test.ts`
+  - `src/app/authGuardAudit.test.ts`
+  - `src/lib/lifecycle/nextActions.test.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+- Files changed:
+  - `src/lib/lifecycle/completionEligibility.ts`
+  - `src/lib/lifecycle/completionEligibility.test.ts`
+  - `src/app/admin/actions.ts`
+  - `src/app/admin/closeout/page.tsx`
+  - `src/app/closeoutSource.test.ts`
+  - `src/app/authGuardAudit.test.ts`
+  - `src/app/admin/page.tsx`
+  - `src/components/ui/ActionFeedback.tsx`
+  - `src/lib/lifecycle/nextActions.ts`
+  - `src/lib/lifecycle/nextActions.test.ts`
+  - `src/lib/lifecycle/statusLabels.ts`
+  - `tests/e2e/lifecycle-v2.ts`
+  - `PROJECT_SPEC.md`
+  - `E2E_LIFECYCLE_REVIEW.md`
+  - `UX_WORKFLOW_REVIEW.md`
+  - `SECURITY_REVIEW.md`
+  - `RESPONSIVE_UI_REVIEW.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 30 test files / 111 tests
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - initial run correctly failed because the E2E script lacked Progress/Final score evidence for the new closeout eligibility check; after adding existing scoring evidence records, re-run passed with `/admin/closeout` route visibility
+- Remaining roadmap:
+  - Production deployment preparation
+  - Real Google OAuth credential test
+  - Supabase/Vercel setup
+  - Final security production review
+
+## 2026-05-06 Protected route/action auth audit follow-up
+
+- Re-audited protected routes, server actions, and the single API handler after the real-login pilot update.
+- Audited areas:
+  - Admin pages: `/admin`, `/admin/claims`, `/admin/committee`, `/admin/import-students`, `/admin/proposals`, `/admin/rounds`, `/admin/students`, `/admin/teachers`.
+  - Admin actions: academic setup, student import, project/advisor confirmation, teacher claim review, Proposal close, course round open/close, final decision, committee assignment, feedback release.
+  - Teacher pages/actions: dashboard, claim flow, advisor requests, proposal tasks/scoring, schedules, reports.
+  - Student pages/actions: dashboard, profile, origin/project, proposal, schedule, report, feedback.
+  - API handlers: only `/api/auth/[...nextauth]` is present; business mutations are server actions.
+- Gaps found and fixed:
+  - Approved `TEACHER` accounts could still access the teacher claim route/action and create a new pending claim. Restricted `/teacher/claim` and `claimTeacherProfile` to `PENDING_TEACHER` only.
+  - `src/auth.ts` did not check `User.active` before attaching session role claims. Inactive users now lose `token.role` / `token.appUserId` and fail protected route guards.
+- Tests updated:
+  - `src/app/authGuardAudit.test.ts` now checks pending-only teacher claim access and active-user session enforcement.
+- Files changed:
+  - `src/auth.ts`
+  - `src/app/teacher/actions.ts`
+  - `src/app/teacher/claim/page.tsx`
+  - `src/app/authGuardAudit.test.ts`
+  - `SECURITY_REVIEW.md`
+  - `IMPLEMENTATION_PROGRESS.md`
+- Commands run:
+  - `cmd /c npm.cmd run prisma:validate` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 20 test files / 72 tests
+  - `cmd /c npm.cmd run build` - passed, 29 routes generated
+  - `cmd /c npm.cmd run e2e:lifecycle` - passed lifecycle/database checks; route visibility fetch remains a non-blocking skip in the script (`/student` returned 500 during the optional route check).
+- Remaining limitations:
+  - No lifecycle workflow changes were made.
+  - No scheduling/scoring/report features were implemented.
+  - Detailed Progress 1 scoring, Progress 2 scoring, Final scoring, external magic links, full AUN-QA export, production deployment, and numeric report scoring remain intentionally unimplemented.
+## 2026-05-06 Stabilization / hardening review
+
+- Documentation alignment:
+  - Added current-baseline notes to `PROJECT_SPEC.md`, `DATA_MODEL_DRAFT.md`, `CODEX_TASKS.md`, `AGENTS.md`, `README.md`, and `RUBRICS_CHECKLIST.md`.
+  - Updated `PRODUCTION_CHECKLIST.md` and added `DEPLOYMENT_NOTES.md` for environment variables, migration flow, demo-data safety, and first-pilot order.
+- Lifecycle and retry safety fixes:
+  - Proposal and course round close actions now reject already-closed rounds server-side instead of rewriting `closedAt` or creating duplicate close events.
+  - Admin final Proposal decision now records the current project status as the transition `fromStatus`.
+  - Admin closeout now uses a conditional `updateMany` guard on `ADVISOR_SCORING` before writing completion history, reducing double-submit/race duplicate completion evidence.
+  - Student Project Origin now requires advisor selection before moving to `PENDING_ADVISOR`.
+  - Student Proposal submission now requires the course-level Proposal round to be open server-side.
+  - Report approval now refuses to approve while the latest report version still has an active revision request.
+- Security/data integrity fixes:
+  - Admin teacher-claim review now rejects claims that are no longer `PENDING`.
+  - No schema or migration changes were made.
+- Tests updated:
+  - Added/updated focused source and unit coverage for closeout idempotency guard, close-round guard, report latest-revision approval gate, Proposal open gate, and advisor-required Project Origin submission.
+- Validation:
+  - Pending in this stabilization pass.
+
+## 2026-05-06 Production readiness preparation
+
+- Added centralized production environment validation in `src/lib/config/env.ts`.
+- Added `npm run preflight:production` via `scripts/validate-production-env.ts`.
+- Added `npm run start` for production startup and `npm run prisma:deploy` for production migration deployment.
+- Hardened Auth.js config:
+  - Google OAuth credentials are read through centralized config.
+  - Production runtime now fails fast with a clear error if required env vars are missing.
+  - `AUTH_SECRET` is passed to Auth.js, while `NEXTAUTH_SECRET` remains supported for compatibility.
+  - Login action validates production env before starting Google sign-in, preventing the previous blank `client_id` Google error path.
+- Updated `.env.example`, `README.md`, `PRODUCTION_CHECKLIST.md`, and `DEPLOYMENT_NOTES.md` with production env names, OAuth callback examples, Supabase/Vercel migration order, and smoke-test steps.
+- No schema or lifecycle workflow changes were made.

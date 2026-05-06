@@ -1,0 +1,131 @@
+app:
+  name: Project Presentation, Feedback & Evidence System
+  ui_language: th
+
+auth:
+  student_domain: student.sru.ac.th
+  teacher_domain: sru.ac.th
+  student_email_pattern: "{student_code}@student.sru.ac.th"
+  teacher_claim_requires_admin_approval: true
+
+course:
+  title: Mathematical Project Course
+  presentation_total_weight: 40
+  report_article_in_scope: false
+  advisor_assessment_in_scope: false
+
+terms:
+  display_format:
+    semester_1: "ภาคเรียนที่ 1 ปีการศึกษา {year_be}"
+    semester_2: "ภาคเรียนที่ 2 ปีการศึกษา {year_be}"
+    summer: "ภาคฤดูร้อน ปีการศึกษา {year_be}"
+
+allowed_material_link_domains:
+  - drive.google.com
+  - docs.google.com
+  - classroom.google.com
+
+submission_policy:
+  allow_student_edit_until_deadline: true
+  save_version_history: true
+  lock_after_deadline: true
+  admin_unlock_allowed: true
+  admin_unlock_requires_audit_log: true
+  allow_raw_html: false
+  allow_markdown: true
+  allow_latex: true
+
+rounds:
+  proposal:
+    course_weight: 10
+    raw_score_max: 100
+    scoring_method: checklist
+    evaluators: all_active_internal_teachers
+    missing_policy: exclude_from_average
+    show_evaluator_name_to_student: false
+    student_feedback_visibility: after_admin_release
+    advisor_feedback_visibility: after_round_closed
+    require_material_link: true
+    require_decision: true
+    decisions:
+      - PASS
+      - PASS_WITH_REVISION
+      - NOT_PASS
+    require_reason_for:
+      - PASS_WITH_REVISION
+      - NOT_PASS
+
+  reproposal:
+    enabled_future: true
+    course_weight_source: proposal
+    creates_new_weight: false
+    official_score_policy: latest_passed_attempt
+    evaluators: project_committee_non_advisor
+    advisor_scores: false
+    missing_policy: show_missing
+    show_evaluator_name_to_student: true
+    require_material_link: true
+    require_response_to_previous_feedback: true
+
+  progress_1:
+    enabled_future: true
+    course_weight: 10
+    raw_score_max: 100
+    scoring_method: checklist
+    evaluators: project_committee_non_advisor
+    advisor_scores: false
+    missing_policy: show_missing
+    show_evaluator_name_to_student: true
+    require_material_link: true
+
+  progress_2:
+    enabled_future: true
+    course_weight: 10
+    raw_score_max: 100
+    scoring_method: checklist
+    evaluators: project_committee_non_advisor
+    advisor_scores: false
+    missing_policy: show_missing
+    show_evaluator_name_to_student: true
+    require_material_link: true
+
+  final_presentation:
+    enabled_future: true
+    course_weight: 10
+    raw_score_max: 100
+    scoring_method: checklist
+    scope: presentation_only
+    excludes:
+      - project_report
+      - article
+    evaluators: project_committee_non_advisor
+    advisor_scores: false
+    missing_policy: show_missing
+    show_evaluator_name_to_student: true
+    require_material_link: true
+
+teacher_roles:
+  committee_roles:
+    - ADVISOR
+    - COMMITTEE_MEMBER
+    - EXTERNAL_COMMITTEE_MEMBER
+  default_can_score_presentation:
+    ADVISOR: false
+    COMMITTEE_MEMBER: true
+    EXTERNAL_COMMITTEE_MEMBER: true
+
+evidence_trail:
+  enabled: true
+  store_timeline_events: true
+  store_audit_logs: true
+  important_events:
+    - PROJECT_ORIGIN_SUBMITTED
+    - PROPOSAL_SUBMITTED
+    - PROPOSAL_SCORING_OPENED
+    - TEACHER_SCORE_SUBMITTED
+    - PROPOSAL_CLOSED
+    - ADMIN_FINAL_DECISION
+    - FEEDBACK_RELEASED
+    - SUBMISSION_UNLOCKED
+    - TEACHER_CLAIM_APPROVED
+    - TEACHER_CLAIM_REJECTED

@@ -1,0 +1,34 @@
+# dependencies
+node_modules
+
+# Next.js / build output
+.next
+out
+dist
+build
+coverage
+*.tsbuildinfo
+
+# local environment and secrets
+.env
+.env.*
+!.env.example
+
+# logs and local runtime output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tmp-next-start.*.log
+
+# local databases / generated scratch files
+*.db
+*.sqlite
+*.sqlite3
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode
+.idea
