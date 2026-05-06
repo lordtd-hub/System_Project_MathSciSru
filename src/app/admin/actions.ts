@@ -347,7 +347,7 @@ export async function updateTeacherEmail(formData: FormData) {
   ]);
 
   revalidatePath("/admin/teachers");
-  redirect("/admin/teachers?success=บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ logout/login ใหม่เพื่อ refresh สิทธิ์");
+  redirect("/admin/teachers?success=teacher_email_updated");
 }
 
 export async function seedTeacherBaselineFromAdmin() {

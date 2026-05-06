@@ -35,6 +35,7 @@ const errorMessages: Record<string, string> = {
 successMessages.course_offering_opened = "เปิดรายวิชาเรียบร้อยแล้ว";
 successMessages.students_imported = "นำเข้านักศึกษาในรายวิชานี้เรียบร้อยแล้ว";
 successMessages.teacher_baseline_seeded = "เพิ่มข้อมูลอาจารย์พื้นฐานเรียบร้อยแล้ว";
+successMessages.teacher_email_updated = "บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อ refresh สิทธิ์";
 errorMessages.invalid_year = "ปีการศึกษาไม่ถูกต้อง กรุณากรอกเป็นปี พ.ศ. เช่น 2569";
 errorMessages.invalid_term = "ภาคเรียนไม่ถูกต้อง กรุณาเลือก 1, 2 หรือ summer";
 errorMessages.invalid_course_title = "ชื่อรายวิชายาวเกินไป";
