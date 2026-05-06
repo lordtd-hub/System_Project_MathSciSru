@@ -7,6 +7,13 @@ const toneClass: Record<AlertTone, string> = {
   danger: "border-red-200 bg-red-50 text-red-900"
 };
 
+const accentClass: Record<AlertTone, string> = {
+  info: "border-l-slate-400",
+  warning: "border-l-amber-500",
+  success: "border-l-emerald-600",
+  danger: "border-l-red-600"
+};
+
 export function Alert({
   tone = "info",
   title,
@@ -17,7 +24,7 @@ export function Alert({
   children?: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border p-4 shadow-sm ${toneClass[tone]}`} role={tone === "danger" || tone === "warning" ? "alert" : "status"}>
+    <div className={`rounded-lg border border-l-4 p-4 shadow-sm ${toneClass[tone]} ${accentClass[tone]}`} role={tone === "danger" || tone === "warning" ? "alert" : "status"}>
       <div className="font-semibold">{title}</div>
       {children ? <div className="mt-1 text-sm leading-6">{children}</div> : null}
     </div>

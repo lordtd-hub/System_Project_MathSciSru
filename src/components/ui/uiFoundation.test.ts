@@ -13,6 +13,8 @@ describe("UI foundation", () => {
     expect(css).toContain(".responsive-table");
     expect(css).toContain("@media (max-width: 640px)");
     expect(css).toContain("min-h-11");
+    expect(css).toContain("--shadow-soft");
+    expect(css).toContain("background-size: 32px 32px");
   });
 
   it("imports global CSS from the root app layout", () => {
@@ -30,6 +32,7 @@ describe("UI foundation", () => {
     expect(config).toContain("./src/app/**/*.{js,ts,jsx,tsx,mdx}");
     expect(config).toContain("./src/components/**/*.{js,ts,jsx,tsx,mdx}");
     expect(config).toContain("./src/lib/**/*.{js,ts,jsx,tsx,mdx}");
-    expect(config).toContain("#C1121F");
+    expect(config).toContain("#9A1822");
+    expect(config).toContain("paperSoft");
   });
 });

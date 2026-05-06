@@ -29,12 +29,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="th">
       <body className="font-sans">
         <div className="app-shell">
-          <header className="sticky top-0 z-30 border-b border-line bg-white/95 shadow-sm backdrop-blur">
-            <div className="h-1 bg-brand" />
+          <header className="sticky top-0 z-30 border-b border-line bg-white/92 shadow-sm backdrop-blur">
+            <div className="h-1.5 bg-brand" />
             <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-              <Link href="/" className="flex min-w-0 items-center gap-3 text-base font-semibold leading-6 text-ink hover:text-brand">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white p-1 shadow-sm">
-                  <img src="/logo-mathstat-sru.jpg" alt="" className="h-full w-full rounded-lg object-cover" />
+              <Link href="/" className="flex min-w-0 items-center gap-3 text-base font-semibold leading-6 text-ink transition hover:text-brand">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-line bg-white p-1 shadow-sm ring-1 ring-white">
+                  <img src="/logo-mathstat-sru.jpg" alt="" className="h-full w-full rounded-md object-cover" />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate">ระบบประเมินการนำเสนอโครงงาน</span>
@@ -45,30 +45,30 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
               <nav className="flex flex-wrap items-center gap-2 text-sm">
                 {!user ? (
                   <>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-red-50 hover:text-brand" href="/admin">
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/admin">
                       ผู้ดูแลระบบ
                     </a>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-red-50 hover:text-brand" href="/teacher">
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/teacher">
                       อาจารย์
                     </a>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-red-50 hover:text-brand" href="/student">
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/student">
                       นักศึกษา
                     </a>
                   </>
                 ) : null}
 
                 {user ? (
-                  <div className="flex w-full flex-col gap-2 rounded-xl border border-line bg-white p-2 shadow-sm sm:w-auto sm:flex-row sm:items-center">
+                  <div className="flex w-full flex-col gap-2 rounded-lg border border-line bg-white/95 p-2 shadow-sm ring-1 ring-white sm:w-auto sm:flex-row sm:items-center">
                     <div className="flex min-w-0 items-center gap-2">
                       {user.image ? (
                         <img
                           src={user.image}
                           alt=""
                           referrerPolicy="no-referrer"
-                          className="h-10 w-10 rounded-full border border-line bg-slate-100 object-cover"
+                          className="h-10 w-10 rounded-full border border-line bg-slate-100 object-cover shadow-sm"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/20 bg-brand/10 text-sm font-semibold text-brand">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/20 bg-brand/10 text-sm font-semibold text-brand shadow-sm">
                           {initials}
                         </div>
                       )}

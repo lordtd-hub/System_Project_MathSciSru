@@ -4,6 +4,8 @@
 
 :root {
   --font-sans: "Noto Sans Thai", "Leelawadee UI", "Tahoma", "Segoe UI", system-ui, sans-serif;
+  --shadow-soft: 0 1px 2px rgba(21, 23, 26, 0.05), 0 10px 24px rgba(21, 23, 26, 0.04);
+  --shadow-lift: 0 1px 2px rgba(21, 23, 26, 0.06), 0 16px 34px rgba(21, 23, 26, 0.08);
 }
 
 @layer base {
@@ -47,6 +49,11 @@
 @layer components {
   .app-shell {
     @apply min-h-screen bg-paper;
+    background-image:
+      linear-gradient(rgba(154, 24, 34, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(154, 24, 34, 0.03) 1px, transparent 1px);
+    background-position: -1px -1px;
+    background-size: 32px 32px;
   }
 
   .app-container {
@@ -55,16 +62,17 @@
 
   .panel,
   .section-card {
-    @apply rounded-xl border border-line bg-white p-5 shadow-sm;
+    @apply rounded-lg border border-line bg-white p-5;
+    box-shadow: var(--shadow-soft);
   }
 
   .button,
   button {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brandDark focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-brandDark focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
   }
 
   .button-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-px hover:border-brand/40 hover:bg-paperSoft focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
   }
 
   .button-danger {
@@ -76,7 +84,12 @@
   }
 
   .stat-card {
-    @apply rounded-xl border border-line bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md;
+    @apply rounded-lg border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-brand/40;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--shadow-lift);
   }
 
   .responsive-scroll {
@@ -85,6 +98,14 @@
 
   .responsive-table {
     @apply min-w-full text-left text-sm;
+  }
+
+  .responsive-table th {
+    @apply bg-paperSoft px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+
+  .responsive-table td {
+    @apply px-3 py-3 align-top;
   }
 
   .mobile-primary-action {
@@ -96,7 +117,7 @@
   }
 
   .markdown-latex-viewer {
-    @apply prose prose-sm max-w-none rounded-md border border-line bg-paper p-3 leading-7 text-ink;
+    @apply prose prose-sm max-w-none rounded-lg border border-line bg-paperSoft p-3 leading-7 text-ink;
   }
 
   .markdown-latex-viewer .katex-display {
