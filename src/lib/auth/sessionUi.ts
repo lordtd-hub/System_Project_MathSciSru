@@ -43,13 +43,13 @@ export function getRoleDashboardHref(role?: GlobalRole | null) {
 export function getRoleDashboardLabel(role?: GlobalRole | null) {
   switch (role) {
     case "ADMIN":
-      return "ไปหน้า Admin dashboard";
+      return "Admin";
     case "TEACHER":
-      return "ไปหน้า Teacher dashboard";
+      return "Teacher";
     case "STUDENT":
-      return "ไปหน้า Student dashboard";
+      return "Student";
     case "PENDING_TEACHER":
-      return "ดูสถานะคำขอผูกบัญชีอาจารย์";
+      return "สถานะ claim";
     default:
       return "เข้าสู่ระบบ";
   }
@@ -64,10 +64,10 @@ export function getSessionDashboardLinks(user?: CapabilityUser | null) {
   const roles = getEffectiveRoles(user);
   const links: { href: string; label: string }[] = [];
 
-  if (roles.includes("ADMIN")) links.push({ href: "/admin", label: "ไปหน้า Admin dashboard" });
-  if (hasApprovedTeacherCapability(user)) links.push({ href: "/teacher", label: "ไปหน้า Teacher dashboard" });
-  if (roles.includes("STUDENT")) links.push({ href: "/student", label: "ไปหน้า Student dashboard" });
-  if (roles.includes("PENDING_TEACHER")) links.push({ href: "/teacher/claim", label: "ดูสถานะคำขอผูกบัญชีอาจารย์" });
+  if (roles.includes("ADMIN")) links.push({ href: "/admin", label: "Admin" });
+  if (hasApprovedTeacherCapability(user)) links.push({ href: "/teacher", label: "Teacher" });
+  if (roles.includes("STUDENT")) links.push({ href: "/student", label: "Student" });
+  if (roles.includes("PENDING_TEACHER")) links.push({ href: "/teacher/claim", label: "สถานะ claim" });
 
   return links.length ? links : [{ href: "/login", label: "เข้าสู่ระบบ" }];
 }

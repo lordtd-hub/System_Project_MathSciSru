@@ -29,17 +29,19 @@ describe("session UI helpers", () => {
     expect(getRoleDashboardHref("PENDING_TEACHER")).toBe("/teacher/claim");
   });
 
-  it("uses clear labels for dashboard links", () => {
-    expect(getRoleDashboardLabel("ADMIN")).toContain("Admin dashboard");
-    expect(getRoleDashboardLabel("PENDING_TEACHER")).toContain("คำขอผูกบัญชีอาจารย์");
+  it("uses short labels for dashboard links", () => {
+    expect(getRoleDashboardLabel("ADMIN")).toBe("Admin");
+    expect(getRoleDashboardLabel("TEACHER")).toBe("Teacher");
+    expect(getRoleDashboardLabel("STUDENT")).toBe("Student");
+    expect(getRoleDashboardLabel("PENDING_TEACHER")).toBe("สถานะ claim");
   });
 
   it("shows both admin and teacher links for linked admin-teacher users", () => {
     const user = { role: "ADMIN" as const, roles: ["ADMIN", "TEACHER"] as ("ADMIN" | "TEACHER")[], teacherId: "teacher-1" };
     expect(getSessionRoleLabel(user)).toBe("ADMIN • TEACHER");
     expect(getSessionDashboardLinks(user)).toEqual([
-      { href: "/admin", label: "ไปหน้า Admin dashboard" },
-      { href: "/teacher", label: "ไปหน้า Teacher dashboard" }
+      { href: "/admin", label: "Admin" },
+      { href: "/teacher", label: "Teacher" }
     ]);
   });
 });
