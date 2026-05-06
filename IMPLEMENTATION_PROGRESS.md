@@ -30,6 +30,25 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Updated `README.md` with production baseline seed instructions and warnings not to run demo/e2e scripts against production.
 - Added `src/app/productionBaselineSeedSource.test.ts`.
 
+## 2026-05-06 Production course offering opening workflow
+
+- Added a production-oriented Admin workflow for opening a real Course Offering before student import.
+- `/admin/import-students` now starts with explicit fields:
+  - `ปีการศึกษา`
+  - `ภาคเรียน`
+  - optional course title
+  - `เปิดรายวิชา`
+- Added `openCourseOffering` server action:
+  - Admin-only guard.
+  - Validates academic year and term server-side.
+  - Creates/reuses `AcademicYear` and `Term`.
+  - Rejects duplicate Course Offering for the same course title + academic year + term.
+  - Creates the Course Offering and DRAFT course-level rounds for Proposal, Progress 1, Progress 2, and Final Presentation.
+  - Writes `COURSE_OFFERING_OPENED` audit log.
+- Student import now checks that `course_offering_id` exists before creating students/projects and redirects with Thai success/error feedback.
+- `/admin/students` now points Admin to the explicit open-course/import workflow instead of acting like a term dropdown-only import page.
+- Added tests for course offering input validation and source-level guard/import linkage.
+
 ## Task checklist
 
 - [x] Task 01 - Scaffold

@@ -32,6 +32,15 @@ const errorMessages: Record<string, string> = {
   action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง"
 };
 
+successMessages.course_offering_opened = "เปิดรายวิชาเรียบร้อยแล้ว";
+successMessages.students_imported = "นำเข้านักศึกษาในรายวิชานี้เรียบร้อยแล้ว";
+errorMessages.invalid_year = "ปีการศึกษาไม่ถูกต้อง กรุณากรอกเป็นปี พ.ศ. เช่น 2569";
+errorMessages.invalid_term = "ภาคเรียนไม่ถูกต้อง กรุณาเลือก 1, 2 หรือ summer";
+errorMessages.invalid_course_title = "ชื่อรายวิชายาวเกินไป";
+errorMessages.course_offering_duplicate = "มีรายวิชานี้ในปีการศึกษาและภาคเรียนที่เลือกแล้ว";
+errorMessages.course_offering_missing = "ไม่พบ Course Offering ที่เลือก กรุณาเปิดรายวิชาก่อนนำเข้านักศึกษา";
+errorMessages.student_import_empty = "ไม่พบข้อมูลนักศึกษาใน CSV";
+
 export function ActionFeedback({
   success,
   error,

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
+import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
 import { termDisplayName } from "@/lib/terms/display";
@@ -21,7 +22,68 @@ async function requireAdminUserId() {
   return session.user.id;
 }
 
+export async function openCourseOffering(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  const parsed = validateCourseOfferingInput({
+    yearBe: formData.get("year_be"),
+    termType: formData.get("term_type"),
+    courseTitle: formData.get("course_title")
+  });
+  if (!parsed.ok) redirect(`/admin/import-students?error=${parsed.error}`);
+  const { yearBe, termType, courseTitle, termDisplayName: displayName } = parsed.data;
+
+  const academicYear = await prisma.academicYear.upsert({
+    where: { yearBe },
+    update: { active: true },
+    create: { yearBe, active: true }
+  });
+  const term = await prisma.term.upsert({
+    where: { academicYearId_termType: { academicYearId: academicYear.id, termType } },
+    update: { displayName, status: "ACTIVE" },
+    create: { academicYearId: academicYear.id, termType, displayName, status: "ACTIVE" }
+  });
+
+  const existingOffering = await prisma.courseOffering.findFirst({ where: { termId: term.id, courseTitle } });
+  if (existingOffering) redirect("/admin/import-students?error=course_offering_duplicate");
+
+  const offering = await prisma.courseOffering.create({
+    data: { termId: term.id, courseTitle, status: "ACTIVE" }
+  });
+
+  for (const roundType of courseLevelRoundTypes) {
+    await prisma.assessmentRound.upsert({
+      where: { courseOfferingId_roundType: { courseOfferingId: offering.id, roundType } },
+      update: { name: defaultCourseRoundName(roundType), courseWeight: defaultCourseRoundWeight(roundType), rawScoreMax: 100 },
+      create: {
+        courseOfferingId: offering.id,
+        roundType,
+        name: defaultCourseRoundName(roundType),
+        courseWeight: defaultCourseRoundWeight(roundType),
+        rawScoreMax: 100,
+        showEvaluatorNameToStudent: false
+      }
+    });
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "COURSE_OFFERING_OPENED",
+      entityType: "CourseOffering",
+      entityId: offering.id,
+      afterJson: { yearBe, termType, courseTitle }
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/import-students");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/rounds");
+  redirect(`/admin/import-students?success=course_offering_opened&course_offering_id=${offering.id}`);
+}
+
 export async function createAcademicSetup(formData: FormData) {
+  return openCourseOffering(formData);
   await requireAdminUserId();
   const yearBe = Number(formData.get("year_be"));
   const termType = String(formData.get("term_type"));
@@ -54,7 +116,7 @@ export async function createAcademicSetup(formData: FormData) {
     where: { termId: term.id, courseTitle: "Mathematical Project Course" }
   });
   const offering = existingOffering
-    ? await prisma.courseOffering.update({ where: { id: existingOffering.id }, data: { status: "ACTIVE" } })
+    ? await prisma.courseOffering.update({ where: { id: existingOffering!.id }, data: { status: "ACTIVE" } })
     : await prisma.courseOffering.create({ data: { termId: term.id, status: "ACTIVE" } });
 
   for (const roundType of courseLevelRoundTypes) {
@@ -81,6 +143,9 @@ export async function importStudents(formData: FormData) {
   const courseOfferingId = String(formData.get("course_offering_id"));
   const csv = String(formData.get("csv") ?? "");
 
+  const offering = await prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } });
+  if (!offering) redirect("/admin/import-students?error=course_offering_missing");
+
   const rows = csv
     .trim()
     .split(/\r?\n/)
@@ -90,6 +155,7 @@ export async function importStudents(formData: FormData) {
       const [student_code, first_name_th, last_name_th] = line.split(",").map((part) => part.trim());
       return { student_code, first_name_th, last_name_th };
     });
+  if (!rows.length) redirect("/admin/import-students?error=student_import_empty");
 
   const existingProjects = await prisma.project.findMany({
     where: { courseOfferingId },
@@ -140,6 +206,9 @@ export async function importStudents(formData: FormData) {
   });
 
   revalidatePath("/admin/import-students");
+  revalidatePath("/admin/students");
+  revalidatePath("/student");
+  redirect(`/admin/import-students?success=students_imported&course_offering_id=${courseOfferingId}`);
 }
 
 export async function confirmProjectAdvisor(formData: FormData) {

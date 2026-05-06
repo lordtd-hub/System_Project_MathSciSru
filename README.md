@@ -187,6 +187,18 @@ npx prisma migrate deploy
 7. ตรวจสอบการ login ด้วย Google และ role routing ก่อนเปิดใช้งานจริง
 
 หมายเหตุ: MVP 1 ยังไม่ implement Progress 1, Progress 2, Final Presentation, external committee และ AUN-QA export เต็มรูปแบบ
+## เปิดรายวิชาและนำเข้านักศึกษา
+
+สำหรับ production ให้ผู้ดูแลระบบเริ่มที่ `/admin/import-students`:
+
+1. กรอก `ปีการศึกษา` เช่น `2569`
+2. เลือก `ภาคเรียน` เป็น `1`, `2` หรือ `summer`
+3. กรอกชื่อรายวิชา ถ้าต้องการเปลี่ยนจากค่าเริ่มต้น `Mathematical Project Course`
+4. กด `เปิดรายวิชา`
+5. เลือก Course Offering ที่เปิดแล้ว แล้วนำเข้า CSV นักศึกษาในรายวิชานั้น
+
+ระบบจะไม่สร้าง Course Offering ซ้ำสำหรับ course title + ปีการศึกษา + ภาคเรียนเดียวกัน และการ import นักศึกษาต้องผูกกับ `CourseOffering` ที่มีอยู่จริงเท่านั้น.
+
 ## Local PostgreSQL Development ด้วย Docker
 
 สำหรับการพัฒนาในเครื่อง local ให้ใช้ PostgreSQL ผ่าน Docker เท่านั้น ข้อมูลชุดนี้เป็นข้อมูลพัฒนา ไม่ใช่ฐานข้อมูล production

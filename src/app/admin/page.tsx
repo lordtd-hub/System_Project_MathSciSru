@@ -144,7 +144,7 @@ export default async function AdminDashboardPage({
               ? [{ title: "คำขอผูกบัญชีอาจารย์", description: `${claims} คำขอรออนุมัติ`, href: "/admin/claims", urgency: "สูง" }]
               : [{ title: "คำขอผูกบัญชีอาจารย์", description: "ไม่มีคำขอผูกบัญชีอาจารย์ที่รออนุมัติ", href: "/admin/claims", urgency: "ปกติ" }]),
             { title: "รอบสอบของรายวิชา", description: `${rounds.length} รอบแบบ course-level`, href: "/admin/rounds" },
-            { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/students" },
+            { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
             { title: "ปิดงานโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนเปลี่ยนเป็น COMPLETED", href: "/admin/closeout" }
           ]}
         />
