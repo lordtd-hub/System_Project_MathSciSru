@@ -22,13 +22,13 @@ describe("self-scheduling and progress scoring source guards", () => {
 
   it("keeps schedule views role guarded", () => {
     expect(read("src/app/admin/schedules/page.tsx")).toContain('session?.user.role !== "ADMIN"');
-    expect(read("src/app/teacher/schedules/page.tsx")).toContain('session?.user.role !== "TEACHER"');
+    expect(read("src/app/teacher/schedules/page.tsx")).toContain("hasApprovedTeacherCapability(session?.user)");
   });
 
   it("keeps Progress 1 scoring assigned-teacher only and duplicate-safe", () => {
     const actions = read("src/app/teacher/actions.ts");
     expect(actions).toContain("submitProgress1Score");
-    expect(actions).toContain('user.role !== "TEACHER"');
+    expect(actions).toContain("hasApprovedTeacherCapability(user)");
     expect(actions).toContain('project.status !== "IN_PROGRESS"');
     expect(actions).toContain('["HEAD", "MEMBER"].includes(assignment.role)');
     expect(actions).toContain("assessmentAttempt.upsert");
@@ -46,7 +46,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
-    expect(page).toContain('session?.user.role !== "TEACHER"');
+    expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
     expect(page).toContain("Progress 2");
     expect(page).toContain("submitProgress2Score");
   });
@@ -62,7 +62,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
-    expect(page).toContain('session?.user.role !== "TEACHER"');
+    expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
     expect(page).toContain("Final Presentation");
     expect(page).toContain("submitFinalPresentationScore");
   });

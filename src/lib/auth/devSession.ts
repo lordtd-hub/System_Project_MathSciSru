@@ -5,6 +5,8 @@ export const DEV_SESSION_COOKIE = "project_assessment_dev_session";
 export type DevSessionPayload = {
   userId: string;
   role: GlobalRole;
+  roles?: GlobalRole[];
+  teacherId?: string | null;
   email: string;
   name: string;
 };
@@ -26,7 +28,9 @@ export function decodeDevSession(value?: string | null): DevSessionPayload | nul
       userId: parsed.userId,
       email: parsed.email,
       name: parsed.name,
-      role: parsed.role
+      role: parsed.role,
+      roles: Array.isArray(parsed.roles) ? parsed.roles.filter((role): role is GlobalRole => typeof role === "string") : undefined,
+      teacherId: typeof parsed.teacherId === "string" ? parsed.teacherId : null
     };
   } catch {
     return null;
@@ -38,6 +42,8 @@ export function devSessionToAuthSession(payload: DevSessionPayload) {
     user: {
       id: payload.userId,
       role: payload.role,
+      roles: payload.roles ?? [payload.role],
+      teacherId: payload.teacherId ?? null,
       email: payload.email,
       name: payload.name,
       image: null

@@ -3,6 +3,8 @@ import {
   getFallbackInitials,
   getRoleDashboardHref,
   getRoleDashboardLabel,
+  getSessionDashboardLinks,
+  getSessionRoleLabel,
   getSessionDisplayName
 } from "@/lib/auth/sessionUi";
 
@@ -31,5 +33,13 @@ describe("session UI helpers", () => {
     expect(getRoleDashboardLabel("ADMIN")).toContain("Admin dashboard");
     expect(getRoleDashboardLabel("PENDING_TEACHER")).toContain("คำขอผูกบัญชีอาจารย์");
   });
-});
 
+  it("shows both admin and teacher links for linked admin-teacher users", () => {
+    const user = { role: "ADMIN" as const, roles: ["ADMIN", "TEACHER"] as ("ADMIN" | "TEACHER")[], teacherId: "teacher-1" };
+    expect(getSessionRoleLabel(user)).toBe("ADMIN • TEACHER");
+    expect(getSessionDashboardLinks(user)).toEqual([
+      { href: "/admin", label: "ไปหน้า Admin dashboard" },
+      { href: "/teacher", label: "ไปหน้า Teacher dashboard" }
+    ]);
+  });
+});

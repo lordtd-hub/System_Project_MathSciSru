@@ -1,4 +1,5 @@
 import type { GlobalRole } from "@prisma/client";
+import { getEffectiveRoles, hasApprovedTeacherCapability, type CapabilityUser } from "@/lib/auth/capabilities";
 
 type SessionUserSummary = {
   name?: string | null;
@@ -54,3 +55,19 @@ export function getRoleDashboardLabel(role?: GlobalRole | null) {
   }
 }
 
+export function getSessionRoleLabel(user?: CapabilityUser | null) {
+  const roles = getEffectiveRoles(user);
+  return roles.length ? roles.join(" • ") : "SIGNED_IN";
+}
+
+export function getSessionDashboardLinks(user?: CapabilityUser | null) {
+  const roles = getEffectiveRoles(user);
+  const links: { href: string; label: string }[] = [];
+
+  if (roles.includes("ADMIN")) links.push({ href: "/admin", label: "ไปหน้า Admin dashboard" });
+  if (hasApprovedTeacherCapability(user)) links.push({ href: "/teacher", label: "ไปหน้า Teacher dashboard" });
+  if (roles.includes("STUDENT")) links.push({ href: "/student", label: "ไปหน้า Student dashboard" });
+  if (roles.includes("PENDING_TEACHER")) links.push({ href: "/teacher/claim", label: "ดูสถานะคำขอผูกบัญชีอาจารย์" });
+
+  return links.length ? links : [{ href: "/login", label: "เข้าสู่ระบบ" }];
+}

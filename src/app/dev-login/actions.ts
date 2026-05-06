@@ -79,7 +79,7 @@ export async function selectDevUser(formData: FormData) {
       }
     });
     await prisma.teacher.update({ where: { id: teacher.id }, data: { userId: user.id, email } });
-    await setDevSession({ userId: user.id, role: "TEACHER", email, name: teacherDisplayName(teacher) });
+    await setDevSession({ userId: user.id, role: "TEACHER", roles: ["TEACHER"], teacherId: teacher.id, email, name: teacherDisplayName(teacher) });
     redirectTo = "/teacher";
   }
 

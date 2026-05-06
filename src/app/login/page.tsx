@@ -1,5 +1,5 @@
 import { auth, signIn, signOut } from "@/auth";
-import { getRoleDashboardHref, getRoleDashboardLabel, getSessionDisplayName } from "@/lib/auth/sessionUi";
+import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
 import { assertProductionRuntimeEnv } from "@/lib/config/env";
 
 export default async function LoginPage() {
@@ -8,6 +8,8 @@ export default async function LoginPage() {
 
   if (user) {
     const displayName = getSessionDisplayName(user);
+    const dashboardLinks = getSessionDashboardLinks(user);
+    const roleLabel = getSessionRoleLabel(user);
 
     return (
       <div className="mx-auto max-w-md panel">
@@ -15,12 +17,14 @@ export default async function LoginPage() {
         <h1 className="mt-1 text-xl font-semibold">เข้าสู่ระบบแล้ว</h1>
         <p className="mt-2 text-sm leading-6 text-muted">
           {displayName}
-          {user.email && user.email !== displayName ? ` (${user.email})` : ""} · {user.role}
+          {user.email && user.email !== displayName ? ` (${user.email})` : ""} · {roleLabel}
         </p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-          <a className="button" href={getRoleDashboardHref(user.role)}>
-            {getRoleDashboardLabel(user.role)}
-          </a>
+          {dashboardLinks.map((link) => (
+            <a key={link.href} className="button" href={link.href}>
+              {link.label}
+            </a>
+          ))}
           <form
             action={async () => {
               "use server";
@@ -55,4 +59,3 @@ export default async function LoginPage() {
     </div>
   );
 }
-

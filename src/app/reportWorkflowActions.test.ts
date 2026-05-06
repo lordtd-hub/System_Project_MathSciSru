@@ -18,7 +18,7 @@ describe("report workflow actions", () => {
   it("teacher report review is approved-teacher only and updates existing reviews", () => {
     const source = read("src/app/teacher/actions.ts");
     expect(source).toContain("reviewReportVersion");
-    expect(source).toContain('user.role !== "TEACHER"');
+    expect(source).toContain("hasApprovedTeacherCapability(user)");
     expect(source).toContain("isAssignedReportReviewer");
     expect(source).toContain("reportReview.upsert");
     expect(source).toContain("latestReportVersionHasRevisionRequest");

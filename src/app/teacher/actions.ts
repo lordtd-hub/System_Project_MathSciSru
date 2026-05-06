@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { finalCriteria, totalFinalNormalizedScore, totalFinalRawScore, validateFinalScore, type FinalScoreInput } from "@/lib/scoring/finalScoring";
@@ -28,7 +29,7 @@ import {
 
 async function requireTeacherUser() {
   const session = await auth();
-  if (!session?.user.id || (session.user.role !== "TEACHER" && session.user.role !== "PENDING_TEACHER")) {
+  if (!session?.user.id || (!hasApprovedTeacherCapability(session.user) && session.user.role !== "PENDING_TEACHER")) {
     throw new Error("ไม่อนุญาตให้เข้าถึง");
   }
   return session.user;
@@ -71,7 +72,7 @@ export async function claimTeacherProfile(formData: FormData) {
 
 export async function openProposalScoring(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
   const attemptId = String(formData.get("attempt_id"));
 
   const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
@@ -93,7 +94,7 @@ export async function openProposalScoring(formData: FormData) {
 
 export async function reviewAdvisorRequest(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const requestId = String(formData.get("request_id"));
   const decision = String(formData.get("decision"));
   const comment = String(formData.get("comment") ?? "").trim();
@@ -156,7 +157,7 @@ export async function reviewAdvisorRequest(formData: FormData) {
 
 export async function submitProposalScore(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
 
   const assignmentId = String(formData.get("assignment_id"));
   const decision = String(formData.get("decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
@@ -391,7 +392,7 @@ async function ensureFinalRubric() {
 
 export async function submitProgress1Score(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   const input: Progress1ScoreInput = {
@@ -488,7 +489,7 @@ export async function submitProgress1Score(formData: FormData) {
 
 export async function submitProgress2Score(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   const input: Progress2ScoreInput = {
@@ -585,7 +586,7 @@ export async function submitProgress2Score(formData: FormData) {
 
 export async function submitFinalPresentationScore(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   const input: FinalScoreInput = {
@@ -695,7 +696,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
 
 export async function reviewReportVersion(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const reportVersionId = String(formData.get("report_version_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
@@ -837,7 +838,7 @@ export async function reviewReportVersion(formData: FormData) {
 
 export async function submitAdvisorScore(formData: FormData) {
   const user = await requireTeacherUser();
-  if (user.role !== "TEACHER" || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   const input: AdvisorScoreInput = {

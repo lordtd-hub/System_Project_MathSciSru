@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
@@ -19,7 +20,7 @@ export default async function ProposalScoringPage({
   const { assignmentId } = await params;
   const query = (await searchParams) ?? {};
   const session = await auth();
-  if (session?.user.role !== "TEACHER" || !session.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
+  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
 
   const [assignment, rubric] = await Promise.all([
     prisma.evaluatorAssignment.findUniqueOrThrow({

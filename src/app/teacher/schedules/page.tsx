@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
@@ -8,7 +9,7 @@ import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 export default async function TeacherSchedulesPage() {
   const session = await auth();
-  if (session?.user.role !== "TEACHER" || !session.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
+  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
 

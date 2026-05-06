@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { reviewAdvisorRequest } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { WarningAlert } from "@/components/ui/Alert";
@@ -19,7 +20,7 @@ export default async function TeacherAdvisorRequestsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  if (session?.user.role !== "TEACHER" || !session.user.id) {
+  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) {
     return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
   }
 

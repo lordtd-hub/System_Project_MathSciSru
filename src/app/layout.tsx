@@ -5,8 +5,8 @@ import { auth, signOut } from "@/auth";
 import { PageShell } from "@/components/ui/PageShell";
 import {
   getFallbackInitials,
-  getRoleDashboardHref,
-  getRoleDashboardLabel,
+  getSessionDashboardLinks,
+  getSessionRoleLabel,
   getSessionDisplayName
 } from "@/lib/auth/sessionUi";
 import "katex/dist/katex.min.css";
@@ -22,8 +22,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const user = session?.user;
   const displayName = getSessionDisplayName(user);
   const initials = getFallbackInitials(displayName);
-  const dashboardHref = getRoleDashboardHref(user?.role);
-  const dashboardLabel = getRoleDashboardLabel(user?.role);
+  const dashboardLinks = getSessionDashboardLinks(user);
+  const roleLabel = getSessionRoleLabel(user);
 
   return (
     <html lang="th">
@@ -66,13 +66,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                         {user.email && user.email !== displayName ? (
                           <div className="truncate text-xs text-muted">{user.email}</div>
                         ) : null}
-                        <div className="text-xs font-semibold text-brand">{user.role}</div>
+                        <div className="text-xs font-semibold text-brand">{roleLabel}</div>
                       </div>
                     </div>
 
-                    <a className="button-secondary whitespace-nowrap" href={dashboardHref}>
-                      {dashboardLabel}
-                    </a>
+                    {dashboardLinks.map((link) => (
+                      <a key={link.href} className="button-secondary whitespace-nowrap" href={link.href}>
+                        {link.label}
+                      </a>
+                    ))}
                     <form
                       action={async () => {
                         "use server";
@@ -104,4 +106,3 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     </html>
   );
 }
-

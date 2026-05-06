@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
@@ -8,7 +9,7 @@ import { openProposalScoring } from "../actions";
 
 export default async function TeacherProposalsPage() {
   const session = await auth();
-  if (session?.user.role !== "TEACHER" || !session.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
+  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
 
   const attempts = await prisma.assessmentAttempt.findMany({
     where: { assessmentRound: { roundType: "PROPOSAL" }, presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } } },

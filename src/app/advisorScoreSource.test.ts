@@ -8,7 +8,7 @@ describe("advisor score workflow source guards", () => {
   it("keeps advisor score page approved-teacher guarded", () => {
     const page = read("src/app/teacher/advisor-score/page.tsx");
     expect(page).toContain("auth()");
-    expect(page).toContain('session?.user.role !== "TEACHER"');
+    expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
     expect(page).toContain("Advisor score 25%");
     expect(page).toContain("submitAdvisorScore");
   });
@@ -16,7 +16,7 @@ describe("advisor score workflow source guards", () => {
   it("keeps advisor score action advisor-only and report-approved gated", () => {
     const actions = read("src/app/teacher/actions.ts");
     expect(actions).toContain("submitAdvisorScore");
-    expect(actions).toContain('user.role !== "TEACHER"');
+    expect(actions).toContain("hasApprovedTeacherCapability(user)");
     expect(actions).toContain("validateAdvisorScore");
     expect(actions).toContain('assignment.role === "ADVISOR"');
     expect(actions).toContain('project.status !== "REPORT_APPROVED" && project.status !== "ADVISOR_SCORING"');

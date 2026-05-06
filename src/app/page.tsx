@@ -2,7 +2,7 @@ import { auth, signOut } from "@/auth";
 import { InfoAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { isDevLoginEnabled } from "@/lib/auth/devSession";
-import { getRoleDashboardHref, getRoleDashboardLabel, getSessionDisplayName } from "@/lib/auth/sessionUi";
+import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
 
 const dashboards = [
   {
@@ -30,6 +30,8 @@ export default async function HomePage() {
   const session = await auth();
   const user = session?.user;
   const displayName = getSessionDisplayName(user);
+  const dashboardLinks = getSessionDashboardLinks(user);
+  const roleLabel = getSessionRoleLabel(user);
 
   return (
     <section className="space-y-6">
@@ -54,13 +56,15 @@ export default async function HomePage() {
             <h2 className="mt-1 text-lg font-semibold text-ink">เข้าสู่ระบบแล้ว</h2>
             <p className="mt-1 text-sm leading-6 text-muted">
               {displayName}
-              {user.email && user.email !== displayName ? ` (${user.email})` : ""} · {user.role}
+              {user.email && user.email !== displayName ? ` (${user.email})` : ""} · {roleLabel}
             </p>
           </div>
           <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center">
-            <a className="button" href={getRoleDashboardHref(user.role)}>
-              {getRoleDashboardLabel(user.role)}
-            </a>
+            {dashboardLinks.map((link) => (
+              <a key={link.href} className="button" href={link.href}>
+                {link.label}
+              </a>
+            ))}
             <form
               action={async () => {
                 "use server";
@@ -109,4 +113,3 @@ export default async function HomePage() {
     </section>
   );
 }
-

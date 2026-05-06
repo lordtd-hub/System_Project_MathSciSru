@@ -20,7 +20,7 @@ describe("auth pilot source guards", () => {
     expect(layoutSource).toContain("await auth()");
     expect(layoutSource).toContain("user.image");
     expect(layoutSource).toContain("getFallbackInitials");
-    expect(layoutSource).toContain("getRoleDashboardHref");
+    expect(layoutSource).toContain("getSessionDashboardLinks");
     expect(layoutSource).toContain("signOut");
     expect(layoutSource).toContain("ออกจากระบบ");
 
@@ -45,8 +45,9 @@ describe("auth pilot source guards", () => {
   it("keeps pending teachers out of scoring mutations until admin approval", () => {
     const teacherActionsSource = readFileSync(join(process.cwd(), "src/app/teacher/actions.ts"), "utf8");
 
-    expect(teacherActionsSource).toContain('user.role !== "TEACHER"');
+    expect(teacherActionsSource).toContain("hasApprovedTeacherCapability(user)");
     expect(teacherActionsSource).toContain("ต้องได้รับอนุมัติก่อน");
     expect(teacherActionsSource).toContain("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   });
 });
+

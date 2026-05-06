@@ -47,16 +47,16 @@ describe("protected route and action guard audit", () => {
     for (const page of teacherWorkPages) {
       const source = read(page);
       expect(source).toContain("auth()");
-      expect(source).toContain('session?.user.role !== "TEACHER"');
+      expect(source).toContain("hasApprovedTeacherCapability(session?.user)");
     }
 
     const teacherPage = read("src/app/teacher/page.tsx");
-    expect(teacherPage).toContain('session?.user.role === "PENDING_TEACHER"');
+    expect(teacherPage).toContain("isPendingTeacherClaim(session?.user)");
     expect(teacherPage).toContain("/teacher/claim");
 
     const teacherActions = read("src/app/teacher/actions.ts");
-    expect(teacherActions).toContain('user.role !== "TEACHER"');
-    expect(teacherActions.match(/user\.role !== "TEACHER"/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(teacherActions).toContain("hasApprovedTeacherCapability(user)");
+    expect(teacherActions.match(/hasApprovedTeacherCapability\(user\)/g)?.length).toBeGreaterThanOrEqual(3);
   });
 
   it("keeps teacher claim flow separate from approved teacher work pages", () => {
@@ -102,6 +102,8 @@ describe("protected route and action guard audit", () => {
     expect(authSource).toContain("resolveLoginRole(");
     expect(authSource).toContain("importedStudentCodes");
     expect(authSource).toContain("linkedTeacherEmails");
+    expect(authSource).toContain("teacherId");
+    expect(authSource).toContain("token.roles");
     expect(authSource).toContain("active: true");
     expect(authSource).toContain("delete token.role");
     expect(authSource).toContain("isDevLoginEnabled()");

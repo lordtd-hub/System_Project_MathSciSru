@@ -44,7 +44,7 @@ const nextAuth = NextAuth({
 
       if (resolution.role === "DENIED") return false;
 
-      await prisma.user.upsert({
+      const appUser = await prisma.user.upsert({
         where: { email },
         update: {
           googleSub: sub,
@@ -62,6 +62,16 @@ const nextAuth = NextAuth({
           lastLoginAt: new Date()
         }
       });
+      if ((resolution.role === "ADMIN" || resolution.role === "TEACHER") && resolution.emailDomain === "sru.ac.th") {
+        await prisma.teacher.updateMany({
+          where: {
+            email,
+            active: true,
+            OR: [{ userId: null }, { userId: appUser.id }]
+          },
+          data: { userId: appUser.id }
+        });
+      }
 
       return true;
     },
@@ -71,14 +81,24 @@ const nextAuth = NextAuth({
         const normalizedEmail = email.trim().toLowerCase();
         const appUser = await prisma.user.findUnique({
           where: { email: normalizedEmail },
-          select: { id: true, globalRole: true, active: true }
+          select: {
+            id: true,
+            globalRole: true,
+            active: true,
+            teacher: { select: { id: true, active: true } }
+          }
         });
         if (appUser?.active) {
           token.appUserId = appUser.id;
           token.role = appUser.globalRole;
+          const teacherId = appUser.teacher?.active ? appUser.teacher.id : null;
+          token.teacherId = teacherId;
+          token.roles = teacherId && appUser.globalRole !== "TEACHER" ? [appUser.globalRole, "TEACHER"] : [appUser.globalRole];
         } else {
           delete token.appUserId;
           delete token.role;
+          delete token.teacherId;
+          delete token.roles;
         }
       }
       return token;
@@ -88,6 +108,8 @@ const nextAuth = NextAuth({
         session.user.id = token.appUserId;
       }
       session.user.role = token.role as typeof session.user.role;
+      session.user.roles = Array.isArray(token.roles) ? (token.roles as typeof session.user.roles) : session.user.role ? [session.user.role] : [];
+      session.user.teacherId = typeof token.teacherId === "string" ? token.teacherId : null;
       return session;
     }
   },

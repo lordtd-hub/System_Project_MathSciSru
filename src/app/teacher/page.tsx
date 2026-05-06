@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { NextActionCard } from "@/components/ui/NextActionCard";
@@ -12,7 +13,7 @@ import { openProposalScoring } from "./actions";
 
 export default async function TeacherDashboardPage() {
   const session = await auth();
-  if (session?.user.role === "PENDING_TEACHER") {
+  if (isPendingTeacherClaim(session?.user)) {
     return (
       <div className="space-y-6">
         <PageHeader title="รอผู้ดูแลระบบอนุมัติ" description="คำขอผูกบัญชีของท่านอยู่ระหว่างรอผู้ดูแลระบบอนุมัติ" />
@@ -23,7 +24,7 @@ export default async function TeacherDashboardPage() {
       </div>
     );
   }
-  if (session?.user.role !== "TEACHER" || !session.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น</div>;
+  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น</div>;
 
   const [teacher, attempts, notifications] = await Promise.all([
     prisma.teacher.findUnique({ where: { userId: session.user.id } }),
