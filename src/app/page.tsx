@@ -1,8 +1,7 @@
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { InfoAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { isDevLoginEnabled } from "@/lib/auth/devSession";
-import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
 
 const roleGuides = [
   {
@@ -51,9 +50,6 @@ export default async function HomePage() {
   const showDevWarning = isDevLoginEnabled();
   const session = await auth();
   const user = session?.user;
-  const displayName = getSessionDisplayName(user);
-  const dashboardLinks = getSessionDashboardLinks(user);
-  const roleLabel = getSessionRoleLabel(user);
 
   return (
     <section className="space-y-6">
@@ -71,35 +67,7 @@ export default async function HomePage() {
         </InfoAlert>
       ) : null}
 
-      {user ? (
-        <div className="rounded-xl border border-brand/20 bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-brand">Signed in</div>
-            <h2 className="mt-1 text-lg font-semibold text-ink">เข้าสู่ระบบแล้ว</h2>
-            <p className="mt-1 text-sm leading-6 text-muted">
-              {displayName}
-              {user.email && user.email !== displayName ? ` (${user.email})` : ""} • {roleLabel}
-            </p>
-          </div>
-          <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center">
-            {dashboardLinks.map((link) => (
-              <a key={link.href} className="button" href={link.href}>
-                {link.label}
-              </a>
-            ))}
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-            >
-              <button type="submit" className="button-secondary">
-                ออกจากระบบ
-              </button>
-            </form>
-          </div>
-        </div>
-      ) : (
+      {!user ? (
         <div className="rounded-xl border border-brand/20 bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>
             <h2 className="text-lg font-semibold text-ink">เข้าสู่ระบบเพื่อเริ่มใช้งาน</h2>
@@ -111,7 +79,7 @@ export default async function HomePage() {
             เข้าสู่ระบบด้วย Google
           </a>
         </div>
-      )}
+      ) : null}
 
       <section className="rounded-xl border border-line bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-ink">ระบบนี้ใช้ทำอะไร</h2>
