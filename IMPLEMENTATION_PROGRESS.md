@@ -2,14 +2,33 @@
 
 ## Current status
 
-- Last completed task: Final closeout / completion workflow through `COMPLETED`
-- Current task: Stabilization, hardening, and pre-production review
-- Known blockers: None for the current Lifecycle v2 implementation. Production deployment and real Google OAuth credential testing are still pending.
+- Last completed task: Production baseline seed for internal teacher profiles and required rubrics
+- Current task: Production rollout support and real-data bootstrap
+- Known blockers: Student roster is not imported yet; production teacher profiles now depend on running the production baseline seed.
 - Current baseline: Lifecycle v2 is implemented through Admin-only `COMPLETED`; self-scheduling, Progress 1 scoring, Progress 2 scoring, Final Presentation scoring, report approval, Advisor score 25%, and closeout are functional.
 - Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
-- Next step: Production deployment preparation, real Google OAuth credential test, Supabase/Vercel setup, and final production security review.
+- Next step: Import the real student roster only when ready, then verify teacher/admin role capability after logout/login.
 
 Historical note: The original Task 01-10 checklist below is retained as the initial MVP sequence. Later 2026-05-06 sections supersede early Proposal-only limitations.
+
+## 2026-05-06 Production baseline seed
+
+- Added `prisma/seed-production-baseline.ts`.
+- Added `npm run seed:production-baseline`.
+- The production baseline seed uses `SEED_TEACHERS.csv` as the documented internal teacher source.
+- The teacher row marked `is_initial_admin=TRUE` receives `INITIAL_ADMIN_EMAIL` so the production admin can also be linked to the real teacher profile after logout/login.
+- Teacher seed behavior is idempotent:
+  - Upserts by `academicPrefix + firstNameTh + lastNameTh`.
+  - Normalizes email with trim/lowercase.
+  - Prevents duplicate teacher email conflicts.
+  - Preserves existing teacher email when the CSV email is empty.
+- Rubric seed behavior is idempotent:
+  - Upserts Proposal, Progress 1, Progress 2, and Final Presentation rubric records.
+  - Upserts or keeps existing rubric items without duplicating an already-populated rubric shape.
+  - Advisor score continues to use the code-level 100-point advisor rubric because there is no advisor course-level `AssessmentRoundType`.
+- The script does not create students, projects, course offerings, demo data, E2E data, or reset the database.
+- Updated `README.md` with production baseline seed instructions and warnings not to run demo/e2e scripts against production.
+- Added `src/app/productionBaselineSeedSource.test.ts`.
 
 ## Task checklist
 

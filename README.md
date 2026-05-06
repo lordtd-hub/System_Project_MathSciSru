@@ -345,3 +345,29 @@ Google OAuth redirect URIs:
 - Production: `https://<your-production-domain>/api/auth/callback/google`
 
 Production must not run demo reset/seed or E2E lifecycle scripts against real data. Student access comes from the imported roster, and teacher access comes from Admin-approved claims.
+
+### Production baseline seed
+
+หลังจากรัน production migration แล้ว ให้รัน seed ชุดเล็กสำหรับข้อมูลตั้งต้นจริงเท่านั้น:
+
+```bash
+npm run seed:production-baseline
+```
+
+คำสั่งนี้ทำเฉพาะสิ่งต่อไปนี้:
+
+- upsert teacher profiles จาก `SEED_TEACHERS.csv`
+- เติมอีเมลให้ teacher profile ที่มี `is_initial_admin=TRUE` จาก `INITIAL_ADMIN_EMAIL`
+- upsert rubric/config ที่จำเป็นสำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation
+- ไม่สร้าง demo students, demo projects, E2E data หรือ course/project records
+- ไม่ reset database และไม่ลบข้อมูล production
+
+ก่อนรันกับ Supabase production ให้ตั้งค่า environment ในเครื่อง local หรือ shell session โดยไม่ commit secret:
+
+```bash
+DATABASE_URL="..."
+DIRECT_URL="..."
+INITIAL_ADMIN_EMAIL="..."
+```
+
+ถ้าใช้งาน Vercel/Supabase จริง ให้ใช้ connection string จาก Supabase Project Settings และใช้คำสั่งนี้หลัง `npm run prisma:deploy` เท่านั้น. ห้ามรัน `npm run prisma:seed:demo`, `npm run dev:reset-demo` หรือ `npm run e2e:lifecycle` กับ production database.

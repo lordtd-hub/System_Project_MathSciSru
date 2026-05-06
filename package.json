@@ -17,6 +17,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
+    "seed:production-baseline": "tsx prisma/seed-production-baseline.ts",
     "prisma:seed:demo": "tsx prisma/seed-demo.ts",
     "prisma:seed:demo:clean": "tsx prisma/clean-demo.ts",
     "dev:reset-demo": "tsx prisma/clean-demo.ts && tsx prisma/seed-demo.ts",
