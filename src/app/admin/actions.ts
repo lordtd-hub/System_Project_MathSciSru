@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
 import { termDisplayName } from "@/lib/terms/display";
@@ -237,6 +238,46 @@ export async function reviewTeacherClaim(formData: FormData) {
 
   revalidatePath("/admin/claims");
   redirect("/admin/claims?success=teacher_claim_reviewed");
+}
+
+export async function updateTeacherEmail(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  const teacherId = String(formData.get("teacher_id") ?? "");
+  if (!teacherId) throw new Error("ไม่พบโปรไฟล์อาจารย์ที่ต้องการแก้ไข");
+
+  const normalizedEmail = normalizeTeacherEmail(formData.get("email"));
+  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { id: teacherId } });
+  const duplicate = normalizedEmail
+    ? await prisma.teacher.findFirst({
+        where: {
+          id: { not: teacherId },
+          email: { equals: normalizedEmail, mode: "insensitive" }
+        },
+        select: { id: true }
+      })
+    : null;
+
+  assertNoDuplicateTeacherEmail({ normalizedEmail, duplicateTeacherId: duplicate?.id });
+
+  await prisma.$transaction([
+    prisma.teacher.update({
+      where: { id: teacherId },
+      data: { email: normalizedEmail }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "TEACHER_EMAIL_UPDATED",
+        entityType: "Teacher",
+        entityId: teacherId,
+        beforeJson: { email: teacher.email },
+        afterJson: { email: normalizedEmail }
+      }
+    })
+  ]);
+
+  revalidatePath("/admin/teachers");
+  redirect("/admin/teachers?success=บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ logout/login ใหม่เพื่อ refresh สิทธิ์");
 }
 
 export async function closeProposalRound(formData: FormData) {
