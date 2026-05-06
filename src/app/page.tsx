@@ -40,6 +40,18 @@ export default function HomePage() {
         </InfoAlert>
       ) : null}
 
+      <div className="rounded-xl border border-brand/20 bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">เข้าสู่ระบบเพื่อเริ่มใช้งาน</h2>
+          <p className="mt-1 text-sm leading-6 text-muted">
+            ใช้บัญชี Google ของมหาวิทยาลัย นักศึกษาใช้อีเมล @student.sru.ac.th และอาจารย์ใช้อีเมล @sru.ac.th
+          </p>
+        </div>
+        <a className="button mt-4 w-full sm:mt-0 sm:w-auto" href="/login">
+          เข้าสู่ระบบด้วย Google
+        </a>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         {dashboards.map((item) => (
           <a

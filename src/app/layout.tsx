@@ -29,6 +29,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/student">
                   นักศึกษา
                 </a>
+                <a className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-teal-800" href="/login">
+                  เข้าสู่ระบบ
+                </a>
                 {process.env.NODE_ENV === "development" ? (
                   <a className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 hover:bg-red-100" href="/dev-login">
                     Dev login
