@@ -2,7 +2,7 @@
 
 ## 1. Test Date/Time
 
-- 7/5/2569 00:39:45
+- 7/5/2569 00:48:56
 
 ## 2. Environment
 
@@ -31,9 +31,9 @@
 
 - 1. Admin opens course: PASS - ภาคเรียนที่ 1 ปีการศึกษา 2568, Mathematical Project Course (e2e-lifecycle-course-offering)
 - 2. Admin imports students: PASS - 65123456789@student.sru.ac.th, 65123456790@student.sru.ac.th, 65123456791@student.sru.ac.th
-- 3. Student login/dev login scope: PASS - student 65123456789@student.sru.ac.th scoped to project cmouce4p8001jzsmcj05tow97
+- 3. Student login/dev login scope: PASS - student 65123456789@student.sru.ac.th scoped to project cmoucpxa3001jzswokb7obe4a
 - 4. Student completes profile: PASS - profile completed and next action unlocked
-- 5. DRAFT project creation and advisor request: PASS - advisor request cmouce4ps001zzsmc811jl0iw
+- 5. DRAFT project creation and advisor request: PASS - advisor request cmoucpxaz001zzswoxagz6lbl
 - 6. Advisor approval and reject path: PASS - approve -> PENDING_ADMIN, reject -> DRAFT, 7-day reminder condition present
 - 7. Admin confirmation: PASS - project/advisor confirmed
 - 8. Student submits Proposal: PASS - invalid link rejected, Google link accepted, project in PROPOSAL_REVIEW
@@ -55,9 +55,9 @@
 | --- | --- | --- |
 | 1. Admin opens course | PASS | ภาคเรียนที่ 1 ปีการศึกษา 2568, Mathematical Project Course (e2e-lifecycle-course-offering) |
 | 2. Admin imports students | PASS | 65123456789@student.sru.ac.th, 65123456790@student.sru.ac.th, 65123456791@student.sru.ac.th |
-| 3. Student login/dev login scope | PASS | student 65123456789@student.sru.ac.th scoped to project cmouce4p8001jzsmcj05tow97 |
+| 3. Student login/dev login scope | PASS | student 65123456789@student.sru.ac.th scoped to project cmoucpxa3001jzswokb7obe4a |
 | 4. Student completes profile | PASS | profile completed and next action unlocked |
-| 5. DRAFT project creation and advisor request | PASS | advisor request cmouce4ps001zzsmc811jl0iw |
+| 5. DRAFT project creation and advisor request | PASS | advisor request cmoucpxaz001zzswoxagz6lbl |
 | 6. Advisor approval and reject path | PASS | approve -> PENDING_ADMIN, reject -> DRAFT, 7-day reminder condition present |
 | 7. Admin confirmation | PASS | project/advisor confirmed |
 | 8. Student submits Proposal | PASS | invalid link rejected, Google link accepted, project in PROPOSAL_REVIEW |

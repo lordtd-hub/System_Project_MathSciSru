@@ -13,6 +13,9 @@ describe("UI foundation", () => {
     expect(css).toContain(".btn-secondary");
     expect(css).toContain(".responsive-table");
     expect(css).toContain(".state-surface-current");
+    expect(css).toContain(".dashboard-metric");
+    expect(css).toContain(".workflow-group-current");
+    expect(css).toContain(".workflow-chip");
     expect(css).toContain("@media (max-width: 640px)");
     expect(css).toContain("min-h-11");
     expect(css).toContain("--shadow-soft");

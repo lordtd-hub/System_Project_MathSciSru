@@ -16,8 +16,9 @@ export function TimelineCard({ title = "Evidence timeline", events }: { title?: 
       <div className="mt-4 space-y-4">
         {events.length ? (
           events.map((event) => (
-            <div key={event.id} className="relative border-l border-line pl-4 text-sm">
-              <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-brand ring-4 ring-white" aria-hidden="true" />
+            <div key={event.id} className="relative rounded-lg border border-line bg-white p-3 pl-5 text-sm shadow-sm">
+              <span className="absolute left-0 top-3 h-[calc(100%-1.5rem)] border-l-2 border-line" aria-hidden="true" />
+              <span className="absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full bg-brand ring-4 ring-white" aria-hidden="true" />
               <div className="font-semibold text-ink">{event.eventTitle}</div>
               <div className="mt-0.5 text-xs text-muted">
                 {event.occurredAt.toLocaleString("th-TH")}

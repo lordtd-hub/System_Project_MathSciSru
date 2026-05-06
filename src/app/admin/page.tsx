@@ -73,6 +73,13 @@ export default async function AdminDashboardPage({
   const failAlertProjects = projects.filter((project) => shouldAlertAdminForFailVotes(project.proposalVotes));
   const pendingAdminProjects = projects.filter((project) => project.status === "PENDING_ADMIN");
   const nextAction = getNextActionForAdmin(projects.map((project) => ({ status: project.status, proposalVotes: project.proposalVotes })));
+  const adminWorkflowCards = [
+    { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin", tone: pendingAdminProjects.length ? "current" : "quiet" },
+    { label: "รอตัดสิน Proposal", value: countByStatus(projects, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countByStatus(projects, "PROPOSAL_ADMIN_DECISION") ? "current" : "quiet" },
+    { label: "รอตั้งกรรมการ", value: countByStatus(projects, "TOPIC_APPROVED"), href: "/admin/committee", tone: countByStatus(projects, "TOPIC_APPROVED") ? "waiting" : "quiet" },
+    { label: "รอ Advisor score", value: countByStatus(projects, "REPORT_APPROVED"), href: "/admin/closeout", tone: countByStatus(projects, "REPORT_APPROVED") ? "waiting" : "quiet" },
+    { label: "พร้อมตรวจ closeout", value: countByStatus(projects, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countByStatus(projects, "ADVISOR_SCORING") ? "complete" : "quiet" }
+  ];
   const topCards = [
     { label: "จำนวนนักศึกษา", value: students, href: "/admin/students" },
     { label: "โปรเจครอที่ปรึกษา", value: countByStatus(projects, "PENDING_ADVISOR"), href: "/admin" },
@@ -122,6 +129,27 @@ export default async function AdminDashboardPage({
         </WarningAlert>
       ) : null}
       <NextActionCard action={nextAction} />
+      <section className="panel">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">ภาพรวมงานปฏิบัติการ</h2>
+            <p className="mt-1 text-sm text-muted">ดู bottleneck ของ lifecycle โดยไม่ต้องไล่อ่านทุกสถานะ</p>
+          </div>
+          <a className="button-secondary" href="/admin/rounds">ดูรอบสอบของรายวิชา</a>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {adminWorkflowCards.map((card) => (
+            <a
+              key={card.label}
+              href={card.href}
+              className={`dashboard-metric ${card.tone === "current" ? "border-brand/30 bg-red-50/60" : card.tone === "waiting" ? "border-amber-200 bg-amber-50/70" : card.tone === "complete" ? "border-emerald-200 bg-emerald-50/70" : ""}`}
+            >
+              <div className="dashboard-metric-value">{card.value}</div>
+              <div className="dashboard-metric-label">{card.label}</div>
+            </a>
+          ))}
+        </div>
+      </section>
       <GuidancePanel
         title="คำแนะนำสำหรับผู้ดูแลระบบ"
         current="ตรวจรายการค้าง เช่น Admin confirmation, Proposal decision, teacher claims และ committee assignment"
@@ -135,10 +163,10 @@ export default async function AdminDashboardPage({
       ) : null}
       <div className="grid gap-4 md:grid-cols-4">
         {topCards.map((card) => (
-          <a key={card.label} href={card.href} className="panel block transition hover:-translate-y-0.5 hover:border-brand/50">
+          <a key={card.label} href={card.href} className={`dashboard-metric block ${card.value ? "border-brand/30" : ""}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="text-2xl font-semibold text-ink">{card.value}</div>
-              <span className="mt-1 h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
+              <span className={`mt-1 h-2 w-2 rounded-full ${card.value ? "bg-brand" : "bg-slate-300"}`} aria-hidden="true" />
             </div>
             <div className="mt-1 text-sm leading-6 text-muted">{card.label}</div>
           </a>

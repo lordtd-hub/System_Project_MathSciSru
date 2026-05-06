@@ -9,7 +9,7 @@ import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
-import { getNextActionForStudent, getStudentAvailableActions } from "@/lib/lifecycle/nextActions";
+import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 function daysWaiting(from?: Date | null) {
@@ -37,6 +37,55 @@ function buildStudentTasks(status: string): TaskListItem[] {
     return [{ title: "ส่งเล่มรายงาน version ใหม่", description: "ต้องใช้ลิงก์ Google Drive ใหม่ทุก version", href: "/student/report" }];
   }
   return [{ title: "ติดตามสถานะ", description: "ขั้นตอนนี้กำลังรอบุคคลที่เกี่ยวข้องดำเนินการ", urgency: "รอคนอื่น" }];
+}
+
+function StudentWorkflowGroup({
+  title,
+  description,
+  actions,
+  tone,
+  emptyText
+}: {
+  title: string;
+  description: string;
+  actions: StudentWorkflowAction[];
+  tone: "current" | "history" | "waiting" | "locked";
+  emptyText: string;
+}) {
+  const toneClass =
+    tone === "current"
+      ? "workflow-group-current"
+      : tone === "history"
+        ? "workflow-group-complete"
+        : tone === "waiting"
+          ? "workflow-group-waiting"
+          : "workflow-group-locked";
+  const actionClass = tone === "current" ? "button" : tone === "history" ? "button-secondary" : "workflow-chip text-muted";
+
+  return (
+    <div className={`workflow-group ${toneClass}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          <p className="mt-1 text-xs leading-5 text-muted">{description}</p>
+        </div>
+        <span className="rounded-full border border-white/70 bg-white/70 px-2 py-0.5 text-xs font-semibold text-muted">{actions.length}</span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {actions.length ? actions.map((item) =>
+          item.href && tone !== "waiting" && tone !== "locked" ? (
+            <a key={item.key} className={`${actionClass} w-full sm:w-auto`} href={item.href}>
+              {item.title}
+            </a>
+          ) : (
+            <span key={item.key} className={actionClass}>
+              {item.title}
+            </span>
+          )
+        ) : <span className="text-sm text-muted">{emptyText}</span>}
+      </div>
+    </div>
+  );
 }
 
 export default async function StudentDashboardPage() {
@@ -122,6 +171,25 @@ export default async function StudentDashboardPage() {
 
       <LifecycleStepper status={project.status} />
 
+      <div className="grid gap-3 md:grid-cols-4">
+        <div className="dashboard-metric">
+          <div className="dashboard-metric-value">{workflowActions.available_now.length}</div>
+          <div className="dashboard-metric-label">ทำได้ตอนนี้</div>
+        </div>
+        <div className="dashboard-metric">
+          <div className="dashboard-metric-value">{workflowActions.blocked_waiting_for.length}</div>
+          <div className="dashboard-metric-label">รอผู้อื่น</div>
+        </div>
+        <div className="dashboard-metric">
+          <div className="dashboard-metric-value">{workflowActions.read_only_history.length}</div>
+          <div className="dashboard-metric-label">เสร็จแล้ว/ดูย้อนหลัง</div>
+        </div>
+        <div className="dashboard-metric">
+          <div className="dashboard-metric-value">{workflowActions.locked_future.length}</div>
+          <div className="dashboard-metric-label">ขั้นตอนที่ล็อก</div>
+        </div>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="panel lg:col-span-2">
           <h2 className="text-lg font-semibold">ข้อมูลโครงงาน</h2>
@@ -146,27 +214,36 @@ export default async function StudentDashboardPage() {
             </div>
           </div>
           <div className="mt-4 space-y-3">
-            <h3 className="text-sm font-semibold">ทำได้ตอนนี้</h3>
-            <div className="flex flex-wrap gap-2">
-              {workflowActions.available_now.map((item) =>
-                item.href ? <a key={item.key} className="button" href={item.href}>{item.title}</a> : <span key={item.key} className="rounded-md border border-line bg-paper px-3 py-2 text-sm">{item.title}</span>
-              )}
+            <StudentWorkflowGroup
+              title="ทำได้ตอนนี้"
+              description="รายการที่นักศึกษาสามารถกดทำต่อได้ในสถานะปัจจุบัน"
+              actions={workflowActions.available_now}
+              tone="current"
+              emptyText="ยังไม่มีรายการที่ต้องทำตอนนี้"
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <StudentWorkflowGroup
+                title="รอผู้อื่นดำเนินการ"
+                description="สถานะที่ต้องรออาจารย์หรือผู้ดูแลระบบก่อน"
+                actions={workflowActions.blocked_waiting_for}
+                tone="waiting"
+                emptyText="ยังไม่มีรายการที่ต้องรอ"
+              />
+              <StudentWorkflowGroup
+                title="ขั้นตอนในอนาคต"
+                description="ระบบล็อกไว้จนกว่า lifecycle จะถึงขั้นตอนนั้น"
+                actions={workflowActions.locked_future}
+                tone="locked"
+                emptyText="ไม่มีขั้นตอนที่ล็อกอยู่"
+              />
             </div>
-            <h3 className="text-sm font-semibold">ประวัติการดำเนินงาน</h3>
-            <div className="flex flex-wrap gap-2">
-              {workflowActions.read_only_history.length ? workflowActions.read_only_history.map((item) =>
-                item.href ? <a key={item.key} className="button-secondary" href={item.href}>{item.title}</a> : <span key={item.key} className="rounded-md border border-line bg-paper px-3 py-2 text-sm">{item.title}</span>
-              ) : <span className="text-sm text-muted">ยังไม่มีประวัติในขั้นก่อนหน้า</span>}
-            </div>
-            <h3 className="text-sm font-semibold">ขั้นตอนที่ล็อกหรือรอผู้อื่น</h3>
-            <div className="grid gap-2 md:grid-cols-2">
-              {[...workflowActions.locked_future, ...workflowActions.blocked_waiting_for].map((item) => (
-                <div key={item.key} className="rounded-md border border-line bg-paper p-3 text-sm text-muted">
-                  <div className="font-medium text-ink">{item.title}</div>
-                  <div>{item.description}</div>
-                </div>
-              ))}
-            </div>
+            <StudentWorkflowGroup
+              title="ประวัติการดำเนินงาน"
+              description="รายการที่ทำแล้วหรือดูย้อนหลังได้ ไม่ใช่ action หลัก"
+              actions={workflowActions.read_only_history}
+              tone="history"
+              emptyText="ยังไม่มีประวัติในขั้นก่อนหน้า"
+            />
           </div>
         </section>
 

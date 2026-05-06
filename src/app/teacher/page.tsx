@@ -70,6 +70,13 @@ export default async function TeacherDashboardPage() {
     pendingReportReviews: reportReviews.length,
     advisorScoreUnlocked: advisorScoreProjects.length > 0
   });
+  const workloadCards = [
+    { label: "คำขอที่ปรึกษา", value: advisorRequests.length, href: "/teacher/advisor-requests", tone: advisorRequests.length ? "current" : "quiet" },
+    { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "current" : "quiet" },
+    { label: "ตารางสอบรออนุมัติ", value: scheduleApprovals.length, href: "/teacher/schedules", tone: scheduleApprovals.length ? "waiting" : "quiet" },
+    { label: "งานตรวจเล่ม/แก้ไข", value: reportReviews.length, href: "/teacher/reports", tone: reportReviews.length ? "waiting" : "quiet" },
+    { label: "Advisor score", value: advisorScoreProjects.length, href: "/teacher/advisor-score", tone: advisorScoreProjects.length ? "complete" : "quiet" }
+  ];
 
   return (
     <div className="space-y-6">
@@ -78,6 +85,27 @@ export default async function TeacherDashboardPage() {
         description="รวมคำขอที่ปรึกษา งานประเมิน Proposal ตารางสอบ และงานตรวจเล่มที่เกี่ยวข้อง"
       />
       <NextActionCard action={nextAction} />
+      <section className="panel">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">ภาพรวมงานของอาจารย์</h2>
+            <p className="mt-1 text-sm text-muted">สรุปเฉพาะงานที่เกี่ยวข้องกับบทบาทของท่านจากข้อมูลเดิมในระบบ</p>
+          </div>
+          <span className="workflow-chip">รวม {workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการ</span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {workloadCards.map((card) => (
+            <a
+              key={card.label}
+              href={card.href}
+              className={`dashboard-metric ${card.tone === "current" ? "border-brand/30 bg-red-50/60" : card.tone === "waiting" ? "border-amber-200 bg-amber-50/70" : card.tone === "complete" ? "border-emerald-200 bg-emerald-50/70" : ""}`}
+            >
+              <div className="dashboard-metric-value">{card.value}</div>
+              <div className="dashboard-metric-label">{card.label}</div>
+            </a>
+          ))}
+        </div>
+      </section>
       <GuidancePanel
         title="คำแนะนำสำหรับอาจารย์"
         current="ตรวจงานที่ต้องดำเนินการและอ่านเอกสารแนบก่อนตัดสินใจ"
@@ -104,8 +132,8 @@ export default async function TeacherDashboardPage() {
           tasks={[
             { title: "คำขอที่ปรึกษา", description: `${advisorRequests.length} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequests.length ? "สูง" : "ปกติ" },
             { title: "Proposal รอประเมิน", description: `${pendingProposalScores.length} รายการ`, href: "/teacher/proposals", urgency: pendingProposalScores.length ? "สูง" : "ปกติ" },
-            { title: "ตารางสอบรออนุมัติ", description: `${scheduleApprovals.length} รายการ`, href: "/teacher/schedules", urgency: scheduleApprovals.length ? "สูง" : "ปกติ" }
-            ,{ title: "Advisor score 25%", description: `${advisorScoreProjects.length} รายการ`, href: "/teacher/advisor-score", urgency: advisorScoreProjects.length ? "สูง" : "ปกติ" }
+            { title: "ตารางสอบรออนุมัติ", description: `${scheduleApprovals.length} รายการ`, href: "/teacher/schedules", urgency: scheduleApprovals.length ? "สูง" : "ปกติ" },
+            { title: "Advisor score 25%", description: `${advisorScoreProjects.length} รายการ`, href: "/teacher/advisor-score", urgency: advisorScoreProjects.length ? "สูง" : "ปกติ" }
           ]}
         />
         <section className="panel lg:col-span-2">

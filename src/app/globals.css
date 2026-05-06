@@ -112,6 +112,42 @@
     box-shadow: var(--shadow-lift);
   }
 
+  .dashboard-metric {
+    @apply rounded-lg border border-line bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40;
+  }
+
+  .dashboard-metric-value {
+    @apply text-2xl font-semibold leading-none text-ink;
+  }
+
+  .dashboard-metric-label {
+    @apply mt-2 text-sm leading-6 text-muted;
+  }
+
+  .workflow-group {
+    @apply rounded-lg border border-line bg-white p-4 shadow-sm;
+  }
+
+  .workflow-group-current {
+    @apply border-brand/25 bg-red-50/70;
+  }
+
+  .workflow-group-waiting {
+    @apply border-amber-200 bg-amber-50/80;
+  }
+
+  .workflow-group-complete {
+    @apply border-emerald-200 bg-emerald-50/80;
+  }
+
+  .workflow-group-locked {
+    @apply border-slate-200 bg-slate-50;
+  }
+
+  .workflow-chip {
+    @apply inline-flex min-h-10 items-center rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold shadow-sm;
+  }
+
   .responsive-scroll {
     @apply w-full overflow-x-auto rounded-lg;
   }
