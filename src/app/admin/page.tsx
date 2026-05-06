@@ -2,9 +2,9 @@ import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
+import { CompactLifecycleBadge } from "@/components/ui/LifecycleStepper";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TaskListCard } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
@@ -135,9 +135,12 @@ export default async function AdminDashboardPage({
       ) : null}
       <div className="grid gap-4 md:grid-cols-4">
         {topCards.map((card) => (
-          <a key={card.label} href={card.href} className="panel block hover:border-brand">
-            <div className="text-2xl font-semibold">{card.value}</div>
-            <div className="mt-1 text-sm text-muted">{card.label}</div>
+          <a key={card.label} href={card.href} className="panel block transition hover:-translate-y-0.5 hover:border-brand/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-2xl font-semibold text-ink">{card.value}</div>
+              <span className="mt-1 h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
+            </div>
+            <div className="mt-1 text-sm leading-6 text-muted">{card.label}</div>
           </a>
         ))}
       </div>
@@ -255,16 +258,16 @@ export default async function AdminDashboardPage({
           {lifecycleV2Steps.map((status) => {
             const items = projects.filter((project) => project.status === status);
             return (
-              <div key={status} className="rounded-md border border-line p-3">
+              <div key={status} className="rounded-lg border border-line bg-white p-3 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{projectStatusLabelTh(status)}</span>
-                  <span className="rounded-full border border-line px-2 py-0.5 text-xs">{items.length}</span>
+                  <span className="rounded-full border border-line bg-paperSoft px-2 py-0.5 text-xs font-semibold">{items.length}</span>
                 </div>
                 <div className="mt-2 space-y-1">
                   {items.slice(0, 3).map((project) => (
-                    <div key={project.id} className="flex items-center justify-between gap-2 text-sm text-muted">
+                    <div key={project.id} className="flex flex-col gap-2 rounded-md border border-line bg-paperSoft p-2 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
                       <span>{project.student.studentCode} {project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</span>
-                      <StatusBadge status={project.status} />
+                      <CompactLifecycleBadge status={project.status} />
                     </div>
                   ))}
                 </div>

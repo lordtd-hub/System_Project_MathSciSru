@@ -10,7 +10,9 @@ describe("UI foundation", () => {
     expect(css).toContain("@tailwind utilities;");
     expect(css).toContain(".panel");
     expect(css).toContain(".button-secondary");
+    expect(css).toContain(".btn-secondary");
     expect(css).toContain(".responsive-table");
+    expect(css).toContain(".state-surface-current");
     expect(css).toContain("@media (max-width: 640px)");
     expect(css).toContain("min-h-11");
     expect(css).toContain("--shadow-soft");
@@ -34,5 +36,12 @@ describe("UI foundation", () => {
     expect(config).toContain("./src/lib/**/*.{js,ts,jsx,tsx,mdx}");
     expect(config).toContain("#9A1822");
     expect(config).toContain("paperSoft");
+  });
+
+  it("keeps compact lifecycle status available for dense dashboard surfaces", () => {
+    const lifecycle = readFileSync("src/components/ui/LifecycleStepper.tsx", "utf8");
+
+    expect(lifecycle).toContain("CompactLifecycleBadge");
+    expect(lifecycle).toContain("currentStepIndex(status)");
   });
 });

@@ -18,6 +18,19 @@ function currentStepIndex(status: ProjectStatus): number {
   return index >= 0 ? index : 0;
 }
 
+export function CompactLifecycleBadge({ status }: { status: ProjectStatus }) {
+  const current = currentStepIndex(status);
+  const step = steps[current];
+
+  return (
+    <span className="inline-flex min-h-8 max-w-full items-center gap-2 rounded-full border border-brand/20 bg-red-50 px-3 py-1 text-xs font-semibold text-brandDark shadow-sm">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] text-white">{current + 1}</span>
+      <span className="truncate">{step.label}</span>
+      <span className="hidden text-muted sm:inline">/ {steps.length}</span>
+    </span>
+  );
+}
+
 export function LifecycleStepper({ status }: { status: ProjectStatus }) {
   const current = currentStepIndex(status);
 
@@ -28,7 +41,7 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Lifecycle</div>
           <h2 className="text-lg font-semibold text-ink">เส้นทางโครงงาน</h2>
         </div>
-        <div className="text-xs text-muted">แสดงขั้นตอนปัจจุบัน ขั้นที่เสร็จแล้ว และขั้นที่ยังล็อกอยู่</div>
+        <CompactLifecycleBadge status={status} />
       </div>
       <div className="mt-4 overflow-x-auto pb-1">
         <div className="grid min-w-[760px] grid-cols-10 gap-2">
