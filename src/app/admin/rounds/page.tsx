@@ -6,9 +6,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, defaultCourseRoundName, isRoundClosed, isRoundOpen, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
+import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
-import { closeCourseRound, openCourseRound } from "../actions";
+import { closeCourseRound, openCourseRound, resetCourseRound } from "../actions";
 
 function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
@@ -38,7 +39,8 @@ export default async function AdminRoundsPage({
     include: {
       closedByAdmin: true,
       attempts: { include: { presentationSubmission: true } },
-      projectExceptions: true
+      projectExceptions: true,
+      scheduleProposals: true
     }
   });
   const roundMap = new Map(rounds.map((round) => [round.roundType, round]));
@@ -66,6 +68,13 @@ export default async function AdminRoundsPage({
           const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
           const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
           const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];
+          const resetState = round
+            ? getCourseRoundResetState(round.status, {
+                attempts: round.attempts.length,
+                projectExceptions: round.projectExceptions.length,
+                scheduleProposals: round.scheduleProposals.length
+              })
+            : { canReset: false };
 
           return (
             <section key={roundType} className="panel">
@@ -110,6 +119,18 @@ export default async function AdminRoundsPage({
                     <input type="hidden" name="round_id" value={round.id} />
                     <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>
                       ปิดรอบ
+                    </SubmitButton>
+                  </form>
+                ) : null}
+                {round && resetState.canReset ? (
+                  <form action={resetCourseRound}>
+                    <input type="hidden" name="round_id" value={round.id} />
+                    <SubmitButton
+                      className="button-secondary"
+                      pendingText="กำลังรีเซต..."
+                      confirmMessage={`ยืนยันรีเซตรอบ ${roundTypeLabelTh(roundType)} หรือไม่? ใช้ได้เฉพาะรอบที่ยังไม่มี submission/attempt/schedule/exception`}
+                    >
+                      รีเซตรอบ
                     </SubmitButton>
                   </form>
                 ) : null}

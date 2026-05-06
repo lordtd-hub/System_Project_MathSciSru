@@ -7,6 +7,7 @@ const successMessages: Record<string, string> = {
   progress_1_closed: "ปิดรอบ Progress 1 แล้ว",
   round_opened: "เปิดรอบแล้ว",
   round_closed: "ปิดรอบแล้ว",
+  round_reset: "รีเซตรอบสอบเรียบร้อยแล้ว",
   project_advisor_confirmed: "ยืนยันโปรเจคและอาจารย์ที่ปรึกษาแล้ว",
   committee_saved: "บันทึกการแต่งตั้ง HEAD และ MEMBER แล้ว",
   feedback_released: "เปิด feedback ให้นักศึกษาเห็นแล้ว",
@@ -48,6 +49,8 @@ errorMessages.proposal_must_close_first = "ต้องเปิดและป�
 errorMessages.progress_1_not_ready = "ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1";
 errorMessages.progress_1_must_close_first = "ต้องเปิดและปิดรอบ Progress 1 ก่อน แล้วจึงเปิด Progress 2";
 errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบ Progress 2 ก่อน แล้วจึงเปิด Final Presentation";
+errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มี submission/attempt/schedule/exception แล้ว";
+errorMessages.round_reset_not_needed = "รอบนี้ยังไม่ได้เปิด จึงไม่ต้องรีเซต";
 
 export function ActionFeedback({
   success,

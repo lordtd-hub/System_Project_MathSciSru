@@ -28,6 +28,16 @@ describe("admin course round management UX", () => {
     expect(actionSource).toContain("redirect(`/admin/rounds?error=${openGate.reasonKey}`)");
   });
 
+  it("offers a safe reset only through the guarded course round reset action", () => {
+    expect(pageSource).toContain("resetCourseRound");
+    expect(pageSource).toContain("getCourseRoundResetState");
+    expect(pageSource).toContain("รีเซตรอบ");
+    expect(actionSource).toContain("resetCourseRound");
+    expect(actionSource).toContain("round_reset_blocked");
+    expect(actionSource).toContain("ASSESSMENT_ROUND_RESET");
+    expect(actionSource).toContain("scheduleProposals");
+  });
+
   it("does not create project-level AssessmentRound rows from the open action", () => {
     expect(actionSource).toContain("prisma.assessmentRound.upsert");
     expect(actionSource).not.toContain("projectId_roundType");

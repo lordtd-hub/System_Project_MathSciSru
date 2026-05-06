@@ -9,6 +9,7 @@ import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
+import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate } from "@/lib/assessments/roundSequence";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
 import { termDisplayName } from "@/lib/terms/display";
@@ -457,6 +458,66 @@ export async function closeCourseRound(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/rounds");
   redirect(`/admin/rounds?success=${round.roundType === "PROGRESS_1" ? "progress_1_closed" : "round_closed"}`);
+}
+
+export async function resetCourseRound(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  const roundId = String(formData.get("round_id") ?? "");
+  if (!roundId) redirect("/admin/rounds?error=action_failed");
+
+  const round = await prisma.assessmentRound.findUniqueOrThrow({
+    where: { id: roundId },
+    include: {
+      _count: {
+        select: {
+          attempts: true,
+          projectExceptions: true,
+          scheduleProposals: true
+        }
+      }
+    }
+  });
+
+  const resetState = getCourseRoundResetState(round.status, {
+    attempts: round._count.attempts,
+    projectExceptions: round._count.projectExceptions,
+    scheduleProposals: round._count.scheduleProposals
+  });
+
+  if (!resetState.canReset) redirect(`/admin/rounds?error=${resetState.reasonKey === "round_not_started" ? "round_reset_not_needed" : "round_reset_blocked"}`);
+
+  await prisma.$transaction([
+    prisma.assessmentRound.update({
+      where: { id: roundId },
+      data: {
+        status: "DRAFT",
+        submissionOpenAt: null,
+        closedAt: null,
+        closedByAdminId: null
+      }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "ASSESSMENT_ROUND_RESET",
+        entityType: "AssessmentRound",
+        entityId: roundId,
+        beforeJson: {
+          status: round.status,
+          submissionOpenAt: round.submissionOpenAt,
+          closedAt: round.closedAt,
+          closedByAdminId: round.closedByAdminId
+        },
+        afterJson: { status: "DRAFT", submissionOpenAt: null, closedAt: null, closedByAdminId: null },
+        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId }
+      }
+    })
+  ]);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/rounds");
+  revalidatePath("/admin/proposals");
+  redirect("/admin/rounds?success=round_reset");
 }
 
 export async function saveFinalDecision(formData: FormData) {
