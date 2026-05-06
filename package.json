@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "preflight:production": "tsx scripts/validate-production-env.ts",
+    "verify:production:tables": "tsx scripts/verify-production-tables.ts",
     "prisma:format": "prisma format",
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate dev",
