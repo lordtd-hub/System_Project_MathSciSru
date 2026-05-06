@@ -10,6 +10,7 @@ describe("admin teacher email management source", () => {
     expect(page).toContain("auth()");
     expect(page).toContain('session?.user.role !== "ADMIN"');
     expect(page).toContain("updateTeacherEmail");
+    expect(page).toContain("seedTeacherBaselineFromAdmin");
     expect(page).toContain('name="email"');
     expect(page).toContain("บันทึกอีเมล");
     expect(page).toContain("ออกจากระบบแล้วเข้าสู่ระบบใหม่");
@@ -18,8 +19,8 @@ describe("admin teacher email management source", () => {
   it("keeps teacher email update admin-only and duplicate-safe", () => {
     const actions = read("src/app/admin/actions.ts");
     const emailActionStart = actions.indexOf("export async function updateTeacherEmail");
-    const closeRoundStart = actions.indexOf("export async function closeProposalRound");
-    const emailAction = actions.slice(emailActionStart, closeRoundStart);
+    const seedTeacherStart = actions.indexOf("export async function seedTeacherBaselineFromAdmin");
+    const emailAction = actions.slice(emailActionStart, seedTeacherStart);
 
     expect(emailAction).toContain("export async function updateTeacherEmail");
     expect(emailAction).toContain("requireAdminUserId()");
@@ -33,11 +34,25 @@ describe("admin teacher email management source", () => {
   it("does not change teacher claim flow from email edit UI", () => {
     const actions = read("src/app/admin/actions.ts");
     const emailActionStart = actions.indexOf("export async function updateTeacherEmail");
-    const closeRoundStart = actions.indexOf("export async function closeProposalRound");
-    const emailAction = actions.slice(emailActionStart, closeRoundStart);
+    const seedTeacherStart = actions.indexOf("export async function seedTeacherBaselineFromAdmin");
+    const emailAction = actions.slice(emailActionStart, seedTeacherStart);
 
     expect(emailAction).not.toContain("teacherAccountClaim");
     expect(emailAction).not.toContain("user.update");
     expect(emailAction).not.toContain("userId:");
+  });
+
+  it("offers an admin-only empty-state baseline teacher seed", () => {
+    const actions = read("src/app/admin/actions.ts");
+    const seedActionStart = actions.indexOf("export async function seedTeacherBaselineFromAdmin");
+    const closeRoundStart = actions.indexOf("export async function closeProposalRound");
+    const seedAction = actions.slice(seedActionStart, closeRoundStart);
+
+    expect(seedAction).toContain("requireAdminUserId()");
+    expect(seedAction).toContain("seedBaselineTeacherProfiles");
+    expect(seedAction).toContain("TEACHER_BASELINE_SEEDED");
+    expect(seedAction).toContain("revalidatePath(\"/admin/teachers\")");
+    expect(seedAction).not.toContain("student.");
+    expect(seedAction).not.toContain("project.");
   });
 });

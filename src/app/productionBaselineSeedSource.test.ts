@@ -6,20 +6,22 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("production baseline seed source", () => {
   const source = read("prisma/seed-production-baseline.ts");
+  const teacherBaseline = read("src/lib/admin/teacherBaseline.ts");
   const packageJson = JSON.parse(read("package.json"));
 
   it("adds a dedicated production baseline seed script", () => {
     expect(packageJson.scripts["seed:production-baseline"]).toBe("tsx prisma/seed-production-baseline.ts");
-    expect(source).toContain("SEED_TEACHERS.csv");
+    expect(source).toContain("seedBaselineTeacherProfiles");
+    expect(teacherBaseline).toContain("baselineTeacherRows");
     expect(source).toContain("INITIAL_ADMIN_EMAIL");
   });
 
   it("upserts teacher profiles and preserves existing email links", () => {
-    expect(source).toContain("prisma.teacher.upsert");
-    expect(source).toContain("academicPrefix_firstNameTh_lastNameTh");
-    expect(source).toContain("assertTeacherEmailAvailable");
-    expect(source).toContain("mode: \"insensitive\"");
-    expect(source).toContain("existing?.email ? {} : emailData");
+    expect(teacherBaseline).toContain("prisma.teacher.upsert");
+    expect(teacherBaseline).toContain("academicPrefix_firstNameTh_lastNameTh");
+    expect(teacherBaseline).toContain("assertTeacherEmailAvailable");
+    expect(teacherBaseline).toContain("mode: \"insensitive\"");
+    expect(teacherBaseline).toContain("existing?.email ? {} : emailData");
   });
 
   it("seeds only safe baseline rubrics and avoids demo/student/project data", () => {

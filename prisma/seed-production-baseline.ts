@@ -1,23 +1,10 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { AssessmentRoundType, PrismaClient } from "@prisma/client";
+import { seedBaselineTeacherProfiles } from "../src/lib/admin/teacherBaseline";
 import { progress1Criteria, progress2Criteria } from "../src/lib/scoring/progress1Scoring";
 import { finalCriteria } from "../src/lib/scoring/finalScoring";
 import { advisorCriteria } from "../src/lib/scoring/advisorScoring";
 
 const prisma = new PrismaClient();
-
-type TeacherSeedRow = {
-  academicPrefix: string;
-  firstNameTh: string;
-  lastNameTh: string;
-  email: string | null;
-  department: string;
-  teacherType: string;
-  active: boolean;
-  canEvaluateProposal: boolean;
-  isInitialAdmin: boolean;
-};
 
 type BaselineRubricItem = {
   groupKey: string;
@@ -30,115 +17,8 @@ type BaselineRubricItem = {
   evidenceHint?: string | null;
 };
 
-const normalizeEmail = (value: string | null | undefined) => {
-  const normalized = value?.trim().toLowerCase() ?? "";
-  return normalized.length > 0 ? normalized : null;
-};
-
-const parseBoolean = (value: string | undefined) => (value ?? "").trim().toUpperCase() === "TRUE";
-
-function parseTeacherRows() {
-  const csvPath = join(process.cwd(), "SEED_TEACHERS.csv");
-  const [headerLine, ...lines] = readFileSync(csvPath, "utf8").replace(/^\uFEFF/, "").trim().split(/\r?\n/);
-  const headers = headerLine.split(",").map((header) => header.trim());
-
-  return lines
-    .filter((line) => line.trim().length > 0)
-    .map((line) => {
-      const values = line.split(",");
-      const row = Object.fromEntries(headers.map((header, index) => [header, values[index]?.trim() ?? ""]));
-      return {
-        academicPrefix: row.academic_prefix,
-        firstNameTh: row.first_name_th,
-        lastNameTh: row.last_name_th,
-        email: normalizeEmail(row.email),
-        department: row.department || "Mathematics",
-        teacherType: row.teacher_type || "INTERNAL",
-        active: parseBoolean(row.active),
-        canEvaluateProposal: parseBoolean(row.can_evaluate_proposal),
-        isInitialAdmin: parseBoolean(row.is_initial_admin)
-      } satisfies TeacherSeedRow;
-    });
-}
-
-function resolveSeedEmail(row: TeacherSeedRow) {
-  if (row.isInitialAdmin) return normalizeEmail(process.env.INITIAL_ADMIN_EMAIL) ?? row.email;
-  return row.email;
-}
-
-async function assertTeacherEmailAvailable(row: TeacherSeedRow, email: string | null) {
-  if (!email) return;
-
-  const conflict = await prisma.teacher.findFirst({
-    where: {
-      email: { equals: email, mode: "insensitive" },
-      NOT: {
-        academicPrefix: row.academicPrefix,
-        firstNameTh: row.firstNameTh,
-        lastNameTh: row.lastNameTh
-      }
-    },
-    select: { academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
-  });
-
-  if (conflict) {
-    throw new Error(
-      `Teacher email conflict for ${email}: already used by ${conflict.academicPrefix}${conflict.firstNameTh} ${conflict.lastNameTh}`
-    );
-  }
-}
-
 async function seedTeachers() {
-  const rows = parseTeacherRows();
-  let initialAdminLinked = false;
-
-  for (const row of rows) {
-    const seedEmail = resolveSeedEmail(row);
-    await assertTeacherEmailAvailable(row, seedEmail);
-
-    const existing = await prisma.teacher.findUnique({
-      where: {
-        academicPrefix_firstNameTh_lastNameTh: {
-          academicPrefix: row.academicPrefix,
-          firstNameTh: row.firstNameTh,
-          lastNameTh: row.lastNameTh
-        }
-      },
-      select: { email: true }
-    });
-
-    const emailData = seedEmail ? { email: seedEmail } : {};
-    if (row.isInitialAdmin && seedEmail) initialAdminLinked = true;
-
-    await prisma.teacher.upsert({
-      where: {
-        academicPrefix_firstNameTh_lastNameTh: {
-          academicPrefix: row.academicPrefix,
-          firstNameTh: row.firstNameTh,
-          lastNameTh: row.lastNameTh
-        }
-      },
-      create: {
-        academicPrefix: row.academicPrefix,
-        firstNameTh: row.firstNameTh,
-        lastNameTh: row.lastNameTh,
-        email: seedEmail,
-        department: row.department,
-        isInternal: row.teacherType.toUpperCase() === "INTERNAL",
-        active: row.active,
-        canEvaluateProposal: row.canEvaluateProposal
-      },
-      update: {
-        department: row.department,
-        isInternal: row.teacherType.toUpperCase() === "INTERNAL",
-        active: row.active,
-        canEvaluateProposal: row.canEvaluateProposal,
-        ...(existing?.email ? {} : emailData)
-      }
-    });
-  }
-
-  return { sourceRows: rows.length, initialAdminLinked };
+  return seedBaselineTeacherProfiles(prisma, process.env.INITIAL_ADMIN_EMAIL);
 }
 
 const proposalBaselineItems: BaselineRubricItem[] = [

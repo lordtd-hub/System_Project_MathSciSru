@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { updateTeacherEmail } from "@/app/admin/actions";
+import { seedTeacherBaselineFromAdmin, updateTeacherEmail } from "@/app/admin/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
@@ -81,7 +81,12 @@ export default async function AdminTeachersPage({
               </tbody>
             </table>
           ) : (
-            <EmptyState title="ยังไม่มีข้อมูลอาจารย์" description="เพิ่มข้อมูลอาจารย์จาก seed หรือเครื่องมือจัดการข้อมูลก่อนเริ่มใช้งาน" />
+            <div className="rounded-md border border-dashed border-line p-6 text-center">
+              <EmptyState title="ยังไม่มีข้อมูลอาจารย์" description="เพิ่มข้อมูลอาจารย์พื้นฐานสำหรับเริ่มใช้งานระบบจริง โดยไม่สร้าง demo project หรือนักศึกษา" />
+              <form action={seedTeacherBaselineFromAdmin} className="mt-4">
+                <SubmitButton pendingText="กำลังเพิ่มข้อมูลอาจารย์...">เพิ่มข้อมูลอาจารย์พื้นฐาน</SubmitButton>
+              </form>
+            </div>
           )}
         </div>
       </section>

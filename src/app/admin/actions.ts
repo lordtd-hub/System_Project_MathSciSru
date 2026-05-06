@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
+import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
@@ -347,6 +348,30 @@ export async function updateTeacherEmail(formData: FormData) {
 
   revalidatePath("/admin/teachers");
   redirect("/admin/teachers?success=บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ logout/login ใหม่เพื่อ refresh สิทธิ์");
+}
+
+export async function seedTeacherBaselineFromAdmin() {
+  const adminUserId = await requireAdminUserId();
+  const result = await seedBaselineTeacherProfiles(prisma, process.env.INITIAL_ADMIN_EMAIL);
+  const teacherCount = await prisma.teacher.count();
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "TEACHER_BASELINE_SEEDED",
+      entityType: "Teacher",
+      entityId: "baseline",
+      afterJson: {
+        sourceRows: result.sourceRows,
+        teacherCount,
+        initialAdminLinked: result.initialAdminLinked
+      }
+    }
+  });
+
+  revalidatePath("/admin/teachers");
+  revalidatePath("/admin");
+  redirect("/admin/teachers?success=teacher_baseline_seeded");
 }
 
 export async function closeProposalRound(formData: FormData) {
