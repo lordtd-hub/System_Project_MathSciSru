@@ -21,6 +21,7 @@ describe("UI foundation", () => {
     expect(layout).toContain('import "./globals.css";');
     expect(layout).toContain("PageShell");
     expect(layout).toContain("app-shell");
+    expect(layout).toContain("/logo-mathstat-sru.jpg");
   });
 
   it("scans app, components, and lib files for Tailwind classes", () => {
@@ -29,5 +30,6 @@ describe("UI foundation", () => {
     expect(config).toContain("./src/app/**/*.{js,ts,jsx,tsx,mdx}");
     expect(config).toContain("./src/components/**/*.{js,ts,jsx,tsx,mdx}");
     expect(config).toContain("./src/lib/**/*.{js,ts,jsx,tsx,mdx}");
+    expect(config).toContain("#C1121F");
   });
 });

@@ -13,11 +13,13 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"]
       },
       colors: {
-        ink: "#17202a",
-        muted: "#5f6f7e",
-        line: "#d7dee6",
-        paper: "#f7f9fb",
-        brand: "#0f766e"
+        ink: "#111827",
+        muted: "#4B5563",
+        line: "#E5E7EB",
+        paper: "#F8FAFC",
+        brand: "#C1121F",
+        brandDark: "#8F0D17",
+        charcoal: "#374151"
       }
     }
   },

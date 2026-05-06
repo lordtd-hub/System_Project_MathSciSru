@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { auth } from "@/auth";
 import { InfoAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -58,6 +59,27 @@ export default async function HomePage() {
         description="ระบบติดตามงานนำเสนอ Proposal, Progress 1, Progress 2, Final Presentation, feedback และหลักฐานการดำเนินงานของรายวิชา Mathematical Project Course"
       />
 
+      <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="p-6 sm:p-8">
+            <div className="inline-flex items-center rounded-full border border-brand/20 bg-red-50 px-3 py-1 text-xs font-semibold text-brand">
+              Mathematics & Statistics, SRU
+            </div>
+            <h2 className="mt-4 max-w-3xl text-2xl font-semibold leading-10 text-ink sm:text-3xl">
+              ระบบกลางสำหรับติดตามโครงงาน การประเมิน และ feedback ของรายวิชา
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
+              ออกแบบให้ผู้ดูแลระบบ อาจารย์ และนักศึกษาเห็นสถานะงานที่ต้องทำตาม lifecycle เดียวกัน ตั้งแต่ Proposal ไปจนถึง Progress, Final, Report และ closeout
+            </p>
+          </div>
+          <div className="flex items-center justify-center border-t border-line bg-gradient-to-br from-red-50 via-white to-slate-100 p-6 lg:border-l lg:border-t-0">
+            <div className="rounded-2xl border border-line bg-white p-3 shadow-md">
+              <img src="/logo-mathstat-sru.jpg" alt="โลโก้สาขาคณิตศาสตร์และสถิติ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี" className="h-32 w-32 rounded-xl object-cover sm:h-40 sm:w-40" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {showDevWarning ? (
         <InfoAlert title="โหมดพัฒนา">
           ระบบกำลังทำงานในโหมดพัฒนา หากเปิด dev login ไว้ให้ใช้เฉพาะเครื่องทดสอบเท่านั้น{" "}
@@ -82,7 +104,7 @@ export default async function HomePage() {
       ) : null}
 
       <section className="rounded-xl border border-line bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-ink">ระบบนี้ใช้ทำอะไร</h2>
+        <h2 className="border-l-4 border-brand pl-3 text-xl font-semibold text-ink">ระบบนี้ใช้ทำอะไร</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-line p-4">
             <h3 className="font-semibold text-ink">ติดตามสถานะโครงงาน</h3>

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { auth, signIn, signOut } from "@/auth";
 import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
 import { assertProductionRuntimeEnv } from "@/lib/config/env";
@@ -42,7 +43,13 @@ export default async function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md panel">
-      <h1 className="text-xl font-semibold">เข้าสู่ระบบ</h1>
+      <div className="flex items-center gap-3">
+        <img src="/logo-mathstat-sru.jpg" alt="" className="h-14 w-14 rounded-xl border border-line object-cover shadow-sm" />
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-brand">Mathematics & Statistics, SRU</div>
+          <h1 className="text-xl font-semibold">เข้าสู่ระบบ</h1>
+        </div>
+      </div>
       <p className="mt-2 text-sm text-muted">
         ใช้บัญชี Google ของมหาวิทยาลัย นักศึกษาใช้ @student.sru.ac.th และอาจารย์ใช้ @sru.ac.th
       </p>

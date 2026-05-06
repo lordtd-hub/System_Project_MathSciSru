@@ -31,7 +31,7 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
             index < current
               ? "border-emerald-300 bg-emerald-50"
               : index === current
-                ? "border-brand bg-teal-50"
+                ? "border-brand bg-red-50"
                 : "border-line bg-white text-muted";
           return (
             <div key={step.label} className={`rounded-lg border p-3 ${className}`}>

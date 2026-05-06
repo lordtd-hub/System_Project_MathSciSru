@@ -29,36 +29,43 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="th">
       <body className="font-sans">
         <div className="app-shell">
-          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+          <header className="sticky top-0 z-30 border-b border-line bg-white/95 shadow-sm backdrop-blur">
+            <div className="h-1 bg-brand" />
             <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-              <Link href="/" className="text-base font-semibold leading-6 text-ink hover:text-brand">
-                ระบบประเมินการนำเสนอโครงงาน
+              <Link href="/" className="flex min-w-0 items-center gap-3 text-base font-semibold leading-6 text-ink hover:text-brand">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white p-1 shadow-sm">
+                  <img src="/logo-mathstat-sru.jpg" alt="" className="h-full w-full rounded-lg object-cover" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate">ระบบประเมินการนำเสนอโครงงาน</span>
+                  <span className="block truncate text-xs font-medium text-muted">Mathematics & Statistics, SRU</span>
+                </span>
               </Link>
 
               <nav className="flex flex-wrap items-center gap-2 text-sm">
                 {!user ? (
                   <>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/admin">
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-red-50 hover:text-brand" href="/admin">
                       ผู้ดูแลระบบ
                     </a>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/teacher">
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-red-50 hover:text-brand" href="/teacher">
                       อาจารย์
                     </a>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-slate-100 hover:text-ink" href="/student">
+                    <a className="rounded-lg px-3 py-2 font-medium text-muted hover:bg-red-50 hover:text-brand" href="/student">
                       นักศึกษา
                     </a>
                   </>
                 ) : null}
 
                 {user ? (
-                  <div className="flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:w-auto sm:flex-row sm:items-center">
+                  <div className="flex w-full flex-col gap-2 rounded-xl border border-line bg-white p-2 shadow-sm sm:w-auto sm:flex-row sm:items-center">
                     <div className="flex min-w-0 items-center gap-2">
                       {user.image ? (
                         <img
                           src={user.image}
                           alt=""
                           referrerPolicy="no-referrer"
-                          className="h-10 w-10 rounded-full border border-slate-200 bg-slate-100 object-cover"
+                          className="h-10 w-10 rounded-full border border-line bg-slate-100 object-cover"
                         />
                       ) : (
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand/20 bg-brand/10 text-sm font-semibold text-brand">
@@ -91,7 +98,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                     </form>
                   </div>
                 ) : (
-                  <a className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-teal-800" href="/login">
+                  <a className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-brandDark" href="/login">
                     เข้าสู่ระบบ
                   </a>
                 )}
