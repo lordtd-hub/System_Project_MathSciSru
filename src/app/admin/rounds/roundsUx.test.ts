@@ -20,6 +20,14 @@ describe("admin course round management UX", () => {
     expect(actionSource).toContain("progress_1_opened");
   });
 
+  it("uses lifecycle sequence gates before opening course rounds", () => {
+    expect(pageSource).toContain("getRoundOpenGate");
+    expect(pageSource).toContain("roundSequenceReasonLabelTh");
+    expect(pageSource).toContain("disabled={!openGate.canOpen}");
+    expect(actionSource).toContain("getRoundOpenGate");
+    expect(actionSource).toContain("redirect(`/admin/rounds?error=${openGate.reasonKey}`)");
+  });
+
   it("does not create project-level AssessmentRound rows from the open action", () => {
     expect(actionSource).toContain("prisma.assessmentRound.upsert");
     expect(actionSource).not.toContain("projectId_roundType");

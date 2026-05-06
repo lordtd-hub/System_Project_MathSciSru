@@ -42,6 +42,12 @@ errorMessages.invalid_course_title = "ชื่อรายวิชายาว
 errorMessages.course_offering_duplicate = "มีรายวิชานี้ในปีการศึกษาและภาคเรียนที่เลือกแล้ว";
 errorMessages.course_offering_missing = "ไม่พบ Course Offering ที่เลือก กรุณาเปิดรายวิชาก่อนนำเข้านักศึกษา";
 errorMessages.student_import_empty = "ไม่พบข้อมูลนักศึกษาใน CSV";
+errorMessages.round_already_open = "รอบนี้เปิดอยู่แล้ว";
+errorMessages.round_already_closed = "รอบนี้ปิดแล้ว หากต้องเปิดใหม่ควรจัดการเป็นกรณีพิเศษ";
+errorMessages.proposal_must_close_first = "ต้องเปิดและปิดรอบ Proposal ก่อน แล้วจึงเปิด Progress 1";
+errorMessages.progress_1_not_ready = "ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1";
+errorMessages.progress_1_must_close_first = "ต้องเปิดและปิดรอบ Progress 1 ก่อน แล้วจึงเปิด Progress 2";
+errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบ Progress 2 ก่อน แล้วจึงเปิด Final Presentation";
 
 export function ActionFeedback({
   success,

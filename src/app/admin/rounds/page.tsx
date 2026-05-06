@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, defaultCourseRoundName, isRoundClosed, isRoundOpen, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
+import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
 import { closeCourseRound, openCourseRound } from "../actions";
 
@@ -41,6 +42,7 @@ export default async function AdminRoundsPage({
     }
   });
   const roundMap = new Map(rounds.map((round) => [round.roundType, round]));
+  const roundStatuses = Object.fromEntries(courseLevelRoundTypes.map((roundType) => [roundType, roundMap.get(roundType)?.status ?? "DRAFT"]));
   const progress1Eligibility = await getRoundEligibility(offering.id, "PROGRESS_1");
 
   return (
@@ -62,7 +64,7 @@ export default async function AdminRoundsPage({
           const submittedCount = round?.attempts.filter((attempt) => ["SUBMITTED", "LOCKED"].includes(attempt.presentationSubmission?.status ?? "")).length ?? 0;
           const completedCount = round?.attempts.filter((attempt) => isRoundClosed(attempt.status) || Boolean(attempt.finalDecision)).length ?? 0;
           const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
-          const canOpenProgress1 = roundType === "PROGRESS_1" && !isRoundOpen(round?.status ?? "DRAFT") && eligibility.eligible.length > 0;
+          const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
           const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];
 
           return (
@@ -84,12 +86,14 @@ export default async function AdminRoundsPage({
               </dl>
 
               <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm">
-                {roundType === "PROGRESS_1" ? (
-                  canOpenProgress1 ? "ขั้นตอนถัดไป: เปิดรอบ Progress 1" : firstNotReadyReason ? reasonLabelTh(firstNotReadyReason) : "ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1"
+                {openGate.canOpen ? (
+                  `ขั้นตอนถัดไป: เปิดรอบ ${roundTypeLabelTh(roundType)}`
+                ) : roundType === "PROGRESS_1" && openGate.reasonKey === "progress_1_not_ready" && firstNotReadyReason ? (
+                  reasonLabelTh(firstNotReadyReason)
                 ) : roundType === "PROPOSAL" && round && isRoundClosed(round.status) ? (
                   "ขั้นตอนถัดไป: ตัดสินผล Proposal / แต่งตั้งกรรมการ / เปิดรอบ Progress 1"
                 ) : (
-                  "ดูสถานะรอบและจัดการตามลำดับ lifecycle"
+                  roundSequenceReasonLabelTh(openGate.reasonKey)
                 )}
               </div>
 
@@ -97,7 +101,7 @@ export default async function AdminRoundsPage({
                 <form action={openCourseRound}>
                   <input type="hidden" name="course_offering_id" value={offering.id} />
                   <input type="hidden" name="round_type" value={roundType} />
-                  <SubmitButton disabled={isRoundOpen(round?.status ?? "DRAFT") || (roundType === "PROGRESS_1" && eligibility.eligible.length === 0)} pendingText="กำลังเปิดรอบ...">
+                  <SubmitButton disabled={!openGate.canOpen} pendingText="กำลังเปิดรอบ...">
                     เปิดรอบ
                   </SubmitButton>
                 </form>

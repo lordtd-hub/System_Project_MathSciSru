@@ -9,6 +9,8 @@ import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
+import { getRoundOpenGate } from "@/lib/assessments/roundSequence";
+import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
 import { termDisplayName } from "@/lib/terms/display";
 import { generatedStudentEmail, hasImportErrors, validateStudentImportRows } from "@/lib/validators/studentImport";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
@@ -408,6 +410,14 @@ export async function openCourseRound(formData: FormData) {
   const courseOfferingId = String(formData.get("course_offering_id"));
   const roundType = String(formData.get("round_type")) as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION" | "PROPOSAL";
   if (!courseLevelRoundTypes.includes(roundType)) throw new Error("รอบสอบไม่ถูกต้อง");
+  const existingRounds = await prisma.assessmentRound.findMany({
+    where: { courseOfferingId, roundType: { in: [...courseLevelRoundTypes] } },
+    select: { roundType: true, status: true }
+  });
+  const roundStatuses = Object.fromEntries(existingRounds.map((round) => [round.roundType, round.status]));
+  const progress1Eligibility = roundType === "PROGRESS_1" ? await getRoundEligibility(courseOfferingId, "PROGRESS_1") : null;
+  const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility?.eligible.length ?? 0 });
+  if (!openGate.canOpen) redirect(`/admin/rounds?error=${openGate.reasonKey}`);
 
   await prisma.assessmentRound.upsert({
     where: { courseOfferingId_roundType: { courseOfferingId, roundType } },
