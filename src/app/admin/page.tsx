@@ -86,6 +86,7 @@ export default async function AdminDashboardPage({
       <PageHeader
         title="แดชบอร์ดผู้ดูแลระบบ"
         description="ติดตาม lifecycle ทั้งระบบ ยืนยันโปรเจค จัดการ Proposal แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
+        actions={<a className="button-secondary" href="/admin/teachers">จัดการอาจารย์</a>}
       />
       <ActionFeedback success={params.success} error={params.error} />
       <NextActionCard action={nextAction} />
