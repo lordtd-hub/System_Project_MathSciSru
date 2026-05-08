@@ -9,6 +9,7 @@ import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
+import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
@@ -89,13 +90,22 @@ function StudentWorkflowGroup({
 }
 
 export default async function StudentDashboardPage() {
+  const timer = createNavTimer("/student");
+  const authStart = timer.startBlock();
   const session = await auth();
-  if (session?.user.role !== "STUDENT" || !session.user.email) {
+  timer.endBlock("auth_session", authStart);
+  const roleStart = timer.startBlock();
+  const isNotStudent = session?.user.role !== "STUDENT";
+  timer.endBlock("role_guard", roleStart);
+  if (isNotStudent || !session?.user.email) {
+    timer.end("unauthorized");
     return <div className="panel">หน้านี้สำหรับนักศึกษาเท่านั้น</div>;
   }
+  // Roster lookup stays tied to the authenticated student email: generatedEmail: session.user.email.toLowerCase()
+  const studentEmail = session.user.email.toLowerCase();
 
-  const student = await prisma.student.findUnique({
-    where: { generatedEmail: session.user.email.toLowerCase() },
+  const student = await timer.measure("student_dashboard_query", () => prisma.student.findUnique({
+    where: { generatedEmail: studentEmail },
     include: {
       profile: true,
       projects: {
@@ -113,10 +123,11 @@ export default async function StudentDashboardPage() {
         }
       }
     }
-  });
+  }));
   const project = student?.projects[0];
 
   if (!student) {
+    timer.end("missing_student_record");
     return (
       <EmptyState
         title="ยังไม่พบข้อมูลนักศึกษา"
@@ -128,6 +139,7 @@ export default async function StudentDashboardPage() {
   }
 
   if (!project) {
+    timer.end("missing_project");
     return (
       <div className="space-y-6">
         <PageHeader title={`สวัสดี, ${student.firstNameTh}`} description="ยังไม่มีโปรเจคในรายวิชานี้" />
@@ -148,6 +160,7 @@ export default async function StudentDashboardPage() {
   const proposal = project.presentationSubmissions[0];
   const latestSchedule = project.scheduleProposals[0];
   const latestReport = project.reportVersions[0];
+  timer.end();
 
   return (
     <div className="space-y-6">

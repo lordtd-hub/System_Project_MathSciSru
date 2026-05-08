@@ -7,13 +7,22 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { TaskListCard } from "@/components/ui/TaskListCard";
 import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
+import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
 export default async function TeacherDashboardPage() {
+  const timer = createNavTimer("/teacher");
+  const authStart = timer.startBlock();
   const session = await auth();
-  if (isPendingTeacherClaim(session?.user)) {
+  timer.endBlock("auth_session", authStart);
+  const capabilityStart = timer.startBlock();
+  const pendingTeacher = isPendingTeacherClaim(session?.user);
+  const approvedTeacher = hasApprovedTeacherCapability(session?.user);
+  timer.endBlock("capability_check", capabilityStart);
+  if (pendingTeacher) {
+    timer.end("pending_teacher");
     return (
       <div className="space-y-6">
         <PageHeader title="รอผู้ดูแลระบบอนุมัติ" description="คำขอผูกบัญชีของท่านอยู่ระหว่างรอผู้ดูแลระบบอนุมัติ" />
@@ -24,9 +33,12 @@ export default async function TeacherDashboardPage() {
       </div>
     );
   }
-  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น</div>;
+  if (!approvedTeacher || !session?.user.id) {
+    timer.end("unauthorized");
+    return <div className="panel">หน้านี้สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น</div>;
+  }
 
-  const [teacher, attempts, notifications] = await Promise.all([
+  const [teacher, attempts, notifications] = await timer.measure("teacher_initial_queries", () => Promise.all([
     prisma.teacher.findUnique({ where: { userId: session.user.id } }),
     prisma.assessmentAttempt.findMany({
       where: {
@@ -41,13 +53,14 @@ export default async function TeacherDashboardPage() {
       take: 8
     }),
     prisma.notification.findMany({ where: { userId: session.user.id, status: "UNREAD" }, orderBy: { createdAt: "desc" }, take: 5 })
-  ]);
+  ]));
 
   if (!teacher) {
+    timer.end("missing_teacher_profile");
     return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์อาจารย์ก่อนใช้งาน" actionLabel="Claim โปรไฟล์" href="/teacher/claim" />;
   }
 
-  const [advisorRequests, scheduleApprovals, reportReviews, advisorScoreProjects] = await Promise.all([
+  const [advisorRequests, scheduleApprovals, reportReviews, advisorScoreProjects] = await timer.measure("teacher_workload_queries", () => Promise.all([
     prisma.advisorRequest.findMany({ where: { advisorTeacherId: teacher.id, status: "PENDING" }, include: { project: { include: { student: true } } }, take: 5 }),
     prisma.examScheduleApproval.findMany({ where: { teacherId: teacher.id, decision: "PENDING" }, include: { scheduleProposal: { include: { project: { include: { student: true } } } } }, take: 5 }),
     prisma.reportReview.findMany({ where: { reviewerTeacherId: teacher.id, decision: "FAIL" }, include: { reportVersion: { include: { project: { include: { student: true } } } } }, take: 5 }),
@@ -61,7 +74,7 @@ export default async function TeacherDashboardPage() {
       },
       take: 5
     })
-  ]);
+  ]));
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequests.length,
@@ -77,6 +90,7 @@ export default async function TeacherDashboardPage() {
     { label: "งานตรวจเล่ม/แก้ไข", value: reportReviews.length, href: "/teacher/reports", tone: reportReviews.length ? "waiting" : "quiet" },
     { label: "Advisor score", value: advisorScoreProjects.length, href: "/teacher/advisor-score", tone: advisorScoreProjects.length ? "complete" : "quiet" }
   ];
+  timer.end();
 
   return (
     <div className="space-y-6">

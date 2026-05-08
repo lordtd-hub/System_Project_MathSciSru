@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { decodeDevSession, devSessionToAuthSession, DEV_SESSION_COOKIE, isDevLoginEnabled } from "@/lib/auth/devSession";
 import { resolveLoginRole } from "@/lib/auth/roleResolution";
 import { assertProductionRuntimeEnv, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
+import { createNavTimer } from "@/lib/diagnostics/navTiming";
 
 assertProductionRuntimeEnv();
 
@@ -79,7 +80,8 @@ const nextAuth = NextAuth({
       const email = user?.email ?? token.email;
       if (email) {
         const normalizedEmail = email.trim().toLowerCase();
-        const appUser = await prisma.user.findUnique({
+        const timer = createNavTimer("auth.jwt");
+        const appUser = await timer.measure("role_lookup", () => prisma.user.findUnique({
           where: { email: normalizedEmail },
           select: {
             id: true,
@@ -87,7 +89,8 @@ const nextAuth = NextAuth({
             active: true,
             teacher: { select: { id: true, active: true } }
           }
-        });
+        }));
+        timer.end("jwt_ready");
         if (appUser?.active) {
           token.appUserId = appUser.id;
           token.role = appUser.globalRole;

@@ -14,6 +14,7 @@ import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligi
 import { findDuplicateActiveProjectGroups, getCurrentDashboardProjects } from "@/lib/admin/dashboardProjects";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { prisma } from "@/lib/db";
+import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { getNextActionForAdmin } from "@/lib/lifecycle/nextActions";
 import { lifecycleV2Steps, projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
@@ -33,14 +34,25 @@ export default async function AdminDashboardPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const timer = createNavTimer("/admin");
+  const authStart = timer.startBlock();
   const session = await auth();
-  if (session?.user.role !== "ADMIN") return <div className="panel">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</div>;
+  timer.endBlock("auth_session", authStart);
+  const roleStart = timer.startBlock();
+  const isNotAdmin = session?.user.role !== "ADMIN";
+  timer.endBlock("role_guard", roleStart);
+  if (isNotAdmin) {
+    timer.end("unauthorized");
+    return <div className="panel">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</div>;
+  }
   const params = (await searchParams) ?? {};
 
-  const offerings = await prisma.courseOffering.findMany({ include: { term: true }, orderBy: { id: "desc" }, take: 5 });
+  const offerings = await timer.measure("course_offerings", () =>
+    prisma.courseOffering.findMany({ include: { term: true }, orderBy: { id: "desc" }, take: 5 })
+  );
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
 
-  const [students, claims, rounds, rawProjects, notifications, timeline] = await Promise.all([
+  const [students, claims, rounds, rawProjects, notifications, timeline] = await timer.measure("dashboard_queries", () => Promise.all([
     prisma.student.count(),
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
     prisma.assessmentRound.findMany({
@@ -59,12 +71,14 @@ export default async function AdminDashboardPage({
     }),
     prisma.notification.findMany({ where: { status: "UNREAD" }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.projectTimelineEvent.findMany({ include: { actor: true }, orderBy: { occurredAt: "desc" }, take: 8 })
-  ]);
+  ]));
 
   const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
   const projects = getCurrentDashboardProjects(rawProjects);
   const activeOffering = offerings[0];
-  const progress1Eligibility = activeOffering ? await getRoundEligibility(activeOffering.id, "PROGRESS_1") : { eligible: [], notReady: [] };
+  const progress1Eligibility = activeOffering
+    ? await timer.measure("progress1_eligibility", () => getRoundEligibility(activeOffering.id, "PROGRESS_1"))
+    : { eligible: [], notReady: [] };
   const progress1Round = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROGRESS_1");
   const proposalRound = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROPOSAL");
   const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
@@ -89,6 +103,7 @@ export default async function AdminDashboardPage({
     { label: "หัวข้อผ่านแล้วรอตั้งกรรมการ", value: countByStatus(projects, "TOPIC_APPROVED"), href: "/admin/committee" },
     { label: "รอปิดงานโครงงาน", value: countByStatus(projects, "ADVISOR_SCORING"), href: "/admin/closeout" }
   ];
+  timer.end();
 
   return (
     <div className="space-y-6">

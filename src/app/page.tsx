@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { InfoAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { isDevLoginEnabled } from "@/lib/auth/devSession";
+import { createNavTimer } from "@/lib/diagnostics/navTiming";
 
 const roleGuides = [
   {
@@ -48,9 +49,13 @@ const quickLinks = [
 ];
 
 export default async function HomePage() {
+  const timer = createNavTimer("/");
   const showDevWarning = isDevLoginEnabled();
+  const authStart = timer.startBlock();
   const session = await auth();
+  timer.endBlock("auth_session", authStart);
   const user = session?.user;
+  timer.end();
 
   return (
     <section className="space-y-6">

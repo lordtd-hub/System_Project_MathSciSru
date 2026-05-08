@@ -9,6 +9,7 @@ import {
   getSessionRoleLabel,
   getSessionDisplayName
 } from "@/lib/auth/sessionUi";
+import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
@@ -18,12 +19,16 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const timer = createNavTimer("root.layout");
+  const authStart = timer.startBlock();
   const session = await auth();
+  timer.endBlock("auth_session", authStart);
   const user = session?.user;
   const displayName = getSessionDisplayName(user);
   const initials = getFallbackInitials(displayName);
   const dashboardLinks = getSessionDashboardLinks(user);
   const roleLabel = getSessionRoleLabel(user);
+  timer.end();
 
   return (
     <html lang="th">
