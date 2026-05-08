@@ -38,21 +38,35 @@ export default async function TeacherDashboardPage() {
     return <div className="panel">หน้านี้สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น</div>;
   }
 
+  const sessionTeacherId = session.user.teacherId ?? null;
+  const teacherWhere = sessionTeacherId ? { id: sessionTeacherId } : { userId: session.user.id };
   const [teacher, attempts, notifications] = await timer.measure("teacher_initial_queries", () => Promise.all([
-    prisma.teacher.findUnique({ where: { userId: session.user.id } }),
+    prisma.teacher.findUnique({
+      where: teacherWhere,
+      select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
+    }),
     prisma.assessmentAttempt.findMany({
       where: {
         assessmentRound: { roundType: "PROPOSAL" },
         presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } }
       },
-      include: {
-        presentationSubmission: true,
-        project: { include: { student: true } },
-        evaluatorAssignments: { where: { evaluatorUserId: session.user.id }, include: { scoreSubmission: true } }
+      select: {
+        id: true,
+        presentationSubmission: { select: { titleTh: true } },
+        project: { select: { student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } } },
+        evaluatorAssignments: {
+          where: { evaluatorUserId: session.user.id },
+          select: { id: true, scoreSubmission: { select: { status: true } } }
+        }
       },
       take: 8
     }),
-    prisma.notification.findMany({ where: { userId: session.user.id, status: "UNREAD" }, orderBy: { createdAt: "desc" }, take: 5 })
+    prisma.notification.findMany({
+      where: { userId: session.user.id, status: "UNREAD" },
+      select: { id: true, title: true, body: true },
+      orderBy: { createdAt: "desc" },
+      take: 5
+    })
   ]));
 
   if (!teacher) {
@@ -60,35 +74,34 @@ export default async function TeacherDashboardPage() {
     return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์อาจารย์ก่อนใช้งาน" actionLabel="Claim โปรไฟล์" href="/teacher/claim" />;
   }
 
-  const [advisorRequests, scheduleApprovals, reportReviews, advisorScoreProjects] = await timer.measure("teacher_workload_queries", () => Promise.all([
-    prisma.advisorRequest.findMany({ where: { advisorTeacherId: teacher.id, status: "PENDING" }, include: { project: { include: { student: true } } }, take: 5 }),
-    prisma.examScheduleApproval.findMany({ where: { teacherId: teacher.id, decision: "PENDING" }, include: { scheduleProposal: { include: { project: { include: { student: true } } } } }, take: 5 }),
-    prisma.reportReview.findMany({ where: { reviewerTeacherId: teacher.id, decision: "FAIL" }, include: { reportVersion: { include: { project: { include: { student: true } } } } }, take: 5 }),
-    prisma.project.findMany({
+  const [advisorRequestCount, scheduleApprovalCount, reportReviewCount, advisorScoreProjectCount] = await timer.measure("teacher_workload_queries", () => Promise.all([
+    prisma.advisorRequest.count({ where: { advisorTeacherId: teacher.id, status: "PENDING" } }),
+    prisma.examScheduleApproval.count({ where: { teacherId: teacher.id, decision: "PENDING" } }),
+    prisma.reportReview.count({ where: { reviewerTeacherId: teacher.id, decision: "FAIL" } }),
+    prisma.project.count({
       where: {
         status: "REPORT_APPROVED",
         OR: [
           { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } },
           { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: "ADVISOR" } } }
         ]
-      },
-      take: 5
+      }
     })
   ]));
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const nextAction = getNextActionForTeacher({
-    pendingAdvisorRequests: advisorRequests.length,
+    pendingAdvisorRequests: advisorRequestCount,
     pendingProposalScores: pendingProposalScores.length,
-    pendingScheduleApprovals: scheduleApprovals.length,
-    pendingReportReviews: reportReviews.length,
-    advisorScoreUnlocked: advisorScoreProjects.length > 0
+    pendingScheduleApprovals: scheduleApprovalCount,
+    pendingReportReviews: reportReviewCount,
+    advisorScoreUnlocked: advisorScoreProjectCount > 0
   });
   const workloadCards = [
-    { label: "คำขอที่ปรึกษา", value: advisorRequests.length, href: "/teacher/advisor-requests", tone: advisorRequests.length ? "current" : "quiet" },
+    { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "current" : "quiet" },
     { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "current" : "quiet" },
-    { label: "ตารางสอบรออนุมัติ", value: scheduleApprovals.length, href: "/teacher/schedules", tone: scheduleApprovals.length ? "waiting" : "quiet" },
-    { label: "งานตรวจเล่ม/แก้ไข", value: reportReviews.length, href: "/teacher/reports", tone: reportReviews.length ? "waiting" : "quiet" },
-    { label: "Advisor score", value: advisorScoreProjects.length, href: "/teacher/advisor-score", tone: advisorScoreProjects.length ? "complete" : "quiet" }
+    { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" : "quiet" },
+    { label: "งานตรวจเล่ม/แก้ไข", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" : "quiet" },
+    { label: "Advisor score", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" : "quiet" }
   ];
   timer.end();
 
@@ -144,10 +157,10 @@ export default async function TeacherDashboardPage() {
         <TaskListCard
           title="งานด่วน"
           tasks={[
-            { title: "คำขอที่ปรึกษา", description: `${advisorRequests.length} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequests.length ? "สูง" : "ปกติ" },
+            { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
             { title: "Proposal รอประเมิน", description: `${pendingProposalScores.length} รายการ`, href: "/teacher/proposals", urgency: pendingProposalScores.length ? "สูง" : "ปกติ" },
-            { title: "ตารางสอบรออนุมัติ", description: `${scheduleApprovals.length} รายการ`, href: "/teacher/schedules", urgency: scheduleApprovals.length ? "สูง" : "ปกติ" },
-            { title: "Advisor score 25%", description: `${advisorScoreProjects.length} รายการ`, href: "/teacher/advisor-score", urgency: advisorScoreProjects.length ? "สูง" : "ปกติ" }
+            { title: "ตารางสอบรออนุมัติ", description: `${scheduleApprovalCount} รายการ`, href: "/teacher/schedules", urgency: scheduleApprovalCount ? "สูง" : "ปกติ" },
+            { title: "Advisor score 25%", description: `${advisorScoreProjectCount} รายการ`, href: "/teacher/advisor-score", urgency: advisorScoreProjectCount ? "สูง" : "ปกติ" }
           ]}
         />
         <section className="panel lg:col-span-2">

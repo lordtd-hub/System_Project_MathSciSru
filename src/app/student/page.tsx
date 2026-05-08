@@ -106,20 +106,43 @@ export default async function StudentDashboardPage() {
 
   const student = await timer.measure("student_dashboard_query", () => prisma.student.findUnique({
     where: { generatedEmail: studentEmail },
-    include: {
-      profile: true,
+    select: {
+      firstNameTh: true,
       projects: {
         orderBy: { createdAt: "desc" },
-        include: {
-          origin: { include: { tentativeAdvisor: true } },
-          advisorRequests: { include: { advisorTeacher: true }, orderBy: { requestedAt: "desc" } },
-          committeeAssignments: { include: { teacher: true }, orderBy: { appointedAt: "asc" } },
-          scheduleProposals: { include: { approvals: true }, orderBy: { createdAt: "desc" } },
-          assessmentSubmissions: { orderBy: { submittedAt: "desc" } },
-          reportVersions: { include: { reviews: { include: { reviewerTeacher: true } } }, orderBy: { versionNo: "desc" } },
-          advisorScore: true,
-          presentationSubmissions: { orderBy: { createdAt: "desc" } },
-          timelineEvents: { include: { actor: true }, orderBy: { occurredAt: "desc" }, take: 8 }
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          currentTitleTh: true,
+          advisorRequests: {
+            select: {
+              requestedAt: true,
+              advisorTeacher: { select: { academicPrefix: true, firstNameTh: true, lastNameTh: true } }
+            },
+            orderBy: { requestedAt: "desc" },
+            take: 1
+          },
+          committeeAssignments: {
+            select: {
+              id: true,
+              role: true,
+              teacher: { select: { academicPrefix: true, firstNameTh: true, lastNameTh: true } }
+            },
+            orderBy: { appointedAt: "asc" }
+          },
+          scheduleProposals: {
+            select: { assessmentKind: true, status: true, approvals: { select: { decision: true } } },
+            orderBy: { createdAt: "desc" },
+            take: 1
+          },
+          reportVersions: { select: { versionNo: true }, orderBy: { versionNo: "desc" }, take: 1 },
+          presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          timelineEvents: {
+            select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
+            orderBy: { occurredAt: "desc" },
+            take: 8
+          }
         }
       }
     }

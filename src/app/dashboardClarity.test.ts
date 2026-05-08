@@ -17,9 +17,9 @@ describe("dashboard clarity phase 2", () => {
 
     expect(page).toContain("workloadCards");
     expect(page).toContain("ภาพรวมงานของอาจารย์");
-    expect(page).toContain("advisorRequests.length");
+    expect(page).toContain("advisorRequestCount");
     expect(page).toContain("pendingProposalScores.length");
-    expect(page).toContain("scheduleApprovals.length");
+    expect(page).toContain("scheduleApprovalCount");
   });
 
   it("surfaces admin bottlenecks without new route or query architecture", () => {

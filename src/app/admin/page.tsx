@@ -9,6 +9,7 @@ import { TaskListCard } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { ProjectStatus } from "@prisma/client";
 import { courseLevelRoundTypes, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { findDuplicateActiveProjectGroups, getCurrentDashboardProjects } from "@/lib/admin/dashboardProjects";
@@ -20,8 +21,8 @@ import { lifecycleV2Steps, projectStatusLabelTh } from "@/lib/lifecycle/statusLa
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { confirmProjectAdvisor, openCourseRound, resetCourseOfferingTestData } from "./actions";
 
-function countByStatus(projects: Array<{ status: string }>, status: string) {
-  return projects.filter((project) => project.status === status).length;
+function countFromStatus(statusCounts: Map<ProjectStatus, number>, status: ProjectStatus) {
+  return statusCounts.get(status) ?? 0;
 }
 
 function formatDate(value: Date | null | undefined) {
@@ -74,6 +75,10 @@ export default async function AdminDashboardPage({
       },
       orderBy: [{ courseOfferingId: "desc" }, { roundType: "asc" }]
     }),
+    prisma.project.groupBy({
+      by: ["status"],
+      _count: { _all: true }
+    }),
     prisma.project.findMany({
       select: {
         id: true,
@@ -86,7 +91,21 @@ export default async function AdminDashboardPage({
         proposalVotes: { select: { vote: true } }
       },
       orderBy: { updatedAt: "desc" },
-      take: 80
+      take: 12
+    }),
+    prisma.project.findMany({
+      where: { status: "PENDING_ADMIN" },
+      select: {
+        id: true,
+        currentTitleTh: true,
+        student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 12
+    }),
+    prisma.proposalVote.findMany({
+      where: { project: { status: { in: ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"] } } },
+      select: { projectId: true, vote: true }
     }),
     prisma.notification.findMany({
       where: { status: "UNREAD" },
@@ -104,36 +123,50 @@ export default async function AdminDashboardPage({
     ? timer.measure("progress1_eligibility", () => getRoundEligibility(activeOffering.id, "PROGRESS_1"))
     : Promise.resolve({ eligible: [], notReady: [] });
 
-  const [[students, claims, rounds, rawProjects, notifications, timeline], progress1Eligibility] = await Promise.all([
+  const [
+    [students, claims, rounds, statusGroups, rawProjects, pendingAdminProjects, proposalVotesForFailAlert, notifications, timeline],
+    progress1Eligibility
+  ] = await Promise.all([
     dashboardQueries,
     progress1EligibilityQuery
   ]);
 
   const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
   const projects = getCurrentDashboardProjects(rawProjects);
+  const statusCounts = new Map(statusGroups.map((group) => [group.status, group._count._all]));
+  const proposalVotesByProject = new Map<string, Array<{ vote: "PASS" | "REVISE" | "FAIL" }>>();
+  for (const vote of proposalVotesForFailAlert) {
+    proposalVotesByProject.set(vote.projectId, [...(proposalVotesByProject.get(vote.projectId) ?? []), { vote: vote.vote }]);
+  }
   const progress1Round = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROGRESS_1");
   const proposalRound = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROPOSAL");
   const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
   const progress1BlockedReason = progress1Eligibility.notReady.flatMap((item) => item.reasons)[0];
   const testingToolsEnabled = isAdminTestingToolsEnabled();
-  const failAlertProjects = projects.filter((project) => shouldAlertAdminForFailVotes(project.proposalVotes));
-  const pendingAdminProjects = projects.filter((project) => project.status === "PENDING_ADMIN");
-  const nextAction = getNextActionForAdmin(projects.map((project) => ({ status: project.status, proposalVotes: project.proposalVotes })));
+  const failAlertCount = [...proposalVotesByProject.values()].filter((votes) => shouldAlertAdminForFailVotes(votes)).length;
+  const nextActionProjects = [
+    ...(pendingAdminProjects.length ? [{ status: "PENDING_ADMIN" as const }] : []),
+    ...(failAlertCount ? [{ status: "PROPOSAL_REVIEW" as const, proposalVotes: [{ vote: "FAIL" as const }, { vote: "PASS" as const }] }] : []),
+    ...(countFromStatus(statusCounts, "TOPIC_APPROVED") ? [{ status: "TOPIC_APPROVED" as const }] : []),
+    ...(countFromStatus(statusCounts, "ADVISOR_SCORING") ? [{ status: "ADVISOR_SCORING" as const }] : []),
+    ...(countFromStatus(statusCounts, "REPORT_APPROVED") ? [{ status: "REPORT_APPROVED" as const }] : [])
+  ];
+  const nextAction = getNextActionForAdmin(nextActionProjects);
   const adminWorkflowCards = [
     { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin", tone: pendingAdminProjects.length ? "current" : "quiet" },
-    { label: "รอตัดสิน Proposal", value: countByStatus(projects, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countByStatus(projects, "PROPOSAL_ADMIN_DECISION") ? "current" : "quiet" },
-    { label: "รอตั้งกรรมการ", value: countByStatus(projects, "TOPIC_APPROVED"), href: "/admin/committee", tone: countByStatus(projects, "TOPIC_APPROVED") ? "waiting" : "quiet" },
-    { label: "รอ Advisor score", value: countByStatus(projects, "REPORT_APPROVED"), href: "/admin/closeout", tone: countByStatus(projects, "REPORT_APPROVED") ? "waiting" : "quiet" },
-    { label: "พร้อมตรวจ closeout", value: countByStatus(projects, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countByStatus(projects, "ADVISOR_SCORING") ? "complete" : "quiet" }
+    { label: "รอตัดสิน Proposal", value: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") ? "current" : "quiet" },
+    { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" : "quiet" },
+    { label: "รอ Advisor score", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" : "quiet" },
+    { label: "พร้อมตรวจ closeout", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" : "quiet" }
   ];
   const topCards = [
     { label: "จำนวนนักศึกษา", value: students, href: "/admin/students" },
-    { label: "โปรเจครอที่ปรึกษา", value: countByStatus(projects, "PENDING_ADVISOR"), href: "/admin" },
+    { label: "โปรเจครอที่ปรึกษา", value: countFromStatus(statusCounts, "PENDING_ADVISOR"), href: "/admin" },
     { label: "โปรเจครอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin" },
-    { label: "Proposal รอประเมิน", value: countByStatus(projects, "PROPOSAL_REVIEW"), href: "/admin/proposals" },
-    { label: "Proposal มี FAIL ≥ 50%", value: failAlertProjects.length, href: "/admin/proposals" },
-    { label: "หัวข้อผ่านแล้วรอตั้งกรรมการ", value: countByStatus(projects, "TOPIC_APPROVED"), href: "/admin/committee" },
-    { label: "รอปิดงานโครงงาน", value: countByStatus(projects, "ADVISOR_SCORING"), href: "/admin/closeout" }
+    { label: "Proposal รอประเมิน", value: countFromStatus(statusCounts, "PROPOSAL_REVIEW"), href: "/admin/proposals" },
+    { label: "Proposal มี FAIL ≥ 50%", value: failAlertCount, href: "/admin/proposals" },
+    { label: "หัวข้อผ่านแล้วรอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee" },
+    { label: "รอปิดงานโครงงาน", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout" }
   ];
   timer.end();
 
@@ -203,7 +236,7 @@ export default async function AdminDashboardPage({
         next="ระบบไม่ตัดสินผล Proposal อัตโนมัติ ผู้ดูแลระบบต้องยืนยันผลสุดท้ายด้วยตนเอง"
         actor="ผู้ดูแลระบบเป็นผู้ยืนยันขั้นสำคัญและดูแลหลักฐาน"
       />
-      {failAlertProjects.length ? (
+      {failAlertCount ? (
         <WarningAlert title="มี Proposal ที่ FAIL ≥ 50%">
           กรุณาตรวจ vote และ comment อย่างละเอียดก่อนตัดสินผลสุดท้าย
         </WarningAlert>
@@ -326,11 +359,12 @@ export default async function AdminDashboardPage({
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {lifecycleV2Steps.map((status) => {
             const items = projects.filter((project) => project.status === status);
+            const count = countFromStatus(statusCounts, status);
             return (
               <div key={status} className="rounded-lg border border-line bg-white p-3 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{projectStatusLabelTh(status)}</span>
-                  <span className="rounded-full border border-line bg-paperSoft px-2 py-0.5 text-xs font-semibold">{items.length}</span>
+                  <span className="rounded-full border border-line bg-paperSoft px-2 py-0.5 text-xs font-semibold">{count}</span>
                 </div>
                 <div className="mt-2 space-y-1">
                   {items.slice(0, 3).map((project) => (
