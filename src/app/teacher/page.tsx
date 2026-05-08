@@ -170,7 +170,7 @@ export default async function TeacherDashboardPage() {
   timer.end();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="แดชบอร์ดอาจารย์"
         description="รวมคำขอที่ปรึกษา งานประเมิน Proposal ตารางสอบ และงานตรวจเล่มที่เกี่ยวข้อง"
@@ -183,9 +183,9 @@ export default async function TeacherDashboardPage() {
           mobilePrimaryCount={4}
           mobileSummaryLabel="workspace และงานติดตามอื่น"
         />
-        <div className="space-y-4">
+        <div className="space-y-3">
           <NextActionCard action={nextAction} />
-          <section className="panel">
+          <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยัง workspace ของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือ flow เดิม" />
             <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
             <div className="mt-3 grid gap-2 text-sm">
@@ -208,7 +208,7 @@ export default async function TeacherDashboardPage() {
         metrics={workloadCards}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
-        <section className="panel">
+        <section className="panel dashboard-console-panel">
           <h2 className="text-lg font-semibold">Proposal ที่เกี่ยวข้อง</h2>
           <div className="mt-3 space-y-3">
             {attempts.length ? (
@@ -240,6 +240,7 @@ export default async function TeacherDashboardPage() {
         </section>
         <TaskListCard
           title="ทางลัด workspace"
+          compact
           tasks={[
             { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
             { title: "คะแนน Progress 1", description: "เปิดหน้าประเมิน Progress 1", href: "/teacher/progress1" },
@@ -248,7 +249,7 @@ export default async function TeacherDashboardPage() {
           ]}
         />
       </div>
-      <section className="panel">
+      <section className="panel dashboard-console-panel">
         <h2 className="text-lg font-semibold">Notification</h2>
         <div className="mt-3 space-y-2">
           {notifications.length ? notifications.map((notification) => (

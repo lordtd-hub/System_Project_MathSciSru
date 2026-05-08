@@ -213,7 +213,7 @@ export default async function AdminDashboardPage({
   timer.end();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="แดชบอร์ดผู้ดูแลระบบ"
         description="ติดตาม lifecycle ทั้งระบบ ยืนยันโปรเจค จัดการ Proposal แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
@@ -258,9 +258,9 @@ export default async function AdminDashboardPage({
           mobilePrimaryCount={3}
           mobileSummaryLabel="งานติดตามของผู้ดูแลระบบ"
         />
-        <div className="space-y-4">
+        <div className="space-y-3">
           <NextActionCard action={nextAction} />
-          <section className="panel">
+          <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="งานที่ต้องติดตาม" description="สัญญาณที่ไม่จำเป็นต้องกดทันที แต่ควรเห็นก่อนลงรายละเอียด" />
             <div className="mt-4 space-y-2 text-sm">
               <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/proposals">
@@ -295,7 +295,7 @@ export default async function AdminDashboardPage({
         description="ตัวเลขสนับสนุนสำหรับดู bottleneck ของ lifecycle โดยไม่แย่งความสำคัญจาก action queue"
         metrics={adminWorkflowCards}
       />
-      <section className="panel">
+      <section className="panel dashboard-console-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
@@ -324,7 +324,7 @@ export default async function AdminDashboardPage({
         </div>
       </section>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
-        <section className="panel">
+        <section className="panel dashboard-console-panel">
           <h2 className="text-lg font-semibold">Pending Admin confirmation</h2>
           <p className="mt-1 text-sm text-muted">เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น PROPOSAL_PENDING</p>
           <div className="mt-3 space-y-3">
@@ -346,6 +346,7 @@ export default async function AdminDashboardPage({
         </section>
         <TaskListCard
           title="ทางลัดปฏิบัติการ"
+          compact
           tasks={[
             { title: "รอบสอบของรายวิชา", description: `${rounds.length} รอบแบบ course-level`, href: "/admin/rounds" },
             { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
@@ -359,7 +360,7 @@ export default async function AdminDashboardPage({
         </WarningAlert>
       ) : null}
       {process.env.NEXT_PUBLIC_SHOW_LEGACY_ROUND_CARDS === "1" ? (
-      <section className="panel">
+      <section className="panel dashboard-console-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
@@ -394,7 +395,7 @@ export default async function AdminDashboardPage({
         </div>
       </section>
       ) : null}
-      <section className="panel">
+      <section className="panel dashboard-console-panel">
         <h2 className="text-lg font-semibold">Project status overview</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {lifecycleV2Steps.map((status) => {
