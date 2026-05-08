@@ -48,7 +48,11 @@ export default async function AdminDashboardPage({
   const params = (await searchParams) ?? {};
 
   const offerings = await timer.measure("course_offerings", () =>
-    prisma.courseOffering.findMany({ include: { term: true }, orderBy: { id: "desc" }, take: 5 })
+    prisma.courseOffering.findMany({
+      select: { id: true, term: { select: { displayName: true } } },
+      orderBy: { id: "desc" },
+      take: 5
+    })
   );
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
 
@@ -57,20 +61,43 @@ export default async function AdminDashboardPage({
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
     prisma.assessmentRound.findMany({
       where: { courseOfferingId: { in: dashboardOfferingIds }, roundType: { in: [...courseLevelRoundTypes] } },
-      include: {
-        courseOffering: { include: { term: true, projects: true } },
-        attempts: { include: { presentationSubmission: true } },
-        projectExceptions: true
+      select: {
+        id: true,
+        courseOfferingId: true,
+        roundType: true,
+        status: true,
+        submissionOpenAt: true,
+        submissionDeadline: true,
+        closedAt: true,
+        _count: { select: { attempts: true, projectExceptions: true } }
       },
       orderBy: [{ courseOfferingId: "desc" }, { roundType: "asc" }]
     }),
     prisma.project.findMany({
-      include: { student: true, proposalVotes: true, advisorRequests: { include: { advisorTeacher: true }, orderBy: { requestedAt: "desc" }, take: 1 } },
+      select: {
+        id: true,
+        courseOfferingId: true,
+        studentId: true,
+        currentTitleTh: true,
+        status: true,
+        updatedAt: true,
+        student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+        proposalVotes: { select: { vote: true } }
+      },
       orderBy: { updatedAt: "desc" },
       take: 80
     }),
-    prisma.notification.findMany({ where: { status: "UNREAD" }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.projectTimelineEvent.findMany({ include: { actor: true }, orderBy: { occurredAt: "desc" }, take: 8 })
+    prisma.notification.findMany({
+      where: { status: "UNREAD" },
+      select: { id: true, title: true, body: true },
+      orderBy: { createdAt: "desc" },
+      take: 5
+    }),
+    prisma.projectTimelineEvent.findMany({
+      select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
+      orderBy: { occurredAt: "desc" },
+      take: 8
+    })
   ]));
 
   const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
@@ -264,12 +291,8 @@ export default async function AdminDashboardPage({
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {rounds.map((round) => {
-            const eligibleProjects = round.courseOffering.projects.filter((project) => {
-              if (round.roundType === "PROPOSAL") return ["PROPOSAL_PENDING", "PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION", "TOPIC_APPROVED", "DRAFT"].includes(project.status);
-              return ["IN_PROGRESS", "FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"].includes(project.status);
-            });
-            const submittedCount = round.attempts.filter((attempt) => attempt.presentationSubmission?.status === "SUBMITTED" || attempt.presentationSubmission?.status === "LOCKED").length;
-            const completedCount = round.attempts.filter((attempt) => attempt.status === "SCORING_CLOSED" || attempt.status === "RELEASED" || Boolean(attempt.finalDecision)).length;
+            const attemptCount = round._count.attempts;
+            const exceptionCount = round._count.projectExceptions;
             return (
               <div key={round.id} className="rounded-md border border-line p-4">
                 <div className="flex items-center justify-between gap-2">
@@ -279,10 +302,8 @@ export default async function AdminDashboardPage({
                 <dl className="mt-3 space-y-1 text-sm text-muted">
                   <div className="flex justify-between gap-3"><dt>เปิด</dt><dd>{formatDate(round.submissionOpenAt)}</dd></div>
                   <div className="flex justify-between gap-3"><dt>ปิด</dt><dd>{round.closedAt ? formatDate(round.closedAt) : formatDate(round.submissionDeadline)}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>โปรเจคที่เข้าเกณฑ์</dt><dd>{eligibleProjects.length}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>ส่งแล้ว</dt><dd>{submittedCount}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>เสร็จแล้ว</dt><dd>{completedCount}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>มีปัญหาเฉพาะราย</dt><dd>{round.projectExceptions.length}</dd></div>
+                  <div className="flex justify-between gap-3"><dt>attempt ทั้งหมด</dt><dd>{attemptCount}</dd></div>
+                  <div className="flex justify-between gap-3"><dt>มีปัญหาเฉพาะราย</dt><dd>{exceptionCount}</dd></div>
                 </dl>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button className="btn-secondary" disabled>เปิดรอบ</button>
