@@ -4,8 +4,33 @@
 
 :root {
   --font-sans: "Noto Sans Thai", "Leelawadee UI", "Tahoma", "Segoe UI", system-ui, sans-serif;
-  --shadow-soft: 0 1px 2px rgba(21, 23, 26, 0.05), 0 10px 24px rgba(21, 23, 26, 0.04);
-  --shadow-lift: 0 1px 2px rgba(21, 23, 26, 0.06), 0 16px 34px rgba(21, 23, 26, 0.08);
+  --red-900: #5a0f15;
+  --red-800: #7a141c;
+  --red-700: #9a1822;
+  --red-600: #b21e2a;
+  --red-500: #c8323e;
+  --red-100: #fbecee;
+  --red-50: #fdf6f7;
+  --ink-900: #15171a;
+  --ink-800: #1f2329;
+  --ink-700: #2c323a;
+  --ink-600: #4a525d;
+  --ink-500: #6b7480;
+  --ink-400: #8d96a3;
+  --ink-300: #b6bdc6;
+  --ink-200: #d8dde3;
+  --ink-150: #e6e9ee;
+  --ink-100: #eef0f3;
+  --paper: #f7f5f1;
+  --paper-2: #faf8f4;
+  --surface: #ffffff;
+  --line: #e3e6ec;
+  --line-strong: #cdd2da;
+  --shadow-1: 0 1px 0 rgba(20, 24, 30, 0.04), 0 1px 2px rgba(20, 24, 30, 0.05);
+  --shadow-2: 0 1px 0 rgba(20, 24, 30, 0.04), 0 4px 12px rgba(20, 24, 30, 0.06);
+  --shadow-pop: 0 8px 24px rgba(20, 24, 30, 0.1), 0 2px 6px rgba(20, 24, 30, 0.06);
+  --shadow-soft: var(--shadow-1);
+  --shadow-lift: var(--shadow-2);
 }
 
 @layer base {

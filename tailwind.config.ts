@@ -14,12 +14,15 @@ const config: Config = {
       },
       colors: {
         ink: "#15171A",
-        muted: "#5B6470",
+        muted: "#6B7480",
         line: "#E3E6EC",
+        lineStrong: "#CDD2DA",
         paper: "#F7F5F1",
-        paperSoft: "#FBFAF7",
+        paper2: "#FAF8F4",
+        paperSoft: "#FAF8F4",
+        surface: "#FFFFFF",
         brand: "#9A1822",
-        brandDark: "#74131A",
+        brandDark: "#7A141C",
         charcoal: "#374151"
       }
     }
