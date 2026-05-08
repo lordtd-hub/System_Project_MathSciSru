@@ -225,6 +225,52 @@ cmd /c npm.cmd run e2e:lifecycle
 - ไม่มี action สำคัญหายไป
 - ไม่มีการเปลี่ยน lifecycle/auth/guard โดยไม่ตั้งใจ
 
+## Redesign Alignment Checklist
+
+### Current issue
+
+- Current UI work is mostly safe polish on the old layout.
+- It does not yet fully match the `design_reference` visual language.
+
+### Target direction
+
+- Academic operational app.
+- Compact role navigation.
+- Workflow/action-queue oriented dashboards.
+- Clearer lifecycle visualization.
+- Warmer red/paper/ink visual tone.
+- Stronger section hierarchy.
+
+### Low-risk next alignment tasks
+
+- Align shared visual tokens with `design_reference/styles/tokens.css`.
+- Polish `Card`, `Button`, `Badge`, `PageHeader`, and `NextActionCard` styles.
+- Introduce a shared section heading component or pattern.
+- Make dashboard cards closer to an action queue style.
+- Improve empty, loading, and locked states consistently.
+
+### Medium-risk tasks
+
+- Mobile card redesign for workflow-heavy pages.
+- Scoring workspace layout refinement.
+- Proposal, round, and closeout page hierarchy refactor.
+
+### High-risk tasks to defer
+
+- Full sidebar/routing redesign.
+- Route structure changes.
+- Workflow visualization that changes business interpretation.
+- Import wizard rewrite.
+- Lifecycle/action logic changes.
+
+### Rule for future UI tasks
+
+- Shared components first.
+- One small patch at a time.
+- No auth, lifecycle, schema, or business logic changes.
+- Preserve production stability.
+- Validate with `cmd /c npm.cmd run typecheck`, `cmd /c npm.cmd test`, and `cmd /c npm.cmd run build`.
+
 ## Current Recommendation
 
 เริ่มจากงานความเสี่ยงต่ำและต่ำถึงกลางก่อน ได้แก่:
@@ -243,4 +289,3 @@ cmd /c npm.cmd run e2e:lifecycle
 - Admin kanban
 - Drag/drop workflow
 - การย้าย route/menu ขนาดใหญ่
-
