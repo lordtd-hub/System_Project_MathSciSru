@@ -21,5 +21,6 @@ declare module "next-auth/jwt" {
     role?: GlobalRole;
     roles?: GlobalRole[];
     teacherId?: string | null;
+    roleSyncedAt?: number;
   }
 }
