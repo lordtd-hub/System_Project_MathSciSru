@@ -14,6 +14,9 @@ describe("UI foundation", () => {
     expect(css).toContain("bg-surface p-5");
     expect(css).toContain(".button-secondary");
     expect(css).toContain(".btn-secondary");
+    expect(css).toContain(".badge-ok");
+    expect(css).toContain(".badge-warn");
+    expect(css).toContain(".badge-bad");
     expect(css).toContain(".responsive-table");
     expect(css).toContain(".state-surface-current");
     expect(css).toContain(".dashboard-metric");

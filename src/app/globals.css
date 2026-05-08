@@ -24,6 +24,16 @@
   --paper: #f7f5f1;
   --paper-2: #faf8f4;
   --surface: #ffffff;
+  --ok-700: #1f6f3a;
+  --ok-100: #e3f1e7;
+  --warn-700: #8a5a00;
+  --warn-100: #fbf0d6;
+  --info-700: #1a4a86;
+  --info-100: #e2ecf8;
+  --bad-700: #8a1a22;
+  --bad-100: #fbe4e6;
+  --lock-700: #5b6470;
+  --lock-100: #eceef2;
   --line: #e3e6ec;
   --line-strong: #cdd2da;
   --shadow-1: 0 1px 0 rgba(20, 24, 30, 0.04), 0 1px 2px rgba(20, 24, 30, 0.05);
@@ -102,19 +112,26 @@
 
   .button,
   button {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-brandDark focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:border-brandDark hover:bg-brandDark focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
+    box-shadow: var(--shadow-soft);
   }
 
   .button-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-px hover:border-brand/40 hover:bg-paperSoft focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-lineStrong bg-surface px-4 py-2 text-sm font-semibold text-ink transition hover:-translate-y-px hover:border-brand/40 hover:bg-paperSoft focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
+    box-shadow: var(--shadow-soft);
   }
 
   .button-danger {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-50;
+    background: var(--surface);
+    border-color: var(--bad-700);
+    box-shadow: var(--shadow-soft);
+    color: var(--bad-700);
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-px hover:border-brand/40 hover:bg-paperSoft focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-lineStrong bg-surface px-4 py-2 text-sm font-semibold text-ink transition hover:-translate-y-px hover:border-brand/40 hover:bg-paperSoft focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0;
+    box-shadow: var(--shadow-soft);
   }
 
   .btn-primary {
@@ -122,11 +139,48 @@
   }
 
   .btn-danger {
-    @apply border-red-600 bg-red-600 text-white hover:border-red-700 hover:bg-red-700;
+    background: var(--surface);
+    border-color: var(--bad-700);
+    color: var(--bad-700);
+  }
+
+  .button-danger:hover,
+  .btn-danger:hover {
+    background: var(--bad-100);
   }
 
   .btn-ghost {
     @apply border-transparent bg-transparent text-ink shadow-none hover:bg-paperSoft;
+  }
+
+  .badge-ok {
+    background: var(--ok-100);
+    border-color: rgba(31, 111, 58, 0.18);
+    color: var(--ok-700);
+  }
+
+  .badge-warn {
+    background: var(--warn-100);
+    border-color: rgba(138, 90, 0, 0.18);
+    color: var(--warn-700);
+  }
+
+  .badge-bad {
+    background: var(--bad-100);
+    border-color: rgba(138, 26, 34, 0.18);
+    color: var(--bad-700);
+  }
+
+  .badge-lock {
+    background: var(--lock-100);
+    border-color: rgba(91, 100, 112, 0.16);
+    color: var(--lock-700);
+  }
+
+  .badge-red {
+    background: var(--red-100);
+    border-color: rgba(154, 24, 34, 0.18);
+    color: var(--red-800);
   }
 
   .btn-sm {
