@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
 import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
@@ -81,10 +82,7 @@ export async function openCourseOffering(formData: FormData) {
     }
   });
 
-  revalidatePath("/admin");
   revalidatePath("/admin/import-students");
-  revalidatePath("/admin/students");
-  revalidatePath("/admin/rounds");
   redirect(`/admin/import-students?success=course_offering_opened&course_offering_id=${offering.id}`);
 }
 
@@ -163,10 +161,11 @@ export async function resetCourseOfferingTestData(formData: FormData) {
 
 export async function importStudents(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  const timer = createActionTimer("admin.importStudents");
   const courseOfferingId = String(formData.get("course_offering_id"));
   const csv = String(formData.get("csv") ?? "");
 
-  const offering = await prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } });
+  const offering = await timer.measure("load_offering", () => prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } }));
   if (!offering) redirect("/admin/import-students?error=course_offering_missing");
 
   const rows = csv
@@ -180,11 +179,11 @@ export async function importStudents(formData: FormData) {
     });
   if (!rows.length) redirect("/admin/import-students?error=student_import_empty");
 
-  const existingProjects = await prisma.project.findMany({
+  const existingProjects = await timer.measure("load_existing_projects", () => prisma.project.findMany({
     where: { courseOfferingId },
     include: { student: true }
-  });
-  const existingStudents = await prisma.student.findMany({ select: { studentCode: true, generatedEmail: true } });
+  }));
+  const existingStudents = await timer.measure("load_existing_students", () => prisma.student.findMany({ select: { studentCode: true, generatedEmail: true } }));
   const preview = validateStudentImportRows(
     rows,
     new Set(existingProjects.map((project) => project.student.studentCode)),
@@ -230,7 +229,7 @@ export async function importStudents(formData: FormData) {
 
   revalidatePath("/admin/import-students");
   revalidatePath("/admin/students");
-  revalidatePath("/student");
+  timer.end("redirect");
   redirect(`/admin/import-students?success=students_imported&course_offering_id=${courseOfferingId}`);
 }
 
@@ -392,22 +391,22 @@ export async function seedTeacherBaselineFromAdmin() {
   });
 
   revalidatePath("/admin/teachers");
-  revalidatePath("/admin");
   redirect("/admin/teachers?success=teacher_baseline_seeded");
 }
 
 export async function closeProposalRound(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  const timer = createActionTimer("admin.closeProposalRound");
   const roundId = String(formData.get("round_id"));
-  const round = await prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } });
+  const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } }));
   if (isRoundClosed(round.status)) throw new Error("รอบ Proposal ปิดแล้ว");
-  const attempts = await prisma.assessmentAttempt.findMany({
+  const attempts = await timer.measure("load_attempts", () => prisma.assessmentAttempt.findMany({
     where: { assessmentRoundId: roundId },
     select: { id: true, projectId: true }
-  });
+  }));
 
-  await prisma.assessmentRound.update({ where: { id: roundId }, data: buildCloseAssessmentRoundData(adminUserId) });
-  await Promise.all(
+  await timer.measure("close_round", () => prisma.assessmentRound.update({ where: { id: roundId }, data: buildCloseAssessmentRoundData(adminUserId) }));
+  await timer.measure("create_timeline_events", () => Promise.all(
     attempts.map((attempt) =>
       prisma.projectTimelineEvent.create({
         data: {
@@ -419,9 +418,10 @@ export async function closeProposalRound(formData: FormData) {
         }
       })
     )
-  );
+  ));
 
   revalidatePath("/admin/proposals");
+  timer.end("redirect");
   redirect("/admin/proposals?success=proposal_round_closed");
 }
 
@@ -461,7 +461,6 @@ export async function openCourseRound(formData: FormData) {
     }
   });
 
-  revalidatePath("/admin");
   revalidatePath("/admin/rounds");
   redirect(`/admin/rounds?success=${roundType === "PROGRESS_1" ? "progress_1_opened" : "round_opened"}`);
 }
@@ -474,7 +473,6 @@ export async function closeCourseRound(formData: FormData) {
 
   await prisma.assessmentRound.update({ where: { id: roundId }, data: buildCloseAssessmentRoundData(adminUserId) });
 
-  revalidatePath("/admin");
   revalidatePath("/admin/rounds");
   redirect(`/admin/rounds?success=${round.roundType === "PROGRESS_1" ? "progress_1_closed" : "round_closed"}`);
 }
@@ -533,7 +531,6 @@ export async function resetCourseRound(formData: FormData) {
     })
   ]);
 
-  revalidatePath("/admin");
   revalidatePath("/admin/rounds");
   revalidatePath("/admin/proposals");
   redirect("/admin/rounds?success=round_reset");
@@ -541,11 +538,12 @@ export async function resetCourseRound(formData: FormData) {
 
 export async function saveFinalDecision(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  const timer = createActionTimer("admin.saveFinalDecision");
   const attemptId = String(formData.get("attempt_id"));
   const finalDecision = String(formData.get("final_decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
   const reason = String(formData.get("final_decision_reason") ?? "");
 
-  const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({
+  const attempt = await timer.measure("load_attempt_scores", () => prisma.assessmentAttempt.findUniqueOrThrow({
     where: { id: attemptId },
     include: {
       project: true,
@@ -557,7 +555,7 @@ export async function saveFinalDecision(formData: FormData) {
         }
       }
     }
-  });
+  }));
 
   const summary = summarizeProposalScores(
     attempt.evaluatorAssignments.length,
@@ -571,7 +569,7 @@ export async function saveFinalDecision(formData: FormData) {
       }))
   );
 
-  await prisma.projectProposalResult.upsert({
+  await timer.measure("upsert_proposal_result", () => prisma.projectProposalResult.upsert({
     where: { assessmentAttemptId: attemptId },
     update: {
       averageScore: summary.averageScore,
@@ -598,11 +596,11 @@ export async function saveFinalDecision(formData: FormData) {
       finalDecisionReason: reason || null,
       decidedByAdminId: adminUserId
     }
-  });
+  }));
 
   const lifecycleDecision = finalDecision === "PASS" ? "PASS" : finalDecision === "NOT_PASS" ? "FAIL" : "REVISE";
   const transition = proposalFinalDecisionTransition(lifecycleDecision, "DRAFT", attempt.project.status);
-  await prisma.$transaction([
+  await timer.measure("status_transaction", () => prisma.$transaction([
     prisma.project.update({
       where: { id: attempt.projectId },
       data: { status: transition.to }
@@ -617,9 +615,9 @@ export async function saveFinalDecision(formData: FormData) {
         metadataJson: { finalDecision }
       }
     })
-  ]);
+  ]));
 
-  await prisma.projectTimelineEvent.create({
+  await timer.measure("create_timeline", () => prisma.projectTimelineEvent.create({
     data: {
       projectId: attempt.projectId,
       eventType: "ADMIN_FINAL_DECISION",
@@ -629,21 +627,23 @@ export async function saveFinalDecision(formData: FormData) {
       relatedEntityType: "AssessmentAttempt",
       relatedEntityId: attemptId
     }
-  });
+  }));
 
   revalidatePath("/admin/proposals");
+  timer.end("redirect");
   redirect("/admin/proposals?success=final_decision_saved");
 }
 
 export async function assignProjectCommittee(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  const timer = createActionTimer("admin.assignProjectCommittee");
   const projectId = String(formData.get("project_id"));
   const headTeacherId = String(formData.get("head_teacher_id") ?? "");
   const memberTeacherIds = formData.getAll("member_teacher_id").map(String).filter(Boolean);
   if (!headTeacherId) throw new Error("กรุณาเลือก HEAD");
   if (!memberTeacherIds.length) throw new Error("กรุณาเลือก MEMBER อย่างน้อย 1 คน");
 
-  const project = await prisma.project.findUniqueOrThrow({
+  const project = await timer.measure("load_project_advisor", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     include: {
       advisorRequests: {
@@ -652,7 +652,7 @@ export async function assignProjectCommittee(formData: FormData) {
         take: 1
       }
     }
-  });
+  }));
   if (project.status !== "TOPIC_APPROVED") throw new Error("แต่งตั้งกรรมการได้เฉพาะโปรเจคที่หัวข้อผ่านแล้ว");
   const advisorTeacherId = project.advisorRequests[0]?.advisorTeacherId;
   if (!advisorTeacherId) throw new Error("ไม่พบที่ปรึกษาที่อนุมัติแล้ว");
@@ -661,7 +661,7 @@ export async function assignProjectCommittee(formData: FormData) {
   }
   if (memberTeacherIds.includes(headTeacherId)) throw new Error("HEAD และ MEMBER ต้องไม่ซ้ำกัน");
 
-  await prisma.$transaction([
+  await timer.measure("committee_transaction", () => prisma.$transaction([
     prisma.committeeAssignment.upsert({
       where: { projectId_teacherId_role: { projectId, teacherId: advisorTeacherId, role: "ADVISOR" } },
       update: { active: true, appointedByUserId: adminUserId },
@@ -699,10 +699,10 @@ export async function assignProjectCommittee(formData: FormData) {
         relatedEntityId: projectId
       }
     })
-  ]);
+  ]));
 
   revalidatePath("/admin/committee");
-  revalidatePath("/admin");
+  timer.end("redirect");
   redirect("/admin/committee?success=committee_saved");
 }
 
@@ -739,20 +739,21 @@ export async function releaseFeedback(formData: FormData) {
 
 export async function completeProjectCloseout(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  const timer = createActionTimer("admin.completeProjectCloseout");
   const projectId = String(formData.get("project_id") ?? "");
   if (!projectId) throw new Error("ไม่พบ project ที่ต้องการปิดงาน");
 
-  const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+  const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({ where: { id: projectId } }));
   if (project.status === "COMPLETED") {
     throw new Error("โครงงานนี้เสร็จสมบูรณ์แล้ว");
   }
 
-  const eligibility = await getCompletionEligibility(projectId);
+  const eligibility = await timer.measure("completion_eligibility", () => getCompletionEligibility(projectId));
   if (!eligibility.eligible) {
     throw new Error(`ยังปิดงานไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
   }
 
-  await prisma.$transaction(async (tx) => {
+  await timer.measure("closeout_transaction", () => prisma.$transaction(async (tx) => {
     const updated = await tx.project.updateMany({
       where: { id: projectId, status: "ADVISOR_SCORING" },
       data: { status: "COMPLETED" }
@@ -795,10 +796,9 @@ export async function completeProjectCloseout(formData: FormData) {
         afterJson: { status: "COMPLETED" }
       }
     });
-  });
+  }));
 
-  revalidatePath("/admin");
   revalidatePath("/admin/closeout");
-  revalidatePath("/student");
+  timer.end("redirect");
   redirect("/admin/closeout?success=project_completed");
 }

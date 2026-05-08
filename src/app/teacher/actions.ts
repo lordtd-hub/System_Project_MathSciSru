@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
+import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { finalCriteria, totalFinalNormalizedScore, totalFinalRawScore, validateFinalScore, type FinalScoreInput } from "@/lib/scoring/finalScoring";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
@@ -150,13 +151,13 @@ export async function reviewAdvisorRequest(formData: FormData) {
     })
   ]);
 
-  revalidatePath("/teacher");
   revalidatePath("/teacher/advisor-requests");
   redirect("/teacher/advisor-requests?success=advisor_request_reviewed");
 }
 
 export async function submitProposalScore(formData: FormData) {
   const user = await requireTeacherUser();
+  const timer = createActionTimer("teacher.submitProposalScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
 
   const assignmentId = String(formData.get("assignment_id"));
@@ -165,17 +166,17 @@ export async function submitProposalScore(formData: FormData) {
   const overallComment = String(formData.get("overall_comment") ?? "").trim();
   const submitMode = String(formData.get("submit_mode"));
 
-  const assignment = await prisma.evaluatorAssignment.findUniqueOrThrow({
+  const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
     where: { id: assignmentId },
     include: { assessmentAttempt: true }
-  });
+  }));
   if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
 
-  const rubric = await prisma.rubric.findFirstOrThrow({
+  const rubric = await timer.measure("load_rubric", () => prisma.rubric.findFirstOrThrow({
     where: { roundType: "PROPOSAL", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
+  }));
 
   const checkedIds = new Set(formData.getAll("checked_item").map(String));
   const scoreResult = calculateChecklistScore(
@@ -193,7 +194,7 @@ export async function submitProposalScore(formData: FormData) {
   }
   if (decisionErrors.length) throw new Error(decisionErrors.join("\n"));
 
-  const scoreSubmission = await prisma.scoreSubmission.upsert({
+  const scoreSubmission = await timer.measure("upsert_score_submission", () => prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignmentId },
     update: {
       totalScore: scoreResult.totalScore,
@@ -210,9 +211,9 @@ export async function submitProposalScore(formData: FormData) {
       submittedAt: submitMode === "submit" ? new Date() : null,
       lockedAt: submitMode === "submit" ? new Date() : null
     }
-  });
+  }));
 
-  await Promise.all(
+  await timer.measure("upsert_score_items", () => Promise.all(
     rubric.items.map((item) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
@@ -228,7 +229,7 @@ export async function submitProposalScore(formData: FormData) {
         }
       })
     )
-  );
+  ));
 
   await prisma.proposalEvaluatorDecision.upsert({
     where: { scoreSubmissionId: scoreSubmission.id },
@@ -298,8 +299,8 @@ export async function submitProposalScore(formData: FormData) {
     });
   }
 
-  revalidatePath("/teacher");
   revalidatePath(`/teacher/scoring/${assignmentId}`);
+  timer.end("redirect");
   redirect(`/teacher/scoring/${assignmentId}?success=proposal_score_saved`);
 }
 
@@ -392,6 +393,7 @@ async function ensureFinalRubric() {
 
 export async function submitProgress1Score(formData: FormData) {
   const user = await requireTeacherUser();
+  const timer = createActionTimer("teacher.submitProgress1Score");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
@@ -406,21 +408,21 @@ export async function submitProgress1Score(formData: FormData) {
   if (comment) errors.push(...validateMarkdownInput(comment, "Progress 1 comment"));
   if (errors.length) throw new Error(errors.join("\n"));
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const project = await prisma.project.findUniqueOrThrow({
+  const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
+  const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     include: { committeeAssignments: true }
-  });
+  }));
   if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนน Progress 1 ได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
   if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Progress 1 ได้");
 
-  const round = await prisma.assessmentRound.findUniqueOrThrow({
+  const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
-  });
-  const rubric = await ensureProgress1Rubric();
+  }));
+  const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -461,7 +463,7 @@ export async function submitProgress1Score(formData: FormData) {
     presentation: input.presentation,
     overall: input.overall
   };
-  await Promise.all(
+  await timer.measure("upsert_score_items", () => Promise.all(
     rubric.items.map((item) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
@@ -469,8 +471,8 @@ export async function submitProgress1Score(formData: FormData) {
         create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 }
       })
     )
-  );
-  await prisma.projectTimelineEvent.create({
+  ));
+  await timer.measure("create_timeline", () => prisma.projectTimelineEvent.create({
     data: {
       projectId: project.id,
       eventType: "PROGRESS_1_SCORE_SUBMITTED",
@@ -481,14 +483,16 @@ export async function submitProgress1Score(formData: FormData) {
       relatedEntityId: scoreSubmission.id,
       metadataJson: { totalScore: totalProgress1Score(input) }
     }
-  });
+  }));
 
   revalidatePath("/teacher/progress1");
+  timer.end("redirect");
   redirect("/teacher/progress1?success=progress_1_score_saved");
 }
 
 export async function submitProgress2Score(formData: FormData) {
   const user = await requireTeacherUser();
+  const timer = createActionTimer("teacher.submitProgress2Score");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
@@ -503,21 +507,21 @@ export async function submitProgress2Score(formData: FormData) {
   if (comment) errors.push(...validateMarkdownInput(comment, "Progress 2 comment"));
   if (errors.length) throw new Error(errors.join("\n"));
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const project = await prisma.project.findUniqueOrThrow({
+  const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
+  const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     include: { committeeAssignments: true }
-  });
+  }));
   if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนน Progress 2 ได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
   if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Progress 2 ได้");
 
-  const round = await prisma.assessmentRound.findUniqueOrThrow({
+  const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
-  });
-  const rubric = await ensureProgress2Rubric();
+  }));
+  const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -558,7 +562,7 @@ export async function submitProgress2Score(formData: FormData) {
     presentation: input.presentation,
     overall: input.overall
   };
-  await Promise.all(
+  await timer.measure("upsert_score_items", () => Promise.all(
     rubric.items.map((item) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
@@ -566,8 +570,8 @@ export async function submitProgress2Score(formData: FormData) {
         create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 }
       })
     )
-  );
-  await prisma.projectTimelineEvent.create({
+  ));
+  await timer.measure("create_timeline", () => prisma.projectTimelineEvent.create({
     data: {
       projectId: project.id,
       eventType: "PROGRESS_2_SCORE_SUBMITTED",
@@ -578,14 +582,16 @@ export async function submitProgress2Score(formData: FormData) {
       relatedEntityId: scoreSubmission.id,
       metadataJson: { totalScore: totalProgress2Score(input) }
     }
-  });
+  }));
 
   revalidatePath("/teacher/progress2");
+  timer.end("redirect");
   redirect("/teacher/progress2?success=progress_2_score_saved");
 }
 
 export async function submitFinalPresentationScore(formData: FormData) {
   const user = await requireTeacherUser();
+  const timer = createActionTimer("teacher.submitFinalPresentationScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
@@ -599,23 +605,23 @@ export async function submitFinalPresentationScore(formData: FormData) {
   if (comment) errors.push(...validateMarkdownInput(comment, "Final Presentation comment"));
   if (errors.length) throw new Error(errors.join("\n"));
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const project = await prisma.project.findUniqueOrThrow({
+  const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
+  const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     include: { committeeAssignments: true }
-  });
+  }));
   if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนน Final Presentation ได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
   if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Final Presentation ได้");
 
-  const round = await prisma.assessmentRound.findUnique({
+  const round = await timer.measure("load_round", () => prisma.assessmentRound.findUnique({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "FINAL_PRESENTATION" } }
-  });
+  }));
   if (!round) throw new Error("ยังไม่มีรอบ Final Presentation ระดับรายวิชา");
 
-  const rubric = await ensureFinalRubric();
+  const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -668,7 +674,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     presentation: input.presentation,
     overall: input.overall
   };
-  await Promise.all(
+  await timer.measure("upsert_score_items", () => Promise.all(
     rubric.items.map((item) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
@@ -676,8 +682,8 @@ export async function submitFinalPresentationScore(formData: FormData) {
         create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 }
       })
     )
-  );
-  await prisma.projectTimelineEvent.create({
+  ));
+  await timer.measure("create_timeline", () => prisma.projectTimelineEvent.create({
     data: {
       projectId: project.id,
       eventType: "FINAL_PRESENTATION_SCORE_SUBMITTED",
@@ -688,14 +694,16 @@ export async function submitFinalPresentationScore(formData: FormData) {
       relatedEntityId: scoreSubmission.id,
       metadataJson: { rawScore: totalFinalRawScore(input), normalizedScore: totalFinalNormalizedScore(input) }
     }
-  });
+  }));
 
   revalidatePath("/teacher/final");
+  timer.end("redirect");
   redirect("/teacher/final?success=final_score_saved");
 }
 
 export async function reviewReportVersion(formData: FormData) {
   const user = await requireTeacherUser();
+  const timer = createActionTimer("teacher.reviewReportVersion");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const reportVersionId = String(formData.get("report_version_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
@@ -705,8 +713,8 @@ export async function reviewReportVersion(formData: FormData) {
   const commentErrors = validateMarkdownInput(comment, "report review comment");
   if (commentErrors.length) throw new Error(commentErrors.join("\n"));
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const reportVersion = await prisma.reportVersion.findUniqueOrThrow({
+  const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
+  const reportVersion = await timer.measure("load_report_version", () => prisma.reportVersion.findUniqueOrThrow({
     where: { id: reportVersionId },
     include: {
       reviews: true,
@@ -718,7 +726,7 @@ export async function reviewReportVersion(formData: FormData) {
         }
       }
     }
-  });
+  }));
   if (reportVersion.project.status !== "REPORT_REVIEW") {
     throw new Error("ตรวจเล่มได้เฉพาะโครงงานที่อยู่ในสถานะ REPORT_REVIEW");
   }
@@ -735,7 +743,7 @@ export async function reviewReportVersion(formData: FormData) {
     throw new Error("เฉพาะอาจารย์ที่ปรึกษาหรือ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่ตรวจเล่มได้");
   }
 
-  const review = await prisma.reportReview.upsert({
+  const review = await timer.measure("upsert_report_review", () => prisma.reportReview.upsert({
     where: {
       reportVersionId_reviewerTeacherId: {
         reportVersionId: reportVersion.id,
@@ -753,7 +761,7 @@ export async function reviewReportVersion(formData: FormData) {
       decision,
       comment
     }
-  });
+  }));
 
   if (decision === "FAIL") {
     await prisma.projectTimelineEvent.create({
@@ -768,10 +776,9 @@ export async function reviewReportVersion(formData: FormData) {
         metadataJson: { reportVersionId: reportVersion.id, versionNo: reportVersion.versionNo }
       }
     });
-    revalidatePath("/teacher");
     revalidatePath("/teacher/reports");
-    revalidatePath("/student");
     revalidatePath("/student/report");
+    timer.end("redirect_revision");
     redirect("/teacher/reports?success=report_revision_requested");
   }
 
@@ -786,7 +793,7 @@ export async function reviewReportVersion(formData: FormData) {
     !latestReportVersionHasRevisionRequest(latestReviews) &&
     allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: projectReviews });
 
-  await prisma.$transaction(async (tx) => {
+  await timer.measure("approval_transaction", () => prisma.$transaction(async (tx) => {
     await tx.projectTimelineEvent.create({
       data: {
         projectId: reportVersion.projectId,
@@ -827,17 +834,17 @@ export async function reviewReportVersion(formData: FormData) {
         }
       });
     }
-  });
+  }));
 
-  revalidatePath("/teacher");
   revalidatePath("/teacher/reports");
-  revalidatePath("/student");
   revalidatePath("/student/report");
+  timer.end("redirect");
   redirect(approved ? "/teacher/reports?success=report_approved" : "/teacher/reports?success=report_review_saved");
 }
 
 export async function submitAdvisorScore(formData: FormData) {
   const user = await requireTeacherUser();
+  const timer = createActionTimer("teacher.submitAdvisorScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
@@ -852,15 +859,15 @@ export async function submitAdvisorScore(formData: FormData) {
   if (comment) errors.push(...validateMarkdownInput(comment, "Advisor score comment"));
   if (errors.length) throw new Error(errors.join("\n"));
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const project = await prisma.project.findUniqueOrThrow({
+  const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
+  const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     include: {
       advisorRequests: true,
       committeeAssignments: true,
       advisorScore: true
     }
-  });
+  }));
   const isAdvisor =
     project.advisorRequests.some((request) => request.status === "APPROVED" && request.advisorTeacherId === teacher.id) ||
     project.committeeAssignments.some((assignment) => assignment.active && assignment.role === "ADVISOR" && assignment.teacherId === teacher.id);
@@ -872,7 +879,7 @@ export async function submitAdvisorScore(formData: FormData) {
   const now = new Date();
   const total = totalAdvisorScore(input);
   const shouldMoveToAdvisorScoring = project.status === "REPORT_APPROVED";
-  const score = await prisma.$transaction(async (tx) => {
+  const score = await timer.measure("advisor_score_transaction", () => prisma.$transaction(async (tx) => {
     const saved = await tx.advisorScore.upsert({
       where: { projectId: project.id },
       update: {
@@ -937,11 +944,10 @@ export async function submitAdvisorScore(formData: FormData) {
     });
 
     return saved;
-  });
+  }));
 
-  revalidatePath("/teacher");
   revalidatePath("/teacher/advisor-score");
-  revalidatePath("/student");
   revalidatePath("/student/report");
+  timer.end("redirect");
   redirect(`/teacher/advisor-score?success=advisor_score_saved&score_id=${score.id}`);
 }
