@@ -39,8 +39,54 @@ export default async function AdminTeachersPage({
       />
       <section className="panel">
         <h2 className="text-lg font-semibold">รายชื่ออาจารย์</h2>
-        <div className="mt-3 overflow-x-auto">
-          {teachers.length ? (
+        {teachers.length ? (
+          <>
+            <div className="mt-3 grid gap-3 md:hidden">
+              {teachers.map((teacher) => {
+                const displayName = teacherDisplayName(teacher);
+                return (
+                  <article key={teacher.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold">{displayName}</h3>
+                        <p className="mt-1 text-xs text-muted">{teacher.department}</p>
+                      </div>
+                      <span className="rounded-full border border-line px-2.5 py-1 text-xs font-semibold text-muted">
+                        {teacher.canEvaluateProposal ? "ประเมิน Proposal ได้" : "ไม่ประเมิน Proposal"}
+                      </span>
+                    </div>
+                    <dl className="mt-4 grid gap-3 text-sm">
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-muted">อีเมลที่ผูกบัญชี</dt>
+                        <dd className="mt-1 break-all">{teacher.email ?? "ยังไม่ผูกอีเมล"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Claim ล่าสุด</dt>
+                        <dd className="mt-1">{teacher.claims[0]?.status ?? "-"}</dd>
+                      </div>
+                    </dl>
+                    <form action={updateTeacherEmail} className="mt-4 grid gap-2">
+                      <input type="hidden" name="teacher_id" value={teacher.id} />
+                      <label className="text-sm font-medium" htmlFor={`teacher-email-mobile-${teacher.id}`}>
+                        แก้ไขอีเมล
+                      </label>
+                      <input
+                        id={`teacher-email-mobile-${teacher.id}`}
+                        name="email"
+                        type="email"
+                        defaultValue={teacher.email ?? ""}
+                        placeholder="name@sru.ac.th หรือเว้นว่าง"
+                        aria-label={`อีเมลของ ${displayName}`}
+                      />
+                      <SubmitButton className="w-full justify-center" pendingText="กำลังบันทึก...">
+                        บันทึกอีเมล
+                      </SubmitButton>
+                    </form>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="mt-3 hidden overflow-x-auto md:block">
             <table className="responsive-table">
               <thead className="border-b border-line text-muted">
                 <tr>
@@ -80,15 +126,16 @@ export default async function AdminTeachersPage({
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className="rounded-md border border-dashed border-line p-6 text-center">
-              <EmptyState title="ยังไม่มีข้อมูลอาจารย์" description="เพิ่มข้อมูลอาจารย์พื้นฐานสำหรับเริ่มใช้งานระบบจริง โดยไม่สร้าง demo project หรือนักศึกษา" />
-              <form action={seedTeacherBaselineFromAdmin} className="mt-4">
-                <SubmitButton pendingText="กำลังเพิ่มข้อมูลอาจารย์...">เพิ่มข้อมูลอาจารย์พื้นฐาน</SubmitButton>
-              </form>
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="mt-3 rounded-md border border-dashed border-line p-6 text-center">
+            <EmptyState title="ยังไม่มีข้อมูลอาจารย์" description="เพิ่มข้อมูลอาจารย์พื้นฐานสำหรับเริ่มใช้งานระบบจริง โดยไม่สร้าง demo project หรือนักศึกษา" />
+            <form action={seedTeacherBaselineFromAdmin} className="mt-4">
+              <SubmitButton pendingText="กำลังเพิ่มข้อมูลอาจารย์...">เพิ่มข้อมูลอาจารย์พื้นฐาน</SubmitButton>
+            </form>
+          </div>
+        )}
       </section>
     </div>
   );
