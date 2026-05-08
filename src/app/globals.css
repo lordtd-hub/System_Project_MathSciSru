@@ -201,11 +201,17 @@
   }
 
   .dashboard-metric {
-    @apply rounded-lg border border-line bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40;
+    @apply rounded-lg border border-line bg-surface p-4 transition hover:-translate-y-0.5 hover:border-brand/40;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .dashboard-metric:hover {
+    box-shadow: var(--shadow-lift);
   }
 
   .dashboard-metric-value {
     @apply text-2xl font-semibold leading-none text-ink;
+    font-feature-settings: "tnum";
   }
 
   .dashboard-metric-label {
@@ -213,27 +219,33 @@
   }
 
   .workflow-group {
-    @apply rounded-lg border border-line bg-white p-4 shadow-sm;
+    @apply rounded-lg border border-line bg-surface p-4;
+    box-shadow: var(--shadow-soft);
   }
 
   .workflow-group-current {
-    @apply border-brand/25 bg-red-50/70;
+    background: var(--red-50);
+    border-color: rgba(154, 24, 34, 0.25);
   }
 
   .workflow-group-waiting {
-    @apply border-amber-200 bg-amber-50/80;
+    background: var(--warn-100);
+    border-color: rgba(138, 90, 0, 0.18);
   }
 
   .workflow-group-complete {
-    @apply border-emerald-200 bg-emerald-50/80;
+    background: var(--ok-100);
+    border-color: rgba(31, 111, 58, 0.18);
   }
 
   .workflow-group-locked {
-    @apply border-slate-200 bg-slate-50;
+    background: var(--lock-100);
+    border-color: rgba(91, 100, 112, 0.16);
   }
 
   .workflow-chip {
-    @apply inline-flex min-h-10 items-center rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold shadow-sm;
+    @apply inline-flex min-h-10 items-center rounded-lg border border-lineStrong bg-surface px-3 py-2 text-sm font-semibold;
+    box-shadow: var(--shadow-soft);
   }
 
   .responsive-scroll {
