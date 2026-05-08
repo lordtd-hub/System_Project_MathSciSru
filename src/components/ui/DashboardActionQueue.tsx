@@ -52,45 +52,72 @@ export function DashboardSectionHeader({
 export function DashboardActionQueue({
   title = "งานที่ต้องดำเนินการ",
   description,
-  items
+  items,
+  mobilePrimaryCount = 3,
+  mobileSummaryLabel = "ดูงานติดตามเพิ่มเติม"
 }: {
   title?: string;
   description?: string;
   items: DashboardActionQueueItem[];
+  mobilePrimaryCount?: number;
+  mobileSummaryLabel?: string;
 }) {
+  const mobilePrimaryItems = items.slice(0, mobilePrimaryCount);
+  const mobileSecondaryItems = items.slice(mobilePrimaryCount);
+
   return (
     <section className="panel action-queue-panel">
       <DashboardSectionHeader title={title} description={description ?? "เรียงงานที่ต้องกดต่อหรือพิจารณาก่อนงานติดตามทั่วไป"} />
-      <div className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
-        {items.map((item) => {
-          const tone = item.tone ?? "quiet";
-          return (
-            <a
-              key={`${item.title}-${item.href}`}
-              href={item.href}
-              className={`grid gap-3 border-l-4 p-4 transition hover:bg-paperSoft sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${toneClass[tone]}`}
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold leading-6 text-ink">{item.title}</h3>
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${badgeClass[tone]}`}>
-                    {item.statusLabel ?? (item.count && item.count > 0 ? "ต้องดำเนินการ" : "ติดตาม")}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm leading-6 text-muted">{item.description}</p>
-                {item.meta ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted">{item.meta}</p> : null}
-              </div>
-              <div className="flex items-center gap-3 sm:justify-end">
-                {typeof item.count === "number" ? (
-                  <span className="min-w-12 text-right text-2xl font-semibold tabular-nums text-ink">{item.count}</span>
-                ) : null}
-                <span className="button-secondary whitespace-nowrap">{item.ctaLabel ?? "เปิดงานนี้"}</span>
-              </div>
-            </a>
-          );
-        })}
+      <div className="mt-3 sm:hidden">
+        <div className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+          {mobilePrimaryItems.map((item) => <DashboardActionQueueRow key={`${item.title}-${item.href}-mobile`} item={item} compact />)}
+        </div>
+        {mobileSecondaryItems.length ? (
+          <details className="mt-2 rounded-lg border border-line bg-surface shadow-sm">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-ink">
+              <span>{mobileSummaryLabel}</span>
+              <span className="rounded-full border border-line bg-paperSoft px-2 py-0.5 text-xs text-muted">{mobileSecondaryItems.length}</span>
+            </summary>
+            <div className="divide-y divide-line border-t border-line">
+              {mobileSecondaryItems.map((item) => <DashboardActionQueueRow key={`${item.title}-${item.href}-mobile-secondary`} item={item} compact />)}
+            </div>
+          </details>
+        ) : null}
+      </div>
+      <div className="mt-4 hidden divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface sm:block">
+        {items.map((item) => <DashboardActionQueueRow key={`${item.title}-${item.href}`} item={item} />)}
       </div>
     </section>
+  );
+}
+
+function DashboardActionQueueRow({ item, compact = false }: { item: DashboardActionQueueItem; compact?: boolean }) {
+  const tone = item.tone ?? "quiet";
+  return (
+    <a
+      href={item.href}
+      className={`grid border-l-4 transition hover:bg-paperSoft ${compact ? "grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-3" : "gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"} ${toneClass[tone]}`}
+    >
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className={`${compact ? "text-sm" : ""} font-semibold leading-6 text-ink`}>{item.title}</h3>
+          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${badgeClass[tone]}`}>
+            {item.statusLabel ?? (item.count && item.count > 0 ? "ต้องดำเนินการ" : "ติดตาม")}
+          </span>
+        </div>
+        <p className={`${compact ? "mt-0.5 text-xs leading-5" : "mt-1 text-sm leading-6"} text-muted`}>{item.description}</p>
+        {item.meta ? <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted">{item.meta}</p> : null}
+      </div>
+      <div className={`flex items-center gap-2 ${compact ? "justify-end" : "sm:justify-end"}`}>
+        {typeof item.count === "number" ? (
+          <span className={`${compact ? "min-w-8 text-xl" : "min-w-12 text-2xl"} text-right font-semibold tabular-nums text-ink`}>{item.count}</span>
+        ) : null}
+        <span className="hidden whitespace-nowrap sm:inline-flex sm:min-h-11 sm:items-center sm:justify-center sm:rounded-lg sm:border sm:border-lineStrong sm:bg-surface sm:px-4 sm:py-2 sm:text-sm sm:font-semibold sm:text-ink sm:shadow-sm">
+          {item.ctaLabel ?? "เปิดงานนี้"}
+        </span>
+        <span className="text-xs font-semibold text-brand sm:hidden">เปิด</span>
+      </div>
+    </a>
   );
 }
 
@@ -106,11 +133,11 @@ export function CompactMetricRow({
   return (
     <section className="panel">
       <DashboardSectionHeader title={title} description={description} />
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:mt-4 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
         {metrics.map((metric) => {
           const tone = metric.tone ?? "quiet";
           return (
-            <a key={metric.label} href={metric.href} className={`rounded-lg border border-line bg-surface p-3 transition hover:border-brand/40 hover:bg-paperSoft ${tone === "urgent" || tone === "ready" ? "border-l-4 border-l-[var(--red-700)]" : tone === "waiting" ? "border-l-4 border-l-[var(--warn-700)]" : tone === "complete" ? "border-l-4 border-l-[var(--ok-700)]" : "border-l-4 border-l-[var(--ink-300)]"}`}>
+            <a key={metric.label} href={metric.href} className={`min-w-[9.5rem] snap-start rounded-lg border border-line bg-surface p-3 transition hover:border-brand/40 hover:bg-paperSoft sm:min-w-0 ${tone === "urgent" || tone === "ready" ? "border-l-4 border-l-[var(--red-700)]" : tone === "waiting" ? "border-l-4 border-l-[var(--warn-700)]" : tone === "complete" ? "border-l-4 border-l-[var(--ok-700)]" : "border-l-4 border-l-[var(--ink-300)]"}`}>
               <div className="text-xl font-semibold leading-none text-ink">{metric.value}</div>
               <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted">{metric.label}</div>
             </a>

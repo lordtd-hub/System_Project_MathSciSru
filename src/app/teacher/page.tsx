@@ -122,27 +122,6 @@ export default async function TeacherDashboardPage() {
       statusLabel: pendingProposalScores.length ? "พร้อมประเมิน" : "ปกติ"
     },
     {
-      title: "คะแนน Progress 1",
-      description: "เปิด workspace สำหรับงานประเมิน Progress 1 ตาม assignment ที่ระบบมีอยู่",
-      href: "/teacher/progress1",
-      tone: "quiet" as const,
-      statusLabel: "ติดตาม"
-    },
-    {
-      title: "คะแนน Progress 2",
-      description: "เปิด workspace สำหรับงานประเมิน Progress 2 ตาม assignment ที่ระบบมีอยู่",
-      href: "/teacher/progress2",
-      tone: "quiet" as const,
-      statusLabel: "ติดตาม"
-    },
-    {
-      title: "คะแนน Final Presentation",
-      description: "เปิด workspace สำหรับงานประเมิน Final ตาม assignment ที่ระบบมีอยู่",
-      href: "/teacher/final",
-      tone: "quiet" as const,
-      statusLabel: "ติดตาม"
-    },
-    {
       title: "อนุมัติวันสอบ",
       description: scheduleApprovalCount ? "มีตารางสอบที่รอการยืนยันจากอาจารย์" : "ยังไม่มีตารางสอบรออนุมัติ",
       href: "/teacher/schedules",
@@ -165,6 +144,27 @@ export default async function TeacherDashboardPage() {
       count: advisorScoreProjectCount,
       tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const,
       statusLabel: "advisor score"
+    },
+    {
+      title: "คะแนน Progress 1",
+      description: "เปิด workspace สำหรับงานประเมิน Progress 1 ตาม assignment ที่ระบบมีอยู่",
+      href: "/teacher/progress1",
+      tone: "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "คะแนน Progress 2",
+      description: "เปิด workspace สำหรับงานประเมิน Progress 2 ตาม assignment ที่ระบบมีอยู่",
+      href: "/teacher/progress2",
+      tone: "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "คะแนน Final Presentation",
+      description: "เปิด workspace สำหรับงานประเมิน Final ตาม assignment ที่ระบบมีอยู่",
+      href: "/teacher/final",
+      tone: "quiet" as const,
+      statusLabel: "ติดตาม"
     }
   ];
   timer.end();
@@ -180,6 +180,8 @@ export default async function TeacherDashboardPage() {
           title="งานที่ต้องดำเนินการ"
           description="รวมงานที่อาจารย์ต้องตอบรับ ประเมิน ตรวจ หรือยืนยันตามบทบาทที่มีอยู่ในระบบ"
           items={teacherActionQueue}
+          mobilePrimaryCount={4}
+          mobileSummaryLabel="workspace และงานติดตามอื่น"
         />
         <div className="space-y-4">
           <NextActionCard action={nextAction} />

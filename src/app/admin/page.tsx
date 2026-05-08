@@ -255,6 +255,8 @@ export default async function AdminDashboardPage({
           title="งานที่ต้องดำเนินการ"
           description="รายการที่ต้องกดต่อ พิจารณา หรือยืนยันก่อน lifecycle จะเดินต่อ"
           items={adminActionQueue}
+          mobilePrimaryCount={3}
+          mobileSummaryLabel="งานติดตามของผู้ดูแลระบบ"
         />
         <div className="space-y-4">
           <NextActionCard action={nextAction} />
