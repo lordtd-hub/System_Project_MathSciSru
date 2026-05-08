@@ -21,9 +21,9 @@ type CloseoutProject = {
 
 function ChecklistRow({ label, done }: { label: string; done: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft px-3 py-2 text-sm">
       <span>{label}</span>
-      <span className={done ? "font-semibold text-emerald-700" : "font-semibold text-amber-700"}>{done ? "ครบแล้ว" : "ยังไม่ครบ"}</span>
+      <span className={done ? "font-semibold text-[var(--ok-700)]" : "font-semibold text-[var(--warn-700)]"}>{done ? "ครบแล้ว" : "ยังไม่ครบ"}</span>
     </div>
   );
 }
@@ -52,7 +52,7 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
       </div>
 
       {completed ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-900">โครงงานเสร็จสมบูรณ์แล้ว</div>
+        <div className="app-alert alert-success text-sm font-medium">โครงงานเสร็จสมบูรณ์แล้ว</div>
       ) : eligibility.eligible ? (
         <form action={completeProjectCloseout} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <input type="hidden" name="project_id" value={project.id} />
@@ -61,7 +61,7 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
           </SubmitButton>
         </form>
       ) : (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="app-alert alert-warning text-sm">
           <div className="font-semibold">ยังปิดงานไม่ได้</div>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {eligibility.missingRequirements.map((requirement) => (

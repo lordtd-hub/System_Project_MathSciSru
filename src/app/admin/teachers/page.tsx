@@ -45,7 +45,7 @@ export default async function AdminTeachersPage({
               {teachers.map((teacher) => {
                 const displayName = teacherDisplayName(teacher);
                 return (
-                  <article key={teacher.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
+                  <article key={teacher.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="font-semibold">{displayName}</h3>

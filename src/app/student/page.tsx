@@ -70,7 +70,7 @@ function StudentWorkflowGroup({
           <h3 className="text-sm font-semibold text-ink">{title}</h3>
           <p className="mt-1 text-xs leading-5 text-muted">{description}</p>
         </div>
-        <span className="rounded-full border border-white/70 bg-white/70 px-2 py-0.5 text-xs font-semibold text-muted">{actions.length}</span>
+        <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold text-muted">{actions.length}</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {actions.length ? actions.map((item) =>

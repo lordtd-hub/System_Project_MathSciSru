@@ -60,7 +60,7 @@ export default async function ProposalScoringPage({
       <PageHeader
         title="ประเมิน Proposal"
         description={`${student.studentCode} ${student.firstNameTh} ${student.lastNameTh}`}
-        actions={<span className="sticky-score rounded-full border border-line bg-white px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
+        actions={<span className="sticky-score rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
       />
       <ActionFeedback success={query.success} error={query.error} />
       <GuidancePanel
@@ -157,7 +157,7 @@ export default async function ProposalScoringPage({
             <MarkdownLatexEditor name="overall_comment" label="Comment ถึงนักศึกษา" defaultValue={assignment.scoreSubmission?.overallComment ?? ""} rows={5} />
             <p className="mt-1 text-xs text-muted">comment นี้จะแสดงให้นักศึกษาเห็นทันทีพร้อมชื่ออาจารย์</p>
           </div>
-          <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-white/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
             <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึก...">บันทึก comment</SubmitButton>
             <SubmitButton name="submit_mode" value="submit" pendingText="กำลังส่งคะแนน..." confirmMessage="ยืนยันการส่งคะแนน Proposal หรือไม่? หลังส่งแล้วระบบจะบันทึกคะแนนและ comment เป็นหลักฐาน">
               ส่งคะแนน Proposal

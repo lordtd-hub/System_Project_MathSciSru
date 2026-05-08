@@ -107,7 +107,7 @@ export default async function ProposalSubmissionPage({
               <span>ข้าพเจ้ารับรองว่า Proposal นี้เป็นงานของตนเองและไม่ใช้ raw HTML</span>
             </label>
           </div>
-          <div className="sticky bottom-0 -mx-4 mt-4 border-t border-line bg-white/95 p-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="sticky bottom-0 -mx-4 mt-4 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
             <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่ง Proposal..." className="w-full sm:w-auto">
               {canSubmitProposal ? "ส่ง Proposal" : "Proposal ยังไม่เปิดให้แก้ไข"}
             </SubmitButton>

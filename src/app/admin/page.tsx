@@ -179,7 +179,7 @@ export default async function AdminDashboardPage({
           <>
             <span
               className={`inline-flex min-h-11 items-center rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm ${
-                testingToolsEnabled ? "border-amber-200 bg-amber-50 text-amber-900" : "border-line bg-white text-muted"
+                testingToolsEnabled ? "badge-warn" : "badge-lock"
               }`}
             >
               โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
@@ -246,7 +246,7 @@ export default async function AdminDashboardPage({
           <a key={card.label} href={card.href} className={`dashboard-metric block ${card.value ? "dashboard-metric-current" : "dashboard-metric-muted"}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="text-2xl font-semibold text-ink">{card.value}</div>
-              <span className={`mt-1 h-2 w-2 rounded-full ${card.value ? "bg-brand" : "bg-slate-300"}`} aria-hidden="true" />
+              <span className={`mt-1 h-2 w-2 rounded-full ${card.value ? "bg-brand" : "bg-[var(--ink-300)]"}`} aria-hidden="true" />
             </div>
             <div className="mt-1 text-sm leading-6 text-muted">{card.label}</div>
           </a>

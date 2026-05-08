@@ -69,7 +69,7 @@
   input,
   select,
   textarea {
-    @apply min-h-11 w-full rounded-lg border bg-white px-3 py-2 text-sm text-ink shadow-sm outline-none ring-brand/20 transition placeholder:text-slate-400 focus:border-brand focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+    @apply min-h-11 w-full rounded-lg border bg-surface px-3 py-2 text-sm text-ink shadow-sm outline-none ring-brand/20 transition placeholder:text-slate-400 focus:border-brand focus:ring-2 disabled:cursor-not-allowed disabled:bg-paperSoft disabled:text-slate-500;
   }
 
   textarea {
@@ -204,6 +204,38 @@
 
   .next-action-success .next-action-rail {
     background: var(--ok-700);
+  }
+
+  .app-alert {
+    @apply rounded-lg border p-4 shadow-sm;
+  }
+
+  .alert-info {
+    background: var(--info-100);
+    border-color: rgba(26, 74, 134, 0.2);
+    border-left-color: var(--info-700);
+    color: var(--info-700);
+  }
+
+  .alert-warning {
+    background: var(--warn-100);
+    border-color: rgba(138, 90, 0, 0.22);
+    border-left-color: var(--warn-700);
+    color: var(--warn-700);
+  }
+
+  .alert-success {
+    background: var(--ok-100);
+    border-color: rgba(31, 111, 58, 0.2);
+    border-left-color: var(--ok-700);
+    color: var(--ok-700);
+  }
+
+  .alert-danger {
+    background: var(--bad-100);
+    border-color: rgba(138, 26, 34, 0.22);
+    border-left-color: var(--bad-700);
+    color: var(--bad-700);
   }
 
   .button,
@@ -360,6 +392,28 @@
     border-left-color: var(--red-700);
   }
 
+  .panel > h2:first-child,
+  .section-card > h2:first-child {
+    @apply mb-4 border-b border-line pb-3 text-lg font-semibold text-ink;
+  }
+
+  .panel > h2:first-child::before,
+  .section-card > h2:first-child::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 1.25rem;
+    margin-right: 0.65rem;
+    border-radius: 999px;
+    background: var(--red-700);
+    vertical-align: -0.2rem;
+  }
+
+  .panel :where(.rounded-md.border.border-line, .rounded-lg.border.border-line, .rounded-xl.border.border-line),
+  .section-card :where(.rounded-md.border.border-line, .rounded-lg.border.border-line, .rounded-xl.border.border-line) {
+    background-color: var(--paper-2);
+  }
+
   .workflow-group {
     @apply rounded-lg border border-line bg-surface p-4;
     box-shadow: var(--shadow-soft);
@@ -436,15 +490,21 @@
   }
 
   .state-surface-current {
-    @apply border-brand/25 bg-red-50 text-brandDark;
+    background: var(--red-50);
+    border-color: rgba(154, 24, 34, 0.25);
+    color: var(--red-800);
   }
 
   .state-surface-complete {
-    @apply border-emerald-200 bg-emerald-50 text-emerald-900;
+    background: var(--ok-100);
+    border-color: rgba(31, 111, 58, 0.2);
+    color: var(--ok-700);
   }
 
   .state-surface-locked {
-    @apply border-slate-200 bg-slate-50 text-slate-600;
+    background: var(--lock-100);
+    border-color: rgba(91, 100, 112, 0.16);
+    color: var(--lock-700);
   }
 
   .mobile-primary-action {
@@ -519,6 +579,6 @@
   }
 
   .responsive-table td + td {
-    @apply border-t border-slate-100;
+    @apply border-t border-line;
   }
 }

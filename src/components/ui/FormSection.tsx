@@ -1,3 +1,5 @@
+import { SectionHeading } from "./SectionHeading";
+
 export function FormSection({
   title,
   description,
@@ -9,10 +11,7 @@ export function FormSection({
 }) {
   return (
     <section className="panel space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-ink">{title}</h2>
-        {description ? <p className="mt-1 text-sm leading-6 text-muted">{description}</p> : null}
-      </div>
+      <SectionHeading title={title} description={description} compact />
       <div className="grid gap-4">{children}</div>
     </section>
   );

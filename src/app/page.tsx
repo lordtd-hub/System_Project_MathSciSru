@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { InfoAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { isDevLoginEnabled } from "@/lib/auth/devSession";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 
@@ -64,7 +65,7 @@ export default async function HomePage() {
         description="ระบบติดตามงานนำเสนอ Proposal, Progress 1, Progress 2, Final Presentation, feedback และหลักฐานการดำเนินงานของรายวิชา Mathematical Project Course"
       />
 
-      <section className="overflow-hidden rounded-lg border border-line bg-white shadow-sm">
+      <section className="app-card overflow-hidden">
         <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="p-6 sm:p-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-red-50 px-3 py-1 text-xs font-semibold text-brand">
@@ -79,7 +80,7 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="flex items-center justify-center border-t border-line bg-paperSoft p-6 lg:border-l lg:border-t-0">
-            <div className="rounded-lg border border-line bg-white p-3 shadow-md">
+            <div className="rounded-lg border border-line bg-surface p-3 shadow-md">
               <img src="/logo-mathstat-sru.jpg" alt="โลโก้สาขาคณิตศาสตร์และสถิติ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี" className="h-32 w-32 rounded-md object-cover sm:h-40 sm:w-40" />
             </div>
           </div>
@@ -96,7 +97,8 @@ export default async function HomePage() {
       ) : null}
 
       {!user ? (
-        <div className="rounded-lg border border-brand/20 bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div className="next-action-card next-action-primary sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div className="next-action-rail" aria-hidden="true" />
           <div>
             <h2 className="text-lg font-semibold text-ink">เข้าสู่ระบบเพื่อเริ่มใช้งาน</h2>
             <p className="mt-1 text-sm leading-6 text-muted">
@@ -109,8 +111,8 @@ export default async function HomePage() {
         </div>
       ) : null}
 
-      <section className="rounded-lg border border-line bg-white p-6 shadow-sm">
-        <h2 className="border-l-4 border-brand pl-3 text-xl font-semibold text-ink">ระบบนี้ใช้ทำอะไร</h2>
+      <section className="panel">
+        <SectionHeading title="ระบบนี้ใช้ทำอะไร" description="What this system does" compact />
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-line p-4">
             <h3 className="font-semibold text-ink">ติดตามสถานะโครงงาน</h3>
@@ -129,7 +131,7 @@ export default async function HomePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {roleGuides.map((guide) => (
-          <section key={guide.title} className="rounded-lg border border-line bg-white p-6 shadow-sm">
+          <section key={guide.title} className="panel">
             <div className="text-xs font-semibold uppercase tracking-wide text-brand">เริ่มต้นใช้งาน</div>
             <h2 className="mt-2 text-xl font-semibold text-ink">{guide.title}</h2>
             <p className="mt-2 text-sm leading-6 text-muted">{guide.description}</p>
@@ -143,7 +145,7 @@ export default async function HomePage() {
                 </li>
               ))}
             </ol>
-            <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-muted">{guide.note}</p>
+            <p className="mt-4 rounded-lg border border-line bg-paperSoft p-3 text-sm leading-6 text-muted">{guide.note}</p>
             <a className="button-secondary mt-4 inline-flex" href={guide.href}>
               ไปหน้าทำงาน
             </a>
@@ -151,7 +153,7 @@ export default async function HomePage() {
         ))}
       </div>
 
-      <section className="rounded-lg border border-line bg-white p-6 shadow-sm">
+      <section className="panel">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-ink">ทางลัดตามบทบาท</h2>
@@ -163,7 +165,7 @@ export default async function HomePage() {
             <a
               key={item.href}
               href={item.href}
-              className="rounded-lg border border-line p-4 transition hover:border-brand hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand/30"
+              className="rounded-lg border border-line bg-paperSoft p-4 transition hover:border-brand hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               <div className="font-semibold text-ink">{item.title}</div>
               <p className="mt-2 text-sm leading-6 text-muted">{item.description}</p>

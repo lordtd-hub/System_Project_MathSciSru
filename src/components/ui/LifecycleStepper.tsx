@@ -50,11 +50,11 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
             const isCurrent = index === current;
             const state = isDone ? "เสร็จแล้ว" : isCurrent ? "ตอนนี้" : "ล็อก";
             const className = isDone
-              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              ? "border-[rgba(31,111,58,0.2)] bg-[var(--ok-100)] text-[var(--ok-700)]"
               : isCurrent
                 ? "border-brand bg-red-50 text-brandDark shadow-sm"
-                : "border-line bg-white text-muted";
-            const markerClass = isDone ? "bg-emerald-600 text-white" : isCurrent ? "bg-brand text-white" : "bg-slate-200 text-slate-600";
+                : "border-line bg-surface text-muted";
+            const markerClass = isDone ? "bg-[var(--ok-700)] text-white" : isCurrent ? "bg-brand text-white" : "bg-[var(--ink-200)] text-[var(--ink-600)]";
 
             return (
               <div key={step.label} className={`lifecycle-step-card ${className}`}>

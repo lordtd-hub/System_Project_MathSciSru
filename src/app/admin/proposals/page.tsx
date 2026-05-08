@@ -152,7 +152,7 @@ export default async function AdminProposalsPage({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold">{round.name}</h2>
-                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${closed ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-800"}`}>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${closed ? "badge-ok" : "badge-red"}`}>
                       {roundStatusLabel(round.status)}
                     </span>
                   </div>
@@ -215,7 +215,7 @@ export default async function AdminProposalsPage({
                       : "ยืนยันการบันทึกผลการตัดสินหรือไม่?";
 
                   return (
-                    <article key={attempt.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
+                    <article key={attempt.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm">
                       <dl className="grid gap-4 text-sm">
                         <div>
                           <dt className="text-xs font-semibold uppercase tracking-wide text-muted">นักศึกษา</dt>
@@ -293,7 +293,7 @@ export default async function AdminProposalsPage({
                             {attempt.scoreRelease ? "เปิด feedback แล้ว" : "เปิด feedback ให้นักศึกษาเห็น"}
                           </SubmitButton>
                         </form>
-                        <details className="mt-3 rounded-md border border-line bg-white p-2">
+                        <details className="mt-3 rounded-md border border-line bg-surface p-2">
                           <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / comment / timeline</summary>
                           <div className="mt-2 space-y-2 text-xs text-muted">
                             {attempt.evaluatorAssignments.map((assignment) => (

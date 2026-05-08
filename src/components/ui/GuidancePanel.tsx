@@ -22,14 +22,14 @@ export function GuidancePanel({
         </div>
         <div className="workflow-group">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs text-slate-700">2</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ink-200)] text-xs text-[var(--ink-700)]">2</span>
             สิ่งที่ระบบจะทำต่อ
           </div>
           <p className="mt-1 text-sm text-muted">{next}</p>
         </div>
         <div className="workflow-group workflow-group-waiting">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs text-white">3</span>
+          <div className="flex items-center gap-2 text-sm font-semibold text-[var(--warn-700)]">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--warn-700)] text-xs text-white">3</span>
             ใครเป็นคนทำขั้นถัดไป
           </div>
           <p className="mt-1 text-sm text-muted">{actor}</p>

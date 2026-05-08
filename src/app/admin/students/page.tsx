@@ -47,7 +47,7 @@ export default async function AdminStudentsPage() {
               {students.map((student) => {
                 const project = student.projects[0];
                 return (
-                  <article key={student.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
+                  <article key={student.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted">รหัสนักศึกษา</p>
