@@ -66,12 +66,16 @@ export function reasonLabelTh(reason: string) {
 export async function getRoundEligibility(courseOfferingId: string, roundType: AssessmentRoundType) {
   const projects = await prisma.project.findMany({
     where: { courseOfferingId },
-    include: {
-      student: true,
-      proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
-      committeeAssignments: true,
+    select: {
+      id: true,
+      status: true,
+      currentTitleTh: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+      proposalResults: { select: { finalDecision: true }, orderBy: { decidedAt: "desc" }, take: 1 },
+      committeeAssignments: { select: { role: true, active: true } },
       roundExceptions: {
         where: { assessmentRound: { roundType } },
+        select: { status: true, reason: true },
         orderBy: { createdAt: "desc" }
       }
     },

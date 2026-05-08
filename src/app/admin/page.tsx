@@ -55,8 +55,9 @@ export default async function AdminDashboardPage({
     })
   );
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
+  const activeOffering = offerings[0];
 
-  const [students, claims, rounds, rawProjects, notifications, timeline] = await timer.measure("dashboard_queries", () => Promise.all([
+  const dashboardQueries = timer.measure("dashboard_queries", () => Promise.all([
     prisma.student.count(),
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
     prisma.assessmentRound.findMany({
@@ -99,13 +100,17 @@ export default async function AdminDashboardPage({
       take: 8
     })
   ]));
+  const progress1EligibilityQuery = activeOffering
+    ? timer.measure("progress1_eligibility", () => getRoundEligibility(activeOffering.id, "PROGRESS_1"))
+    : Promise.resolve({ eligible: [], notReady: [] });
+
+  const [[students, claims, rounds, rawProjects, notifications, timeline], progress1Eligibility] = await Promise.all([
+    dashboardQueries,
+    progress1EligibilityQuery
+  ]);
 
   const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
   const projects = getCurrentDashboardProjects(rawProjects);
-  const activeOffering = offerings[0];
-  const progress1Eligibility = activeOffering
-    ? await timer.measure("progress1_eligibility", () => getRoundEligibility(activeOffering.id, "PROGRESS_1"))
-    : { eligible: [], notReady: [] };
   const progress1Round = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROGRESS_1");
   const proposalRound = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROPOSAL");
   const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
