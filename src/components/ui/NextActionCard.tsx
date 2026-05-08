@@ -12,7 +12,6 @@ export function NextActionCard({ action }: { action: NextAction }) {
 
   return (
     <section className={`relative overflow-hidden rounded-lg border border-l-4 p-5 shadow-sm ${toneClass}`}>
-      <div className="absolute right-4 top-4 hidden h-16 w-16 rounded-full border border-white/70 bg-white/35 sm:block" aria-hidden="true" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
           <span className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold tracking-wide text-white ${markerClass}`}>
