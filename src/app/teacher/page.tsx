@@ -112,7 +112,7 @@ export default async function TeacherDashboardPage() {
         description="รวมคำขอที่ปรึกษา งานประเมิน Proposal ตารางสอบ และงานตรวจเล่มที่เกี่ยวข้อง"
       />
       <NextActionCard action={nextAction} />
-      <section className="panel">
+      <section className="panel action-queue-panel">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">ภาพรวมงานของอาจารย์</h2>
@@ -125,7 +125,7 @@ export default async function TeacherDashboardPage() {
             <a
               key={card.label}
               href={card.href}
-              className={`dashboard-metric ${card.tone === "current" ? "border-brand/30 bg-red-50/60" : card.tone === "waiting" ? "border-amber-200 bg-amber-50/70" : card.tone === "complete" ? "border-emerald-200 bg-emerald-50/70" : ""}`}
+              className={`dashboard-metric ${card.tone === "current" ? "dashboard-metric-current" : card.tone === "waiting" ? "dashboard-metric-waiting" : card.tone === "complete" ? "dashboard-metric-complete" : "dashboard-metric-muted"}`}
             >
               <div className="dashboard-metric-value">{card.value}</div>
               <div className="dashboard-metric-label">{card.label}</div>

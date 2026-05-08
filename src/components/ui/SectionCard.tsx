@@ -1,3 +1,5 @@
+import { SectionHeading } from "./SectionHeading";
+
 export function SectionCard({
   title,
   description,
@@ -12,13 +14,7 @@ export function SectionCard({
   return (
     <section className="section-card">
       {title || description || actions ? (
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 border-l-4 border-brand pl-3">
-            {title ? <h2 className="text-lg font-semibold text-ink">{title}</h2> : null}
-            {description ? <p className="mt-1 text-sm leading-6 text-muted">{description}</p> : null}
-          </div>
-          {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
-        </div>
+        <SectionHeading title={title ?? ""} description={description} actions={actions} compact />
       ) : null}
       {children}
     </section>

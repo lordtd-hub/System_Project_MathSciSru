@@ -209,7 +209,7 @@ export default async function AdminDashboardPage({
         </WarningAlert>
       ) : null}
       <NextActionCard action={nextAction} />
-      <section className="panel">
+      <section className="panel action-queue-panel">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">ภาพรวมงานปฏิบัติการ</h2>
@@ -222,7 +222,7 @@ export default async function AdminDashboardPage({
             <a
               key={card.label}
               href={card.href}
-              className={`dashboard-metric ${card.tone === "current" ? "border-brand/30 bg-red-50/60" : card.tone === "waiting" ? "border-amber-200 bg-amber-50/70" : card.tone === "complete" ? "border-emerald-200 bg-emerald-50/70" : ""}`}
+              className={`dashboard-metric ${card.tone === "current" ? "dashboard-metric-current" : card.tone === "waiting" ? "dashboard-metric-waiting" : card.tone === "complete" ? "dashboard-metric-complete" : "dashboard-metric-muted"}`}
             >
               <div className="dashboard-metric-value">{card.value}</div>
               <div className="dashboard-metric-label">{card.label}</div>
@@ -243,7 +243,7 @@ export default async function AdminDashboardPage({
       ) : null}
       <div className="grid gap-4 md:grid-cols-4">
         {topCards.map((card) => (
-          <a key={card.label} href={card.href} className={`dashboard-metric block ${card.value ? "border-brand/30" : ""}`}>
+          <a key={card.label} href={card.href} className={`dashboard-metric block ${card.value ? "dashboard-metric-current" : "dashboard-metric-muted"}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="text-2xl font-semibold text-ink">{card.value}</div>
               <span className={`mt-1 h-2 w-2 rounded-full ${card.value ? "bg-brand" : "bg-slate-300"}`} aria-hidden="true" />
@@ -361,7 +361,7 @@ export default async function AdminDashboardPage({
             const items = projects.filter((project) => project.status === status);
             const count = countFromStatus(statusCounts, status);
             return (
-              <div key={status} className="rounded-lg border border-line bg-white p-3 shadow-sm">
+                <div key={status} className="rounded-lg border border-line bg-surface p-3 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{projectStatusLabelTh(status)}</span>
                   <span className="rounded-full border border-line bg-paperSoft px-2 py-0.5 text-xs font-semibold">{count}</span>

@@ -1,3 +1,5 @@
+import { SectionHeading } from "./SectionHeading";
+
 export type TaskListItem = {
   title: string;
   description?: string;
@@ -14,15 +16,12 @@ function urgencyTone(urgency?: string) {
 
 export function TaskListCard({ title, tasks }: { title: string; tasks: TaskListItem[] }) {
   return (
-    <section className="panel">
-      <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
-        <h2 className="text-lg font-semibold text-ink">{title}</h2>
-      </div>
+    <section className="panel action-list-card">
+      <SectionHeading title={title} description="Action queue" compact />
       <div className="mt-4 space-y-3">
         {tasks.length ? (
           tasks.map((task) => (
-            <div key={task.title} className="rounded-lg border border-line bg-white p-3 shadow-sm">
+            <div key={task.title} className="action-list-item">
               <div className="flex items-center justify-between gap-3">
                 <div className="font-semibold text-ink">{task.title}</div>
                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold ${urgencyTone(task.urgency)}`}>

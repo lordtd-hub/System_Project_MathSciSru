@@ -34,16 +34,16 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="th">
       <body className="font-sans">
         <div className="app-shell">
-          <header className="sticky top-0 z-30 border-b border-line bg-white/92 shadow-sm backdrop-blur">
-            <div className="h-1.5 bg-brand" />
+          <header className="sticky top-0 z-30 border-b border-line bg-surface/95 shadow-sm backdrop-blur">
+            <div className="h-1 bg-brand" />
             <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
               <Link href="/" className="flex min-w-0 items-center gap-3 text-base font-semibold leading-6 text-ink transition hover:text-brand">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-line bg-white p-1 shadow-sm ring-1 ring-white">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line bg-white p-1 shadow-sm ring-1 ring-white">
                   <img src="/logo-mathstat-sru.jpg" alt="" className="h-full w-full rounded-md object-cover" />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate">ระบบประเมินการนำเสนอโครงงาน</span>
-                  <span className="block truncate text-xs font-medium text-muted">Mathematics & Statistics, SRU</span>
+                  <span className="block truncate text-xs font-medium uppercase tracking-[0.12em] text-muted">Mathematics & Statistics, SRU</span>
                 </span>
               </Link>
 
@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                 ) : null}
 
                 {user ? (
-                  <div className="flex w-full flex-col gap-2 rounded-lg border border-line bg-white/95 p-2 shadow-sm ring-1 ring-white sm:w-auto sm:flex-row sm:items-center">
+                  <div className="flex w-full flex-col gap-2 rounded-lg border border-line bg-paperSoft p-2 shadow-sm ring-1 ring-white sm:w-auto sm:flex-row sm:items-center">
                     <div className="flex min-w-0 items-center gap-2">
                       {user.image ? (
                         <img

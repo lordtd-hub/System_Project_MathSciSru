@@ -1,3 +1,5 @@
+import { SectionHeading } from "./SectionHeading";
+
 export type TimelineCardEvent = {
   id: string;
   occurredAt: Date;
@@ -9,14 +11,11 @@ export type TimelineCardEvent = {
 export function TimelineCard({ title = "Evidence timeline", events }: { title?: string; events: TimelineCardEvent[] }) {
   return (
     <section className="panel">
-      <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
-        <h2 className="font-semibold text-ink">{title}</h2>
-      </div>
+      <SectionHeading title={title} description="Evidence trail" compact />
       <div className="mt-4 space-y-4">
         {events.length ? (
           events.map((event) => (
-            <div key={event.id} className="relative rounded-lg border border-line bg-white p-3 pl-5 text-sm shadow-sm">
+            <div key={event.id} className="timeline-event">
               <span className="absolute left-0 top-3 h-[calc(100%-1.5rem)] border-l-2 border-line" aria-hidden="true" />
               <span className="absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full bg-brand ring-4 ring-white" aria-hidden="true" />
               <div className="font-semibold text-ink">{event.eventTitle}</div>

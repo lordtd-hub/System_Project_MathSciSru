@@ -35,7 +35,7 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
   const current = currentStepIndex(status);
 
   return (
-    <div className="panel overflow-hidden">
+    <div className="panel lifecycle-panel overflow-hidden">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Lifecycle</div>
@@ -57,7 +57,7 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
             const markerClass = isDone ? "bg-emerald-600 text-white" : isCurrent ? "bg-brand text-white" : "bg-slate-200 text-slate-600";
 
             return (
-              <div key={step.label} className={`rounded-lg border p-3 ${className}`}>
+              <div key={step.label} className={`lifecycle-step-card ${className}`}>
                 <div className="flex items-center gap-2">
                   <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${markerClass}`}>
                     {isDone ? "✓" : index + 1}

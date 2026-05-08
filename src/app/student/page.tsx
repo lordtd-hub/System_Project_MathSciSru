@@ -208,26 +208,26 @@ export default async function StudentDashboardPage() {
       <LifecycleStepper status={project.status} />
 
       <div className="grid gap-3 md:grid-cols-4">
-        <div className="dashboard-metric">
+        <div className="dashboard-metric dashboard-metric-current">
           <div className="dashboard-metric-value">{workflowActions.available_now.length}</div>
           <div className="dashboard-metric-label">ทำได้ตอนนี้</div>
         </div>
-        <div className="dashboard-metric">
+        <div className="dashboard-metric dashboard-metric-waiting">
           <div className="dashboard-metric-value">{workflowActions.blocked_waiting_for.length}</div>
           <div className="dashboard-metric-label">รอผู้อื่น</div>
         </div>
-        <div className="dashboard-metric">
+        <div className="dashboard-metric dashboard-metric-complete">
           <div className="dashboard-metric-value">{workflowActions.read_only_history.length}</div>
           <div className="dashboard-metric-label">เสร็จแล้ว/ดูย้อนหลัง</div>
         </div>
-        <div className="dashboard-metric">
+        <div className="dashboard-metric dashboard-metric-muted">
           <div className="dashboard-metric-value">{workflowActions.locked_future.length}</div>
           <div className="dashboard-metric-label">ขั้นตอนที่ล็อก</div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="panel lg:col-span-2">
+        <section className="panel action-queue-panel lg:col-span-2">
           <h2 className="text-lg font-semibold">ข้อมูลโครงงาน</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <div className="rounded-md border border-line bg-paper p-3">

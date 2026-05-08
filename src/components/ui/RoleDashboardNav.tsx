@@ -32,7 +32,7 @@ export function RoleDashboardNav({ role }: RoleDashboardNavProps) {
   if (pathname === config.href) return null;
 
   return (
-    <nav className="mb-4 flex flex-col gap-2 rounded-xl border border-line bg-white/85 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <nav className="role-dashboard-nav">
       <div className="text-sm text-muted">{config.helper}</div>
       <Link className="button-secondary w-full justify-center sm:w-auto" href={config.href}>
         {config.label}
