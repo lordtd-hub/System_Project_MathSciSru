@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
+import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { NextActionCard } from "@/components/ui/NextActionCard";
@@ -97,11 +98,74 @@ export default async function TeacherDashboardPage() {
     advisorScoreUnlocked: advisorScoreProjectCount > 0
   });
   const workloadCards = [
-    { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "current" : "quiet" },
-    { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "current" : "quiet" },
-    { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" : "quiet" },
-    { label: "งานตรวจเล่ม/แก้ไข", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" : "quiet" },
-    { label: "Advisor score", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" : "quiet" }
+    { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
+    { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "ready" as const : "quiet" as const },
+    { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const },
+    { label: "งานตรวจเล่ม/แก้ไข", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" as const : "quiet" as const },
+    { label: "Advisor score", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const }
+  ];
+  const teacherActionQueue = [
+    {
+      title: "คำขอที่ปรึกษา",
+      description: advisorRequestCount ? "นักศึกษารออาจารย์พิจารณารับเป็นที่ปรึกษา" : "ยังไม่มีคำขอที่ปรึกษาที่รอดำเนินการ",
+      href: "/teacher/advisor-requests",
+      count: advisorRequestCount,
+      tone: advisorRequestCount ? "urgent" as const : "quiet" as const,
+      statusLabel: advisorRequestCount ? "ต้องตอบรับ" : "ปกติ"
+    },
+    {
+      title: "Proposal รอประเมิน",
+      description: pendingProposalScores.length ? "มี Proposal ที่ได้รับมอบหมายและยังไม่ได้ส่งคะแนน" : "ยังไม่มี Proposal ที่ต้องประเมินตอนนี้",
+      href: "/teacher/proposals",
+      count: pendingProposalScores.length,
+      tone: pendingProposalScores.length ? "ready" as const : "quiet" as const,
+      statusLabel: pendingProposalScores.length ? "พร้อมประเมิน" : "ปกติ"
+    },
+    {
+      title: "คะแนน Progress 1",
+      description: "เปิด workspace สำหรับงานประเมิน Progress 1 ตาม assignment ที่ระบบมีอยู่",
+      href: "/teacher/progress1",
+      tone: "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "คะแนน Progress 2",
+      description: "เปิด workspace สำหรับงานประเมิน Progress 2 ตาม assignment ที่ระบบมีอยู่",
+      href: "/teacher/progress2",
+      tone: "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "คะแนน Final Presentation",
+      description: "เปิด workspace สำหรับงานประเมิน Final ตาม assignment ที่ระบบมีอยู่",
+      href: "/teacher/final",
+      tone: "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "อนุมัติวันสอบ",
+      description: scheduleApprovalCount ? "มีตารางสอบที่รอการยืนยันจากอาจารย์" : "ยังไม่มีตารางสอบรออนุมัติ",
+      href: "/teacher/schedules",
+      count: scheduleApprovalCount,
+      tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const,
+      statusLabel: "รออนุมัติ"
+    },
+    {
+      title: "ตรวจเล่ม / รายงานแก้ไข",
+      description: reportReviewCount ? "มีรายการตรวจเล่มหรือ revision ที่ต้องติดตาม" : "ยังไม่มีงานตรวจเล่มที่ต้องดำเนินการตอนนี้",
+      href: "/teacher/reports",
+      count: reportReviewCount,
+      tone: reportReviewCount ? "waiting" as const : "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "Advisor score 25%",
+      description: advisorScoreProjectCount ? "มีโครงงานที่ปลดล็อกให้บันทึกคะแนนที่ปรึกษา" : "ยังไม่มีโครงงานที่พร้อมบันทึก Advisor score",
+      href: "/teacher/advisor-score",
+      count: advisorScoreProjectCount,
+      tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const,
+      statusLabel: "advisor score"
+    }
   ];
   timer.end();
 
@@ -111,59 +175,38 @@ export default async function TeacherDashboardPage() {
         title="แดชบอร์ดอาจารย์"
         description="รวมคำขอที่ปรึกษา งานประเมิน Proposal ตารางสอบ และงานตรวจเล่มที่เกี่ยวข้อง"
       />
-      <NextActionCard action={nextAction} />
-      <section className="panel action-queue-panel">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">ภาพรวมงานของอาจารย์</h2>
-            <p className="mt-1 text-sm text-muted">สรุปเฉพาะงานที่เกี่ยวข้องกับบทบาทของท่านจากข้อมูลเดิมในระบบ</p>
-          </div>
-          <span className="workflow-chip">รวม {workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการ</span>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+        <DashboardActionQueue
+          title="งานที่ต้องดำเนินการ"
+          description="รวมงานที่อาจารย์ต้องตอบรับ ประเมิน ตรวจ หรือยืนยันตามบทบาทที่มีอยู่ในระบบ"
+          items={teacherActionQueue}
+        />
+        <div className="space-y-4">
+          <NextActionCard action={nextAction} />
+          <section className="panel">
+            <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยัง workspace ของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือ flow เดิม" />
+            <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
+            <div className="mt-3 grid gap-2 text-sm">
+              <a className="button-secondary justify-start" href="/teacher/proposals">ประเมิน Proposal</a>
+              <a className="button-secondary justify-start" href="/teacher/reports">ตรวจเล่ม</a>
+              <a className="button-secondary justify-start" href="/teacher/advisor-score">Advisor score 25%</a>
+            </div>
+          </section>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {workloadCards.map((card) => (
-            <a
-              key={card.label}
-              href={card.href}
-              className={`dashboard-metric ${card.tone === "current" ? "dashboard-metric-current" : card.tone === "waiting" ? "dashboard-metric-waiting" : card.tone === "complete" ? "dashboard-metric-complete" : "dashboard-metric-muted"}`}
-            >
-              <div className="dashboard-metric-value">{card.value}</div>
-              <div className="dashboard-metric-label">{card.label}</div>
-            </a>
-          ))}
-        </div>
-      </section>
+      </div>
       <GuidancePanel
         title="คำแนะนำสำหรับอาจารย์"
         current="ตรวจงานที่ต้องดำเนินการและอ่านเอกสารแนบก่อนตัดสินใจ"
         next="ระบบจะแสดง comment ให้นักศึกษาทันที แต่ซ่อนคะแนน Proposal จากนักศึกษา"
         actor="อาจารย์ที่ปรึกษา HEAD MEMBER หรือผู้ตรวจเล่มตามบทบาทของท่าน"
       />
-      <section className="panel">
-        <h2 className="text-lg font-semibold">สถานะบัญชีและบทบาท</h2>
-        <p className="mt-2 text-sm text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <a className="button-secondary" href="/teacher/advisor-requests">คำขอที่ปรึกษา</a>
-          <a className="button-secondary" href="/teacher/proposals">ประเมิน Proposal</a>
-          <a className="button-secondary" href="/teacher/progress1">คะแนน Progress 1</a>
-          <a className="button-secondary" href="/teacher/progress2">คะแนน Progress 2</a>
-          <a className="button-secondary" href="/teacher/final">คะแนน Final</a>
-          <a className="button-secondary" href="/teacher/schedules">อนุมัติวันสอบ</a>
-          <a className="button-secondary" href="/teacher/reports">ตรวจเล่ม</a>
-          <a className="button-secondary" href="/teacher/advisor-score">Advisor score 25%</a>
-        </div>
-      </section>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <TaskListCard
-          title="งานด่วน"
-          tasks={[
-            { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
-            { title: "Proposal รอประเมิน", description: `${pendingProposalScores.length} รายการ`, href: "/teacher/proposals", urgency: pendingProposalScores.length ? "สูง" : "ปกติ" },
-            { title: "ตารางสอบรออนุมัติ", description: `${scheduleApprovalCount} รายการ`, href: "/teacher/schedules", urgency: scheduleApprovalCount ? "สูง" : "ปกติ" },
-            { title: "Advisor score 25%", description: `${advisorScoreProjectCount} รายการ`, href: "/teacher/advisor-score", urgency: advisorScoreProjectCount ? "สูง" : "ปกติ" }
-          ]}
-        />
-        <section className="panel lg:col-span-2">
+      <CompactMetricRow
+        title="ภาพรวมสถานะ"
+        description={`รวม ${workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการจากข้อมูลเดิมของอาจารย์ ใช้เป็นสัญญาณรองจาก queue หลัก`}
+        metrics={workloadCards}
+      />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
+        <section className="panel">
           <h2 className="text-lg font-semibold">Proposal ที่เกี่ยวข้อง</h2>
           <div className="mt-3 space-y-3">
             {attempts.length ? (
@@ -193,6 +236,15 @@ export default async function TeacherDashboardPage() {
             )}
           </div>
         </section>
+        <TaskListCard
+          title="ทางลัด workspace"
+          tasks={[
+            { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
+            { title: "คะแนน Progress 1", description: "เปิดหน้าประเมิน Progress 1", href: "/teacher/progress1" },
+            { title: "คะแนน Progress 2", description: "เปิดหน้าประเมิน Progress 2", href: "/teacher/progress2" },
+            { title: "คะแนน Final", description: "เปิดหน้าประเมิน Final Presentation", href: "/teacher/final" }
+          ]}
+        />
       </div>
       <section className="panel">
         <h2 className="text-lg font-semibold">Notification</h2>

@@ -15,8 +15,11 @@ describe("dashboard clarity phase 2", () => {
   it("surfaces teacher workload counts from existing query results", () => {
     const page = readFileSync("src/app/teacher/page.tsx", "utf8");
 
+    expect(page).toContain("DashboardActionQueue");
+    expect(page).toContain("teacherActionQueue");
     expect(page).toContain("workloadCards");
-    expect(page).toContain("ภาพรวมงานของอาจารย์");
+    expect(page).toContain("งานที่ต้องดำเนินการ");
+    expect(page).toContain("ภาพรวมสถานะ");
     expect(page).toContain("advisorRequestCount");
     expect(page).toContain("pendingProposalScores.length");
     expect(page).toContain("scheduleApprovalCount");
@@ -25,8 +28,11 @@ describe("dashboard clarity phase 2", () => {
   it("surfaces admin bottlenecks without new route or query architecture", () => {
     const page = readFileSync("src/app/admin/page.tsx", "utf8");
 
+    expect(page).toContain("DashboardActionQueue");
+    expect(page).toContain("adminActionQueue");
     expect(page).toContain("adminWorkflowCards");
-    expect(page).toContain("ภาพรวมงานปฏิบัติการ");
+    expect(page).toContain("งานที่ต้องดำเนินการ");
+    expect(page).toContain("ภาพรวมสถานะ");
     expect(page).toContain("รอ Admin ยืนยัน");
     expect(page).toContain("รอตั้งกรรมการ");
     expect(page).toContain("พร้อมตรวจ closeout");

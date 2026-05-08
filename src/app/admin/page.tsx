@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { CompactLifecycleBadge } from "@/components/ui/LifecycleStepper";
@@ -153,20 +154,61 @@ export default async function AdminDashboardPage({
   ];
   const nextAction = getNextActionForAdmin(nextActionProjects);
   const adminWorkflowCards = [
-    { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin", tone: pendingAdminProjects.length ? "current" : "quiet" },
-    { label: "รอตัดสิน Proposal", value: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") ? "current" : "quiet" },
-    { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" : "quiet" },
-    { label: "รอ Advisor score", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" : "quiet" },
-    { label: "พร้อมตรวจ closeout", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" : "quiet" }
+    { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin", tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const },
+    { label: "รอตัดสิน Proposal", value: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") ? "ready" as const : "quiet" as const },
+    { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const },
+    { label: "รอ Advisor score", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" as const : "quiet" as const },
+    { label: "พร้อมตรวจ closeout", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const }
   ];
-  const topCards = [
-    { label: "จำนวนนักศึกษา", value: students, href: "/admin/students" },
-    { label: "โปรเจครอที่ปรึกษา", value: countFromStatus(statusCounts, "PENDING_ADVISOR"), href: "/admin" },
-    { label: "โปรเจครอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin" },
-    { label: "Proposal รอประเมิน", value: countFromStatus(statusCounts, "PROPOSAL_REVIEW"), href: "/admin/proposals" },
-    { label: "Proposal มี FAIL ≥ 50%", value: failAlertCount, href: "/admin/proposals" },
-    { label: "หัวข้อผ่านแล้วรอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee" },
-    { label: "รอปิดงานโครงงาน", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout" }
+  const adminActionQueue = [
+    {
+      title: "คำขอผูกบัญชีอาจารย์",
+      description: claims ? `${claims} คำขอรอผู้ดูแลระบบอนุมัติก่อนอาจารย์เข้าถึงข้อมูลนักศึกษา` : "ไม่มีคำขอผูกบัญชีอาจารย์ที่รออนุมัติ",
+      href: "/admin/claims",
+      count: claims,
+      tone: claims ? "urgent" as const : "quiet" as const,
+      statusLabel: claims ? "ต้องอนุมัติ" : "ปกติ"
+    },
+    {
+      title: "ยืนยันโปรเจคและอาจารย์ที่ปรึกษา",
+      description: pendingAdminProjects.length ? "โปรเจคที่ advisor อนุมัติแล้วรอ Admin confirmation" : "ยังไม่มีโปรเจครอ Admin confirmation",
+      href: "/admin",
+      count: pendingAdminProjects.length,
+      tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const,
+      statusLabel: pendingAdminProjects.length ? "พร้อมดำเนินการ" : "ปกติ"
+    },
+    {
+      title: "ตัดสินผล Proposal",
+      description: "ตรวจคะแนน ความเห็น และผลประชุมก่อนยืนยันผลสุดท้ายของ Proposal",
+      href: "/admin/proposals",
+      count: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"),
+      tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") || failAlertCount ? "urgent" as const : "quiet" as const,
+      statusLabel: failAlertCount ? "มี FAIL ≥ 50%" : "รอตัดสิน"
+    },
+    {
+      title: "แต่งตั้งกรรมการ",
+      description: "หัวข้อที่ผ่านแล้วต้องมีกรรมการครบก่อนเข้าสู่รอบ Progress",
+      href: "/admin/committee",
+      count: countFromStatus(statusCounts, "TOPIC_APPROVED"),
+      tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const,
+      statusLabel: "ติดตาม"
+    },
+    {
+      title: "จัดการรอบสอบของรายวิชา",
+      description: progress1CanOpen ? "มีโปรเจคพร้อมเปิดรอบ Progress 1" : "ตรวจสถานะ Proposal, Progress 1, Progress 2 และ Final Presentation",
+      href: "/admin/rounds",
+      count: rounds.length,
+      tone: progress1CanOpen ? "ready" as const : "quiet" as const,
+      statusLabel: progress1CanOpen ? "เปิดรอบได้" : "ดูรอบสอบ"
+    },
+    {
+      title: "ตรวจ closeout / completion",
+      description: "ตรวจเงื่อนไขก่อนเปลี่ยนโปรเจคเป็น COMPLETED โดย Admin เท่านั้น",
+      href: "/admin/closeout",
+      count: countFromStatus(statusCounts, "ADVISOR_SCORING"),
+      tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const,
+      statusLabel: "completion"
+    }
   ];
   timer.end();
 
@@ -208,28 +250,33 @@ export default async function AdminDashboardPage({
           </div>
         </WarningAlert>
       ) : null}
-      <NextActionCard action={nextAction} />
-      <section className="panel action-queue-panel">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">ภาพรวมงานปฏิบัติการ</h2>
-            <p className="mt-1 text-sm text-muted">ดู bottleneck ของ lifecycle โดยไม่ต้องไล่อ่านทุกสถานะ</p>
-          </div>
-          <a className="button-secondary" href="/admin/rounds">ดูรอบสอบของรายวิชา</a>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+        <DashboardActionQueue
+          title="งานที่ต้องดำเนินการ"
+          description="รายการที่ต้องกดต่อ พิจารณา หรือยืนยันก่อน lifecycle จะเดินต่อ"
+          items={adminActionQueue}
+        />
+        <div className="space-y-4">
+          <NextActionCard action={nextAction} />
+          <section className="panel">
+            <DashboardSectionHeader title="งานที่ต้องติดตาม" description="สัญญาณที่ไม่จำเป็นต้องกดทันที แต่ควรเห็นก่อนลงรายละเอียด" />
+            <div className="mt-4 space-y-2 text-sm">
+              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/proposals">
+                <span>Proposal รอประเมิน</span>
+                <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PROPOSAL_REVIEW")}</span>
+              </a>
+              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin">
+                <span>โปรเจครอที่ปรึกษา</span>
+                <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PENDING_ADVISOR")}</span>
+              </a>
+              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/students">
+                <span>นักศึกษาทั้งหมด</span>
+                <span className="font-semibold tabular-nums text-ink">{students}</span>
+              </a>
+            </div>
+          </section>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {adminWorkflowCards.map((card) => (
-            <a
-              key={card.label}
-              href={card.href}
-              className={`dashboard-metric ${card.tone === "current" ? "dashboard-metric-current" : card.tone === "waiting" ? "dashboard-metric-waiting" : card.tone === "complete" ? "dashboard-metric-complete" : "dashboard-metric-muted"}`}
-            >
-              <div className="dashboard-metric-value">{card.value}</div>
-              <div className="dashboard-metric-label">{card.label}</div>
-            </a>
-          ))}
-        </div>
-      </section>
+      </div>
       <GuidancePanel
         title="คำแนะนำสำหรับผู้ดูแลระบบ"
         current="ตรวจรายการค้าง เช่น Admin confirmation, Proposal decision, teacher claims และ committee assignment"
@@ -241,17 +288,11 @@ export default async function AdminDashboardPage({
           กรุณาตรวจ vote และ comment อย่างละเอียดก่อนตัดสินผลสุดท้าย
         </WarningAlert>
       ) : null}
-      <div className="grid gap-4 md:grid-cols-4">
-        {topCards.map((card) => (
-          <a key={card.label} href={card.href} className={`dashboard-metric block ${card.value ? "dashboard-metric-current" : "dashboard-metric-muted"}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-2xl font-semibold text-ink">{card.value}</div>
-              <span className={`mt-1 h-2 w-2 rounded-full ${card.value ? "bg-brand" : "bg-[var(--ink-300)]"}`} aria-hidden="true" />
-            </div>
-            <div className="mt-1 text-sm leading-6 text-muted">{card.label}</div>
-          </a>
-        ))}
-      </div>
+      <CompactMetricRow
+        title="ภาพรวมสถานะ"
+        description="ตัวเลขสนับสนุนสำหรับดู bottleneck ของ lifecycle โดยไม่แย่งความสำคัญจาก action queue"
+        metrics={adminWorkflowCards}
+      />
       <section className="panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -280,19 +321,8 @@ export default async function AdminDashboardPage({
           </div>
         </div>
       </section>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <TaskListCard
-          title="สิ่งที่ต้องทำตอนนี้"
-          tasks={[
-            ...(claims > 0
-              ? [{ title: "คำขอผูกบัญชีอาจารย์", description: `${claims} คำขอรออนุมัติ`, href: "/admin/claims", urgency: "สูง" }]
-              : [{ title: "คำขอผูกบัญชีอาจารย์", description: "ไม่มีคำขอผูกบัญชีอาจารย์ที่รออนุมัติ", href: "/admin/claims", urgency: "ปกติ" }]),
-            { title: "รอบสอบของรายวิชา", description: `${rounds.length} รอบแบบ course-level`, href: "/admin/rounds" },
-            { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
-            { title: "ปิดงานโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนเปลี่ยนเป็น COMPLETED", href: "/admin/closeout" }
-          ]}
-        />
-        <section className="panel lg:col-span-2">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
+        <section className="panel">
           <h2 className="text-lg font-semibold">Pending Admin confirmation</h2>
           <p className="mt-1 text-sm text-muted">เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น PROPOSAL_PENDING</p>
           <div className="mt-3 space-y-3">
@@ -312,6 +342,14 @@ export default async function AdminDashboardPage({
             )}
           </div>
         </section>
+        <TaskListCard
+          title="ทางลัดปฏิบัติการ"
+          tasks={[
+            { title: "รอบสอบของรายวิชา", description: `${rounds.length} รอบแบบ course-level`, href: "/admin/rounds" },
+            { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
+            { title: "ปิดงานโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนเปลี่ยนเป็น COMPLETED", href: "/admin/closeout" }
+          ]}
+        />
       </div>
       {process.env.NODE_ENV !== "production" && duplicateProjectGroups.length ? (
         <WarningAlert title="พบข้อมูล demo ซ้ำ กรุณารันคำสั่ง reset demo data">
