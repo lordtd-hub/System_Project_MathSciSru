@@ -9,6 +9,9 @@ describe("UI foundation", () => {
     expect(css).toContain("@tailwind components;");
     expect(css).toContain("@tailwind utilities;");
     expect(css).toContain(".panel");
+    expect(css).toContain(".app-card");
+    expect(css).toContain(".app-card-flat");
+    expect(css).toContain("bg-surface p-5");
     expect(css).toContain(".button-secondary");
     expect(css).toContain(".btn-secondary");
     expect(css).toContain(".responsive-table");

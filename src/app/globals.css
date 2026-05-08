@@ -85,9 +85,18 @@
     @apply mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8;
   }
 
+  .app-card {
+    @apply rounded-lg border border-line bg-surface;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .app-card-flat {
+    @apply rounded-lg border border-line bg-surface;
+  }
+
   .panel,
   .section-card {
-    @apply rounded-lg border border-line bg-white p-5;
+    @apply rounded-lg border border-line bg-surface p-5;
     box-shadow: var(--shadow-soft);
   }
 
@@ -129,7 +138,7 @@
   }
 
   .stat-card {
-    @apply rounded-lg border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-brand/40;
+    @apply rounded-lg border border-line bg-surface p-5 transition hover:-translate-y-0.5 hover:border-brand/40;
     box-shadow: var(--shadow-soft);
   }
 
