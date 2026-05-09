@@ -51,6 +51,7 @@ describe("admin course offering workflow source", () => {
     const importAction = actions.slice(importStart, confirmStart);
 
     expect(importAction).toContain("requireAdminUserId()");
+    expect(importAction).toContain("parseStudentImportCsv(csv)");
     expect(importAction).toContain("prisma.courseOffering.findUnique");
     expect(importAction).toContain("course_offering_missing");
     expect(importAction).toContain("courseOfferingId_studentId");

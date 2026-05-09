@@ -25,7 +25,7 @@ describe("admin course round management UX", () => {
     expect(pageSource).toContain("roundSequenceReasonLabelTh");
     expect(pageSource).toContain("disabled={!openGate.canOpen}");
     expect(actionSource).toContain("getRoundOpenGate");
-    expect(actionSource).toContain("redirect(`/admin/rounds?error=${openGate.reasonKey}`)");
+    expect(actionSource).toContain('redirectWithQuery("/admin/rounds", { error: openGate.reasonKey })');
   });
 
   it("offers a safe reset only through the guarded course round reset action", () => {

@@ -26,7 +26,7 @@ describe("advisor score workflow source guards", () => {
   it("moves only to ADVISOR_SCORING and does not complete the project", () => {
     const actions = read("src/app/teacher/actions.ts");
     const start = actions.indexOf("export async function submitAdvisorScore");
-    const end = actions.indexOf("redirect(`/teacher/advisor-score", start);
+    const end = actions.indexOf('redirectWithQuery("/teacher/advisor-score"', start);
     const slice = actions.slice(start, end);
     expect(slice).toContain('toStatus: "ADVISOR_SCORING"');
     expect(slice).not.toContain("COMPLETED");

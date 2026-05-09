@@ -9,6 +9,7 @@ import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admi
 import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
+import { parseStudentImportCsv } from "@/lib/admin/studentImportCsv";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
@@ -20,6 +21,7 @@ import { generatedStudentEmail, hasImportErrors, validateStudentImportRows } fro
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { getCompletionEligibility } from "@/lib/lifecycle/completionEligibility";
 import { adminConfirmProjectTransition, proposalFinalDecisionTransition } from "@/lib/lifecycle/transitions";
+import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 
 async function requireAdminUserId() {
   const session = await auth();
@@ -36,7 +38,7 @@ export async function openCourseOffering(formData: FormData) {
     termType: formData.get("term_type"),
     courseTitle: formData.get("course_title")
   });
-  if (!parsed.ok) redirect(`/admin/import-students?error=${parsed.error}`);
+  if (!parsed.ok) redirectWithQuery("/admin/import-students", { error: parsed.error });
   const { yearBe, termType, courseTitle, termDisplayName: displayName } = parsed.data;
 
   const academicYear = await prisma.academicYear.upsert({
@@ -83,7 +85,7 @@ export async function openCourseOffering(formData: FormData) {
   });
 
   revalidatePath("/admin/import-students");
-  redirect(`/admin/import-students?success=course_offering_opened&course_offering_id=${offering.id}`);
+  redirectWithQuery("/admin/import-students", { success: "course_offering_opened", course_offering_id: offering.id });
 }
 
 export async function createAcademicSetup(formData: FormData) {
@@ -168,16 +170,8 @@ export async function importStudents(formData: FormData) {
   const offering = await timer.measure("load_offering", () => prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } }));
   if (!offering) redirect("/admin/import-students?error=course_offering_missing");
 
-  const rows = csv
-    .trim()
-    .split(/\r?\n/)
-    .slice(1)
-    .filter(Boolean)
-    .map((line) => {
-      const [student_code, first_name_th, last_name_th] = line.split(",").map((part) => part.trim());
-      return { student_code, first_name_th, last_name_th };
-    });
-  if (!rows.length) redirect("/admin/import-students?error=student_import_empty");
+  const parsedCsv = parseStudentImportCsv(csv);
+  if (!parsedCsv.ok) redirectWithQuery("/admin/import-students", { error: parsedCsv.error });
 
   const existingProjects = await timer.measure("load_existing_projects", () => prisma.project.findMany({
     where: { courseOfferingId },
@@ -185,7 +179,7 @@ export async function importStudents(formData: FormData) {
   }));
   const existingStudents = await timer.measure("load_existing_students", () => prisma.student.findMany({ select: { studentCode: true, generatedEmail: true } }));
   const preview = validateStudentImportRows(
-    rows,
+    parsedCsv.rows,
     new Set(existingProjects.map((project) => project.student.studentCode)),
     new Set(existingStudents.map((student) => student.generatedEmail))
   );
@@ -230,7 +224,7 @@ export async function importStudents(formData: FormData) {
   revalidatePath("/admin/import-students");
   revalidatePath("/admin/students");
   timer.end("redirect");
-  redirect(`/admin/import-students?success=students_imported&course_offering_id=${courseOfferingId}`);
+  redirectWithQuery("/admin/import-students", { success: "students_imported", course_offering_id: courseOfferingId });
 }
 
 export async function confirmProjectAdvisor(formData: FormData) {
@@ -405,7 +399,26 @@ export async function closeProposalRound(formData: FormData) {
     select: { id: true, projectId: true }
   }));
 
-  await timer.measure("close_round", () => prisma.assessmentRound.update({ where: { id: roundId }, data: buildCloseAssessmentRoundData(adminUserId) }));
+  const closedRoundData = buildCloseAssessmentRoundData(adminUserId);
+  await timer.measure("close_round", () => prisma.$transaction([
+    prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "ASSESSMENT_ROUND_CLOSED",
+        entityType: "AssessmentRound",
+        entityId: roundId,
+        beforeJson: {
+          status: round.status,
+          submissionOpenAt: round.submissionOpenAt,
+          closedAt: round.closedAt,
+          closedByAdminId: round.closedByAdminId
+        },
+        afterJson: closedRoundData,
+        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId, attemptCount: attempts.length }
+      }
+    })
+  ]));
   await timer.measure("create_timeline_events", () => Promise.all(
     attempts.map((attempt) =>
       prisma.projectTimelineEvent.create({
@@ -426,7 +439,7 @@ export async function closeProposalRound(formData: FormData) {
 }
 
 export async function openCourseRound(formData: FormData) {
-  await requireAdminUserId();
+  const adminUserId = await requireAdminUserId();
   const courseOfferingId = String(formData.get("course_offering_id"));
   const roundType = String(formData.get("round_type")) as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION" | "PROPOSAL";
   if (!courseLevelRoundTypes.includes(roundType)) throw new Error("รอบสอบไม่ถูกต้อง");
@@ -437,9 +450,9 @@ export async function openCourseRound(formData: FormData) {
   const roundStatuses = Object.fromEntries(existingRounds.map((round) => [round.roundType, round.status]));
   const progress1Eligibility = roundType === "PROGRESS_1" ? await getRoundEligibility(courseOfferingId, "PROGRESS_1") : null;
   const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility?.eligible.length ?? 0 });
-  if (!openGate.canOpen) redirect(`/admin/rounds?error=${openGate.reasonKey}`);
+  if (!openGate.canOpen) redirectWithQuery("/admin/rounds", { error: openGate.reasonKey });
 
-  await prisma.assessmentRound.upsert({
+  const round = await prisma.assessmentRound.upsert({
     where: { courseOfferingId_roundType: { courseOfferingId, roundType } },
     update: {
       name: defaultCourseRoundName(roundType),
@@ -460,9 +473,24 @@ export async function openCourseRound(formData: FormData) {
       rawScoreMax: 100
     }
   });
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "ASSESSMENT_ROUND_OPENED",
+      entityType: "AssessmentRound",
+      entityId: round.id,
+      afterJson: {
+        status: round.status,
+        submissionOpenAt: round.submissionOpenAt,
+        closedAt: round.closedAt,
+        closedByAdminId: round.closedByAdminId
+      },
+      metadataJson: { roundType, courseOfferingId }
+    }
+  });
 
   revalidatePath("/admin/rounds");
-  redirect(`/admin/rounds?success=${roundType === "PROGRESS_1" ? "progress_1_opened" : "round_opened"}`);
+  redirectWithQuery("/admin/rounds", { success: roundType === "PROGRESS_1" ? "progress_1_opened" : "round_opened" });
 }
 
 export async function closeCourseRound(formData: FormData) {
@@ -471,10 +499,29 @@ export async function closeCourseRound(formData: FormData) {
   const round = await prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } });
   if (isRoundClosed(round.status)) throw new Error("รอบสอบนี้ปิดแล้ว");
 
-  await prisma.assessmentRound.update({ where: { id: roundId }, data: buildCloseAssessmentRoundData(adminUserId) });
+  const closedRoundData = buildCloseAssessmentRoundData(adminUserId);
+  await prisma.$transaction([
+    prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "ASSESSMENT_ROUND_CLOSED",
+        entityType: "AssessmentRound",
+        entityId: roundId,
+        beforeJson: {
+          status: round.status,
+          submissionOpenAt: round.submissionOpenAt,
+          closedAt: round.closedAt,
+          closedByAdminId: round.closedByAdminId
+        },
+        afterJson: closedRoundData,
+        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId }
+      }
+    })
+  ]);
 
   revalidatePath("/admin/rounds");
-  redirect(`/admin/rounds?success=${round.roundType === "PROGRESS_1" ? "progress_1_closed" : "round_closed"}`);
+  redirectWithQuery("/admin/rounds", { success: round.roundType === "PROGRESS_1" ? "progress_1_closed" : "round_closed" });
 }
 
 export async function resetCourseRound(formData: FormData) {
@@ -501,7 +548,9 @@ export async function resetCourseRound(formData: FormData) {
     scheduleProposals: round._count.scheduleProposals
   });
 
-  if (!resetState.canReset) redirect(`/admin/rounds?error=${resetState.reasonKey === "round_not_started" ? "round_reset_not_needed" : "round_reset_blocked"}`);
+  if (!resetState.canReset) {
+    redirectWithQuery("/admin/rounds", { error: resetState.reasonKey === "round_not_started" ? "round_reset_not_needed" : "round_reset_blocked" });
+  }
 
   await prisma.$transaction([
     prisma.assessmentRound.update({
@@ -628,6 +677,21 @@ export async function saveFinalDecision(formData: FormData) {
       relatedEntityId: attemptId
     }
   }));
+  await timer.measure("create_audit_log", () => prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "PROPOSAL_FINAL_DECISION_SAVED",
+      entityType: "AssessmentAttempt",
+      entityId: attemptId,
+      afterJson: {
+        finalDecision,
+        averageScore: summary.averageScore,
+        submittedCount: summary.submittedCount,
+        missingCount: summary.missingCount
+      },
+      metadataJson: { projectId: attempt.projectId, fromStatus: transition.from, toStatus: transition.to }
+    }
+  }));
 
   revalidatePath("/admin/proposals");
   timer.end("redirect");
@@ -698,6 +762,20 @@ export async function assignProjectCommittee(formData: FormData) {
         relatedEntityType: "Project",
         relatedEntityId: projectId
       }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "COMMITTEE_ASSIGNED",
+        entityType: "Project",
+        entityId: projectId,
+        afterJson: {
+          advisorTeacherId,
+          headTeacherId,
+          memberTeacherIds,
+          status: "IN_PROGRESS"
+        }
+      }
     })
   ]));
 
@@ -711,27 +789,39 @@ export async function releaseFeedback(formData: FormData) {
   const attemptId = String(formData.get("attempt_id"));
   const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({ where: { id: attemptId } });
 
-  await prisma.scoreRelease.upsert({
-    where: { assessmentAttemptId: attemptId },
-    update: { showFeedback: true, releasedByAdminId: adminUserId, releasedAt: new Date() },
-    create: {
-      assessmentAttemptId: attemptId,
-      projectId: attempt.projectId,
-      showFeedback: true,
-      showScore: false,
-      releasedByAdminId: adminUserId
-    }
-  });
-  await prisma.projectTimelineEvent.create({
-    data: {
-      projectId: attempt.projectId,
-      eventType: "FEEDBACK_RELEASED",
-      eventTitle: "เปิด feedback ให้นักศึกษาเห็น",
-      actorUserId: adminUserId,
-      relatedEntityType: "AssessmentAttempt",
-      relatedEntityId: attemptId
-    }
-  });
+  await prisma.$transaction([
+    prisma.scoreRelease.upsert({
+      where: { assessmentAttemptId: attemptId },
+      update: { showFeedback: true, releasedByAdminId: adminUserId, releasedAt: new Date() },
+      create: {
+        assessmentAttemptId: attemptId,
+        projectId: attempt.projectId,
+        showFeedback: true,
+        showScore: false,
+        releasedByAdminId: adminUserId
+      }
+    }),
+    prisma.projectTimelineEvent.create({
+      data: {
+        projectId: attempt.projectId,
+        eventType: "FEEDBACK_RELEASED",
+        eventTitle: "เปิด feedback ให้นักศึกษาเห็น",
+        actorUserId: adminUserId,
+        relatedEntityType: "AssessmentAttempt",
+        relatedEntityId: attemptId
+      }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "FEEDBACK_RELEASED",
+        entityType: "AssessmentAttempt",
+        entityId: attemptId,
+        afterJson: { showFeedback: true, showScore: false },
+        metadataJson: { projectId: attempt.projectId }
+      }
+    })
+  ]);
 
   revalidatePath("/admin/proposals");
   redirect("/admin/proposals?success=feedback_released");

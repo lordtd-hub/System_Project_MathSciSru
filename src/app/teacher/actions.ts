@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
+import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { finalCriteria, totalFinalNormalizedScore, totalFinalRawScore, validateFinalScore, type FinalScoreInput } from "@/lib/scoring/finalScoring";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
@@ -301,7 +302,7 @@ export async function submitProposalScore(formData: FormData) {
 
   revalidatePath(`/teacher/scoring/${assignmentId}`);
   timer.end("redirect");
-  redirect(`/teacher/scoring/${assignmentId}?success=proposal_score_saved`);
+  redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { success: "proposal_score_saved" });
 }
 
 async function ensureProgress1Rubric() {
@@ -949,5 +950,5 @@ export async function submitAdvisorScore(formData: FormData) {
   revalidatePath("/teacher/advisor-score");
   revalidatePath("/student/report");
   timer.end("redirect");
-  redirect(`/teacher/advisor-score?success=advisor_score_saved&score_id=${score.id}`);
+  redirectWithQuery("/teacher/advisor-score", { success: "advisor_score_saved", score_id: score.id });
 }
