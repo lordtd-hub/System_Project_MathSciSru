@@ -5,6 +5,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { decodeDevSession, devSessionToAuthSession, DEV_SESSION_COOKIE, isDevLoginEnabled } from "@/lib/auth/devSession";
 import { hasUsableCachedRole } from "@/lib/auth/jwtRoleCache";
+import { isQaLoginEnabled } from "@/lib/auth/qaLogin";
 import { emailDomain, resolveLoginRole } from "@/lib/auth/roleResolution";
 import { assertProductionRuntimeEnv, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
@@ -140,7 +141,7 @@ const nextAuth = NextAuth({
 export const { handlers, signIn, signOut } = nextAuth;
 
 async function resolveAuthSession() {
-  if (isDevLoginEnabled()) {
+  if (isDevLoginEnabled() || isQaLoginEnabled()) {
     const cookieStore = await cookies();
     const devPayload = decodeDevSession(cookieStore.get(DEV_SESSION_COOKIE)?.value);
     if (devPayload) return devSessionToAuthSession(devPayload);
