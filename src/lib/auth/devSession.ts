@@ -1,4 +1,5 @@
 import type { GlobalRole } from "@prisma/client";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const DEV_SESSION_COOKIE = "project_assessment_dev_session";
 
@@ -15,14 +16,34 @@ export function isDevLoginEnabled(nodeEnv = process.env.NODE_ENV): boolean {
   return nodeEnv === "development";
 }
 
-export function encodeDevSession(payload: DevSessionPayload): string {
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+function getDevSessionSecret(secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET) {
+  return secret?.trim() || "dev-session-local-fallback-secret";
 }
 
-export function decodeDevSession(value?: string | null): DevSessionPayload | null {
+function signPayload(payload: string, secret?: string) {
+  return createHmac("sha256", getDevSessionSecret(secret)).update(payload).digest("base64url");
+}
+
+function signaturesMatch(actual: string, expected: string) {
+  const actualBuffer = Buffer.from(actual, "base64url");
+  const expectedBuffer = Buffer.from(expected, "base64url");
+  if (actualBuffer.length !== expectedBuffer.length) return false;
+  return timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+export function encodeDevSession(payload: DevSessionPayload, secret?: string): string {
+  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${encodedPayload}.${signPayload(encodedPayload, secret)}`;
+}
+
+export function decodeDevSession(value?: string | null, secret?: string): DevSessionPayload | null {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<DevSessionPayload>;
+    const [encodedPayload, signature] = value.split(".");
+    if (!encodedPayload || !signature) return null;
+    if (!signaturesMatch(signature, signPayload(encodedPayload, secret))) return null;
+
+    const parsed = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as Partial<DevSessionPayload>;
     if (!parsed.userId || !parsed.email || !parsed.name || !parsed.role) return null;
     return {
       userId: parsed.userId,

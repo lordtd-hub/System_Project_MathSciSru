@@ -43,6 +43,15 @@ describe("auth pilot source guards", () => {
     expect(actionsSource.match(/if \(!isDevLoginEnabled\(\)\)/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
+  it("uses targeted login lookups instead of full-table scans in the sign-in callback", () => {
+    const authSource = readFileSync(join(process.cwd(), "src/auth.ts"), "utf8");
+
+    expect(authSource).not.toContain("prisma.student.findMany");
+    expect(authSource).not.toContain("prisma.teacher.findMany");
+    expect(authSource).toContain("prisma.student.findUnique");
+    expect(authSource).toContain("prisma.teacher.findFirst");
+  });
+
   it("keeps pending teachers out of scoring mutations until admin approval", () => {
     const teacherActionsSource = readFileSync(join(process.cwd(), "src/app/teacher/actions.ts"), "utf8");
 

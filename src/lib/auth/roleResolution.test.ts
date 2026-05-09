@@ -37,6 +37,15 @@ describe("pilot Google role resolution", () => {
     expect(result).toMatchObject({ role: "TEACHER" });
   });
 
+  it("keeps initial admin login as ADMIN even when the same account is linked to a teacher profile", () => {
+    const result = resolveLoginRole(identity("initial.admin@sru.ac.th"), {
+      initialAdminEmail: "initial.admin@sru.ac.th",
+      linkedTeacherEmails: new Set(["initial.admin@sru.ac.th"])
+    });
+
+    expect(result).toMatchObject({ role: "ADMIN" });
+  });
+
   it("resolves imported student email to that student code", () => {
     const result = resolveLoginRole(identity("65123456789@student.sru.ac.th"), {
       importedStudentCodes: new Set(["65123456789"])

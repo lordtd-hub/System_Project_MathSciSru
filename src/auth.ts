@@ -5,7 +5,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { decodeDevSession, devSessionToAuthSession, DEV_SESSION_COOKIE, isDevLoginEnabled } from "@/lib/auth/devSession";
 import { hasUsableCachedRole } from "@/lib/auth/jwtRoleCache";
-import { resolveLoginRole } from "@/lib/auth/roleResolution";
+import { emailDomain, resolveLoginRole } from "@/lib/auth/roleResolution";
 import { assertProductionRuntimeEnv, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 
@@ -28,20 +28,29 @@ const nextAuth = NextAuth({
       const sub = profile?.sub;
       if (!rawEmail || !sub) return false;
       const email = rawEmail.trim().toLowerCase();
+      const domain = emailDomain(email);
+      const studentCode = domain === "student.sru.ac.th" ? email.split("@")[0] : null;
 
-      const importedStudents = await prisma.student.findMany({ select: { studentCode: true } });
-      const linkedTeachers = await prisma.teacher.findMany({
-        where: { email: { not: null }, userId: { not: null }, active: true },
-        select: { email: true }
-      });
+      const [importedStudent, linkedTeacher] = await Promise.all([
+        studentCode
+          ? prisma.student.findUnique({
+              where: { studentCode },
+              select: { studentCode: true }
+            })
+          : Promise.resolve(null),
+        domain === "sru.ac.th"
+          ? prisma.teacher.findFirst({
+              where: { email, userId: { not: null }, active: true },
+              select: { email: true }
+            })
+          : Promise.resolve(null)
+      ]);
       const resolution = resolveLoginRole(
         { email, sub, name: user.name },
         {
           initialAdminEmail: getInitialAdminEmail(),
-          importedStudentCodes: new Set(importedStudents.map((student) => student.studentCode)),
-          linkedTeacherEmails: new Set(
-            linkedTeachers.flatMap((teacher) => (teacher.email ? [teacher.email.trim().toLowerCase()] : []))
-          )
+          importedStudentCodes: studentCode ? new Set(importedStudent ? [importedStudent.studentCode] : []) : undefined,
+          linkedTeacherEmails: domain === "sru.ac.th" ? new Set(linkedTeacher?.email ? [linkedTeacher.email.trim().toLowerCase()] : []) : undefined
         }
       );
 
