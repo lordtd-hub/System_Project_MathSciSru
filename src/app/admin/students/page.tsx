@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
@@ -28,7 +29,7 @@ export default async function AdminStudentsPage() {
             <h2 className="text-lg font-semibold">เปิดรายวิชาและนำเข้านักศึกษา</h2>
             <p className="mt-1 text-sm text-muted">รายชื่อนักศึกษาจะถูกสร้างเป็น project ใน Course Offering ที่เลือกเท่านั้น</p>
           </div>
-          <a className="button" href="/admin/import-students">เปิดรายวิชา / นำเข้านักศึกษา</a>
+          <Link className="button" href="/admin/import-students">เปิดรายวิชา / นำเข้านักศึกษา</Link>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {offerings.length ? offerings.map((offering) => (

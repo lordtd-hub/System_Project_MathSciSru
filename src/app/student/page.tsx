@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
@@ -75,9 +76,9 @@ function StudentWorkflowGroup({
       <div className="mt-3 flex flex-wrap gap-2">
         {actions.length ? actions.map((item) =>
           item.href && tone !== "waiting" && tone !== "locked" ? (
-            <a key={item.key} className={`${actionClass} w-full sm:w-auto`} href={item.href}>
+            <Link key={item.key} className={`${actionClass} w-full sm:w-auto`} href={item.href}>
               {item.title}
-            </a>
+            </Link>
           ) : (
             <span key={item.key} className={actionClass}>
               {item.title}

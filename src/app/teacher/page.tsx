@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
@@ -30,7 +31,7 @@ export default async function TeacherDashboardPage() {
         <WarningAlert title="ยังไม่สามารถเข้าถึงข้อมูลนักศึกษา">
           ก่อนอนุมัติบัญชี อาจารย์จะยังไม่เห็นข้อมูลนักศึกษาและหน้าประเมิน
         </WarningAlert>
-        <a className="button" href="/teacher/claim">เลือกโปรไฟล์อาจารย์</a>
+        <Link className="button" href="/teacher/claim">เลือกโปรไฟล์อาจารย์</Link>
       </div>
     );
   }
@@ -189,9 +190,9 @@ export default async function TeacherDashboardPage() {
             <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยัง workspace ของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือ flow เดิม" />
             <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
             <div className="mt-3 grid gap-2 text-sm">
-              <a className="button-secondary justify-start" href="/teacher/proposals">ประเมิน Proposal</a>
-              <a className="button-secondary justify-start" href="/teacher/reports">ตรวจเล่ม</a>
-              <a className="button-secondary justify-start" href="/teacher/advisor-score">Advisor score 25%</a>
+              <Link className="button-secondary justify-start" href="/teacher/proposals">ประเมิน Proposal</Link>
+              <Link className="button-secondary justify-start" href="/teacher/reports">ตรวจเล่ม</Link>
+              <Link className="button-secondary justify-start" href="/teacher/advisor-score">Advisor score 25%</Link>
             </div>
           </section>
         </div>
@@ -223,7 +224,7 @@ export default async function TeacherDashboardPage() {
                       </div>
                     </div>
                     {assignment ? (
-                      <a className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมิน Proposal</a>
+                      <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมิน Proposal</Link>
                     ) : (
                       <form action={openProposalScoring}>
                         <input type="hidden" name="attempt_id" value={attempt.id} />

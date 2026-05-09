@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { NextAction } from "@/lib/lifecycle/nextActions";
 
 export function NextActionCard({ action }: { action: NextAction }) {
@@ -25,9 +26,9 @@ export function NextActionCard({ action }: { action: NextAction }) {
           </div>
         </div>
         {action.href ? (
-          <a className="button mobile-primary-action shrink-0" href={action.href}>
+          <Link className="button mobile-primary-action shrink-0" href={action.href}>
             {action.actionLabel ?? "ดำเนินการ"}
-          </a>
+          </Link>
         ) : null}
       </div>
     </section>

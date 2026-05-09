@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
@@ -52,7 +53,7 @@ export default async function AdminEvidencePage({
       <PageHeader
         title="Evidence & AUN-QA"
         description="รวมหลักฐานการดำเนินโครงงาน การประเมิน rubric feedback revision และ audit trail สำหรับผู้ดูแลระบบ"
-        actions={<a className="button-secondary" href="/admin">กลับ Dashboard</a>}
+        actions={<Link className="button-secondary" href="/admin">กลับ Dashboard</Link>}
       />
 
       <section className="panel dashboard-console-panel">

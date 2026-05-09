@@ -1,3 +1,4 @@
+import Link from "next/link";
 /* eslint-disable @next/next/no-img-element */
 import { auth } from "@/auth";
 import { InfoAlert } from "@/components/ui/Alert";
@@ -90,9 +91,9 @@ export default async function HomePage() {
       {showDevWarning ? (
         <InfoAlert title="โหมดพัฒนา">
           ระบบกำลังทำงานในโหมดพัฒนา หากเปิด dev login ไว้ให้ใช้เฉพาะเครื่องทดสอบเท่านั้น{" "}
-          <a className="font-semibold text-brand underline" href="/dev-login">
+          <Link className="font-semibold text-brand underline" href="/dev-login">
             ไปที่โหมดทดสอบสำหรับนักพัฒนา
-          </a>
+          </Link>
         </InfoAlert>
       ) : null}
 
@@ -105,9 +106,9 @@ export default async function HomePage() {
               ใช้บัญชี Google ของมหาวิทยาลัย อาจารย์ใช้ @sru.ac.th และนักศึกษาใช้ student_code@student.sru.ac.th
             </p>
           </div>
-          <a className="button mt-4 w-full sm:mt-0 sm:w-auto" href="/login">
+          <Link className="button mt-4 w-full sm:mt-0 sm:w-auto" href="/login">
             เข้าสู่ระบบด้วย Google
-          </a>
+          </Link>
         </div>
       ) : null}
 
@@ -146,9 +147,9 @@ export default async function HomePage() {
               ))}
             </ol>
             <p className="mt-4 rounded-lg border border-line bg-paperSoft p-3 text-sm leading-6 text-muted">{guide.note}</p>
-            <a className="button-secondary mt-4 inline-flex" href={guide.href}>
+            <Link className="button-secondary mt-4 inline-flex" href={guide.href}>
               ไปหน้าทำงาน
-            </a>
+            </Link>
           </section>
         ))}
       </div>
@@ -162,14 +163,14 @@ export default async function HomePage() {
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {quickLinks.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
               className="rounded-lg border border-line bg-paperSoft p-4 transition hover:border-brand hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               <div className="font-semibold text-ink">{item.title}</div>
               <p className="mt-2 text-sm leading-6 text-muted">{item.description}</p>
-            </a>
+            </Link>
           ))}
         </div>
       </section>

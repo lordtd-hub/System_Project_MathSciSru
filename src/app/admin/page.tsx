@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
@@ -226,8 +227,8 @@ export default async function AdminDashboardPage({
             >
               โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
             </span>
-            <a className="button-secondary" href="/admin/evidence">Evidence & AUN-QA</a>
-            <a className="button-secondary" href="/admin/teachers">จัดการอาจารย์</a>
+            <Link className="button-secondary" href="/admin/evidence">Evidence & AUN-QA</Link>
+            <Link className="button-secondary" href="/admin/teachers">จัดการอาจารย์</Link>
           </>
         }
       />
@@ -264,22 +265,22 @@ export default async function AdminDashboardPage({
           <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="งานที่ต้องติดตาม" description="สัญญาณที่ไม่จำเป็นต้องกดทันที แต่ควรเห็นก่อนลงรายละเอียด" />
             <div className="mt-4 space-y-2 text-sm">
-              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/proposals">
+              <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/proposals">
                 <span>Proposal รอประเมิน</span>
                 <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PROPOSAL_REVIEW")}</span>
-              </a>
-              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin">
+              </Link>
+              <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin">
                 <span>โปรเจครอที่ปรึกษา</span>
                 <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PENDING_ADVISOR")}</span>
-              </a>
-              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/students">
+              </Link>
+              <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/students">
                 <span>นักศึกษาทั้งหมด</span>
                 <span className="font-semibold tabular-nums text-ink">{students}</span>
-              </a>
-              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/evidence">
+              </Link>
+              <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/evidence">
                 <span>Evidence & AUN-QA</span>
                 <span className="text-xs font-semibold text-muted">CSV</span>
-              </a>
+              </Link>
             </div>
           </section>
         </div>
@@ -324,7 +325,7 @@ export default async function AdminDashboardPage({
                 <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ Progress 1</SubmitButton>
               </form>
             ) : null}
-            <a className="button-secondary" href="/admin/rounds">จัดการรอบสอบ</a>
+            <Link className="button-secondary" href="/admin/rounds">จัดการรอบสอบ</Link>
           </div>
         </div>
       </section>
@@ -371,7 +372,7 @@ export default async function AdminDashboardPage({
             <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
             <p className="mt-1 text-sm text-muted">Proposal, Progress 1, Progress 2 และ Final Presentation เป็นรอบระดับรายวิชา ไม่ใช่รอบแยกต่อโปรเจค</p>
           </div>
-          <a href="/admin/proposals" className="btn-secondary">ดูรอบ Proposal</a>
+          <Link href="/admin/proposals" className="btn-secondary">ดูรอบ Proposal</Link>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {rounds.map((round) => {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -70,7 +71,7 @@ export default async function ImportStudentsPage({
             <h2 className="text-lg font-semibold">นำเข้านักศึกษาในรายวิชานี้</h2>
             <p className="mt-1 text-sm text-muted">เลือก Course Offering ที่เปิดไว้แล้วก่อนนำเข้า CSV นักศึกษา</p>
           </div>
-          <a className="button-secondary" href="/admin/students">ดูรายชื่อนักศึกษาทั้งหมด</a>
+          <Link className="button-secondary" href="/admin/students">ดูรายชื่อนักศึกษาทั้งหมด</Link>
         </div>
         {offerings.length ? (
           <form action={importStudents} className="mt-4 space-y-4">
@@ -114,9 +115,9 @@ export default async function ImportStudentsPage({
                 <div className="flex justify-between gap-3"><dt>สถานะ</dt><dd>{offering.status}</dd></div>
                 <div className="flex justify-between gap-3"><dt>นักศึกษาในรายวิชา</dt><dd>{offering._count.projects}</dd></div>
               </dl>
-              <a className="button-secondary mt-3 inline-flex" href={`/admin/import-students?course_offering_id=${offering.id}`}>
+              <Link className="button-secondary mt-3 inline-flex" href={`/admin/import-students?course_offering_id=${offering.id}`}>
                 นำเข้านักศึกษาในรายวิชานี้
-              </a>
+              </Link>
             </div>
           ))}
         </div>

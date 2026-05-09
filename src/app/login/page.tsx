@@ -1,3 +1,4 @@
+import Link from "next/link";
 /* eslint-disable @next/next/no-img-element */
 import { auth, signIn, signOut } from "@/auth";
 import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
@@ -22,9 +23,9 @@ export default async function LoginPage() {
         </p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           {dashboardLinks.map((link) => (
-            <a key={link.href} className="button" href={link.href}>
+            <Link key={link.href} className="button" href={link.href}>
               {link.label}
-            </a>
+            </Link>
           ))}
           <form
             action={async () => {

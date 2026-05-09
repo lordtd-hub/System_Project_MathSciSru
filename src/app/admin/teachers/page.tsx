@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { seedTeacherBaselineFromAdmin, updateTeacherEmail } from "@/app/admin/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -28,7 +29,7 @@ export default async function AdminTeachersPage({
       <PageHeader
         title="จัดการอาจารย์"
         description="ดูโปรไฟล์อาจารย์และตั้งค่าอีเมลสำหรับการผูกบัญชี Google"
-        actions={<a className="button" href="/admin/claims">คำขอ claim {pendingClaims}</a>}
+        actions={<Link className="button" href="/admin/claims">คำขอ claim {pendingClaims}</Link>}
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel

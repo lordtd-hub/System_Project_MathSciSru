@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
@@ -107,7 +108,7 @@ export default async function AdminProposalsPage({
           {latestProposalRound && ["SCORING_CLOSED", "RELEASED"].includes(latestProposalRound.status) ? (
             <InfoAlert title="ขั้นตอนถัดไปหลังปิดรอบ Proposal">
               {waitingDecisionCount ? "ยังมี project รอผู้ดูแลระบบตัดสินผล Proposal" : approvedWithoutCommitteeCount ? "มี project ที่ผ่านแล้วรอแต่งตั้ง HEAD/MEMBER" : progress1Eligibility.eligible.length ? (
-                <a className="button mt-2 inline-flex" href="/admin/rounds">ไปเปิดรอบ Progress 1</a>
+                <Link className="button mt-2 inline-flex" href="/admin/rounds">ไปเปิดรอบ Progress 1</Link>
               ) : "ตรวจสอบ project ที่ยังไม่พร้อมก่อนเปิดรอบ Progress 1"}
             </InfoAlert>
           ) : null}

@@ -50,15 +50,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
               <nav className="flex flex-wrap items-center gap-1.5 text-sm sm:gap-2">
                 {!user ? (
                   <>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/admin">
+                    <Link className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/admin">
                       ผู้ดูแลระบบ
-                    </a>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/teacher">
+                    </Link>
+                    <Link className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/teacher">
                       อาจารย์
-                    </a>
-                    <a className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/student">
+                    </Link>
+                    <Link className="rounded-lg px-3 py-2 font-medium text-muted transition hover:bg-red-50 hover:text-brand" href="/student">
                       นักศึกษา
-                    </a>
+                    </Link>
                   </>
                 ) : null}
 
@@ -87,9 +87,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                     </div>
 
                     {dashboardLinks.map((link) => (
-                      <a key={link.href} className="button-secondary mobile-header-control whitespace-nowrap" href={link.href}>
+                      <Link key={link.href} className="button-secondary mobile-header-control whitespace-nowrap" href={link.href}>
                         {link.label}
-                      </a>
+                      </Link>
                     ))}
                     <form
                       action={async () => {
@@ -104,15 +104,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                     </form>
                   </div>
                 ) : (
-                  <a className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-brandDark" href="/login">
+                  <Link className="rounded-lg bg-brand px-3 py-2 text-center font-semibold text-white shadow-sm hover:bg-brandDark" href="/login">
                     เข้าสู่ระบบ
-                  </a>
+                  </Link>
                 )}
 
                 {process.env.NODE_ENV === "development" ? (
-                  <a className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 hover:bg-red-100" href="/dev-login">
+                  <Link className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 hover:bg-red-100" href="/dev-login">
                     Dev login
-                  </a>
+                  </Link>
                 ) : null}
               </nav>
             </div>

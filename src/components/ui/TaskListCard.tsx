@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SectionHeading } from "./SectionHeading";
 
 export type TaskListItem = {
@@ -31,9 +32,9 @@ export function TaskListCard({ title, tasks, compact = false }: { title: string;
               </div>
               {task.description ? <p className={`${compact ? "text-xs leading-5" : "text-sm leading-6"} mt-1 text-muted`}>{task.description}</p> : null}
               {task.href ? (
-                <a className={`${compact ? "mt-2 sm:min-h-8 sm:rounded-md sm:px-3 sm:py-1.5 sm:text-xs" : "mt-3"} button-secondary w-full sm:w-auto`} href={task.href}>
+                <Link className={`${compact ? "mt-2 sm:min-h-8 sm:rounded-md sm:px-3 sm:py-1.5 sm:text-xs" : "mt-3"} button-secondary w-full sm:w-auto`} href={task.href}>
                   เปิดงานนี้
-                </a>
+                </Link>
               ) : null}
             </div>
           ))

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { InfoAlert } from "@/components/ui/Alert";
@@ -51,7 +52,7 @@ export default async function TeacherProposalsPage() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <span className="rounded-full border border-line px-3 py-1 text-xs">{submitted ? "ประเมินแล้ว" : "รอประเมิน"}</span>
                 {assignment ? (
-                  <a className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมิน Proposal</a>
+                  <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมิน Proposal</Link>
                 ) : (
                   <form action={openProposalScoring}>
                     <input type="hidden" name="attempt_id" value={attempt.id} />

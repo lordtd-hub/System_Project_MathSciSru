@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 type QueueTone = "urgent" | "ready" | "waiting" | "complete" | "quiet";
@@ -94,7 +95,7 @@ export function DashboardActionQueue({
 function DashboardActionQueueRow({ item, compact = false }: { item: DashboardActionQueueItem; compact?: boolean }) {
   const tone = item.tone ?? "quiet";
   return (
-    <a
+    <Link
       href={item.href}
       className={`grid border-l-4 transition hover:bg-paperSoft ${compact ? "grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-3" : "gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"} ${toneClass[tone]}`}
     >
@@ -117,7 +118,7 @@ function DashboardActionQueueRow({ item, compact = false }: { item: DashboardAct
         </span>
         <span className="text-xs font-semibold text-brand sm:hidden">เปิด</span>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -136,11 +137,24 @@ export function CompactMetricRow({
       <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:mt-4 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
         {metrics.map((metric) => {
           const tone = metric.tone ?? "quiet";
-          return (
-            <a key={metric.label} href={metric.href} className={`min-w-[9.5rem] snap-start rounded-lg border border-line bg-surface p-2.5 transition hover:border-brand/40 hover:bg-paperSoft sm:min-w-0 ${tone === "urgent" || tone === "ready" ? "border-l-4 border-l-[var(--red-700)]" : tone === "waiting" ? "border-l-4 border-l-[var(--warn-700)]" : tone === "complete" ? "border-l-4 border-l-[var(--ok-700)]" : "border-l-4 border-l-[var(--ink-300)]"}`}>
+          const className = `min-w-[9.5rem] snap-start rounded-lg border border-line bg-surface p-2.5 transition hover:border-brand/40 hover:bg-paperSoft sm:min-w-0 ${tone === "urgent" || tone === "ready" ? "border-l-4 border-l-[var(--red-700)]" : tone === "waiting" ? "border-l-4 border-l-[var(--warn-700)]" : tone === "complete" ? "border-l-4 border-l-[var(--ok-700)]" : "border-l-4 border-l-[var(--ink-300)]"}`;
+          const content = (
+            <>
               <div className="text-lg font-semibold leading-none text-ink">{metric.value}</div>
               <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{metric.label}</div>
-            </a>
+            </>
+          );
+          if (metric.href.startsWith("#")) {
+            return (
+              <a key={metric.label} href={metric.href} className={className}>
+                {content}
+              </a>
+            );
+          }
+          return (
+            <Link key={metric.label} href={metric.href} className={className}>
+              {content}
+            </Link>
           );
         })}
       </div>

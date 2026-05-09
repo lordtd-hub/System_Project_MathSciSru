@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { assignProjectCommittee } from "@/app/admin/actions";
@@ -43,7 +44,7 @@ export default async function AdminCommitteePage({
       />
       <ActionFeedback success={params.success} error={params.error} />
       {params.success === "committee_saved" ? (
-        <a className="button" href="/admin/rounds">ไปหน้าเปิดรอบ Progress 1</a>
+        <Link className="button" href="/admin/rounds">ไปหน้าเปิดรอบ Progress 1</Link>
       ) : null}
       <GuidancePanel
         title="กติกาการแต่งตั้ง"

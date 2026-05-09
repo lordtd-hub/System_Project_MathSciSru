@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -95,7 +96,7 @@ export default async function AdminCloseoutPage({
       <PageHeader
         title="ปิดงานโครงงาน"
         description="ผู้ดูแลระบบตรวจสอบว่า Progress 1, Progress 2, Final Presentation, เล่มรายงาน และ Advisor score ครบแล้ว ก่อนย้ายสถานะเป็น COMPLETED"
-        actions={<a className="button-secondary" href="/admin">กลับแดชบอร์ดผู้ดูแลระบบ</a>}
+        actions={<Link className="button-secondary" href="/admin">กลับแดชบอร์ดผู้ดูแลระบบ</Link>}
       />
       <ActionFeedback success={params.success} error={params.error} />
 
