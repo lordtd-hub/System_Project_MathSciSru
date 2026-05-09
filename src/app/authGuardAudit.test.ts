@@ -11,6 +11,7 @@ describe("protected route and action guard audit", () => {
       "src/app/admin/claims/page.tsx",
       "src/app/admin/closeout/page.tsx",
       "src/app/admin/committee/page.tsx",
+      "src/app/admin/evidence/page.tsx",
       "src/app/admin/import-students/page.tsx",
       "src/app/admin/proposals/page.tsx",
       "src/app/admin/rounds/page.tsx",
@@ -29,6 +30,10 @@ describe("protected route and action guard audit", () => {
     expect(actions).toContain("async function requireAdminUserId()");
     expect(actions).toContain('session?.user.role !== "ADMIN"');
     expect(actions.match(/requireAdminUserId\(\)/g)?.length).toBeGreaterThanOrEqual(9);
+
+    const evidenceExport = read("src/app/admin/evidence/exports/[kind]/route.ts");
+    expect(evidenceExport).toContain("auth()");
+    expect(evidenceExport).toContain('session?.user.role !== "ADMIN"');
   });
 
   it("keeps teacher work pages and mutations unavailable to pending teacher claims", () => {
