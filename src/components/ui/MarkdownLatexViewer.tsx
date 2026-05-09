@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize from "rehype-sanitize";
+import { katexSanitizeSchema } from "@/lib/markdown/katexSanitizeSchema";
 
 type MarkdownLatexViewerProps = {
   value?: string | null;
@@ -24,7 +25,9 @@ export function MarkdownLatexViewer({
     <div className={clsx("markdown-latex-viewer", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
-        rehypePlugins={[rehypeSanitize, rehypeKatex]}
+        // KaTeX emits HTML/MathML, so sanitize after KaTeX. We intentionally do
+        // not use rehype-raw; raw HTML in Markdown stays inert text.
+        rehypePlugins={[rehypeKatex, [rehypeSanitize, katexSanitizeSchema]]}
       >
         {value?.trim() ? value : emptyText}
       </ReactMarkdown>
