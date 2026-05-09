@@ -14,4 +14,25 @@ describe("evidence XLSX export", () => {
       ["หัวข้อไทย", "ใช่"]
     ]);
   });
+
+  it("uses the shared formula-injection protection", () => {
+    const buffer = toXlsxBuffer(
+      ["value"],
+      [[
+        '=HYPERLINK("http://evil.test")'
+      ], ["+SUM(1,1)"], ["-10+20"], ["@cmd"], ["\t=HYPERLINK(\"http://evil.test\")"], ["\n=HYPERLINK(\"http://evil.test\")"]],
+      "Evidence"
+    );
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Evidence, { header: 1 }) as string[][];
+
+    expect(rows.slice(1)).toEqual([
+      ['\'=HYPERLINK("http://evil.test")'],
+      ["'+SUM(1,1)"],
+      ["'-10+20"],
+      ["'@cmd"],
+      ["'\t=HYPERLINK(\"http://evil.test\")"],
+      ["'\n=HYPERLINK(\"http://evil.test\")"]
+    ]);
+  });
 });

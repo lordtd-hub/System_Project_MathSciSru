@@ -10,6 +10,19 @@ describe("evidence CSV export", () => {
     expect(csv).toContain('"มี ""quote"", comma"');
   });
 
+  it("protects dangerous formula-like strings", () => {
+    const csv = toCsv(["value"], [[
+      '=HYPERLINK("http://evil.test")'
+    ], ["+SUM(1,1)"], ["-10+20"], ["@cmd"], ["\t=HYPERLINK(\"http://evil.test\")"], ["\n=HYPERLINK(\"http://evil.test\")"]]);
+
+    expect(csv).toContain('"\'' + '=HYPERLINK(""http://evil.test"")"');
+    expect(csv).toContain('"\'+SUM(1,1)"');
+    expect(csv).toContain("'-10+20");
+    expect(csv).toContain("'@cmd");
+    expect(csv).toContain('"\'\t=HYPERLINK(""http://evil.test"")"');
+    expect(csv).toContain('"\'' + "\n=HYPERLINK(\"\"http://evil.test\"\")" + '"');
+  });
+
   it("uses required evidence file naming", () => {
     expect(evidenceFileName("evidence-projects", new Date("2026-05-09T00:00:00.000Z"))).toBe("evidence-projects-20260509.csv");
     expect(evidenceFileName("evidence-projects", new Date("2026-05-09T00:00:00.000Z"), "xlsx")).toBe("evidence-projects-20260509.xlsx");

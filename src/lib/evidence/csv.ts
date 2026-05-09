@@ -1,15 +1,10 @@
-export type CsvValue = string | number | boolean | Date | null | undefined;
+import { formatSpreadsheetValue, type SpreadsheetValue } from "./spreadsheet";
 
-function formatCsvValue(value: CsvValue) {
-  if (value == null) return "";
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "boolean") return value ? "ใช่" : "ไม่ใช่";
-  return String(value);
-}
+export type CsvValue = SpreadsheetValue;
 
 export function toCsv(headers: string[], rows: CsvValue[][]) {
   const escape = (value: CsvValue) => {
-    const text = formatCsvValue(value);
+    const text = String(formatSpreadsheetValue(value));
     if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
     return text;
   };
