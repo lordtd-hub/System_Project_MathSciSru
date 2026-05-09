@@ -22,6 +22,8 @@ import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { getCompletionEligibility } from "@/lib/lifecycle/completionEligibility";
 import { adminConfirmProjectTransition, proposalFinalDecisionTransition } from "@/lib/lifecycle/transitions";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
+import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
+import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 
 async function requireAdminUserId() {
   const session = await auth();
@@ -33,6 +35,7 @@ async function requireAdminUserId() {
 
 export async function openCourseOffering(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:openCourseOffering`, pilotRateLimits.workflowMutation);
   const parsed = validateCourseOfferingInput({
     yearBe: formData.get("year_be"),
     termType: formData.get("term_type"),
@@ -146,6 +149,7 @@ export async function createAcademicSetup(formData: FormData) {
 
 export async function resetCourseOfferingTestData(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:resetCourseOfferingTestData`, pilotRateLimits.workflowMutation);
   if (!isAdminTestingToolsEnabled()) redirect("/admin?error=test_tools_disabled");
 
   const courseOfferingId = String(formData.get("course_offering_id") ?? "");
@@ -163,9 +167,11 @@ export async function resetCourseOfferingTestData(formData: FormData) {
 
 export async function importStudents(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:importStudents`, pilotRateLimits.importExport);
   const timer = createActionTimer("admin.importStudents");
   const courseOfferingId = String(formData.get("course_offering_id"));
   const csv = String(formData.get("csv") ?? "");
+  assertTextSize(csv, requestSizeLimits.studentImportCsvBytes, "ไฟล์ CSV รายชื่อนักศึกษา");
 
   const offering = await timer.measure("load_offering", () => prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } }));
   if (!offering) redirect("/admin/import-students?error=course_offering_missing");
@@ -229,6 +235,7 @@ export async function importStudents(formData: FormData) {
 
 export async function confirmProjectAdvisor(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:confirmProjectAdvisor`, pilotRateLimits.workflowMutation);
   const projectId = String(formData.get("project_id"));
   const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
   const transition = adminConfirmProjectTransition(project.status);
@@ -262,9 +269,11 @@ export async function confirmProjectAdvisor(formData: FormData) {
 
 export async function reviewTeacherClaim(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:reviewTeacherClaim`, pilotRateLimits.workflowMutation);
   const claimId = String(formData.get("claim_id"));
   const decision = String(formData.get("decision"));
   const adminNote = String(formData.get("admin_note") ?? "");
+  assertTextSize(adminNote, requestSizeLimits.commentTextBytes, "admin note");
 
   const claim = await prisma.teacherAccountClaim.findUniqueOrThrow({
     where: { id: claimId },
@@ -390,6 +399,7 @@ export async function seedTeacherBaselineFromAdmin() {
 
 export async function closeProposalRound(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:closeProposalRound`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.closeProposalRound");
   const roundId = String(formData.get("round_id"));
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } }));
@@ -440,6 +450,7 @@ export async function closeProposalRound(formData: FormData) {
 
 export async function openCourseRound(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:openCourseRound`, pilotRateLimits.workflowMutation);
   const courseOfferingId = String(formData.get("course_offering_id"));
   const roundType = String(formData.get("round_type")) as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION" | "PROPOSAL";
   if (!courseLevelRoundTypes.includes(roundType)) throw new Error("รอบสอบไม่ถูกต้อง");
@@ -495,6 +506,7 @@ export async function openCourseRound(formData: FormData) {
 
 export async function closeCourseRound(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:closeCourseRound`, pilotRateLimits.workflowMutation);
   const roundId = String(formData.get("round_id"));
   const round = await prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } });
   if (isRoundClosed(round.status)) throw new Error("รอบสอบนี้ปิดแล้ว");
@@ -526,6 +538,7 @@ export async function closeCourseRound(formData: FormData) {
 
 export async function resetCourseRound(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:resetCourseRound`, pilotRateLimits.workflowMutation);
   const roundId = String(formData.get("round_id") ?? "");
   if (!roundId) redirect("/admin/rounds?error=action_failed");
 
@@ -587,10 +600,12 @@ export async function resetCourseRound(formData: FormData) {
 
 export async function saveFinalDecision(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:saveFinalDecision`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.saveFinalDecision");
   const attemptId = String(formData.get("attempt_id"));
   const finalDecision = String(formData.get("final_decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
   const reason = String(formData.get("final_decision_reason") ?? "");
+  assertTextSize(reason, requestSizeLimits.commentTextBytes, "final decision reason");
 
   const attempt = await timer.measure("load_attempt_scores", () => prisma.assessmentAttempt.findUniqueOrThrow({
     where: { id: attemptId },
@@ -700,6 +715,7 @@ export async function saveFinalDecision(formData: FormData) {
 
 export async function assignProjectCommittee(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:assignProjectCommittee`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.assignProjectCommittee");
   const projectId = String(formData.get("project_id"));
   const headTeacherId = String(formData.get("head_teacher_id") ?? "");
@@ -786,6 +802,7 @@ export async function assignProjectCommittee(formData: FormData) {
 
 export async function releaseFeedback(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:releaseFeedback`, pilotRateLimits.workflowMutation);
   const attemptId = String(formData.get("attempt_id"));
   const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({ where: { id: attemptId } });
 
@@ -829,6 +846,7 @@ export async function releaseFeedback(formData: FormData) {
 
 export async function completeProjectCloseout(formData: FormData) {
   const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:completeProjectCloseout`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.completeProjectCloseout");
   const projectId = String(formData.get("project_id") ?? "");
   if (!projectId) throw new Error("ไม่พบ project ที่ต้องการปิดงาน");

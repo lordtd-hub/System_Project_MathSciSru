@@ -7,6 +7,8 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
+import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
+import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { finalCriteria, totalFinalNormalizedScore, totalFinalRawScore, validateFinalScore, type FinalScoreInput } from "@/lib/scoring/finalScoring";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
@@ -47,6 +49,7 @@ async function requirePendingTeacherClaimUser() {
 
 export async function claimTeacherProfile(formData: FormData) {
   const user = await requirePendingTeacherClaimUser();
+  assertRateLimit(`teacher:${user.id}:claimTeacherProfile`, pilotRateLimits.workflowMutation);
   if (!user.email || !user.id) throw new Error("ไม่พบอีเมลผู้ใช้");
   const teacherId = String(formData.get("teacher_id"));
 
@@ -74,6 +77,7 @@ export async function claimTeacherProfile(formData: FormData) {
 
 export async function openProposalScoring(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:openProposalScoring`, pilotRateLimits.workflowMutation);
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
   const attemptId = String(formData.get("attempt_id"));
 
@@ -96,10 +100,12 @@ export async function openProposalScoring(formData: FormData) {
 
 export async function reviewAdvisorRequest(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:reviewAdvisorRequest`, pilotRateLimits.workflowMutation);
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const requestId = String(formData.get("request_id"));
   const decision = String(formData.get("decision"));
   const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "advisor request comment");
   if (!["APPROVE", "REJECT"].includes(decision)) throw new Error("ผลการพิจารณาไม่ถูกต้อง");
   if (decision === "REJECT" && !comment) throw new Error("กรุณาระบุเหตุผลเมื่อปฏิเสธคำขอที่ปรึกษา");
 
@@ -158,6 +164,7 @@ export async function reviewAdvisorRequest(formData: FormData) {
 
 export async function submitProposalScore(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:submitProposalScore`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitProposalScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
 
@@ -165,6 +172,8 @@ export async function submitProposalScore(formData: FormData) {
   const decision = String(formData.get("decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
   const reason = String(formData.get("reason") ?? "").trim();
   const overallComment = String(formData.get("overall_comment") ?? "").trim();
+  assertTextSize(reason, requestSizeLimits.shortReasonBytes, "proposal decision reason");
+  assertTextSize(overallComment, requestSizeLimits.commentTextBytes, "proposal overall comment");
   const submitMode = String(formData.get("submit_mode"));
 
   const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
@@ -394,10 +403,12 @@ async function ensureFinalRubric() {
 
 export async function submitProgress1Score(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:submitProgress1Score`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitProgress1Score");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Progress 1 comment");
   const input: Progress1ScoreInput = {
     progress: Number(formData.get("progress")),
     problemSolving: Number(formData.get("problem_solving")),
@@ -493,10 +504,12 @@ export async function submitProgress1Score(formData: FormData) {
 
 export async function submitProgress2Score(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:submitProgress2Score`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitProgress2Score");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Progress 2 comment");
   const input: Progress2ScoreInput = {
     progress: Number(formData.get("progress")),
     problemSolving: Number(formData.get("problem_solving")),
@@ -592,10 +605,12 @@ export async function submitProgress2Score(formData: FormData) {
 
 export async function submitFinalPresentationScore(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:submitFinalPresentationScore`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitFinalPresentationScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Final Presentation comment");
   const input: FinalScoreInput = {
     researchResults: Number(formData.get("research_results")),
     executionProblemSolving: Number(formData.get("execution_problem_solving")),
@@ -704,11 +719,13 @@ export async function submitFinalPresentationScore(formData: FormData) {
 
 export async function reviewReportVersion(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:reviewReportVersion`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("teacher.reviewReportVersion");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const reportVersionId = String(formData.get("report_version_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "report review comment");
   if (decision !== "PASS" && decision !== "FAIL") throw new Error("ผลการตรวจเล่มไม่ถูกต้อง");
   if (!comment) throw new Error("กรุณาระบุ comment สำหรับผลการตรวจเล่ม");
   const commentErrors = validateMarkdownInput(comment, "report review comment");
@@ -845,10 +862,12 @@ export async function reviewReportVersion(formData: FormData) {
 
 export async function submitAdvisorScore(formData: FormData) {
   const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:submitAdvisorScore`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitAdvisorScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Advisor score comment");
   const input: AdvisorScoreInput = {
     responsibility: Number(formData.get("responsibility")),
     researchProcess: Number(formData.get("research_process")),

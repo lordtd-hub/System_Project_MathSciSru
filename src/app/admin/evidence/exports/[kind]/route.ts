@@ -7,6 +7,8 @@ import {
 } from "@/lib/evidence/adminEvidence";
 import { evidenceFileName, toCsv, type CsvValue } from "@/lib/evidence/csv";
 import { toXlsxBuffer } from "@/lib/evidence/xlsx";
+import { checkRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
+import { requestSizeLimits, textByteLength } from "@/lib/security/requestSize";
 
 const exportKinds = ["projects", "timeline", "scores", "reports", "audit"] as const;
 type ExportKind = (typeof exportKinds)[number];
@@ -52,6 +54,10 @@ export async function GET(
   if (session?.user.role !== "ADMIN") {
     return new Response("Forbidden", { status: 403 });
   }
+  const limit = checkRateLimit(`admin:${session.user.id ?? "unknown"}:evidence-export`, pilotRateLimits.importExport);
+  if (!limit.allowed) {
+    return new Response("Too many export requests", { status: 429 });
+  }
 
   const { kind } = await params;
   if (!isExportKind(kind)) {
@@ -60,6 +66,9 @@ export async function GET(
 
   const url = new URL(request.url);
   const courseOfferingId = url.searchParams.get("course_offering_id") ?? undefined;
+  if (courseOfferingId && textByteLength(courseOfferingId) > requestSizeLimits.queryParamBytes) {
+    return new Response("Invalid course offering filter", { status: 400 });
+  }
   const format = getExportFormat(url.searchParams.get("format"));
   if (!format) {
     return new Response("Unknown evidence export format", { status: 400 });

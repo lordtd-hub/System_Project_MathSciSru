@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { DEV_SESSION_COOKIE, encodeDevSession, isDevLoginEnabled, type DevSessionPayload } from "@/lib/auth/devSession";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
+import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 
 async function setDevSession(payload: DevSessionPayload) {
   if (!isDevLoginEnabled()) throw new Error("Development login is disabled in production");
@@ -19,6 +20,7 @@ async function setDevSession(payload: DevSessionPayload) {
 
 export async function selectDevUser(formData: FormData) {
   if (!isDevLoginEnabled()) throw new Error("Development login is disabled in production");
+  assertRateLimit("dev-login:select-user", pilotRateLimits.devLogin);
 
   const mode = String(formData.get("mode"));
   let redirectTo = "/";

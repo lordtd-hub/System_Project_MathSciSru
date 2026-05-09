@@ -11,6 +11,8 @@ import { buildSubmissionSnapshot, canEditUntilDeadline, nextVersionNo } from "@/
 import { validateMaterialLink } from "@/lib/validators/materialLink";
 import { validateMarkdownInput } from "@/lib/validators/submissionContent";
 import { getReportSubmissionGate, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
+import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
+import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 
 async function requireStudentContext() {
   const session = await auth();
@@ -78,6 +80,7 @@ export async function saveStudentProfile(formData: FormData) {
 
 export async function saveProjectOrigin(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
+  assertRateLimit(`student:${userId}:saveProjectOrigin`, pilotRateLimits.workflowMutation);
   if (project.status !== "DRAFT") throw new Error("ขั้นตอนนี้ยังไม่เปิดให้แก้ไขข้อมูลโครงงาน");
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
   const linkResult = validateMaterialLink(materialLink);
@@ -98,6 +101,10 @@ export async function saveProjectOrigin(formData: FormData) {
     status: "SUBMITTED" as const,
     submittedAt: new Date()
   };
+  assertTextSize(data.reasonForTopic, requestSizeLimits.markdownTextBytes, "เหตุผลที่เลือกหัวข้อ");
+  assertTextSize(data.expectedMathArea, requestSizeLimits.markdownTextBytes, "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง");
+  assertTextSize(data.consultationSummary, requestSizeLimits.commentTextBytes, "สรุปการปรึกษา");
+  assertTextSize(data.initialReferences, requestSizeLimits.markdownTextBytes, "เอกสารอ้างอิงเบื้องต้น");
   if (!data.tentativeAdvisorId) throw new Error("กรุณาเลือกอาจารย์ที่ปรึกษาก่อนส่งคำขอ");
 
   const origin = await prisma.projectOrigin.upsert({
@@ -179,6 +186,7 @@ export async function saveProjectOrigin(formData: FormData) {
 
 export async function saveProposalSubmission(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
+  assertRateLimit(`student:${userId}:saveProposalSubmission`, pilotRateLimits.workflowMutation);
   if (project.status !== "PROPOSAL_PENDING") throw new Error("ยังไม่สามารถส่ง Proposal ในสถานะปัจจุบันได้");
   const origin = await prisma.projectOrigin.findUnique({ where: { projectId: project.id } });
   if (!origin || origin.status !== "SUBMITTED") throw new Error("กรุณาส่งข้อมูลเสนอหัวข้อก่อนส่ง Proposal");
@@ -202,6 +210,7 @@ export async function saveProposalSubmission(formData: FormData) {
     timeline: requiredText(formData, "timeline", "แผนดำเนินงาน"),
     questionsForTeachers: String(formData.get("questions_for_teachers") ?? "").trim()
   };
+  assertTextSize(content.questionsForTeachers, requestSizeLimits.commentTextBytes, "questions for teachers");
 
   const markdownErrors = [
     ...validateMarkdownInput(requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ"), "บทคัดย่อการนำเสนอ"),
@@ -310,6 +319,7 @@ export async function saveProposalSubmission(formData: FormData) {
 
 export async function submitExamSchedule(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
+  assertRateLimit(`student:${userId}:submitExamSchedule`, pilotRateLimits.workflowMutation);
   const roundType = String(formData.get("round_type") ?? "");
   if (!isSchedulableRoundType(roundType)) throw new Error("รอบสอบไม่ถูกต้อง");
   if (project.status !== "IN_PROGRESS") throw new Error("เสนอวันสอบได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
@@ -344,6 +354,7 @@ export async function submitExamSchedule(formData: FormData) {
   );
   const room = String(formData.get("room") ?? "").trim() || null;
   const note = String(formData.get("schedule_note") ?? "").trim() || null;
+  assertTextSize(note ?? "", requestSizeLimits.commentTextBytes, "หมายเหตุการนัดสอบ");
   if (note) {
     const noteErrors = validateMarkdownInput(note, "หมายเหตุการนัดสอบ");
     if (noteErrors.length) throw new Error(noteErrors.join("\n"));
@@ -403,6 +414,7 @@ export async function submitExamSchedule(formData: FormData) {
 
 export async function submitReportVersion(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
+  assertRateLimit(`student:${userId}:submitReportVersion`, pilotRateLimits.workflowMutation);
   const latestReport = await prisma.reportVersion.findFirst({
     where: { projectId: project.id },
     include: { reviews: true },
@@ -418,6 +430,7 @@ export async function submitReportVersion(formData: FormData) {
   const linkResult = validateMaterialLink(reportLink);
   if (!linkResult.ok) throw new Error(linkResult.reason);
   const note = String(formData.get("report_note") ?? "").trim();
+  assertTextSize(note, requestSizeLimits.commentTextBytes, "report note");
   if (note) {
     const noteErrors = validateMarkdownInput(note, "report note");
     if (noteErrors.length) throw new Error(noteErrors.join("\n"));
