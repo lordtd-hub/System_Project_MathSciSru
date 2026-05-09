@@ -14,6 +14,23 @@ import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
+function getTeacherWorkloadCounts(teacherId: string) {
+  return Promise.all([
+    prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
+    prisma.examScheduleApproval.count({ where: { teacherId, decision: "PENDING" } }),
+    prisma.reportReview.count({ where: { reviewerTeacherId: teacherId, decision: "FAIL" } }),
+    prisma.project.count({
+      where: {
+        status: "REPORT_APPROVED",
+        OR: [
+          { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" } } },
+          { committeeAssignments: { some: { teacherId, active: true, role: "ADVISOR" } } }
+        ]
+      }
+    })
+  ]);
+}
+
 export default async function TeacherDashboardPage() {
   const timer = createNavTimer("/teacher");
   const authStart = timer.startBlock();
@@ -42,11 +59,13 @@ export default async function TeacherDashboardPage() {
 
   const sessionTeacherId = session.user.teacherId ?? null;
   const teacherWhere = sessionTeacherId ? { id: sessionTeacherId } : { userId: session.user.id };
-  const [teacher, attempts, notifications] = await timer.measure("teacher_initial_queries", () => Promise.all([
+  const teacherQuery = timer.measure("teacher_identity_query", () =>
     prisma.teacher.findUnique({
       where: teacherWhere,
       select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
-    }),
+    })
+  );
+  const independentTeacherQueries = timer.measure("teacher_independent_queries", () => Promise.all([
     prisma.assessmentAttempt.findMany({
       where: {
         assessmentRound: { roundType: "PROPOSAL" },
@@ -70,26 +89,20 @@ export default async function TeacherDashboardPage() {
       take: 5
     })
   ]));
+  const sessionTeacherWorkloadQuery = sessionTeacherId
+    ? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(sessionTeacherId))
+    : null;
+
+  const [teacher, [attempts, notifications]] = await Promise.all([teacherQuery, independentTeacherQueries]);
 
   if (!teacher) {
     timer.end("missing_teacher_profile");
     return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์อาจารย์ก่อนใช้งาน" actionLabel="Claim โปรไฟล์" href="/teacher/claim" />;
   }
 
-  const [advisorRequestCount, scheduleApprovalCount, reportReviewCount, advisorScoreProjectCount] = await timer.measure("teacher_workload_queries", () => Promise.all([
-    prisma.advisorRequest.count({ where: { advisorTeacherId: teacher.id, status: "PENDING" } }),
-    prisma.examScheduleApproval.count({ where: { teacherId: teacher.id, decision: "PENDING" } }),
-    prisma.reportReview.count({ where: { reviewerTeacherId: teacher.id, decision: "FAIL" } }),
-    prisma.project.count({
-      where: {
-        status: "REPORT_APPROVED",
-        OR: [
-          { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } },
-          { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: "ADVISOR" } } }
-        ]
-      }
-    })
-  ]));
+  const [advisorRequestCount, scheduleApprovalCount, reportReviewCount, advisorScoreProjectCount] = await (
+    sessionTeacherWorkloadQuery ?? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(teacher.id))
+  );
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequestCount,
