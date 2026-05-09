@@ -12,5 +12,6 @@ describe("evidence CSV export", () => {
 
   it("uses required evidence file naming", () => {
     expect(evidenceFileName("evidence-projects", new Date("2026-05-09T00:00:00.000Z"))).toBe("evidence-projects-20260509.csv");
+    expect(evidenceFileName("evidence-projects", new Date("2026-05-09T00:00:00.000Z"), "xlsx")).toBe("evidence-projects-20260509.xlsx");
   });
 });

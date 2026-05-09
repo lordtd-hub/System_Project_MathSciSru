@@ -6,13 +6,26 @@ import {
   projectEvidenceHeaders
 } from "@/lib/evidence/adminEvidence";
 import { evidenceFileName, toCsv, type CsvValue } from "@/lib/evidence/csv";
+import { toXlsxBuffer } from "@/lib/evidence/xlsx";
 
 const exportKinds = ["projects", "timeline", "scores", "reports", "audit"] as const;
 type ExportKind = (typeof exportKinds)[number];
+type ExportFormat = "csv" | "xlsx";
 
-function csvResponse(prefix: string, headers: string[], rows: CsvValue[][]) {
-  const csv = toCsv(headers, rows);
-  return new Response(csv, {
+function exportResponse(prefix: string, headers: string[], rows: CsvValue[][], format: ExportFormat) {
+  if (format === "xlsx") {
+    const buffer = toXlsxBuffer(headers, rows, prefix.replace(/^evidence-/, ""));
+    const body = Uint8Array.from(buffer);
+    return new Response(body, {
+      headers: {
+        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content-disposition": `attachment; filename="${evidenceFileName(prefix, new Date(), "xlsx")}"`,
+        "cache-control": "no-store"
+      }
+    });
+  }
+
+  return new Response(toCsv(headers, rows), {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="${evidenceFileName(prefix)}"`,
@@ -23,6 +36,12 @@ function csvResponse(prefix: string, headers: string[], rows: CsvValue[][]) {
 
 function isExportKind(value: string): value is ExportKind {
   return exportKinds.includes(value as ExportKind);
+}
+
+function getExportFormat(value: string | null): ExportFormat | null {
+  if (!value) return "csv";
+  if (value === "csv" || value === "xlsx") return value;
+  return null;
 }
 
 export async function GET(
@@ -41,13 +60,17 @@ export async function GET(
 
   const url = new URL(request.url);
   const courseOfferingId = url.searchParams.get("course_offering_id") ?? undefined;
+  const format = getExportFormat(url.searchParams.get("format"));
+  if (!format) {
+    return new Response("Unknown evidence export format", { status: 400 });
+  }
 
   if (kind === "audit") {
     const logs = await prisma.auditLog.findMany({
       orderBy: { occurredAt: "desc" },
       include: { actor: true }
     });
-    return csvResponse(
+    return exportResponse(
       "evidence-audit",
       ["audit_id", "scope", "action", "entity_type", "entity_id", "actor", "occurred_at"],
       logs.map((log) => [
@@ -58,7 +81,8 @@ export async function GET(
         log.entityId,
         log.actor?.name ?? log.actor?.email ?? "ระบบ",
         log.occurredAt
-      ])
+      ]),
+      format
     );
   }
 
@@ -69,11 +93,11 @@ export async function GET(
   const selectedOfferingId = data.selectedOffering?.id;
 
   if (kind === "projects") {
-    return csvResponse("evidence-projects", projectEvidenceHeaders, projectEvidenceCsvRows(data.projectRows));
+    return exportResponse("evidence-projects", projectEvidenceHeaders, projectEvidenceCsvRows(data.projectRows), format);
   }
 
   if (kind === "scores") {
-    return csvResponse(
+    return exportResponse(
       "evidence-scores",
       ["round_type", "round_label", "rubric_name", "rubric_item_count", "rubric_attributed_score_submission_count", "rubric_attributed_score_item_count", "evaluator_count", "average_score"],
       data.rubricRows.map((row) => [
@@ -85,7 +109,8 @@ export async function GET(
         row.scoreItemCount,
         row.evaluatorCount,
         row.averageScore ?? ""
-      ])
+      ]),
+      format
     );
   }
 
@@ -97,7 +122,7 @@ export async function GET(
           include: { actor: true, project: { include: { student: true } } }
         })
       : [];
-    return csvResponse(
+    return exportResponse(
       "evidence-timeline",
       ["event_id", "project_id", "student_code", "project_title", "event_type", "event_title", "event_description", "actor", "occurred_at", "related_entity_type", "related_entity_id"],
       events.map((event) => [
@@ -112,7 +137,8 @@ export async function GET(
         event.occurredAt,
         event.relatedEntityType ?? "",
         event.relatedEntityId ?? ""
-      ])
+      ]),
+      format
     );
   }
 
@@ -128,7 +154,7 @@ export async function GET(
           }
         })
       : [];
-    return csvResponse(
+    return exportResponse(
       "evidence-reports",
       ["report_version_id", "project_id", "student_code", "project_title", "version_no", "drive_link", "submitted_at", "reviewer", "decision", "reviewed_at", "comment"],
       versions.flatMap((version) => {
@@ -160,7 +186,8 @@ export async function GET(
           review.reviewedAt,
           review.comment ?? ""
         ]);
-      })
+      }),
+      format
     );
   }
 

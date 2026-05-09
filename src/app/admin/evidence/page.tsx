@@ -10,9 +10,20 @@ function percent(value: number, total: number) {
   return `${Math.round((value / total) * 100)}%`;
 }
 
-function exportHref(kind: string, courseOfferingId?: string) {
-  const query = courseOfferingId && kind !== "audit" ? `?course_offering_id=${encodeURIComponent(courseOfferingId)}` : "";
-  return `/admin/evidence/exports/${kind}${query}`;
+const exportItems = [
+  { kind: "projects", label: "Project evidence" },
+  { kind: "timeline", label: "Timeline events" },
+  { kind: "scores", label: "Rubric score evidence" },
+  { kind: "reports", label: "Report reviews" },
+  { kind: "audit", label: "Global audit logs" }
+] as const;
+
+function exportHref(kind: string, format: "csv" | "xlsx", courseOfferingId?: string) {
+  const params = new URLSearchParams();
+  if (courseOfferingId && kind !== "audit") params.set("course_offering_id", courseOfferingId);
+  if (format === "xlsx") params.set("format", "xlsx");
+  const query = params.toString();
+  return `/admin/evidence/exports/${kind}${query ? `?${query}` : ""}`;
 }
 
 export default async function AdminEvidencePage({
@@ -92,13 +103,17 @@ export default async function AdminEvidencePage({
           )}
 
           <section className="panel dashboard-console-panel">
-            <DashboardSectionHeader title="Export CSV" description="ไฟล์ CSV มี UTF-8 BOM เพื่อเปิดใน Excel กับภาษาไทยได้ง่ายขึ้น ยกเว้น audit logs เป็น global export ทั้งระบบ" />
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              <a className="button-secondary justify-center" href={exportHref("projects", selectedOfferingId)}>Project evidence</a>
-              <a className="button-secondary justify-center" href={exportHref("timeline", selectedOfferingId)}>Timeline events</a>
-              <a className="button-secondary justify-center" href={exportHref("scores", selectedOfferingId)}>Rubric score evidence</a>
-              <a className="button-secondary justify-center" href={exportHref("reports", selectedOfferingId)}>Report reviews</a>
-              <a className="button-secondary justify-center" href={exportHref("audit", selectedOfferingId)}>Global audit logs</a>
+            <DashboardSectionHeader title="Export evidence" description="ดาวน์โหลดเป็น CSV หรือ Excel (.xlsx) โดย audit logs เป็น global export ทั้งระบบ" />
+            <div className="mt-3 grid gap-2 lg:grid-cols-5">
+              {exportItems.map((item) => (
+                <div key={item.kind} className="rounded-lg border border-line bg-paperSoft p-2">
+                  <div className="mb-2 text-xs font-semibold text-ink">{item.label}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a className="button-secondary justify-center px-2 text-xs" href={exportHref(item.kind, "csv", selectedOfferingId)}>CSV</a>
+                    <a className="button-secondary justify-center px-2 text-xs" href={exportHref(item.kind, "xlsx", selectedOfferingId)}>Excel</a>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 
