@@ -50,33 +50,16 @@ export default async function AdminDashboardPage({
   }
   const params = (await searchParams) ?? {};
 
-  const offerings = await timer.measure("course_offerings", () =>
+  const offeringsQuery = timer.measure("course_offerings", () =>
     prisma.courseOffering.findMany({
       select: { id: true, term: { select: { displayName: true } } },
       orderBy: { id: "desc" },
       take: 5
     })
   );
-  const dashboardOfferingIds = offerings.map((offering) => offering.id);
-  const activeOffering = offerings[0];
-
-  const dashboardQueries = timer.measure("dashboard_queries", () => Promise.all([
+  const independentDashboardQueries = timer.measure("admin_independent_queries", () => Promise.all([
     prisma.student.count(),
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
-    prisma.assessmentRound.findMany({
-      where: { courseOfferingId: { in: dashboardOfferingIds }, roundType: { in: [...courseLevelRoundTypes] } },
-      select: {
-        id: true,
-        courseOfferingId: true,
-        roundType: true,
-        status: true,
-        submissionOpenAt: true,
-        submissionDeadline: true,
-        closedAt: true,
-        _count: { select: { attempts: true, projectExceptions: true } }
-      },
-      orderBy: [{ courseOfferingId: "desc" }, { roundType: "asc" }]
-    }),
     prisma.project.groupBy({
       by: ["status"],
       _count: { _all: true }
@@ -89,8 +72,7 @@ export default async function AdminDashboardPage({
         currentTitleTh: true,
         status: true,
         updatedAt: true,
-        student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
-        proposalVotes: { select: { vote: true } }
+        student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
       },
       orderBy: { updatedAt: "desc" },
       take: 12
@@ -121,17 +103,35 @@ export default async function AdminDashboardPage({
       take: 8
     })
   ]));
+
+  const [
+    offerings,
+    [students, claims, statusGroups, rawProjects, pendingAdminProjects, proposalVotesForFailAlert, notifications, timeline]
+  ] = await Promise.all([offeringsQuery, independentDashboardQueries]);
+
+  const dashboardOfferingIds = offerings.map((offering) => offering.id);
+  const activeOffering = offerings[0];
+  const roundsQuery = timer.measure("course_rounds", () =>
+    prisma.assessmentRound.findMany({
+      where: { courseOfferingId: { in: dashboardOfferingIds }, roundType: { in: [...courseLevelRoundTypes] } },
+      select: {
+        id: true,
+        courseOfferingId: true,
+        roundType: true,
+        status: true,
+        submissionOpenAt: true,
+        submissionDeadline: true,
+        closedAt: true,
+        _count: { select: { attempts: true, projectExceptions: true } }
+      },
+      orderBy: [{ courseOfferingId: "desc" }, { roundType: "asc" }]
+    })
+  );
   const progress1EligibilityQuery = activeOffering
     ? timer.measure("progress1_eligibility", () => getRoundEligibility(activeOffering.id, "PROGRESS_1"))
     : Promise.resolve({ eligible: [], notReady: [] });
 
-  const [
-    [students, claims, rounds, statusGroups, rawProjects, pendingAdminProjects, proposalVotesForFailAlert, notifications, timeline],
-    progress1Eligibility
-  ] = await Promise.all([
-    dashboardQueries,
-    progress1EligibilityQuery
-  ]);
+  const [rounds, progress1Eligibility] = await Promise.all([roundsQuery, progress1EligibilityQuery]);
 
   const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
   const projects = getCurrentDashboardProjects(rawProjects);
