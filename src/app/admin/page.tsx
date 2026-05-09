@@ -92,6 +92,21 @@ function DashboardSectionSkeleton({ title }: { title: string }) {
   );
 }
 
+function RoundGateSkeleton() {
+  return (
+    <section className="panel dashboard-console-panel" aria-busy="true">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="h-4 w-44 rounded bg-line" />
+          <p className="mt-2 text-sm text-muted">กำลังตรวจสอบสถานะรอบสอบ...</p>
+        </div>
+        <div className="h-8 w-28 rounded-md bg-paperSoft" />
+      </div>
+      <div className="mt-3 h-12 rounded-lg border border-line bg-paperSoft" />
+    </section>
+  );
+}
+
 export default async function AdminDashboardPage({
   searchParams
 }: {
@@ -148,37 +163,12 @@ export default async function AdminDashboardPage({
 
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
   const activeOffering = offerings[0];
-  const roundsQuery = timer.measure("course_rounds", () =>
-    prisma.assessmentRound.findMany({
-      where: { courseOfferingId: { in: dashboardOfferingIds }, roundType: { in: [...courseLevelRoundTypes] } },
-      select: {
-        id: true,
-        courseOfferingId: true,
-        roundType: true,
-        status: true,
-        submissionOpenAt: true,
-        submissionDeadline: true,
-        closedAt: true,
-        _count: { select: { attempts: true, projectExceptions: true } }
-      },
-      orderBy: [{ courseOfferingId: "desc" }, { roundType: "asc" }]
-    })
-  );
-  const progress1EligibilityQuery = activeOffering
-    ? timer.measure("progress1_eligibility", () => getRoundEligibility(activeOffering.id, "PROGRESS_1"))
-    : Promise.resolve({ eligible: [], notReady: [] });
-
-  const [rounds, progress1Eligibility] = await Promise.all([roundsQuery, progress1EligibilityQuery]);
 
   const statusCounts = new Map(statusGroups.map((group) => [group.status, group._count._all]));
   const proposalVotesByProject = new Map<string, Array<{ vote: "PASS" | "REVISE" | "FAIL" }>>();
   for (const vote of proposalVotesForFailAlert) {
     proposalVotesByProject.set(vote.projectId, [...(proposalVotesByProject.get(vote.projectId) ?? []), { vote: vote.vote }]);
   }
-  const progress1Round = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROGRESS_1");
-  const proposalRound = rounds.find((round) => round.courseOfferingId === activeOffering?.id && round.roundType === "PROPOSAL");
-  const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
-  const progress1BlockedReason = progress1Eligibility.notReady.flatMap((item) => item.reasons)[0];
   const testingToolsEnabled = isAdminTestingToolsEnabled();
   const failAlertCount = [...proposalVotesByProject.values()].filter((votes) => shouldAlertAdminForFailVotes(votes)).length;
   const nextActionProjects = [
@@ -231,11 +221,10 @@ export default async function AdminDashboardPage({
     },
     {
       title: "จัดการรอบสอบของรายวิชา",
-      description: progress1CanOpen ? "มีโปรเจคพร้อมเปิดรอบ Progress 1" : "ตรวจสถานะ Proposal, Progress 1, Progress 2 และ Final Presentation",
+      description: "ตรวจสถานะ Proposal, Progress 1, Progress 2 และ Final Presentation",
       href: "/admin/rounds",
-      count: rounds.length,
-      tone: progress1CanOpen ? "ready" as const : "quiet" as const,
-      statusLabel: progress1CanOpen ? "เปิดรอบได้" : "ดูรอบสอบ"
+      tone: "quiet" as const,
+      statusLabel: "ดูรอบสอบ"
     },
     {
       title: "ตรวจ closeout / completion",
@@ -246,7 +235,7 @@ export default async function AdminDashboardPage({
       statusLabel: "completion"
     }
   ];
-  timer.end();
+  timer.end("admin_first_render");
 
   return (
     <div className="space-y-4">
@@ -336,34 +325,9 @@ export default async function AdminDashboardPage({
         description="ตัวเลขสนับสนุนสำหรับดู bottleneck ของ lifecycle โดยไม่แย่งความสำคัญจาก action queue"
         metrics={adminWorkflowCards}
       />
-      <section className="panel dashboard-console-panel">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
-            <p className="mt-1 text-sm text-muted">
-              Proposal: {roundStatusLabelTh(proposalRound?.status ?? "DRAFT")} · Progress 1: {roundStatusLabelTh(progress1Round?.status ?? "DRAFT")} · Progress 2 / Final ตามลำดับถัดไป
-            </p>
-            <p className="mt-2 text-sm">
-              ขั้นตอนถัดไป: ตัดสินผล Proposal / แต่งตั้งกรรมการ / เปิดรอบ Progress 1
-            </p>
-            {!progress1CanOpen && progress1BlockedReason ? (
-              <p className="mt-1 text-sm text-amber-700">{reasonLabelTh(progress1BlockedReason)}</p>
-            ) : !progress1CanOpen && !progress1Eligibility.eligible.length ? (
-              <p className="mt-1 text-sm text-amber-700">ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1</p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {progress1CanOpen && activeOffering ? (
-              <form action={openCourseRound}>
-                <input type="hidden" name="course_offering_id" value={activeOffering.id} />
-                <input type="hidden" name="round_type" value="PROGRESS_1" />
-                <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ Progress 1</SubmitButton>
-              </form>
-            ) : null}
-            <Link className="button-secondary" href="/admin/rounds">จัดการรอบสอบ</Link>
-          </div>
-        </div>
-      </section>
+      <Suspense fallback={<RoundGateSkeleton />}>
+        <AdminRoundGateSection activeOfferingId={activeOffering?.id ?? null} courseOfferingIds={dashboardOfferingIds} />
+      </Suspense>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
         <section className="panel dashboard-console-panel">
           <h2 className="text-lg font-semibold">Pending Admin confirmation</h2>
@@ -389,48 +353,12 @@ export default async function AdminDashboardPage({
           title="ทางลัดปฏิบัติการ"
           compact
           tasks={[
-            { title: "รอบสอบของรายวิชา", description: `${rounds.length} รอบแบบ course-level`, href: "/admin/rounds" },
+            { title: "รอบสอบของรายวิชา", description: "รอบแบบ course-level", href: "/admin/rounds" },
             { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
             { title: "ปิดงานโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนเปลี่ยนเป็น COMPLETED", href: "/admin/closeout" }
           ]}
         />
       </div>
-      {process.env.NEXT_PUBLIC_SHOW_LEGACY_ROUND_CARDS === "1" ? (
-      <section className="panel dashboard-console-panel">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
-            <p className="mt-1 text-sm text-muted">Proposal, Progress 1, Progress 2 และ Final Presentation เป็นรอบระดับรายวิชา ไม่ใช่รอบแยกต่อโปรเจค</p>
-          </div>
-          <Link href="/admin/proposals" className="btn-secondary">ดูรอบ Proposal</Link>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {rounds.map((round) => {
-            const attemptCount = round._count.attempts;
-            const exceptionCount = round._count.projectExceptions;
-            return (
-              <div key={round.id} className="rounded-md border border-line p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold">{roundTypeLabelTh(round.roundType)}</div>
-                  <span className="inline-flex items-center rounded-full border border-line px-3 py-1 text-xs font-semibold">{roundStatusLabelTh(round.status)}</span>
-                </div>
-                <dl className="mt-3 space-y-1 text-sm text-muted">
-                  <div className="flex justify-between gap-3"><dt>เปิด</dt><dd>{formatDate(round.submissionOpenAt)}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>ปิด</dt><dd>{round.closedAt ? formatDate(round.closedAt) : formatDate(round.submissionDeadline)}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>attempt ทั้งหมด</dt><dd>{attemptCount}</dd></div>
-                  <div className="flex justify-between gap-3"><dt>มีปัญหาเฉพาะราย</dt><dd>{exceptionCount}</dd></div>
-                </dl>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button className="btn-secondary" disabled>เปิดรอบ</button>
-                  <button className="btn-secondary" disabled>ปิดรอบ</button>
-                  <button className="btn-secondary" disabled>ดูโปรเจคที่มีปัญหา</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-      ) : null}
       <Suspense fallback={<DashboardSectionSkeleton title="Project status overview" />}>
         <ProjectStatusOverviewSection projectsPromise={recentProjectsQuery} statusGroupsPromise={statusGroupsQuery} />
       </Suspense>
@@ -441,6 +369,111 @@ export default async function AdminDashboardPage({
         <AdminTimelineSection timelinePromise={timelineQuery} />
       </Suspense>
     </div>
+  );
+}
+
+async function AdminRoundGateSection({
+  activeOfferingId,
+  courseOfferingIds
+}: {
+  activeOfferingId: string | null;
+  courseOfferingIds: string[];
+}) {
+  const timer = createNavTimer("admin_round_gate_section");
+  const roundsQuery = timer.measure("course_rounds", () =>
+    prisma.assessmentRound.findMany({
+      where: { courseOfferingId: { in: courseOfferingIds }, roundType: { in: [...courseLevelRoundTypes] } },
+      select: {
+        id: true,
+        courseOfferingId: true,
+        roundType: true,
+        status: true,
+        submissionOpenAt: true,
+        submissionDeadline: true,
+        closedAt: true,
+        _count: { select: { attempts: true, projectExceptions: true } }
+      },
+      orderBy: [{ courseOfferingId: "desc" }, { roundType: "asc" }]
+    })
+  );
+  const progress1EligibilityQuery = activeOfferingId
+    ? timer.measure("progress1_eligibility", () => getRoundEligibility(activeOfferingId, "PROGRESS_1"))
+    : Promise.resolve({ eligible: [], notReady: [] });
+
+  const [rounds, progress1Eligibility] = await Promise.all([roundsQuery, progress1EligibilityQuery]);
+  const progress1Round = rounds.find((round) => round.courseOfferingId === activeOfferingId && round.roundType === "PROGRESS_1");
+  const proposalRound = rounds.find((round) => round.courseOfferingId === activeOfferingId && round.roundType === "PROPOSAL");
+  const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
+  const progress1BlockedReason = progress1Eligibility.notReady.flatMap((item) => item.reasons)[0];
+  timer.end("round_gate_ready");
+
+  return (
+    <>
+      <section className="panel dashboard-console-panel">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
+            <p className="mt-1 text-sm text-muted">
+              Proposal: {roundStatusLabelTh(proposalRound?.status ?? "DRAFT")} · Progress 1: {roundStatusLabelTh(progress1Round?.status ?? "DRAFT")} · Progress 2 / Final ตามลำดับถัดไป
+            </p>
+            <p className="mt-2 text-sm">
+              ขั้นตอนถัดไป: ตัดสินผล Proposal / แต่งตั้งกรรมการ / เปิดรอบ Progress 1
+            </p>
+            {!progress1CanOpen && progress1BlockedReason ? (
+              <p className="mt-1 text-sm text-amber-700">{reasonLabelTh(progress1BlockedReason)}</p>
+            ) : !progress1CanOpen && !progress1Eligibility.eligible.length ? (
+              <p className="mt-1 text-sm text-amber-700">ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1</p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {progress1CanOpen && activeOfferingId ? (
+              <form action={openCourseRound}>
+                <input type="hidden" name="course_offering_id" value={activeOfferingId} />
+                <input type="hidden" name="round_type" value="PROGRESS_1" />
+                <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ Progress 1</SubmitButton>
+              </form>
+            ) : null}
+            <Link className="button-secondary" href="/admin/rounds">จัดการรอบสอบ</Link>
+          </div>
+        </div>
+      </section>
+      {process.env.NEXT_PUBLIC_SHOW_LEGACY_ROUND_CARDS === "1" ? (
+        <section className="panel dashboard-console-panel">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
+              <p className="mt-1 text-sm text-muted">Proposal, Progress 1, Progress 2 และ Final Presentation เป็นรอบระดับรายวิชา ไม่ใช่รอบแยกต่อโปรเจค</p>
+            </div>
+            <Link href="/admin/proposals" className="btn-secondary">ดูรอบ Proposal</Link>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {rounds.map((round) => {
+              const attemptCount = round._count.attempts;
+              const exceptionCount = round._count.projectExceptions;
+              return (
+                <div key={round.id} className="rounded-md border border-line p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold">{roundTypeLabelTh(round.roundType)}</div>
+                    <span className="inline-flex items-center rounded-full border border-line px-3 py-1 text-xs font-semibold">{roundStatusLabelTh(round.status)}</span>
+                  </div>
+                  <dl className="mt-3 space-y-1 text-sm text-muted">
+                    <div className="flex justify-between gap-3"><dt>เปิด</dt><dd>{formatDate(round.submissionOpenAt)}</dd></div>
+                    <div className="flex justify-between gap-3"><dt>ปิด</dt><dd>{round.closedAt ? formatDate(round.closedAt) : formatDate(round.submissionDeadline)}</dd></div>
+                    <div className="flex justify-between gap-3"><dt>attempt ทั้งหมด</dt><dd>{attemptCount}</dd></div>
+                    <div className="flex justify-between gap-3"><dt>มีปัญหาเฉพาะราย</dt><dd>{exceptionCount}</dd></div>
+                  </dl>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button className="btn-secondary" disabled>เปิดรอบ</button>
+                    <button className="btn-secondary" disabled>ปิดรอบ</button>
+                    <button className="btn-secondary" disabled>ดูโปรเจคที่มีปัญหา</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+    </>
   );
 }
 
