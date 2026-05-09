@@ -8,13 +8,9 @@ type EvidenceAttempt = {
   officialScore: unknown;
   assessmentRound: { roundType: AssessmentRoundType };
   evaluatorAssignments: Array<{
-    evaluatorUserId: string;
     scoreSubmission: {
-      id: string;
       status: string;
-      totalScore: unknown;
       submittedAt: Date | null;
-      scoreItems: Array<{ id: string }>;
     } | null;
   }>;
 };
@@ -25,10 +21,10 @@ type EvidenceProject = {
   status: ProjectStatus;
   updatedAt: Date;
   student: { studentCode: string; firstNameTh: string; lastNameTh: string; generatedEmail: string };
-  advisorRequests: Array<{ status: string; reviewedAt: Date | null; advisorTeacher: { academicPrefix: string; firstNameTh: string; lastNameTh: string } }>;
+  advisorRequests: Array<{ status: string; advisorTeacher: { academicPrefix: string; firstNameTh: string; lastNameTh: string } }>;
   committeeAssignments: Array<{ active: boolean; role: string; teacher: { academicPrefix: string; firstNameTh: string; lastNameTh: string } }>;
   attempts: EvidenceAttempt[];
-  reportVersions: Array<{ id: string; versionNo: number; submittedAt: Date; reviews: Array<{ decision: string; reviewedAt: Date }> }>;
+  reportVersions: Array<{ submittedAt: Date; reviews: Array<{ decision: string; reviewedAt: Date }> }>;
   advisorScore: { status: string; score: unknown; submittedAt: Date | null } | null;
   timelineEvents: Array<{ occurredAt: Date }>;
   statusHistory: Array<{ occurredAt: Date }>;
@@ -251,26 +247,95 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
     prisma.project.findMany({
       where: { courseOfferingId: selectedOffering.id },
       orderBy: [{ updatedAt: "desc" }],
-      include: {
-        student: true,
-        advisorRequests: { include: { advisorTeacher: true }, orderBy: { requestedAt: "desc" } },
-        committeeAssignments: { include: { teacher: true } },
-        attempts: {
-          include: {
-            assessmentRound: true,
-            evaluatorAssignments: {
-              include: { scoreSubmission: { include: { scoreItems: true } } }
+      select: {
+        id: true,
+        currentTitleTh: true,
+        status: true,
+        updatedAt: true,
+        student: {
+          select: {
+            studentCode: true,
+            firstNameTh: true,
+            lastNameTh: true,
+            generatedEmail: true
+          }
+        },
+        advisorRequests: {
+          select: {
+            status: true,
+            advisorTeacher: {
+              select: {
+                academicPrefix: true,
+                firstNameTh: true,
+                lastNameTh: true
+              }
+            }
+          },
+          orderBy: { requestedAt: "desc" }
+        },
+        committeeAssignments: {
+          select: {
+            active: true,
+            role: true,
+            teacher: {
+              select: {
+                academicPrefix: true,
+                firstNameTh: true,
+                lastNameTh: true
+              }
             }
           }
         },
-        reportVersions: { include: { reviews: true }, orderBy: { versionNo: "desc" } },
-        advisorScore: true,
+        attempts: {
+          select: {
+            officialScore: true,
+            assessmentRound: { select: { roundType: true } },
+            evaluatorAssignments: {
+              select: {
+                scoreSubmission: {
+                  select: {
+                    status: true,
+                    submittedAt: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        reportVersions: {
+          select: {
+            submittedAt: true,
+            reviews: {
+              select: {
+                decision: true,
+                reviewedAt: true
+              }
+            }
+          },
+          orderBy: { versionNo: "desc" }
+        },
+        advisorScore: {
+          select: {
+            status: true,
+            score: true,
+            submittedAt: true
+          }
+        },
         timelineEvents: { select: { occurredAt: true }, orderBy: { occurredAt: "desc" }, take: 1 },
         statusHistory: { select: { occurredAt: true }, orderBy: { occurredAt: "desc" }, take: 1 },
         _count: { select: { timelineEvents: true, statusHistory: true } }
       }
     }),
-    prisma.rubric.findMany({ include: { items: true }, orderBy: [{ roundType: "asc" }, { version: "desc" }] }),
+    prisma.rubric.findMany({
+      select: {
+        id: true,
+        roundType: true,
+        name: true,
+        version: true,
+        items: { select: { id: true } }
+      },
+      orderBy: [{ roundType: "asc" }, { version: "desc" }]
+    }),
     prisma.scoreSubmission.findMany({
       where: {
         evaluatorAssignment: {
@@ -279,13 +344,20 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
           }
         }
       },
-      include: {
+      select: {
+        status: true,
+        totalScore: true,
         scoreItems: {
-          include: { rubricItem: { select: { rubricId: true } } }
+          select: { rubricItem: { select: { rubricId: true } } }
         },
         evaluatorAssignment: {
-          include: {
-            assessmentAttempt: { include: { assessmentRound: true } }
+          select: {
+            evaluatorUserId: true,
+            assessmentAttempt: {
+              select: {
+                assessmentRound: { select: { roundType: true } }
+              }
+            }
           }
         }
       }
@@ -294,12 +366,32 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
       where: { project: { courseOfferingId: selectedOffering.id } },
       orderBy: { occurredAt: "desc" },
       take: 12,
-      include: { actor: true, project: { include: { student: true } } }
+      select: {
+        id: true,
+        projectId: true,
+        eventTitle: true,
+        eventType: true,
+        occurredAt: true,
+        actor: { select: { name: true, email: true } },
+        project: {
+          select: {
+            currentTitleTh: true,
+            student: { select: { studentCode: true } }
+          }
+        }
+      }
     }),
     prisma.auditLog.findMany({
       orderBy: { occurredAt: "desc" },
       take: 12,
-      include: { actor: true }
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        entityId: true,
+        occurredAt: true,
+        actor: { select: { name: true, email: true } }
+      }
     })
   ]);
 

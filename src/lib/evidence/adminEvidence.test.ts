@@ -18,7 +18,7 @@ describe("admin evidence summaries", () => {
         advisorRequests: [],
         committeeAssignments: [],
         attempts: [],
-        reportVersions: [{ id: "rv1", versionNo: 1, submittedAt: new Date("2026-05-02T00:00:00.000Z"), reviews: [{ decision: "PASS", reviewedAt: new Date("2026-05-03T00:00:00.000Z") }] }],
+        reportVersions: [{ submittedAt: new Date("2026-05-02T00:00:00.000Z"), reviews: [{ decision: "PASS", reviewedAt: new Date("2026-05-03T00:00:00.000Z") }] }],
         advisorScore: null,
         timelineEvents: [{ occurredAt: new Date("2026-05-04T00:00:00.000Z") }],
         statusHistory: [],
