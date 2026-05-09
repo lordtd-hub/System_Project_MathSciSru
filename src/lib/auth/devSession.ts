@@ -16,6 +16,16 @@ export function isDevLoginEnabled(nodeEnv = process.env.NODE_ENV): boolean {
   return nodeEnv === "development";
 }
 
+export function getDevSessionCookieOptions(nodeEnv = process.env.NODE_ENV) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: nodeEnv === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8
+  };
+}
+
 function getDevSessionSecret(secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET) {
   return secret?.trim() || "dev-session-local-fallback-secret";
 }

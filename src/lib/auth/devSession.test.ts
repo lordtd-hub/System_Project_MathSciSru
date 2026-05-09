@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeDevSession, devSessionToAuthSession, encodeDevSession, isDevLoginEnabled } from "./devSession";
+import { decodeDevSession, devSessionToAuthSession, encodeDevSession, getDevSessionCookieOptions, isDevLoginEnabled } from "./devSession";
 
 describe("development dev session", () => {
   const secret = "test-dev-secret";
@@ -8,6 +8,21 @@ describe("development dev session", () => {
     expect(isDevLoginEnabled("development")).toBe(true);
     expect(isDevLoginEnabled("production")).toBe(false);
     expect(isDevLoginEnabled("test")).toBe(false);
+  });
+
+  it("uses httpOnly sameSite lax cookie settings and only marks secure for production", () => {
+    expect(getDevSessionCookieOptions("development")).toMatchObject({
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+      path: "/"
+    });
+    expect(getDevSessionCookieOptions("production")).toMatchObject({
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/"
+    });
   });
 
   it("round trips selected student for student dashboard", () => {

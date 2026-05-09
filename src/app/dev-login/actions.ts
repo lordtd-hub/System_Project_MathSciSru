@@ -3,19 +3,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { DEV_SESSION_COOKIE, encodeDevSession, isDevLoginEnabled, type DevSessionPayload } from "@/lib/auth/devSession";
+import { DEV_SESSION_COOKIE, encodeDevSession, getDevSessionCookieOptions, isDevLoginEnabled, type DevSessionPayload } from "@/lib/auth/devSession";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 
 async function setDevSession(payload: DevSessionPayload) {
   if (!isDevLoginEnabled()) throw new Error("Development login is disabled in production");
   const cookieStore = await cookies();
-  cookieStore.set(DEV_SESSION_COOKIE, encodeDevSession(payload), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8
-  });
+  cookieStore.set(DEV_SESSION_COOKIE, encodeDevSession(payload), getDevSessionCookieOptions());
 }
 
 export async function selectDevUser(formData: FormData) {

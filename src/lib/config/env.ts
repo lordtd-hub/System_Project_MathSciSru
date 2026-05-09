@@ -21,6 +21,10 @@ function isLocalUrl(value: string | undefined) {
   return Boolean(value && /https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(value));
 }
 
+function isHttpsUrl(value: string | undefined) {
+  return Boolean(value && /^https:\/\//i.test(value));
+}
+
 function isLocalDatabaseUrl(value: string | undefined) {
   return Boolean(value && /(localhost|127\.0\.0\.1)/i.test(value));
 }
@@ -74,7 +78,12 @@ export function validateProductionEnv(env: EnvLike = process.env): EnvValidation
   }
 
   if (isLocalDatabaseUrl(databaseUrl)) warnings.push("DATABASE_URL points to localhost; use Supabase/PostgreSQL in production.");
-  if (isLocalUrl(authUrl)) warnings.push("AUTH_URL/NEXTAUTH_URL points to localhost; use the production HTTPS URL in production.");
+  if (isProductionRuntime(env)) {
+    if (isLocalUrl(authUrl)) errors.push("AUTH_URL/NEXTAUTH_URL must not point to localhost in production.");
+    if (authUrl && !isHttpsUrl(authUrl)) errors.push("AUTH_URL/NEXTAUTH_URL must use HTTPS in production.");
+  } else if (isLocalUrl(authUrl)) {
+    warnings.push("AUTH_URL/NEXTAUTH_URL points to localhost; use the production HTTPS URL in production.");
+  }
   if (env.AUTH_TRUST_HOST !== "true") {
     warnings.push("AUTH_TRUST_HOST=true is usually required behind Vercel/reverse proxies. Confirm before launch.");
   }
