@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProjectEvidenceRows } from "./adminEvidence";
+import { buildProjectEvidenceRows, buildRubricEvidenceRows } from "./adminEvidence";
 
 describe("admin evidence summaries", () => {
   it("marks projects incomplete when required evidence is missing", () => {
@@ -28,8 +28,32 @@ describe("admin evidence summaries", () => {
 
     expect(rows[0].reportApproval).toBe(true);
     expect(rows[0].completed).toBe(false);
-    expect(rows[0].missingEvidence).toContain("Progress 1 score");
-    expect(rows[0].missingEvidence).toContain("Advisor score");
+    expect(rows[0].missingEvidence).toContain("Progress 1 score evidence");
+    expect(rows[0].missingEvidence).toContain("Advisor score evidence");
     expect(rows[0].lastEvidenceUpdate?.toISOString()).toBe("2026-05-04T00:00:00.000Z");
+  });
+
+  it("attributes score evidence to the rubric version used by score items", () => {
+    const rows = buildRubricEvidenceRows(
+      [
+        { id: "rubric-v1", roundType: "PROGRESS_1", name: "Progress 1", version: 1, items: [{ id: "item-1" }] },
+        { id: "rubric-v2", roundType: "PROGRESS_1", name: "Progress 1", version: 2, items: [{ id: "item-2" }] }
+      ],
+      [
+        {
+          status: "SUBMITTED",
+          totalScore: 8,
+          scoreItems: [{ rubricItem: { rubricId: "rubric-v2" } }],
+          evaluatorAssignment: {
+            evaluatorUserId: "teacher-1",
+            assessmentAttempt: { assessmentRound: { roundType: "PROGRESS_1" } }
+          }
+        }
+      ]
+    );
+
+    expect(rows.find((row) => row.rubricName === "Progress 1 v1")?.scoreSubmissionCount).toBe(0);
+    expect(rows.find((row) => row.rubricName === "Progress 1 v2")?.scoreSubmissionCount).toBe(1);
+    expect(rows.find((row) => row.rubricName === "Progress 1 v2")?.scoreItemCount).toBe(1);
   });
 });

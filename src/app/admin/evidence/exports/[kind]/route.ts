@@ -41,7 +41,31 @@ export async function GET(
 
   const url = new URL(request.url);
   const courseOfferingId = url.searchParams.get("course_offering_id") ?? undefined;
+
+  if (kind === "audit") {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { occurredAt: "desc" },
+      include: { actor: true }
+    });
+    return csvResponse(
+      "evidence-audit",
+      ["audit_id", "scope", "action", "entity_type", "entity_id", "actor", "occurred_at"],
+      logs.map((log) => [
+        log.id,
+        "global",
+        log.action,
+        log.entityType,
+        log.entityId,
+        log.actor?.name ?? log.actor?.email ?? "ระบบ",
+        log.occurredAt
+      ])
+    );
+  }
+
   const data = await getEvidenceDashboardData(courseOfferingId);
+  if (data.invalidCourseOfferingId) {
+    return new Response("Unknown course offering", { status: 404 });
+  }
   const selectedOfferingId = data.selectedOffering?.id;
 
   if (kind === "projects") {
@@ -51,7 +75,7 @@ export async function GET(
   if (kind === "scores") {
     return csvResponse(
       "evidence-scores",
-      ["round_type", "round_label", "rubric_name", "rubric_item_count", "score_submission_count", "score_item_count", "evaluator_count", "average_score"],
+      ["round_type", "round_label", "rubric_name", "rubric_item_count", "rubric_attributed_score_submission_count", "rubric_attributed_score_item_count", "evaluator_count", "average_score"],
       data.rubricRows.map((row) => [
         row.roundType,
         row.roundLabel,
@@ -140,20 +164,5 @@ export async function GET(
     );
   }
 
-  const logs = await prisma.auditLog.findMany({
-    orderBy: { occurredAt: "desc" },
-    include: { actor: true }
-  });
-  return csvResponse(
-    "evidence-audit",
-    ["audit_id", "action", "entity_type", "entity_id", "actor", "occurred_at"],
-    logs.map((log) => [
-      log.id,
-      log.action,
-      log.entityType,
-      log.entityId,
-      log.actor?.name ?? log.actor?.email ?? "ระบบ",
-      log.occurredAt
-    ])
-  );
+  return new Response("Unknown evidence export", { status: 404 });
 }

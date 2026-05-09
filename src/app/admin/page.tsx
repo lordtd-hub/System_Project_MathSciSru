@@ -226,6 +226,7 @@ export default async function AdminDashboardPage({
             >
               โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
             </span>
+            <a className="button-secondary" href="/admin/evidence">Evidence & AUN-QA</a>
             <a className="button-secondary" href="/admin/teachers">จัดการอาจารย์</a>
           </>
         }
@@ -274,6 +275,10 @@ export default async function AdminDashboardPage({
               <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/students">
                 <span>นักศึกษาทั้งหมด</span>
                 <span className="font-semibold tabular-nums text-ink">{students}</span>
+              </a>
+              <a className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/evidence">
+                <span>Evidence & AUN-QA</span>
+                <span className="text-xs font-semibold text-muted">CSV</span>
               </a>
             </div>
           </section>

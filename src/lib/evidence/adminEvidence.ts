@@ -35,6 +35,24 @@ type EvidenceProject = {
   _count: { timelineEvents: number; statusHistory: number };
 };
 
+type EvidenceRubric = {
+  id: string;
+  roundType: AssessmentRoundType;
+  name: string;
+  version: number;
+  items: Array<{ id: string }>;
+};
+
+type EvidenceScoreSubmission = {
+  status: string;
+  totalScore: unknown;
+  scoreItems: Array<{ rubricItem: { rubricId: string } }>;
+  evaluatorAssignment: {
+    evaluatorUserId: string;
+    assessmentAttempt: { assessmentRound: { roundType: AssessmentRoundType } };
+  };
+};
+
 export type ProjectEvidenceRow = {
   projectId: string;
   studentCode: string;
@@ -71,6 +89,7 @@ export type RubricEvidenceRow = {
 export type EvidenceDashboardData = {
   offerings: Array<{ id: string; label: string }>;
   selectedOffering: { id: string; label: string } | null;
+  invalidCourseOfferingId: string | null;
   projectRows: ProjectEvidenceRow[];
   rubricRows: RubricEvidenceRow[];
   recentTimelineEvents: Array<{
@@ -125,11 +144,11 @@ export function buildProjectEvidenceRows(projects: EvidenceProject[]): ProjectEv
     const advisorScore = project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null;
     const completed = project.status === "COMPLETED";
     const missingEvidence = [
-      !progress1Score ? "Progress 1 score" : null,
-      !progress2Score ? "Progress 2 score" : null,
-      !finalScore ? "Final presentation score" : null,
-      !reportApproval ? "Report approval" : null,
-      !advisorScore ? "Advisor score" : null,
+      !progress1Score ? "Progress 1 score evidence" : null,
+      !progress2Score ? "Progress 2 score evidence" : null,
+      !finalScore ? "Final presentation score evidence" : null,
+      !reportApproval ? "Report approval evidence" : null,
+      !advisorScore ? "Advisor score evidence" : null,
       !completed ? "Admin closeout" : null
     ].filter(Boolean) as string[];
 
@@ -167,21 +186,60 @@ export function buildProjectEvidenceRows(projects: EvidenceProject[]): ProjectEv
   });
 }
 
+export function buildRubricEvidenceRows(rubrics: EvidenceRubric[], scoreSubmissions: EvidenceScoreSubmission[]): RubricEvidenceRow[] {
+  const scoreByRound = new Map<AssessmentRoundType, EvidenceScoreSubmission[]>();
+  for (const score of scoreSubmissions) {
+    const roundType = score.evaluatorAssignment.assessmentAttempt.assessmentRound.roundType;
+    scoreByRound.set(roundType, [...(scoreByRound.get(roundType) ?? []), score]);
+  }
+
+  return rubrics.map((rubric) => {
+    const roundScores = scoreByRound.get(rubric.roundType) ?? [];
+    const scores = roundScores.filter((score) => score.scoreItems.some((item) => item.rubricItem.rubricId === rubric.id));
+    const submittedScores = scores.filter((score) => score.status === "SUBMITTED");
+    const totalScore = submittedScores.reduce((sum, score) => sum + Number(score.totalScore), 0);
+    const scoreItemCount = scores.reduce(
+      (sum, score) => sum + score.scoreItems.filter((item) => item.rubricItem.rubricId === rubric.id).length,
+      0
+    );
+
+    return {
+      roundType: rubric.roundType,
+      roundLabel: roundTypeLabelTh(rubric.roundType),
+      rubricName: `${rubric.name} v${rubric.version}`,
+      rubricItemCount: rubric.items.length,
+      scoreSubmissionCount: submittedScores.length,
+      scoreItemCount,
+      evaluatorCount: new Set(scores.map((score) => score.evaluatorAssignment.evaluatorUserId)).size,
+      averageScore: submittedScores.length ? Math.round((totalScore / submittedScores.length) * 100) / 100 : null
+    };
+  });
+}
+
 export async function getEvidenceDashboardData(courseOfferingId?: string): Promise<EvidenceDashboardData> {
   const offerings = await prisma.courseOffering.findMany({
     select: { id: true, courseTitle: true, term: { select: { displayName: true } } },
     orderBy: { id: "desc" },
     take: 20
   });
-  const selectedOfferingId = courseOfferingId ?? offerings[0]?.id;
-  const selectedOffering = offerings.find((offering) => offering.id === selectedOfferingId) ?? offerings[0] ?? null;
-  const offeringOptions = offerings.map((offering) => ({ id: offering.id, label: `${offering.term.displayName} · ${offering.courseTitle}` }));
+  const requestedOffering = courseOfferingId
+    ? await prisma.courseOffering.findUnique({
+        where: { id: courseOfferingId },
+        select: { id: true, courseTitle: true, term: { select: { displayName: true } } }
+      })
+    : null;
+  const selectedOffering = courseOfferingId ? requestedOffering : offerings[0] ?? null;
+  const optionSource = requestedOffering && !offerings.some((offering) => offering.id === requestedOffering.id)
+    ? [requestedOffering, ...offerings]
+    : offerings;
+  const offeringOptions = optionSource.map((offering) => ({ id: offering.id, label: `${offering.term.displayName} · ${offering.courseTitle}` }));
   const selectedLabel = selectedOffering ? `${selectedOffering.term.displayName} · ${selectedOffering.courseTitle}` : null;
 
   if (!selectedOffering) {
     return {
       offerings: offeringOptions,
       selectedOffering: null,
+      invalidCourseOfferingId: courseOfferingId ?? null,
       projectRows: [],
       rubricRows: [],
       recentTimelineEvents: [],
@@ -222,7 +280,9 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
         }
       },
       include: {
-        scoreItems: true,
+        scoreItems: {
+          include: { rubricItem: { select: { rubricId: true } } }
+        },
         evaluatorAssignment: {
           include: {
             assessmentAttempt: { include: { assessmentRound: true } }
@@ -244,30 +304,12 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
   ]);
 
   const projectRows = buildProjectEvidenceRows(projects);
-  const scoreByRound = new Map<AssessmentRoundType, typeof scoreSubmissions>();
-  for (const score of scoreSubmissions) {
-    const roundType = score.evaluatorAssignment.assessmentAttempt.assessmentRound.roundType;
-    scoreByRound.set(roundType, [...(scoreByRound.get(roundType) ?? []), score]);
-  }
-  const rubricRows = rubrics.map((rubric) => {
-    const scores = scoreByRound.get(rubric.roundType) ?? [];
-    const submittedScores = scores.filter((score) => score.status === "SUBMITTED");
-    const totalScore = submittedScores.reduce((sum, score) => sum + Number(score.totalScore), 0);
-    return {
-      roundType: rubric.roundType,
-      roundLabel: roundTypeLabelTh(rubric.roundType),
-      rubricName: `${rubric.name} v${rubric.version}`,
-      rubricItemCount: rubric.items.length,
-      scoreSubmissionCount: submittedScores.length,
-      scoreItemCount: scores.reduce((sum, score) => sum + score.scoreItems.length, 0),
-      evaluatorCount: new Set(scores.map((score) => score.evaluatorAssignment.evaluatorUserId)).size,
-      averageScore: submittedScores.length ? Math.round((totalScore / submittedScores.length) * 100) / 100 : null
-    };
-  });
+  const rubricRows = buildRubricEvidenceRows(rubrics, scoreSubmissions);
 
   return {
     offerings: offeringOptions,
     selectedOffering: { id: selectedOffering.id, label: selectedLabel ?? selectedOffering.id },
+    invalidCourseOfferingId: null,
     projectRows,
     rubricRows,
     recentTimelineEvents: recentTimelineEvents.map((event) => ({
@@ -300,11 +342,11 @@ export const projectEvidenceHeaders = [
   "advisor",
   "committee",
   "status",
-  "progress1_score",
-  "progress2_score",
-  "final_score",
-  "report_approval",
-  "advisor_score",
+  "progress1_score_evidence",
+  "progress2_score_evidence",
+  "final_score_evidence",
+  "report_approval_evidence",
+  "advisor_score_evidence",
   "completed",
   "missing_evidence",
   "timeline_event_count",

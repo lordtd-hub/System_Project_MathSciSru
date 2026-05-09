@@ -11,7 +11,7 @@ function percent(value: number, total: number) {
 }
 
 function exportHref(kind: string, courseOfferingId?: string) {
-  const query = courseOfferingId ? `?course_offering_id=${encodeURIComponent(courseOfferingId)}` : "";
+  const query = courseOfferingId && kind !== "audit" ? `?course_offering_id=${encodeURIComponent(courseOfferingId)}` : "";
   return `/admin/evidence/exports/${kind}${query}`;
 }
 
@@ -60,6 +60,11 @@ export default async function AdminEvidencePage({
         ) : (
           <EmptyState title="ยังไม่มี course offering" description="เมื่อเปิดรายวิชาแล้ว ระบบจะแสดง evidence summary ที่นี่" />
         )}
+        {data.invalidCourseOfferingId ? (
+          <WarningAlert title="ไม่พบ course offering ที่เลือก">
+            ระบบไม่ fallback ไปยังรายวิชาอื่น เพื่อป้องกันการ export หลักฐานผิดรายวิชา กรุณาเลือกรายวิชาจากรายการด้านบนอีกครั้ง
+          </WarningAlert>
+        ) : null}
       </section>
 
       {data.selectedOffering ? (
@@ -69,38 +74,38 @@ export default async function AdminEvidencePage({
             description={data.selectedOffering.label}
             metrics={[
               { label: "Projects", value: totalProjects, href: "#project-evidence", tone: totalProjects ? "ready" : "quiet" },
-              { label: "Completed", value: completedProjects, href: "#project-evidence", tone: completedProjects ? "complete" : "quiet" },
+              { label: "Closed out", value: completedProjects, href: "#project-evidence", tone: completedProjects ? "complete" : "quiet" },
               { label: "Missing evidence", value: missingEvidenceProjects, href: "#project-evidence", tone: missingEvidenceProjects ? "waiting" : "complete" },
-              { label: "Report approved", value: reportCount, href: "#project-evidence", tone: reportCount ? "complete" : "quiet" },
-              { label: "Advisor score", value: advisorScoreCount, href: "#project-evidence", tone: advisorScoreCount ? "complete" : "quiet" }
+              { label: "Report evidence", value: reportCount, href: "#project-evidence", tone: reportCount ? "complete" : "quiet" },
+              { label: "Advisor evidence", value: advisorScoreCount, href: "#project-evidence", tone: advisorScoreCount ? "complete" : "quiet" }
             ]}
           />
 
           {missingEvidenceProjects ? (
             <WarningAlert title={`ยังมี project ที่หลักฐานไม่ครบ ${missingEvidenceProjects} รายการ`}>
-              ตรวจคอลัมน์ missing evidence ก่อนใช้ข้อมูลนี้เป็นชุดหลักฐาน QA/AUN-QA อย่างเป็นทางการ
+              ตรวจคอลัมน์ missing evidence ก่อนใช้ข้อมูลนี้เป็นชุดหลักฐาน QA/AUN-QA อย่างเป็นทางการ โดยช่องคะแนนหมายถึงมีหลักฐานคะแนนที่บันทึกแล้ว ไม่ใช่การคำนวณกฎ closeout ใหม่
             </WarningAlert>
           ) : (
-            <InfoAlert title="หลักฐานครบตาม checklist closeout">
-              ทุก project ในรายวิชานี้มีหลักฐานครบตามรายการ Progress 1, Progress 2, Final, Report, Advisor score และ closeout
+            <InfoAlert title="พบหลักฐานครบตามรายการตรวจ">
+              ทุก project ในรายวิชานี้มีหลักฐานคะแนน Progress 1, Progress 2, Final, Report, Advisor score และ Admin closeout ตามข้อมูลที่บันทึกในระบบ
             </InfoAlert>
           )}
 
           <section className="panel dashboard-console-panel">
-            <DashboardSectionHeader title="Export CSV" description="ไฟล์ CSV มี UTF-8 BOM เพื่อเปิดใน Excel กับภาษาไทยได้ง่ายขึ้น" />
+            <DashboardSectionHeader title="Export CSV" description="ไฟล์ CSV มี UTF-8 BOM เพื่อเปิดใน Excel กับภาษาไทยได้ง่ายขึ้น ยกเว้น audit logs เป็น global export ทั้งระบบ" />
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               <a className="button-secondary justify-center" href={exportHref("projects", selectedOfferingId)}>Project evidence</a>
               <a className="button-secondary justify-center" href={exportHref("timeline", selectedOfferingId)}>Timeline events</a>
-              <a className="button-secondary justify-center" href={exportHref("scores", selectedOfferingId)}>Scores/rubrics</a>
+              <a className="button-secondary justify-center" href={exportHref("scores", selectedOfferingId)}>Rubric score evidence</a>
               <a className="button-secondary justify-center" href={exportHref("reports", selectedOfferingId)}>Report reviews</a>
-              <a className="button-secondary justify-center" href={exportHref("audit", selectedOfferingId)}>Audit logs</a>
+              <a className="button-secondary justify-center" href={exportHref("audit", selectedOfferingId)}>Global audit logs</a>
             </div>
           </section>
 
           <section className="panel dashboard-console-panel" id="project-evidence">
             <DashboardSectionHeader
-              title="Project evidence completeness"
-              description={`Progress 1 ${progress1Count}/${totalProjects} (${percent(progress1Count, totalProjects)}) · Progress 2 ${progress2Count}/${totalProjects} · Final ${finalCount}/${totalProjects}`}
+              title="Project evidence status"
+              description={`มีหลักฐานคะแนน Progress 1 ${progress1Count}/${totalProjects} (${percent(progress1Count, totalProjects)}) · Progress 2 ${progress2Count}/${totalProjects} · Final ${finalCount}/${totalProjects}`}
             />
             <div className="mt-3 overflow-x-auto">
               <table className="responsive-table">
@@ -110,11 +115,11 @@ export default async function AdminEvidencePage({
                     <th>หัวข้อ</th>
                     <th>ที่ปรึกษา</th>
                     <th>สถานะ</th>
-                    <th>P1</th>
-                    <th>P2</th>
-                    <th>Final</th>
-                    <th>Report</th>
-                    <th>Advisor</th>
+                    <th>P1 evidence</th>
+                    <th>P2 evidence</th>
+                    <th>Final evidence</th>
+                    <th>Report evidence</th>
+                    <th>Advisor evidence</th>
                     <th>Timeline</th>
                     <th>ล่าสุด</th>
                   </tr>
@@ -152,7 +157,7 @@ export default async function AdminEvidencePage({
 
           <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="panel dashboard-console-panel">
-              <DashboardSectionHeader title="Rubric / evaluation evidence" description="สรุปจาก rubric items, score submissions และ score items ที่มีอยู่แล้ว" />
+              <DashboardSectionHeader title="Rubric-attributed score evidence" description="นับ score submissions ผ่าน score item ที่ผูกกับ rubric item จริง เพื่อไม่ปะปนข้าม rubric version" />
               <div className="mt-3 overflow-x-auto">
                 <table className="responsive-table">
                   <thead>
@@ -211,7 +216,7 @@ export default async function AdminEvidencePage({
             </div>
 
             <div className="panel dashboard-console-panel">
-              <DashboardSectionHeader title="Recent admin audit actions" description="แสดงเฉพาะ metadata ปลอดภัย ไม่ export secrets หรือ token" />
+              <DashboardSectionHeader title="Recent admin audit actions" description="รายการนี้เป็น global audit trail ทั้งระบบ แสดงเฉพาะ metadata ปลอดภัย ไม่ export secrets หรือ token" />
               <div className="mt-3 space-y-2 text-sm">
                 {data.recentAuditLogs.map((log) => (
                   <div key={log.id} className="rounded-lg border border-line bg-paperSoft p-3">
