@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
@@ -32,6 +33,65 @@ function formatDate(value: Date | null | undefined) {
   return value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
 }
 
+function getAdminStatusGroups() {
+  return prisma.project.groupBy({
+    by: ["status"],
+    _count: { _all: true }
+  });
+}
+
+function getRecentAdminProjects() {
+  return prisma.project.findMany({
+    select: {
+      id: true,
+      courseOfferingId: true,
+      studentId: true,
+      currentTitleTh: true,
+      status: true,
+      updatedAt: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 12
+  });
+}
+
+function getUnreadAdminNotifications() {
+  return prisma.notification.findMany({
+    where: { status: "UNREAD" },
+    select: { id: true, title: true, body: true },
+    orderBy: { createdAt: "desc" },
+    take: 5
+  });
+}
+
+function getLatestAdminTimelineEvents() {
+  return prisma.projectTimelineEvent.findMany({
+    select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
+    orderBy: { occurredAt: "desc" },
+    take: 8
+  });
+}
+
+function DashboardSectionSkeleton({ title }: { title: string }) {
+  return (
+    <section className="panel dashboard-console-panel" aria-busy="true">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="h-4 w-40 rounded bg-line" />
+          <div className="mt-2 h-3 w-64 max-w-full rounded bg-paperSoft" />
+        </div>
+        <div className="h-7 w-16 rounded-full bg-paperSoft" />
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="h-20 rounded-lg border border-line bg-paperSoft" />
+        <div className="h-20 rounded-lg border border-line bg-paperSoft" />
+      </div>
+      <span className="sr-only">{title}</span>
+    </section>
+  );
+}
+
 export default async function AdminDashboardPage({
   searchParams
 }: {
@@ -57,26 +117,14 @@ export default async function AdminDashboardPage({
       take: 5
     })
   );
+  const statusGroupsQuery = timer.measure("admin_status_groups", getAdminStatusGroups);
+  const recentProjectsQuery = timer.measure("admin_recent_projects", getRecentAdminProjects);
+  const notificationsQuery = timer.measure("admin_notifications", getUnreadAdminNotifications);
+  const timelineQuery = timer.measure("admin_timeline", getLatestAdminTimelineEvents);
   const independentDashboardQueries = timer.measure("admin_independent_queries", () => Promise.all([
     prisma.student.count(),
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
-    prisma.project.groupBy({
-      by: ["status"],
-      _count: { _all: true }
-    }),
-    prisma.project.findMany({
-      select: {
-        id: true,
-        courseOfferingId: true,
-        studentId: true,
-        currentTitleTh: true,
-        status: true,
-        updatedAt: true,
-        student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 12
-    }),
+    statusGroupsQuery,
     prisma.project.findMany({
       where: { status: "PENDING_ADMIN" },
       select: {
@@ -90,23 +138,12 @@ export default async function AdminDashboardPage({
     prisma.proposalVote.findMany({
       where: { project: { status: { in: ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"] } } },
       select: { projectId: true, vote: true }
-    }),
-    prisma.notification.findMany({
-      where: { status: "UNREAD" },
-      select: { id: true, title: true, body: true },
-      orderBy: { createdAt: "desc" },
-      take: 5
-    }),
-    prisma.projectTimelineEvent.findMany({
-      select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
-      orderBy: { occurredAt: "desc" },
-      take: 8
     })
   ]));
 
   const [
     offerings,
-    [students, claims, statusGroups, rawProjects, pendingAdminProjects, proposalVotesForFailAlert, notifications, timeline]
+    [students, claims, statusGroups, pendingAdminProjects, proposalVotesForFailAlert]
   ] = await Promise.all([offeringsQuery, independentDashboardQueries]);
 
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
@@ -133,8 +170,6 @@ export default async function AdminDashboardPage({
 
   const [rounds, progress1Eligibility] = await Promise.all([roundsQuery, progress1EligibilityQuery]);
 
-  const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
-  const projects = getCurrentDashboardProjects(rawProjects);
   const statusCounts = new Map(statusGroups.map((group) => [group.status, group._count._all]));
   const proposalVotesByProject = new Map<string, Array<{ vote: "PASS" | "REVISE" | "FAIL" }>>();
   for (const vote of proposalVotesForFailAlert) {
@@ -360,11 +395,6 @@ export default async function AdminDashboardPage({
           ]}
         />
       </div>
-      {process.env.NODE_ENV !== "production" && duplicateProjectGroups.length ? (
-        <WarningAlert title="พบข้อมูล demo ซ้ำ กรุณารันคำสั่ง reset demo data">
-          ใช้คำสั่ง <code>cmd /c npm.cmd run dev:reset-demo</code> เพื่อล้างเฉพาะข้อมูล demo/E2E บนฐานข้อมูล local และ seed demo ใหม่
-        </WarningAlert>
-      ) : null}
       {process.env.NEXT_PUBLIC_SHOW_LEGACY_ROUND_CARDS === "1" ? (
       <section className="panel dashboard-console-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -401,6 +431,38 @@ export default async function AdminDashboardPage({
         </div>
       </section>
       ) : null}
+      <Suspense fallback={<DashboardSectionSkeleton title="Project status overview" />}>
+        <ProjectStatusOverviewSection projectsPromise={recentProjectsQuery} statusGroupsPromise={statusGroupsQuery} />
+      </Suspense>
+      <Suspense fallback={<DashboardSectionSkeleton title="Notification" />}>
+        <AdminNotificationsSection notificationsPromise={notificationsQuery} />
+      </Suspense>
+      <Suspense fallback={<DashboardSectionSkeleton title="Latest evidence" />}>
+        <AdminTimelineSection timelinePromise={timelineQuery} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ProjectStatusOverviewSection({
+  projectsPromise,
+  statusGroupsPromise
+}: {
+  projectsPromise: Promise<Awaited<ReturnType<typeof getRecentAdminProjects>>>;
+  statusGroupsPromise: Promise<Awaited<ReturnType<typeof getAdminStatusGroups>>>;
+}) {
+  const [rawProjects, statusGroups] = await Promise.all([projectsPromise, statusGroupsPromise]);
+  const duplicateProjectGroups = findDuplicateActiveProjectGroups(rawProjects);
+  const projects = getCurrentDashboardProjects(rawProjects);
+  const statusCounts = new Map(statusGroups.map((group) => [group.status, group._count._all]));
+
+  return (
+    <>
+      {process.env.NODE_ENV !== "production" && duplicateProjectGroups.length ? (
+        <WarningAlert title="พบข้อมูล demo ซ้ำ กรุณารันคำสั่ง reset demo data">
+          ใช้คำสั่ง <code>cmd /c npm.cmd run dev:reset-demo</code> เพื่อล้างเฉพาะข้อมูล demo/E2E บนฐานข้อมูล local และ seed demo ใหม่
+        </WarningAlert>
+      ) : null}
       <section className="panel dashboard-console-panel">
         <h2 className="text-lg font-semibold">Project status overview</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -408,7 +470,7 @@ export default async function AdminDashboardPage({
             const items = projects.filter((project) => project.status === status);
             const count = countFromStatus(statusCounts, status);
             return (
-                <div key={status} className="rounded-lg border border-line bg-surface p-3 shadow-sm">
+              <div key={status} className="rounded-lg border border-line bg-surface p-3 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{projectStatusLabelTh(status)}</span>
                   <span className="rounded-full border border-line bg-paperSoft px-2 py-0.5 text-xs font-semibold">{count}</span>
@@ -426,27 +488,49 @@ export default async function AdminDashboardPage({
           })}
         </div>
       </section>
-      <section className="panel">
-        <h2 className="text-lg font-semibold">Notification ที่ต้องติดตาม</h2>
-        <div className="mt-3 space-y-2">
-          {notifications.length ? notifications.map((notification) => (
-            <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
-              <div className="font-medium">{notification.title}</div>
-              {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
-            </div>
-          )) : <InfoAlert title="ยังไม่มี notification">เมื่อมีคำเตือนหรือรายการต้องติดตาม ระบบจะแสดงที่นี่</InfoAlert>}
-        </div>
-      </section>
-      <TimelineCard
-        title="หลักฐานล่าสุด"
-        events={timeline.map((event) => ({
-          id: event.id,
-          occurredAt: event.occurredAt,
-          eventTitle: event.eventTitle,
-          eventDescription: event.eventDescription,
-          actorName: event.actor?.name
-        }))}
-      />
-    </div>
+    </>
+  );
+}
+
+async function AdminNotificationsSection({
+  notificationsPromise
+}: {
+  notificationsPromise: Promise<Awaited<ReturnType<typeof getUnreadAdminNotifications>>>;
+}) {
+  const notifications = await notificationsPromise;
+
+  return (
+    <section className="panel">
+      <h2 className="text-lg font-semibold">Notification ที่ต้องติดตาม</h2>
+      <div className="mt-3 space-y-2">
+        {notifications.length ? notifications.map((notification) => (
+          <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
+            <div className="font-medium">{notification.title}</div>
+            {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
+          </div>
+        )) : <InfoAlert title="ยังไม่มี notification">เมื่อมีคำเตือนหรือรายการต้องติดตาม ระบบจะแสดงที่นี่</InfoAlert>}
+      </div>
+    </section>
+  );
+}
+
+async function AdminTimelineSection({
+  timelinePromise
+}: {
+  timelinePromise: Promise<Awaited<ReturnType<typeof getLatestAdminTimelineEvents>>>;
+}) {
+  const timeline = await timelinePromise;
+
+  return (
+    <TimelineCard
+      title="หลักฐานล่าสุด"
+      events={timeline.map((event) => ({
+        id: event.id,
+        occurredAt: event.occurredAt,
+        eventTitle: event.eventTitle,
+        eventDescription: event.eventDescription,
+        actorName: event.actor?.name
+      }))}
+    />
   );
 }
