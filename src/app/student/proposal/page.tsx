@@ -8,6 +8,7 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -94,10 +95,17 @@ export default async function ProposalSubmissionPage({
               <MarkdownLatexEditor name="expected_outcomes" label="ผลที่คาดว่าจะได้รับ" defaultValue={content?.expectedOutcomes ?? ""} rows={5} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="timeline" label="แผนดำเนินงาน" defaultValue={content?.timeline ?? ""} rows={5} />
+              <ProposalTimelineBuilder defaultValue={content?.timeline} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="questions_for_teachers" label="คำถามถึงอาจารย์" defaultValue={content?.questionsForTeachers ?? ""} rows={5} required={false} />
+              <MarkdownLatexEditor
+                name="questions_for_teachers"
+                label="คำถามหรือประเด็นที่ต้องการให้อาจารย์ช่วยพิจารณา"
+                defaultValue={content?.questionsForTeachers ?? ""}
+                helpText="ระบุข้อสงสัย จุดที่ยังไม่มั่นใจ หรือประเด็นใน Proposal ที่ต้องการให้อาจารย์ช่วยให้คำแนะนำ หากไม่มีให้เว้นว่างได้"
+                rows={5}
+                required={false}
+              />
             </div>
             <div className="md:col-span-2">
               <MaterialLinkField defaultValue={submission?.materialLink} />
