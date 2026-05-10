@@ -83,6 +83,28 @@ describe("QA login gate", () => {
     expect(getQaTeacherEmail("committee1", env)).toBe("qa.committee1@sru.ac.th");
     expect(getQaTeacherEmail(null, env)).toBe("qa.teacher@sru.ac.th");
   });
+
+  it("adds synthetic QA teacher identities in enabled preview when only one teacher email is configured", () => {
+    const env = {
+      ENABLE_QA_LOGIN: "1",
+      VERCEL_ENV: "preview",
+      QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th"
+    };
+
+    expect(getQaTeacherOptions(env).map((option) => option.email)).toEqual([
+      "qa.teacher@sru.ac.th",
+      "qa.advisor@sru.ac.th",
+      "qa.committee1@sru.ac.th",
+      "qa.committee2@sru.ac.th"
+    ]);
+    expect(getQaTeacherEmail("synthetic-committee1", env)).toBe("qa.committee1@sru.ac.th");
+  });
+
+  it("does not add synthetic teacher identities when QA login is disabled", () => {
+    expect(getQaTeacherOptions({ QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th" }).map((option) => option.email)).toEqual([
+      "qa.teacher@sru.ac.th"
+    ]);
+  });
 });
 
 describe("QA session payloads", () => {

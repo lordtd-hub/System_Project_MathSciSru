@@ -55,6 +55,12 @@ function splitEmailList(value: string | undefined) {
     .filter(Boolean);
 }
 
+const syntheticQaTeacherOptions: QaTeacherOption[] = [
+  { key: "synthetic-advisor", label: "QA Advisor", email: "qa.advisor@sru.ac.th" },
+  { key: "synthetic-committee1", label: "QA Committee 1", email: "qa.committee1@sru.ac.th" },
+  { key: "synthetic-committee2", label: "QA Committee 2", email: "qa.committee2@sru.ac.th" }
+];
+
 export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption[] {
   const entries: QaTeacherOption[] = [];
   const seen = new Set<string>();
@@ -73,6 +79,12 @@ export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption
   splitEmailList(readEnv(env, "QA_TEACHER_EMAILS")).forEach((email, index) => {
     add(`extra-${index + 1}`, `QA Teacher ${index + 1}`, email);
   });
+
+  if (isQaLoginEnabled(env) && entries.length < 3) {
+    syntheticQaTeacherOptions.forEach((option) => {
+      add(option.key, option.label, option.email);
+    });
+  }
 
   return entries;
 }
