@@ -31,6 +31,13 @@ import {
 import { assessmentKindToRoundType } from "@/lib/scheduling/scheduleRules";
 
 const scheduleRoundTypes = ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const;
+const scheduleTimeOptions = Array.from({ length: ((21 - 6) * 4) + 1 }, (_, index) => {
+  const totalMinutes = (6 * 60) + (index * 15);
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  return { value, label: `${value} น.` };
+});
 
 function scheduleRoundLabel(roundType: (typeof scheduleRoundTypes)[number]) {
   if (roundType === "PROGRESS_1") return "Progress 1";
@@ -461,11 +468,21 @@ export default async function StudentSchedulePage({
           </div>
           <div>
             <label>เวลาเริ่ม</label>
-            <input name="start_time" type="time" required />
+            <select name="start_time" required defaultValue="">
+              <option value="" disabled>เลือกเวลาเริ่ม</option>
+              {scheduleTimeOptions.map((option) => (
+                <option key={`start-${option.value}`} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label>เวลาสิ้นสุด</label>
-            <input name="end_time" type="time" />
+            <select name="end_time" defaultValue="">
+              <option value="">ไม่ระบุเวลาสิ้นสุด</option>
+              {scheduleTimeOptions.map((option) => (
+                <option key={`end-${option.value}`} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
           <div className="md:col-span-3">
             <MarkdownLatexEditor name="schedule_note" label="หมายเหตุถึงกรรมการ" placeholder="เช่น เนื้อหาที่จะนำเสนอ ปัญหาที่ต้องการ feedback หรือข้อจำกัดเวลา ใช้ $...$ ได้" required={false} rows={4} />
