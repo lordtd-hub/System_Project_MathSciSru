@@ -49,11 +49,15 @@ export default async function AdminRoundsPage({
   const [progress1Eligibility, rubrics] = await Promise.all([
     getRoundEligibility(offering.id, "PROGRESS_1"),
     prisma.rubric.findMany({
-      where: { roundType: { in: [...courseLevelRoundTypes] }, version: 1 },
-      select: { id: true, roundType: true, active: true, items: { select: { id: true } } }
+      where: { roundType: { in: [...courseLevelRoundTypes] }, active: true },
+      orderBy: [{ roundType: "asc" }, { version: "desc" }],
+      select: { id: true, roundType: true, version: true, active: true, items: { select: { id: true } } }
     })
   ]);
-  const rubricMap = new Map(rubrics.map((rubric) => [rubric.roundType, rubric]));
+  const rubricMap = new Map<(typeof rubrics)[number]["roundType"], (typeof rubrics)[number]>();
+  for (const rubric of rubrics) {
+    if (!rubricMap.has(rubric.roundType)) rubricMap.set(rubric.roundType, rubric);
+  }
   const missingRubricCount = baselineRubricDefinitions.filter((definition) => {
     const rubric = rubricMap.get(definition.roundType);
     return !rubric?.active || rubric.items.length === 0;
@@ -93,7 +97,7 @@ export default async function AdminRoundsPage({
             return (
               <div key={definition.roundType} className="rounded-md border border-line bg-paper p-3 text-sm">
                 <div className="font-semibold">{roundTypeLabelTh(definition.roundType)}</div>
-                <div className="mt-1 text-muted">{rubric?.items.length ?? 0} รายการ</div>
+                <div className="mt-1 text-muted">{rubric?.items.length ?? 0} รายการ{rubric ? ` · v${rubric.version}` : ""}</div>
                 <div className={isReady ? "mt-2 text-xs font-semibold text-green-700" : "mt-2 text-xs font-semibold text-red-700"}>
                   {isReady ? "พร้อมใช้งาน" : "ยังไม่พร้อม"}
                 </div>

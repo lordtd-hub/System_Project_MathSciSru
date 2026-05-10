@@ -28,6 +28,12 @@ describe("admin course round management UX", () => {
     expect(actionSource).toContain('redirectWithQuery("/admin/rounds", { error: openGate.reasonKey })');
   });
 
+  it("checks active rubric versions instead of only version 1", () => {
+    expect(pageSource).toContain("active: true");
+    expect(pageSource).toContain('orderBy: [{ roundType: "asc" }, { version: "desc" }]');
+    expect(pageSource).not.toContain("version: 1");
+  });
+
   it("offers a safe reset only through the guarded course round reset action", () => {
     expect(pageSource).toContain("resetCourseRound");
     expect(pageSource).toContain("getCourseRoundResetState");
