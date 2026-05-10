@@ -4,6 +4,7 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
+import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ConditionBasedRubricView } from "@/components/ui/ConditionBasedRubricView";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
@@ -60,6 +61,11 @@ export default async function TeacherProgress2Page({
             take: 1,
             select: { contentJson: true }
           },
+          assessmentSubmissions: {
+            where: { kind: "PROGRESS_2" },
+            orderBy: { submittedAt: "desc" },
+            take: 1
+          },
           attempts: {
             where: { assessmentRound: { roundType: "PROGRESS_2" } },
             include: {
@@ -93,6 +99,10 @@ export default async function TeacherProgress2Page({
           const previous = project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission;
           const previousItems = new Map(previous?.scoreItems.map((item) => [item.rubricItem.itemKey, item.pointsAwarded]) ?? []);
           const proposalContent = project.presentationSubmissions[0]?.contentJson as Record<string, unknown> | undefined;
+          const evidenceSubmission = project.assessmentSubmissions[0];
+          const evidenceSummary = typeof evidenceSubmission?.contentJson === "object" && evidenceSubmission?.contentJson && "summary" in evidenceSubmission.contentJson
+            ? String((evidenceSubmission.contentJson as { summary?: unknown }).summary ?? "")
+            : "";
 
           return (
             <section key={project.id} className="panel">
@@ -113,6 +123,21 @@ export default async function TeacherProgress2Page({
                   <ProgressPlanCheckpointPanel roundType="PROGRESS_2" timelineItems={proposalContent?.timelineItems} audience="evaluator" />
                 </div>
               ) : null}
+
+              <div className="mt-4 rounded-md border border-line bg-surface p-3 text-sm">
+                <div className="font-semibold">เอกสาร/หลักฐานที่นักศึกษาส่งสำหรับ Progress 2</div>
+                {evidenceSubmission ? (
+                  <div className="mt-2 space-y-2 text-muted">
+                    <div>{evidenceSubmission.title ?? "เอกสาร Progress 2"}</div>
+                    <a className="inline-flex text-brand hover:underline" href={evidenceSubmission.materialLink} target="_blank" rel="noreferrer">
+                      เปิดเอกสาร/หลักฐาน
+                    </a>
+                    {evidenceSummary ? <MarkdownLatexViewer className="border-0 bg-transparent p-0" value={evidenceSummary} /> : null}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-muted">ยังไม่พบเอกสาร Progress 2 จากนักศึกษา</div>
+                )}
+              </div>
 
               <ConditionBasedRubricView
                 title="Progress 2 condition-based rubric"

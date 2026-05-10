@@ -16,6 +16,7 @@ const successMessages: Record<string, string> = {
   proposal_submitted: "ส่ง Proposal แล้ว",
   advisor_request_reviewed: "บันทึกผลคำขอที่ปรึกษาแล้ว",
   proposal_score_saved: "บันทึก comment แล้ว",
+  assessment_evidence_saved: "บันทึกเอกสารรอบสอบเรียบร้อยแล้ว",
   schedule_saved: "บันทึกข้อเสนอวันสอบเรียบร้อยแล้ว",
   progress_1_score_saved: "บันทึกคะแนน Progress 1 เรียบร้อยแล้ว",
   progress_2_score_saved: "บันทึกคะแนน Progress 2 เรียบร้อยแล้ว",
@@ -64,6 +65,7 @@ errorMessages.schedule_round_invalid = "รอบสอบไม่ถูกต�
 errorMessages.schedule_not_available = "ยังเสนอวันสอบไม่ได้ในสถานะปัจจุบัน";
 errorMessages.schedule_round_not_open = "ยังเสนอวันสอบไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบสอบนี้ หรือรอบถูกปิดแล้ว";
 errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับ Progress 1 กรุณาตรวจสอบผล Proposal และกรรมการก่อน";
+errorMessages.assessment_evidence_required = "กรุณาบันทึกเอกสาร/หลักฐานของรอบสอบนี้ก่อนเสนอวันสอบ";
 errorMessages.report_not_available = "ยังส่งเล่มรายงานไม่ได้ในสถานะปัจจุบัน กรุณาตรวจสอบขั้นตอนของโครงงาน";
 
 errorMessages.proposal_rubric_missing = "ยังไม่มี Rubric สำหรับ Proposal กรุณาให้ผู้ดูแลระบบตั้งค่า rubric baseline ก่อนประเมิน";

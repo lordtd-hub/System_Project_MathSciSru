@@ -27,7 +27,8 @@ export default async function TeacherSchedulesPage() {
       project: {
         include: {
           student: true,
-          committeeAssignments: { where: { active: true }, include: { teacher: true } }
+          committeeAssignments: { where: { active: true }, include: { teacher: true } },
+          assessmentSubmissions: { orderBy: { submittedAt: "desc" } }
         }
       },
       approvals: { include: { teacher: true } }
@@ -45,7 +46,12 @@ export default async function TeacherSchedulesPage() {
         actor="อาจารย์ที่ปรึกษา HEAD และ MEMBER"
       />
       <div className="space-y-3">
-        {schedules.length ? schedules.map((schedule) => (
+        {schedules.length ? schedules.map((schedule) => {
+          const submission = schedule.project.assessmentSubmissions.find((item) => item.kind === schedule.assessmentKind);
+          const summary = typeof submission?.contentJson === "object" && submission?.contentJson && "summary" in submission.contentJson
+            ? String((submission.contentJson as { summary?: unknown }).summary ?? "")
+            : "";
+          return (
           <section key={schedule.id} className="panel">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -63,6 +69,20 @@ export default async function TeacherSchedulesPage() {
               <div><dt className="font-semibold">วันเวลา</dt><dd className="text-muted">{schedule.proposedStartAt.toLocaleString("th-TH")}{schedule.proposedEndAt ? ` - ${schedule.proposedEndAt.toLocaleTimeString("th-TH")}` : ""}</dd></div>
               <div><dt className="font-semibold">ห้อง</dt><dd className="text-muted">{schedule.room ?? "-"}</dd></div>
             </dl>
+            <div className="mt-4 rounded-md border border-line bg-surface p-3 text-sm">
+              <div className="font-semibold">เอกสารที่นักศึกษาส่งสำหรับรอบนี้</div>
+              {submission ? (
+                <div className="mt-2 space-y-2 text-muted">
+                  <div>{submission.title ?? "เอกสารประกอบรอบสอบ"}</div>
+                  <a className="inline-flex text-brand hover:underline" href={submission.materialLink} target="_blank" rel="noreferrer">
+                    เปิดเอกสาร/หลักฐาน
+                  </a>
+                  {summary ? <MarkdownLatexViewer className="border-0 bg-transparent p-0" value={summary} /> : null}
+                </div>
+              ) : (
+                <div className="mt-2 text-muted">ยังไม่พบเอกสารของรอบนี้</div>
+              )}
+            </div>
             {schedule.note ? <MarkdownLatexViewer className="mt-3" value={schedule.note} /> : null}
             <div className="mt-4 text-sm">
               <div className="font-semibold">กรรมการ</div>
@@ -75,7 +95,8 @@ export default async function TeacherSchedulesPage() {
               </div>
             </div>
           </section>
-        )) : (
+          );
+        }) : (
           <EmptyState title="ยังไม่มีตารางสอบที่เกี่ยวข้อง" description="เมื่อมีนักศึกษาส่งข้อเสนอวันสอบ รายการจะปรากฏที่นี่" />
         )}
       </div>

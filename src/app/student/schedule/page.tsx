@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { submitExamSchedule } from "@/app/student/actions";
+import { saveAssessmentEvidence, submitExamSchedule } from "@/app/student/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -8,6 +8,7 @@ import { FormSection } from "@/components/ui/FormSection";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
+import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
 import { ProgressQaRubricPanel } from "@/components/ui/ProgressQaRubricPanel";
@@ -27,6 +28,16 @@ function scheduleRoundLabel(roundType: (typeof scheduleRoundTypes)[number]) {
   if (roundType === "PROGRESS_1") return "Progress 1";
   if (roundType === "PROGRESS_2") return "Progress 2";
   return "Final Presentation";
+}
+
+function scheduleKindLabel(kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") {
+  if (kind === "PROGRESS_1") return "Progress 1";
+  if (kind === "PROGRESS_2") return "Progress 2";
+  return "Final Presentation";
+}
+
+function roundTypeToScheduleKind(roundType: (typeof scheduleRoundTypes)[number]) {
+  return roundType === "FINAL_PRESENTATION" ? "FINAL_PRESENT" : roundType;
 }
 
 export default async function StudentSchedulePage({
@@ -89,6 +100,12 @@ export default async function StudentSchedulePage({
     PROGRESS_2: project.assessmentSubmissions.some((item) => item.kind === "PROGRESS_2"),
     FINAL_PRESENT: project.assessmentSubmissions.some((item) => item.kind === "FINAL_PRESENT")
   };
+  const latestSubmissionByKind = new Map<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", (typeof project.assessmentSubmissions)[number]>();
+  for (const submission of project.assessmentSubmissions) {
+    if (submission.kind === "PROGRESS_1" || submission.kind === "PROGRESS_2" || submission.kind === "FINAL_PRESENT") {
+      if (!latestSubmissionByKind.has(submission.kind)) latestSubmissionByKind.set(submission.kind, submission);
+    }
+  }
   const anyOpenRound = rounds.some((round) => isRoundOpen(round.status));
   const visibleGuidanceRounds = scheduleRoundTypes.filter((roundType) => {
     const round = roundMap.get(roundType);
@@ -96,6 +113,7 @@ export default async function StudentSchedulePage({
     if (roundType === "PROGRESS_1") return progress1Readiness.eligible;
     return true;
   });
+  const schedulableRoundsWithEvidence = visibleGuidanceRounds.filter((roundType) => latestSubmissionByKind.has(roundTypeToScheduleKind(roundType)));
 
   return (
     <div className="space-y-6">
@@ -186,11 +204,83 @@ export default async function StudentSchedulePage({
           );
         })}
       </section>
-      <FormSection title="เสนอวันสอบใหม่" description="ระบบจะอัปเดตรายการเดิมของโปรเจคนี้ในรอบเดียวกัน ไม่สร้างรายการซ้ำ">
-        {!progress1Open ? (
-          <WarningAlert title="รอบ Progress 1 ยังไม่เปิด">นักศึกษาจะเสนอวันสอบ Progress 1 ได้หลังผู้ดูแลระบบเปิดรอบระดับรายวิชา</WarningAlert>
-        ) : !progress1Readiness.eligible ? (
-          <WarningAlert title={progress1Readiness.reasons.map(reasonLabelTh)[0] ?? "ยังไม่พร้อมสำหรับ Progress 1"} />
+      <FormSection
+        title="1. บันทึกเอกสาร/หลักฐานสำหรับรอบสอบ"
+        description="ให้นักศึกษาบันทึกลิงก์เอกสารและสรุปหลักฐานของรอบสอบก่อน ระบบจึงจะเปิดให้เสนอวันสอบรอบนั้นได้"
+      >
+        <div className="grid gap-3 md:grid-cols-3">
+          {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
+            const submission = latestSubmissionByKind.get(kind);
+            const summary = typeof submission?.contentJson === "object" && submission?.contentJson && "summary" in submission.contentJson
+              ? String((submission.contentJson as { summary?: unknown }).summary ?? "")
+              : "";
+            return (
+              <div key={kind} className="rounded-md border border-line bg-surface p-3 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="font-semibold">{scheduleKindLabel(kind)}</div>
+                  <span className={submission ? "rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700" : "rounded-full border border-line px-2 py-0.5 text-xs text-muted"}>
+                    {submission ? "มีเอกสารแล้ว" : "ยังไม่มีเอกสาร"}
+                  </span>
+                </div>
+                {submission ? (
+                  <div className="mt-2 space-y-1 text-muted">
+                    <div>{submission.title ?? "เอกสารประกอบรอบสอบ"}</div>
+                    <a className="text-brand hover:underline" href={submission.materialLink} target="_blank" rel="noreferrer">
+                      เปิดเอกสาร
+                    </a>
+                    {summary ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={summary} /> : null}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-muted">บันทึกเอกสารก่อนเสนอวันสอบ เพื่อให้กรรมการเห็นหลักฐานพร้อมกับคำขอนัดสอบ</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <form action={saveAssessmentEvidence} className="mt-4 grid gap-4 md:grid-cols-3">
+          <div>
+            <label>รอบสอบที่ต้องการบันทึกเอกสาร</label>
+            <select name="assessment_kind" defaultValue={visibleGuidanceRounds[0] ? roundTypeToScheduleKind(visibleGuidanceRounds[0]) : "PROGRESS_1"}>
+              {scheduleRoundTypes.map((roundType) => {
+                const round = roundMap.get(roundType);
+                const open = Boolean(round && isRoundOpen(round.status));
+                const kind = roundTypeToScheduleKind(roundType);
+                const disabled = !open || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
+                return (
+                  <option key={roundType} value={kind} disabled={disabled}>
+                    {scheduleRoundLabel(roundType)} {disabled ? "(ยังไม่พร้อม)" : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label>ชื่อเอกสาร/ชุดหลักฐาน</label>
+            <input name="submission_title" placeholder="เช่น เอกสาร Progress 1 และหลักฐานประกอบ" />
+          </div>
+          <div className="md:col-span-3">
+            <MaterialLinkField />
+          </div>
+          <div className="md:col-span-3">
+            <MarkdownLatexEditor
+              name="evidence_summary"
+              label="สรุปเอกสารและหลักฐาน"
+              placeholder="ระบุว่างานใดเสร็จแล้ว หลักฐานอยู่ตรงไหน มีความล่าช้าหรือปรับแผนอะไรบ้าง ใช้ $...$ ได้"
+              required
+              rows={5}
+            />
+          </div>
+          <div className="md:col-span-3">
+            <SubmitButton disabled={!visibleGuidanceRounds.length} pendingText="กำลังบันทึกเอกสาร...">
+              บันทึกเอกสารรอบสอบ
+            </SubmitButton>
+          </div>
+        </form>
+      </FormSection>
+      <FormSection title="2. เสนอวันสอบใหม่" description="ระบบจะอัปเดตรายการเดิมของโปรเจคนี้ในรอบเดียวกัน ไม่สร้างรายการซ้ำ และแนบเอกสารรอบสอบที่บันทึกไว้ให้กรรมการตรวจประกอบการอนุมัติ">
+        {!schedulableRoundsWithEvidence.length ? (
+          <WarningAlert title="ต้องบันทึกเอกสารก่อนเสนอวันสอบ">บันทึกลิงก์เอกสาร/หลักฐานของรอบสอบก่อน แล้วจึงเสนอวัน เวลา และห้องสอบให้กรรมการพิจารณา</WarningAlert>
         ) : null}
         <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
@@ -198,10 +288,12 @@ export default async function StudentSchedulePage({
             <select name="round_type" defaultValue="PROGRESS_1">
               {scheduleRoundTypes.map((roundType) => {
                 const round = roundMap.get(roundType);
-                const disabled = project.status !== "IN_PROGRESS" || !round || !isRoundOpen(round.status) || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
+                const kind = roundTypeToScheduleKind(roundType);
+                const hasEvidence = latestSubmissionByKind.has(kind);
+                const disabled = project.status !== "IN_PROGRESS" || !round || !isRoundOpen(round.status) || !hasEvidence || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
                 return (
                   <option key={roundType} value={roundType} disabled={disabled}>
-                    {roundType === "FINAL_PRESENTATION" ? "Final Present" : roundType.replace("_", " ")} {round && isRoundOpen(round.status) ? "" : "(ยังไม่เปิด)"}
+                    {scheduleRoundLabel(roundType)} {disabled ? hasEvidence ? "(ยังไม่พร้อม)" : "(ยังไม่มีเอกสาร)" : ""}
                   </option>
                 );
               })}
@@ -231,7 +323,7 @@ export default async function StudentSchedulePage({
               <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
                 บันทึกไว้ก่อน
               </button>
-              <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound} pendingText="กำลังบันทึกวันสอบ..." className="w-full sm:w-auto">
+              <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound || !schedulableRoundsWithEvidence.length} pendingText="กำลังบันทึกวันสอบ..." className="w-full sm:w-auto">
                 ส่ง/แก้ไขข้อเสนอวันสอบ
               </SubmitButton>
             </div>

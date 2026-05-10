@@ -15,6 +15,8 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("isRoundOpen(round.status)");
     expect(actions).toContain('project.status !== "IN_PROGRESS"');
     expect(actions).toContain("assessmentRoundId: round.id");
+    expect(actions).toContain("saveAssessmentEvidence");
+    expect(actions).toContain("assessment_evidence_required");
     expect(actions).toContain("findFirst");
     expect(actions).toContain("examScheduleProposal.update");
     expect(actions).toContain("examScheduleProposal.create");
@@ -32,6 +34,19 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("visibleGuidanceRounds.map");
     expect(page).toContain('roundType === "PROGRESS_1" || roundType === "PROGRESS_2"');
     expect(page).toContain('roundType === "FINAL_PRESENTATION"');
+    expect(page).toContain("บันทึกเอกสาร/หลักฐานสำหรับรอบสอบ");
+    expect(page).toContain("saveAssessmentEvidence");
+    expect(page).toContain("schedulableRoundsWithEvidence");
+  });
+
+  it("shows assessment evidence to committee teachers before scoring", () => {
+    const teacherSchedules = read("src/app/teacher/schedules/page.tsx");
+    const progress1 = read("src/app/teacher/progress1/page.tsx");
+    const progress2 = read("src/app/teacher/progress2/page.tsx");
+    expect(teacherSchedules).toContain("assessmentSubmissions");
+    expect(teacherSchedules).toContain("เปิดเอกสาร/หลักฐาน");
+    expect(progress1).toContain('where: { kind: "PROGRESS_1" }');
+    expect(progress2).toContain('where: { kind: "PROGRESS_2" }');
   });
 
   it("keeps Progress 1 scoring assigned-teacher only and duplicate-safe", () => {

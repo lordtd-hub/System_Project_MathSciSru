@@ -350,6 +350,83 @@ export async function saveProposalSubmission(formData: FormData) {
   redirect("/student/proposal?success=proposal_submitted");
 }
 
+export async function saveAssessmentEvidence(formData: FormData) {
+  const { userId, student, project } = await requireStudentContext();
+  assertRateLimit(`student:${userId}:saveAssessmentEvidence`, pilotRateLimits.workflowMutation);
+  const kind = String(formData.get("assessment_kind") ?? "");
+  const roundType = kind === "FINAL_PRESENT" ? "FINAL_PRESENTATION" : kind;
+  if (!["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"].includes(kind) || !isSchedulableRoundType(roundType)) {
+    redirectWithQuery("/student/schedule", { error: "schedule_round_invalid" });
+  }
+  if (project.status !== "IN_PROGRESS") redirectWithQuery("/student/schedule", { error: "schedule_not_available" });
+
+  const round = await prisma.assessmentRound.findUnique({
+    where: {
+      courseOfferingId_roundType: {
+        courseOfferingId: project.courseOfferingId,
+        roundType
+      }
+    }
+  });
+  if (!round || !isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+
+  if (roundType === "PROGRESS_1") {
+    const fullProject = await prisma.project.findUniqueOrThrow({
+      where: { id: project.id },
+      include: {
+        proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
+        committeeAssignments: true,
+        roundExceptions: { where: { assessmentRoundId: round.id, status: { not: "RESOLVED" } } }
+      }
+    });
+    const readiness = getProgress1Readiness(fullProject);
+    if (!readiness.eligible) redirectWithQuery("/student/schedule", { error: "progress_1_project_not_ready" });
+  }
+
+  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบการสอบ");
+  const linkResult = validateMaterialLink(materialLink);
+  if (!linkResult.ok) throw new Error(linkResult.reason);
+  const title = String(formData.get("submission_title") ?? "").trim() || null;
+  const summary = requiredText(formData, "evidence_summary", "สรุปเอกสารและหลักฐาน");
+  assertTextSize(summary, requestSizeLimits.markdownTextBytes, "สรุปเอกสารและหลักฐาน");
+  const markdownErrors = validateMarkdownInput(summary, "สรุปเอกสารและหลักฐาน");
+  if (markdownErrors.length) throw new Error(markdownErrors.join("\n"));
+
+  const existing = await prisma.assessmentSubmission.findFirst({
+    where: { projectId: project.id, kind: kind as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT" },
+    orderBy: { submittedAt: "desc" }
+  });
+  const data = {
+    studentId: student.id,
+    kind: kind as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT",
+    title,
+    materialLink: linkResult.normalizedUrl,
+    contentJson: { summary },
+    submittedAt: new Date()
+  };
+  const submission = existing
+    ? await prisma.assessmentSubmission.update({ where: { id: existing.id }, data })
+    : await prisma.assessmentSubmission.create({ data: { ...data, projectId: project.id } });
+
+  await prisma.projectTimelineEvent.create({
+    data: {
+      projectId: project.id,
+      eventType: "ASSESSMENT_EVIDENCE_SAVED",
+      eventTitle: `บันทึกเอกสาร ${roundType}`,
+      eventDescription: summary,
+      actorUserId: userId,
+      relatedEntityType: "AssessmentSubmission",
+      relatedEntityId: submission.id,
+      metadataJson: { kind, roundType, materialLink: linkResult.normalizedUrl }
+    }
+  });
+
+  revalidatePath("/student");
+  revalidatePath("/student/schedule");
+  revalidatePath("/teacher/schedules");
+  redirect("/student/schedule?success=assessment_evidence_saved");
+}
+
 export async function submitExamSchedule(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
   assertRateLimit(`student:${userId}:submitExamSchedule`, pilotRateLimits.workflowMutation);
@@ -367,6 +444,13 @@ export async function submitExamSchedule(formData: FormData) {
   });
   if (!round) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
   if (!isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  const assessmentKind = roundTypeToAssessmentKind(roundType);
+  const evidence = await prisma.assessmentSubmission.findFirst({
+    where: { projectId: project.id, kind: assessmentKind },
+    orderBy: { submittedAt: "desc" },
+    select: { id: true }
+  });
+  if (!evidence) redirectWithQuery("/student/schedule", { error: "assessment_evidence_required" });
 
   if (roundType === "PROGRESS_1") {
     const fullProject = await prisma.project.findUniqueOrThrow({
@@ -401,7 +485,7 @@ export async function submitExamSchedule(formData: FormData) {
     courseOfferingId: project.courseOfferingId,
     assessmentRoundId: round.id,
     roundType,
-    assessmentKind: roundTypeToAssessmentKind(roundType),
+    assessmentKind,
     proposedStartAt: start,
     proposedEndAt: end,
     room,
@@ -437,7 +521,7 @@ export async function submitExamSchedule(formData: FormData) {
       actorUserId: userId,
       relatedEntityType: "ExamScheduleProposal",
       relatedEntityId: schedule.id,
-      metadataJson: { roundType, proposedStartAt: start.toISOString(), room }
+      metadataJson: { roundType, assessmentSubmissionId: evidence.id, proposedStartAt: start.toISOString(), room }
     }
   });
 
