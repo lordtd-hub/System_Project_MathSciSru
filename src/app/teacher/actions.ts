@@ -10,14 +10,13 @@ import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
-import { finalCriteria, totalFinalNormalizedScore, totalFinalRawScore, validateFinalScore, type FinalScoreInput } from "@/lib/scoring/finalScoring";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
-import { calculateChecklistScore, validateProposalDecision } from "@/lib/scoring/checklistScoring";
+import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
+import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
+import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
+import { calculateFinalQaCriterionScore, finalQaRubricItems, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
+import { calculateProgressQaCriterionScore, findProgressQaCriterion, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
 import {
-  progress1Criteria,
-  progress2Criteria,
-  totalProgress1Score,
-  totalProgress2Score,
   validateProgress1Score,
   validateProgress2Score,
   type Progress1ScoreInput,
@@ -183,24 +182,29 @@ export async function submitProposalScore(formData: FormData) {
   if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
 
-  const rubric = await timer.measure("load_rubric", () => prisma.rubric.findFirst({
-    where: { roundType: "PROPOSAL", active: true },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  }));
+  const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));
   if (!rubric || rubric.items.length === 0) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_rubric_missing" });
   }
 
   const checkedIds = new Set(formData.getAll("checked_item").map(String));
-  const scoreResult = calculateChecklistScore(
-    rubric.items.map((item) => ({
-      id: item.id,
-      label: item.itemLabelTh,
-      points: item.points,
-      checked: checkedIds.has(item.id),
-      isCritical: item.isCritical
-    }))
-  );
+  const scoredItems = rubric.items.map((item) => {
+    const proposalCriterion = findProposalQaCriterion(item.itemKey);
+    if (proposalCriterion) {
+      const rawConditionCount = Number(formData.get(`condition_count:${item.id}`) ?? 0);
+      const conditionCount = Number.isFinite(rawConditionCount) ? rawConditionCount : 0;
+      const pointsAwarded = calculateCriterionScore(proposalCriterion, conditionCount);
+      return { item, checked: pointsAwarded > 0, pointsAwarded };
+    }
+
+    const checked = checkedIds.has(item.id);
+    return { item, checked, pointsAwarded: checked ? item.points : 0 };
+  });
+  const scoreResult = {
+    totalScore: scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0),
+    maxScore: rubric.items.reduce((sum, item) => sum + item.points, 0),
+    criticalWarnings: scoredItems.filter((scoredItem) => scoredItem.item.isCritical && scoredItem.pointsAwarded === 0).map((scoredItem) => scoredItem.item.itemLabelTh)
+  };
   const decisionErrors = submitMode === "submit" ? validateProposalDecision(decision, reason) : [];
   if (submitMode === "submit" && !overallComment) {
     decisionErrors.push("กรุณาระบุ comment เพื่อให้นักศึกษาเห็น feedback");
@@ -227,18 +231,18 @@ export async function submitProposalScore(formData: FormData) {
   }));
 
   await timer.measure("upsert_score_items", () => Promise.all(
-    rubric.items.map((item) =>
+    scoredItems.map(({ item, checked, pointsAwarded }) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
         update: {
-          checked: checkedIds.has(item.id),
-          pointsAwarded: checkedIds.has(item.id) ? item.points : 0
+          checked,
+          pointsAwarded
         },
         create: {
           scoreSubmissionId: scoreSubmission.id,
           rubricItemId: item.id,
-          checked: checkedIds.has(item.id),
-          pointsAwarded: checkedIds.has(item.id) ? item.points : 0
+          checked,
+          pointsAwarded
         }
       })
     )
@@ -322,23 +326,28 @@ async function ensureProgress1Rubric() {
     where: { roundType: "PROGRESS_1", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
   });
-  if (existing && existing.items.length === progress1Criteria.length) return existing;
+  const items = progressQaRubricItems();
+  const hasConditionItems = existing?.items.some((item) => Boolean(findProgressQaCriterion(item.itemKey)));
+  if (existing && hasConditionItems) return existing;
 
   const latest = await prisma.rubric.findFirst({ where: { roundType: "PROGRESS_1" }, orderBy: { version: "desc" } });
+  await prisma.rubric.updateMany({ where: { roundType: "PROGRESS_1", active: true }, data: { active: false } });
   return prisma.rubric.create({
     data: {
       roundType: "PROGRESS_1",
-      name: "Progress 1 Rubric",
+      name: "Progress 1 Plan-Based Condition Rubric",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {
-        create: progress1Criteria.map((criterion) => ({
-          groupKey: criterion.key,
-          groupLabelTh: criterion.label,
-          itemKey: criterion.key,
-          itemLabelTh: criterion.label,
-          points: criterion.max,
-          displayOrder: criterion.order
+        create: items.map((item) => ({
+          groupKey: item.groupKey,
+          groupLabelTh: item.groupLabelTh,
+          itemKey: item.itemKey,
+          itemLabelTh: item.itemLabelTh,
+          points: item.points,
+          displayOrder: item.displayOrder,
+          isCritical: item.isCritical,
+          evidenceHint: item.evidenceHint
         }))
       }
     },
@@ -351,23 +360,28 @@ async function ensureProgress2Rubric() {
     where: { roundType: "PROGRESS_2", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
   });
-  if (existing && existing.items.length === progress2Criteria.length) return existing;
+  const items = progressQaRubricItems();
+  const hasConditionItems = existing?.items.some((item) => Boolean(findProgressQaCriterion(item.itemKey)));
+  if (existing && hasConditionItems) return existing;
 
   const latest = await prisma.rubric.findFirst({ where: { roundType: "PROGRESS_2" }, orderBy: { version: "desc" } });
+  await prisma.rubric.updateMany({ where: { roundType: "PROGRESS_2", active: true }, data: { active: false } });
   return prisma.rubric.create({
     data: {
       roundType: "PROGRESS_2",
-      name: "Progress 2 Rubric",
+      name: "Progress 2 Plan-Based Condition Rubric",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {
-        create: progress2Criteria.map((criterion) => ({
-          groupKey: criterion.key,
-          groupLabelTh: criterion.label,
-          itemKey: criterion.key,
-          itemLabelTh: criterion.label,
-          points: criterion.max,
-          displayOrder: criterion.order
+        create: items.map((item) => ({
+          groupKey: item.groupKey,
+          groupLabelTh: item.groupLabelTh,
+          itemKey: item.itemKey,
+          itemLabelTh: item.itemLabelTh,
+          points: item.points,
+          displayOrder: item.displayOrder,
+          isCritical: item.isCritical,
+          evidenceHint: item.evidenceHint
         }))
       }
     },
@@ -380,23 +394,28 @@ async function ensureFinalRubric() {
     where: { roundType: "FINAL_PRESENTATION", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
   });
-  if (existing && existing.items.length === finalCriteria.length) return existing;
+  const finalItems = finalQaRubricItems();
+  const hasExpectedItems = existing?.items.some((item) => Boolean(findFinalQaCriterion(item.itemKey)));
+  if (existing && hasExpectedItems) return existing;
 
   const latest = await prisma.rubric.findFirst({ where: { roundType: "FINAL_PRESENTATION" }, orderBy: { version: "desc" } });
+  await prisma.rubric.updateMany({ where: { roundType: "FINAL_PRESENTATION", active: true }, data: { active: false } });
   return prisma.rubric.create({
     data: {
       roundType: "FINAL_PRESENTATION",
-      name: "Final Presentation Rubric",
+      name: "Final Evidence-Driven Condition Rubric",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {
-        create: finalCriteria.map((criterion) => ({
-          groupKey: criterion.key,
-          groupLabelTh: criterion.label,
-          itemKey: criterion.key,
-          itemLabelTh: criterion.label,
-          points: criterion.max,
-          displayOrder: criterion.order
+        create: finalItems.map((item) => ({
+          groupKey: item.groupKey,
+          groupLabelTh: item.groupLabelTh,
+          itemKey: item.itemKey,
+          itemLabelTh: item.itemLabelTh,
+          points: item.points,
+          displayOrder: item.displayOrder,
+          isCritical: item.isCritical,
+          evidenceHint: item.evidenceHint
         }))
       }
     },
@@ -438,6 +457,26 @@ export async function submitProgress1Score(formData: FormData) {
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
   }));
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
+  const valuesByKey: Record<string, number> = {
+    progress: input.progress,
+    problemSolving: input.problemSolving,
+    researchResults: input.researchResults,
+    presentation: input.presentation,
+    overall: input.overall
+  };
+  const scoredItems = rubric.items.map((item) => {
+    const progressCriterion = findProgressQaCriterion(item.itemKey);
+    if (progressCriterion) {
+      const rawConditionCount = Number(formData.get(`condition_count:${item.id}`) ?? 0);
+      const conditionCount = Number.isFinite(rawConditionCount) ? rawConditionCount : 0;
+      const pointsAwarded = calculateProgressQaCriterionScore(progressCriterion, conditionCount);
+      return { item, checked: pointsAwarded > 0, pointsAwarded };
+    }
+
+    const pointsAwarded = valuesByKey[item.itemKey] ?? 0;
+    return { item, checked: pointsAwarded > 0, pointsAwarded };
+  });
+  const progressTotalScore = scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0);
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -467,23 +506,16 @@ export async function submitProgress1Score(formData: FormData) {
   });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
-    update: { totalScore: totalProgress1Score(input), overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
-    create: { evaluatorAssignmentId: assignment.id, totalScore: totalProgress1Score(input), overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
+    update: { totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
+    create: { evaluatorAssignmentId: assignment.id, totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
   });
 
-  const valuesByKey: Record<string, number> = {
-    progress: input.progress,
-    problemSolving: input.problemSolving,
-    researchResults: input.researchResults,
-    presentation: input.presentation,
-    overall: input.overall
-  };
   await timer.measure("upsert_score_items", () => Promise.all(
-    rubric.items.map((item) =>
+    scoredItems.map(({ item, checked, pointsAwarded }) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
-        update: { checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 },
-        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 }
+        update: { checked, pointsAwarded },
+        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked, pointsAwarded }
       })
     )
   ));
@@ -496,7 +528,7 @@ export async function submitProgress1Score(formData: FormData) {
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
       relatedEntityId: scoreSubmission.id,
-      metadataJson: { totalScore: totalProgress1Score(input) }
+      metadataJson: { totalScore: progressTotalScore }
     }
   }));
 
@@ -539,6 +571,26 @@ export async function submitProgress2Score(formData: FormData) {
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
   }));
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
+  const valuesByKey: Record<string, number> = {
+    progress: input.progress,
+    problemSolving: input.problemSolving,
+    researchResults: input.researchResults,
+    presentation: input.presentation,
+    overall: input.overall
+  };
+  const scoredItems = rubric.items.map((item) => {
+    const progressCriterion = findProgressQaCriterion(item.itemKey);
+    if (progressCriterion) {
+      const rawConditionCount = Number(formData.get(`condition_count:${item.id}`) ?? 0);
+      const conditionCount = Number.isFinite(rawConditionCount) ? rawConditionCount : 0;
+      const pointsAwarded = calculateProgressQaCriterionScore(progressCriterion, conditionCount);
+      return { item, checked: pointsAwarded > 0, pointsAwarded };
+    }
+
+    const pointsAwarded = valuesByKey[item.itemKey] ?? 0;
+    return { item, checked: pointsAwarded > 0, pointsAwarded };
+  });
+  const progressTotalScore = scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0);
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -568,23 +620,16 @@ export async function submitProgress2Score(formData: FormData) {
   });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
-    update: { totalScore: totalProgress2Score(input), overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
-    create: { evaluatorAssignmentId: assignment.id, totalScore: totalProgress2Score(input), overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
+    update: { totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
+    create: { evaluatorAssignmentId: assignment.id, totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
   });
 
-  const valuesByKey: Record<string, number> = {
-    progress: input.progress,
-    problemSolving: input.problemSolving,
-    researchResults: input.researchResults,
-    presentation: input.presentation,
-    overall: input.overall
-  };
   await timer.measure("upsert_score_items", () => Promise.all(
-    rubric.items.map((item) =>
+    scoredItems.map(({ item, checked, pointsAwarded }) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
-        update: { checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 },
-        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 }
+        update: { checked, pointsAwarded },
+        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked, pointsAwarded }
       })
     )
   ));
@@ -597,7 +642,7 @@ export async function submitProgress2Score(formData: FormData) {
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
       relatedEntityId: scoreSubmission.id,
-      metadataJson: { totalScore: totalProgress2Score(input) }
+      metadataJson: { totalScore: progressTotalScore }
     }
   }));
 
@@ -614,13 +659,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   assertTextSize(comment, requestSizeLimits.commentTextBytes, "Final Presentation comment");
-  const input: FinalScoreInput = {
-    researchResults: Number(formData.get("research_results")),
-    executionProblemSolving: Number(formData.get("execution_problem_solving")),
-    presentation: Number(formData.get("presentation")),
-    overall: Number(formData.get("overall"))
-  };
-  const errors = validateFinalScore(input);
+  const errors: string[] = [];
   if (comment) errors.push(...validateMarkdownInput(comment, "Final Presentation comment"));
   if (errors.length) throw new Error(errors.join("\n"));
 
@@ -641,6 +680,18 @@ export async function submitFinalPresentationScore(formData: FormData) {
   if (!round) throw new Error("ยังไม่มีรอบ Final Presentation ระดับรายวิชา");
 
   const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
+  const scoredItems = rubric.items.map((item) => {
+    const qaCriterion = findFinalQaCriterion(item.itemKey);
+    if (qaCriterion) {
+      const rawConditionCount = Number(formData.get(`condition_count:${item.itemKey}`) ?? 0);
+      const conditionCount = Number.isFinite(rawConditionCount) ? rawConditionCount : 0;
+      const pointsAwarded = calculateFinalQaCriterionScore(qaCriterion, conditionCount);
+      return { item, checked: pointsAwarded > 0, pointsAwarded };
+    }
+
+    return { item, checked: false, pointsAwarded: 0 };
+  });
+  const finalTotalScore = scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0);
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -671,7 +722,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
     update: {
-      totalScore: totalFinalNormalizedScore(input),
+      totalScore: finalTotalScore,
       overallComment: comment || null,
       status: "SUBMITTED",
       submittedAt: new Date(),
@@ -679,7 +730,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     },
     create: {
       evaluatorAssignmentId: assignment.id,
-      totalScore: totalFinalNormalizedScore(input),
+      totalScore: finalTotalScore,
       overallComment: comment || null,
       status: "SUBMITTED",
       submittedAt: new Date(),
@@ -687,18 +738,12 @@ export async function submitFinalPresentationScore(formData: FormData) {
     }
   });
 
-  const valuesByKey: Record<string, number> = {
-    researchResults: input.researchResults,
-    executionProblemSolving: input.executionProblemSolving,
-    presentation: input.presentation,
-    overall: input.overall
-  };
   await timer.measure("upsert_score_items", () => Promise.all(
-    rubric.items.map((item) =>
+    scoredItems.map(({ item, checked, pointsAwarded }) =>
       prisma.scoreItem.upsert({
         where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
-        update: { checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 },
-        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked: valuesByKey[item.itemKey] > 0, pointsAwarded: valuesByKey[item.itemKey] ?? 0 }
+        update: { checked, pointsAwarded },
+        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked, pointsAwarded }
       })
     )
   ));
@@ -711,7 +756,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
       relatedEntityId: scoreSubmission.id,
-      metadataJson: { rawScore: totalFinalRawScore(input), normalizedScore: totalFinalNormalizedScore(input) }
+      metadataJson: { rubricMode: "condition_based_final", totalScore: finalTotalScore }
     }
   }));
 

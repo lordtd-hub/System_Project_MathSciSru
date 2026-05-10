@@ -1,6 +1,7 @@
 import { AssessmentRoundType, type PrismaClient } from "@prisma/client";
-import { finalCriteria } from "@/lib/scoring/finalScoring";
-import { progress1Criteria, progress2Criteria } from "@/lib/scoring/progress1Scoring";
+import { finalQaRubricItems } from "@/lib/rubrics/finalQaRubric";
+import { progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
+import { proposalQaRubricItems } from "@/lib/rubrics/proposalQaRubric";
 
 type BaselineRubricItem = {
   groupKey: string;
@@ -19,111 +20,35 @@ type BaselineRubricDefinition = {
   items: BaselineRubricItem[];
 };
 
-const proposalBaselineItems: BaselineRubricItem[] = [
-  {
-    groupKey: "clarity",
-    groupLabelTh: "Clarity of Proposal",
-    itemKey: "clarity_overall",
-    itemLabelTh: "Problem statement, objectives, and scope are clear",
-    points: 20,
-    displayOrder: 1,
-    isCritical: true
-  },
-  {
-    groupKey: "relevance",
-    groupLabelTh: "Relevance of Project",
-    itemKey: "relevance_overall",
-    itemLabelTh: "Project is relevant to mathematical project course expectations",
-    points: 20,
-    displayOrder: 2,
-    isCritical: true
-  },
-  {
-    groupKey: "research_plan",
-    groupLabelTh: "Quality of Research Plan",
-    itemKey: "research_plan_overall",
-    itemLabelTh: "Methods, references, timeline, and feasibility are appropriate",
-    points: 30,
-    displayOrder: 3,
-    isCritical: true
-  },
-  {
-    groupKey: "presentation",
-    groupLabelTh: "Presentation and Communication",
-    itemKey: "presentation_overall",
-    itemLabelTh: "Presentation communicates the proposal clearly",
-    points: 20,
-    displayOrder: 4
-  },
-  {
-    groupKey: "overall",
-    groupLabelTh: "Overall / Readiness",
-    itemKey: "overall_readiness",
-    itemLabelTh: "Student is ready to proceed with the project",
-    points: 10,
-    displayOrder: 5
-  }
-];
-
-function scoringCriteriaToRubricItems(
-  criteria: readonly { key: string; label: string; max: number; order: number }[],
-  groupPrefix: string
-): BaselineRubricItem[] {
-  return criteria.map((criterion) => ({
-    groupKey: `${groupPrefix}_${criterion.key}`,
-    groupLabelTh: criterion.label,
-    itemKey: criterion.key,
-    itemLabelTh: criterion.label,
-    points: criterion.max,
-    displayOrder: criterion.order,
-    isCritical: criterion.order <= 3
-  }));
-}
-
 export const baselineRubricDefinitions: BaselineRubricDefinition[] = [
   {
     roundType: AssessmentRoundType.PROPOSAL,
-    name: "Proposal Presentation Rubric",
-    items: proposalBaselineItems
+    name: "Proposal Presentation Condition Rubric",
+    items: proposalQaRubricItems()
   },
   {
     roundType: AssessmentRoundType.PROGRESS_1,
-    name: "Progress 1 Presentation Rubric",
-    items: scoringCriteriaToRubricItems(progress1Criteria, "progress1")
+    name: "Progress 1 Plan-Based Condition Rubric",
+    items: progressQaRubricItems()
   },
   {
     roundType: AssessmentRoundType.PROGRESS_2,
-    name: "Progress 2 Presentation Rubric",
-    items: scoringCriteriaToRubricItems(progress2Criteria, "progress2")
+    name: "Progress 2 Plan-Based Condition Rubric",
+    items: progressQaRubricItems()
   },
   {
     roundType: AssessmentRoundType.FINAL_PRESENTATION,
-    name: "Final Presentation Rubric",
-    items: scoringCriteriaToRubricItems(finalCriteria, "final")
+    name: "Final Evidence-Driven Condition Rubric",
+    items: finalQaRubricItems()
   }
 ];
 
-async function seedRubric(prisma: PrismaClient, definition: BaselineRubricDefinition) {
-  const rubric = await prisma.rubric.upsert({
-    where: { roundType_version: { roundType: definition.roundType, version: 1 } },
-    create: { roundType: definition.roundType, version: 1, name: definition.name, active: true },
-    update: { name: definition.name, active: true }
-  });
-
-  const existingItemCount = await prisma.rubricItem.count({ where: { rubricId: rubric.id } });
-  const matchingItemCount = await prisma.rubricItem.count({
-    where: { rubricId: rubric.id, itemKey: { in: definition.items.map((item) => item.itemKey) } }
-  });
-
-  if (existingItemCount > 0 && matchingItemCount === 0) {
-    return { roundType: definition.roundType, itemCount: existingItemCount, action: "kept-existing-items" as const };
-  }
-
-  for (const item of definition.items) {
+async function upsertRubricItems(prisma: PrismaClient, rubricId: string, items: BaselineRubricItem[]) {
+  for (const item of items) {
     await prisma.rubricItem.upsert({
-      where: { rubricId_itemKey: { rubricId: rubric.id, itemKey: item.itemKey } },
+      where: { rubricId_itemKey: { rubricId, itemKey: item.itemKey } },
       create: {
-        rubricId: rubric.id,
+        rubricId,
         groupKey: item.groupKey,
         groupLabelTh: item.groupLabelTh,
         itemKey: item.itemKey,
@@ -144,6 +69,49 @@ async function seedRubric(prisma: PrismaClient, definition: BaselineRubricDefini
       }
     });
   }
+}
+
+async function seedRubric(prisma: PrismaClient, definition: BaselineRubricDefinition) {
+  const rubric = await prisma.rubric.upsert({
+    where: { roundType_version: { roundType: definition.roundType, version: 1 } },
+    create: { roundType: definition.roundType, version: 1, name: definition.name, active: true },
+    update: { name: definition.name, active: true }
+  });
+
+  const existingItemCount = await prisma.rubricItem.count({ where: { rubricId: rubric.id } });
+  const matchingItemCount = await prisma.rubricItem.count({
+    where: { rubricId: rubric.id, itemKey: { in: definition.items.map((item) => item.itemKey) } }
+  });
+
+  if (existingItemCount > 0 && matchingItemCount === 0) {
+    if (
+      definition.roundType === AssessmentRoundType.PROPOSAL ||
+      definition.roundType === AssessmentRoundType.PROGRESS_1 ||
+      definition.roundType === AssessmentRoundType.PROGRESS_2 ||
+      definition.roundType === AssessmentRoundType.FINAL_PRESENTATION
+    ) {
+      const latest = await prisma.rubric.findFirst({
+        where: { roundType: definition.roundType },
+        orderBy: { version: "desc" },
+        select: { version: true }
+      });
+      await prisma.rubric.updateMany({ where: { roundType: definition.roundType, active: true }, data: { active: false } });
+      const replacement = await prisma.rubric.create({
+        data: {
+          roundType: definition.roundType,
+          version: (latest?.version ?? 1) + 1,
+          name: definition.name,
+          active: true
+        }
+      });
+      await upsertRubricItems(prisma, replacement.id, definition.items);
+      return { roundType: definition.roundType, itemCount: definition.items.length, action: "created-new-version" as const };
+    }
+
+    return { roundType: definition.roundType, itemCount: existingItemCount, action: "kept-existing-items" as const };
+  }
+
+  await upsertRubricItems(prisma, rubric.id, definition.items);
 
   return { roundType: definition.roundType, itemCount: definition.items.length, action: "upserted-items" as const };
 }

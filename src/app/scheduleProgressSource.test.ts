@@ -57,8 +57,8 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("submitFinalPresentationScore");
     expect(actions).toContain('roundType: "FINAL_PRESENTATION"');
     expect(actions).toContain('attemptType: "FINAL_PRESENTATION"');
-    expect(actions).toContain("validateFinalScore");
-    expect(actions).toContain("totalFinalNormalizedScore");
+    expect(actions).toContain("finalQaRubricItems");
+    expect(actions).toContain("calculateFinalQaCriterionScore");
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");

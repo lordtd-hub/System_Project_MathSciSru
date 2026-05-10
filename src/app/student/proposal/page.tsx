@@ -9,6 +9,7 @@ import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalDraftForm } from "@/components/ui/ProposalDraftForm";
+import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -16,6 +17,7 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
 import { canEditUntilDeadline } from "@/lib/submissions/versioning";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
+import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { saveProposalSubmission } from "../actions";
 
 export default async function ProposalSubmissionPage({
@@ -53,7 +55,7 @@ export default async function ProposalSubmissionPage({
   const canPrepareProposal = project?.status === "PROPOSAL_PENDING";
   const canSubmitProposal =
     Boolean(canPrepareProposal && proposalRound && isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline));
-
+  const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาสร้างโปรเจคก่อนส่ง Proposal" actionLabel="ไปหน้าโปรเจค" href="/student/project" />;
 
@@ -74,6 +76,7 @@ export default async function ProposalSubmissionPage({
       <InfoAlert title="การแสดงผลให้นักศึกษา">
         นักศึกษาจะเห็น comment และชื่ออาจารย์ทันที แต่คะแนน Proposal จะถูกซ่อน
       </InfoAlert>
+      <ProposalQaRubricPanel audience="student" />
       {!project.origin ? (
         <WarningAlert title="ยังไม่มีข้อมูลเสนอหัวข้อ">
           กรุณาสร้าง/แก้ไขโปรเจคและส่งคำขอที่ปรึกษาก่อนส่ง Proposal
@@ -81,6 +84,9 @@ export default async function ProposalSubmissionPage({
       ) : null}
       <ProposalDraftForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`} clearOnSuccess={params.success === "proposal_submitted"}>
         <FormSection title="แบบฟอร์ม Proposal" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
+          <InfoAlert title="คำแนะนำตาม rubric">
+            Background: อธิบายปัญหา บริบท/กลุ่มผู้ใช้ และเหตุผลที่ปัญหาสำคัญ · Objectives: ระบุสิ่งที่จะศึกษา/พัฒนา/พิสูจน์/วิเคราะห์/สร้าง/ประเมินให้ตรงหัวข้อและตรวจสอบผลได้ · Methods: เขียนขั้นตอนตามลำดับและเชื่อมกับวัตถุประสงค์ · Expected outcomes: ระบุผลลัพธ์ที่ตรวจสอบได้ · Timeline: ครอบคลุม 16 สัปดาห์ · Supporting documents: ใส่ทฤษฎี งานที่เกี่ยวข้อง เครื่องมือ หรือวรรณกรรมที่เกี่ยวข้อง
+          </InfoAlert>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label>ชื่อ Proposal ภาษาไทย</label>
@@ -109,6 +115,7 @@ export default async function ProposalSubmissionPage({
               <ProposalTimelineBuilder
                 defaultValue={typeof content?.timeline === "string" ? content.timeline : ""}
                 defaultItemsJson={content?.timelineItems ? JSON.stringify(content.timelineItems) : undefined}
+                showAssessmentHint={showQaProgressPlanCheck}
               />
             </div>
             <div className="md:col-span-2">

@@ -131,10 +131,12 @@ function buildCsv(rows: TimelineRow[]) {
 
 export function ProposalTimelineBuilder({
   defaultValue,
-  defaultItemsJson
+  defaultItemsJson,
+  showAssessmentHint = false
 }: {
   defaultValue?: string | null;
   defaultItemsJson?: string | null;
+  showAssessmentHint?: boolean;
 }) {
   const [rows, setRows] = useState<TimelineRow[]>(() => parseTimeline(defaultValue, defaultItemsJson));
   const timelineMarkdown = useMemo(() => buildTimelineMarkdown(rows), [rows]);
@@ -204,6 +206,34 @@ export function ProposalTimelineBuilder({
         <p className="mt-1 text-xs text-muted">
           ระบุช่วงสัปดาห์เริ่ม-สิ้นสุดของแต่ละงาน เพื่อให้เห็นงานที่ทำคาบเกี่ยวกันได้ชัดเจน
         </p>
+        {showAssessmentHint ? (
+          <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
+            <div className="font-semibold text-ink">Assessment alignment hint</div>
+            <p className="mt-1">
+              The work plan below will be used during Progress 1 and Progress 2 assessment. Each task should describe observable work and expected evidence, not only a general activity.
+            </p>
+            <div className="mt-2 grid gap-2 md:grid-cols-2">
+              <div>
+                <div className="font-medium text-ink">Good examples</div>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  <li>Study related fixed point theorems and summarize assumptions used in each theorem.</li>
+                  <li>Implement prototype login and role guard, with screenshots or test account evidence.</li>
+                  <li>Prove Lemma 1 and prepare the proof draft.</li>
+                  <li>Run numerical experiment and record dataset/result table.</li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-medium text-ink">Weak examples</div>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  <li>Study more</li>
+                  <li>Continue working</li>
+                  <li>Improve project</li>
+                  <li>Prepare presentation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
       <input type="hidden" name="timeline" value={timelineMarkdown} />
       <input type="hidden" name="timeline_items_json" value={timelineItemsJson} />

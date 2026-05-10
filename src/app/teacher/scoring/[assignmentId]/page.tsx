@@ -6,8 +6,11 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
+import { findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { submitProposalScore } from "../../actions";
 
 export default async function ProposalScoringPage({
@@ -35,10 +38,7 @@ export default async function ProposalScoringPage({
         scoreSubmission: { include: { scoreItems: true, proposalDecision: true } }
       }
     }),
-    prisma.rubric.findFirst({
-      where: { roundType: "PROPOSAL", active: true },
-      include: { items: { orderBy: { displayOrder: "asc" } } }
-    })
+    ensureProposalConditionRubric(prisma)
   ]);
 
   if (assignment.evaluatorUserId !== session.user.id) return <div className="panel">ไม่สามารถประเมินงานของผู้อื่นได้</div>;
@@ -55,6 +55,7 @@ export default async function ProposalScoringPage({
           description={`${student.studentCode} ${student.firstNameTh} ${student.lastNameTh}`}
         />
         <ActionFeedback success={query.success} error={query.error ?? "proposal_rubric_missing"} />
+        <ProposalQaRubricPanel audience="evaluator" />
         <WarningAlert title="ยังไม่มี Rubric สำหรับ Proposal">
           ผู้ดูแลระบบต้องตั้งค่า rubric baseline สำหรับ Proposal ก่อน อาจารย์จึงจะประเมินได้
           หน้านี้แสดงข้อมูลที่นักศึกษาส่งไว้เพื่ออ่านตรวจเท่านั้น และยังไม่บันทึกคะแนนหรือเปลี่ยนสถานะงาน
@@ -91,14 +92,19 @@ export default async function ProposalScoringPage({
     );
   }
 
+  const previousScoreItems = new Map(assignment.scoreSubmission?.scoreItems.map((item) => [item.rubricItemId, item]) ?? []);
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
-  const currentTotal = rubric.items.reduce((sum, item) => sum + (checked.has(item.id) ? item.points : 0), 0);
+  const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
     groups[key].push(item);
     return groups;
   }, {});
+  const rubricGroupSummaries = Object.entries(groupedRubric).map(([groupLabel, items]) => ({
+    groupLabel,
+    points: items.reduce((sum, item) => sum + item.points, 0)
+  }));
 
   return (
     <div className="space-y-6">
@@ -117,6 +123,7 @@ export default async function ProposalScoringPage({
       <InfoAlert title="การมองเห็นของนักศึกษา">
         นักศึกษาจะเห็น comment และชื่ออาจารย์ทันที แต่จะไม่เห็นคะแนน Proposal
       </InfoAlert>
+      <ProposalQaRubricPanel audience="evaluator" />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="panel">
           <h2 className="text-lg font-semibold">{submission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
@@ -153,11 +160,12 @@ export default async function ProposalScoringPage({
           <section className="panel">
             <h2 className="font-semibold">Rubric groups</h2>
             <div className="mt-3 space-y-2 text-sm text-muted">
-              <div>Clarity of Proposal 20</div>
-              <div>Relevance 20</div>
-              <div>Research Plan 30</div>
-              <div>Presentation 20</div>
-              <div>Overall 10</div>
+              {rubricGroupSummaries.map((group) => (
+                <div key={group.groupLabel} className="flex items-center justify-between gap-3">
+                  <span>{group.groupLabel}</span>
+                  <span className="font-medium text-ink">{group.points}</span>
+                </div>
+              ))}
             </div>
           </section>
         </aside>
@@ -172,18 +180,51 @@ export default async function ProposalScoringPage({
                 {items.reduce((sum, item) => sum + item.points, 0)} คะแนน
               </span>
             </summary>
-            {items.map((item) => (
-              <label key={item.id} className="flex min-h-14 items-start gap-3 rounded-md border border-line p-3">
-                <input className="mt-1 h-5 w-5 shrink-0" type="checkbox" name="checked_item" value={item.id} defaultChecked={checked.has(item.id)} />
-                <span className="flex-1">
-                  <span className="block font-medium">
-                    {item.itemLabelTh} ({item.points} คะแนน)
+            {items.map((item) => {
+              const proposalCriterion = findProposalQaCriterion(item.itemKey);
+              const previousPoints = previousScoreItems.get(item.id)?.pointsAwarded ?? 0;
+              const previousConditionCount = proposalCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
+
+              if (proposalCriterion) {
+                const conditionMax = proposalCriterion.conditions.length || proposalCriterion.requiredSections?.length || 0;
+                return (
+                  <div key={item.id} className="rounded-md border border-line p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium">
+                          {item.itemLabelTh} ({item.points} คะแนน)
+                        </div>
+                        {item.evidenceHint ? <div className="mt-1 text-xs text-muted">{item.evidenceHint}</div> : null}
+                        {item.isCritical ? <div className="mt-1 text-xs font-semibold text-red-700">Critical item</div> : null}
+                      </div>
+                      <label className="min-w-44 text-sm font-medium">
+                        เงื่อนไขที่ผ่าน
+                        <select name={`condition_count:${item.id}`} defaultValue={previousConditionCount} className="mt-1">
+                          {Array.from({ length: conditionMax + 1 }, (_, count) => (
+                            <option key={count} value={count}>
+                              {count}/{conditionMax} เงื่อนไข
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <label key={item.id} className="flex min-h-14 items-start gap-3 rounded-md border border-line p-3">
+                  <input className="mt-1 h-5 w-5 shrink-0" type="checkbox" name="checked_item" value={item.id} defaultChecked={checked.has(item.id)} />
+                  <span className="flex-1">
+                    <span className="block font-medium">
+                      {item.itemLabelTh} ({item.points} คะแนน)
+                    </span>
+                    {item.evidenceHint ? <span className="text-xs text-muted">{item.evidenceHint}</span> : null}
+                    {item.isCritical ? <span className="mt-1 block text-xs font-semibold text-red-700">Critical item</span> : null}
                   </span>
-                  {item.evidenceHint ? <span className="text-xs text-muted">{item.evidenceHint}</span> : null}
-                  {item.isCritical ? <span className="mt-1 block text-xs font-semibold text-red-700">Critical item</span> : null}
-                </span>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </details>
         ))}
         <section className="panel grid gap-3 md:grid-cols-2">

@@ -3,11 +3,13 @@ import { submitExamSchedule } from "@/app/student/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { FormSection } from "@/components/ui/FormSection";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
 import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -15,6 +17,7 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { prisma } from "@/lib/db";
 import { getAssessmentCardState } from "@/lib/lifecycle/nextActions";
+import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { assessmentKindToRoundType } from "@/lib/scheduling/scheduleRules";
 
 const scheduleRoundTypes = ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const;
@@ -40,6 +43,11 @@ export default async function StudentSchedulePage({
             orderBy: { createdAt: "desc" }
           },
           assessmentSubmissions: { orderBy: { submittedAt: "desc" } },
+          presentationSubmissions: {
+            orderBy: { submittedAt: "desc" },
+            take: 1,
+            select: { contentJson: true }
+          },
           proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
           committeeAssignments: true,
           roundExceptions: { where: { assessmentRound: { roundType: "PROGRESS_1" } } }
@@ -57,6 +65,8 @@ export default async function StudentSchedulePage({
   }
 
   const params = (await searchParams) ?? {};
+  const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
+  const proposalContent = project.presentationSubmissions[0]?.contentJson as Record<string, unknown> | undefined;
   const rounds = await prisma.assessmentRound.findMany({
     where: { courseOfferingId: project.courseOfferingId, roundType: { in: [...scheduleRoundTypes] } }
   });
@@ -88,6 +98,26 @@ export default async function StudentSchedulePage({
         next="เมื่อส่งแล้ว กรรมการที่ได้รับแต่งตั้งจะเห็นรายการนี้ในหน้าตารางสอบ"
         actor="นักศึกษาส่งคำขอ กรรมการ HEAD/MEMBER เป็นผู้พิจารณาตาม workflow ปัจจุบัน"
       />
+      {showQaProgressPlanCheck ? (
+        <div className="space-y-4">
+          <ProgressPlanCheckpointPanel roundType="PROGRESS_1" timelineItems={proposalContent?.timelineItems} audience="student" />
+          <ProgressPlanCheckpointPanel roundType="PROGRESS_2" timelineItems={proposalContent?.timelineItems} audience="student" />
+        </div>
+      ) : null}
+      {(
+        <div className="space-y-4">
+          <section className="panel">
+            <h2 className="text-lg font-semibold">Final assessment guidance</h2>
+            <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
+              <p>Final จะตรวจว่างานที่เสร็จแล้วสอดคล้องกับวัตถุประสงค์ที่อนุมัติใน Proposal หรือไม่</p>
+              <p>หลักฐานควรเป็นผลลัพธ์ที่ตรวจสอบได้ เช่น proof draft, dataset, implementation, screenshots, experiment results, logs หรือ report sections</p>
+              <p>วิธีดำเนินงานและผลลัพธ์ควรเชื่อมกับแผน 16 สัปดาห์ และ Progress history ที่เคยส่งไว้</p>
+              <p>ถ้ามีการเลื่อน/ปรับแผน ให้เตรียมเหตุผลและหลักฐานประกอบการอธิบายต่อกรรมการ</p>
+            </div>
+          </section>
+          <FinalQaRubricPanel audience="student" />
+        </div>
+      )}
       <section className="grid gap-3 md:grid-cols-3">
         {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
           const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);

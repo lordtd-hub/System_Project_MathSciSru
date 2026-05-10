@@ -1,8 +1,9 @@
 import { AssessmentRoundType, PrismaClient } from "@prisma/client";
 import { seedBaselineTeacherProfiles } from "../src/lib/admin/teacherBaseline";
-import { progress1Criteria, progress2Criteria } from "../src/lib/scoring/progress1Scoring";
-import { finalCriteria } from "../src/lib/scoring/finalScoring";
 import { advisorCriteria } from "../src/lib/scoring/advisorScoring";
+import { proposalQaRubricItems } from "../src/lib/rubrics/proposalQaRubric";
+import { progressQaRubricItems } from "../src/lib/rubrics/progressQaRubric";
+import { finalQaRubricItems } from "../src/lib/rubrics/finalQaRubric";
 
 const prisma = new PrismaClient();
 
@@ -21,88 +22,12 @@ async function seedTeachers() {
   return seedBaselineTeacherProfiles(prisma, process.env.INITIAL_ADMIN_EMAIL);
 }
 
-const proposalBaselineItems: BaselineRubricItem[] = [
-  {
-    groupKey: "clarity",
-    groupLabelTh: "Clarity of Proposal",
-    itemKey: "clarity_overall",
-    itemLabelTh: "Problem statement, objectives, and scope are clear",
-    points: 20,
-    displayOrder: 1,
-    isCritical: true
-  },
-  {
-    groupKey: "relevance",
-    groupLabelTh: "Relevance of Project",
-    itemKey: "relevance_overall",
-    itemLabelTh: "Project is relevant to mathematical project course expectations",
-    points: 20,
-    displayOrder: 2,
-    isCritical: true
-  },
-  {
-    groupKey: "research_plan",
-    groupLabelTh: "Quality of Research Plan",
-    itemKey: "research_plan_overall",
-    itemLabelTh: "Methods, references, timeline, and feasibility are appropriate",
-    points: 30,
-    displayOrder: 3,
-    isCritical: true
-  },
-  {
-    groupKey: "presentation",
-    groupLabelTh: "Presentation and Communication",
-    itemKey: "presentation_overall",
-    itemLabelTh: "Presentation communicates the proposal clearly",
-    points: 20,
-    displayOrder: 4
-  },
-  {
-    groupKey: "overall",
-    groupLabelTh: "Overall / Readiness",
-    itemKey: "overall_readiness",
-    itemLabelTh: "Student is ready to proceed with the project",
-    points: 10,
-    displayOrder: 5
-  }
-];
-
-function scoringCriteriaToRubricItems(
-  criteria: readonly { key: string; label: string; max: number; order: number }[],
-  groupPrefix: string
-): BaselineRubricItem[] {
-  return criteria.map((criterion) => ({
-    groupKey: `${groupPrefix}_${criterion.key}`,
-    groupLabelTh: criterion.label,
-    itemKey: criterion.key,
-    itemLabelTh: criterion.label,
-    points: criterion.max,
-    displayOrder: criterion.order,
-    isCritical: criterion.order <= 3
-  }));
-}
-
-async function seedRubric(roundType: AssessmentRoundType, name: string, items: BaselineRubricItem[]) {
-  const rubric = await prisma.rubric.upsert({
-    where: { roundType_version: { roundType, version: 1 } },
-    create: { roundType, version: 1, name, active: true },
-    update: { name, active: true }
-  });
-
-  const existingItemCount = await prisma.rubricItem.count({ where: { rubricId: rubric.id } });
-  const matchingItemCount = await prisma.rubricItem.count({
-    where: { rubricId: rubric.id, itemKey: { in: items.map((item) => item.itemKey) } }
-  });
-
-  if (existingItemCount > 0 && matchingItemCount === 0) {
-    return { roundType, itemCount: existingItemCount, action: "kept-existing-items" };
-  }
-
+async function upsertRubricItems(rubricId: string, items: BaselineRubricItem[]) {
   for (const item of items) {
     await prisma.rubricItem.upsert({
-      where: { rubricId_itemKey: { rubricId: rubric.id, itemKey: item.itemKey } },
+      where: { rubricId_itemKey: { rubricId, itemKey: item.itemKey } },
       create: {
-        rubricId: rubric.id,
+        rubricId,
         groupKey: item.groupKey,
         groupLabelTh: item.groupLabelTh,
         itemKey: item.itemKey,
@@ -123,27 +48,70 @@ async function seedRubric(roundType: AssessmentRoundType, name: string, items: B
       }
     });
   }
+}
+
+async function seedRubric(roundType: AssessmentRoundType, name: string, items: BaselineRubricItem[]) {
+  const rubric = await prisma.rubric.upsert({
+    where: { roundType_version: { roundType, version: 1 } },
+    create: { roundType, version: 1, name, active: true },
+    update: { name, active: true }
+  });
+
+  const existingItemCount = await prisma.rubricItem.count({ where: { rubricId: rubric.id } });
+  const matchingItemCount = await prisma.rubricItem.count({
+    where: { rubricId: rubric.id, itemKey: { in: items.map((item) => item.itemKey) } }
+  });
+
+  if (existingItemCount > 0 && matchingItemCount === 0) {
+    if (
+      roundType === AssessmentRoundType.PROPOSAL ||
+      roundType === AssessmentRoundType.PROGRESS_1 ||
+      roundType === AssessmentRoundType.PROGRESS_2 ||
+      roundType === AssessmentRoundType.FINAL_PRESENTATION
+    ) {
+      const latest = await prisma.rubric.findFirst({
+        where: { roundType },
+        orderBy: { version: "desc" },
+        select: { version: true }
+      });
+      await prisma.rubric.updateMany({ where: { roundType, active: true }, data: { active: false } });
+      const replacement = await prisma.rubric.create({
+        data: {
+          roundType,
+          version: (latest?.version ?? 1) + 1,
+          name,
+          active: true
+        }
+      });
+      await upsertRubricItems(replacement.id, items);
+      return { roundType, itemCount: items.length, action: "created-new-version" };
+    }
+
+    return { roundType, itemCount: existingItemCount, action: "kept-existing-items" };
+  }
+
+  await upsertRubricItems(rubric.id, items);
 
   return { roundType, itemCount: items.length, action: "upserted-items" };
 }
 
 async function seedRubrics() {
   const seeded = await Promise.all([
-    seedRubric(AssessmentRoundType.PROPOSAL, "Proposal Presentation Rubric", proposalBaselineItems),
+    seedRubric(AssessmentRoundType.PROPOSAL, "Proposal Presentation Condition Rubric", proposalQaRubricItems()),
     seedRubric(
       AssessmentRoundType.PROGRESS_1,
-      "Progress 1 Presentation Rubric",
-      scoringCriteriaToRubricItems(progress1Criteria, "progress1")
+      "Progress 1 Plan-Based Condition Rubric",
+      progressQaRubricItems()
     ),
     seedRubric(
       AssessmentRoundType.PROGRESS_2,
-      "Progress 2 Presentation Rubric",
-      scoringCriteriaToRubricItems(progress2Criteria, "progress2")
+      "Progress 2 Plan-Based Condition Rubric",
+      progressQaRubricItems()
     ),
     seedRubric(
       AssessmentRoundType.FINAL_PRESENTATION,
-      "Final Presentation Rubric",
-      scoringCriteriaToRubricItems(finalCriteria, "final")
+      "Final Evidence-Driven Condition Rubric",
+      finalQaRubricItems()
     )
   ]);
 

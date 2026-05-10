@@ -17,6 +17,9 @@ describe("baseline rubric definitions", () => {
       expect(definition.items.length).toBeGreaterThan(0);
       expect(definition.items.reduce((sum, item) => sum + item.points, 0)).toBeGreaterThan(0);
     }
-    expect(baselineRubricDefinitions.find((definition) => definition.roundType === AssessmentRoundType.PROPOSAL)?.items).toHaveLength(5);
+    expect(baselineRubricDefinitions.find((definition) => definition.roundType === AssessmentRoundType.PROPOSAL)?.items).toHaveLength(11);
+    expect(baselineRubricDefinitions.find((definition) => definition.roundType === AssessmentRoundType.PROGRESS_1)?.items).toHaveLength(11);
+    expect(baselineRubricDefinitions.find((definition) => definition.roundType === AssessmentRoundType.PROGRESS_2)?.items).toHaveLength(11);
+    expect(baselineRubricDefinitions.find((definition) => definition.roundType === AssessmentRoundType.FINAL_PRESENTATION)?.items).toHaveLength(11);
   });
 });

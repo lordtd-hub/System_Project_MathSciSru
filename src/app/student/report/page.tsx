@@ -3,6 +3,7 @@ import { submitReportVersion } from "@/app/student/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, SuccessAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { FormSection } from "@/components/ui/FormSection";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
@@ -81,6 +82,20 @@ export default async function StudentReportPage({
         <WarningAlert title="ยังส่งเล่มไม่ได้">{reportSubmissionReasonLabel(gate.reason)}</WarningAlert>
       ) : null}
       <InfoAlert title="รูปแบบลิงก์">ใช้ลิงก์ Google Drive, Google Docs หรือ Google Classroom เท่านั้น และ comment รองรับ Markdown/LaTeX</InfoAlert>
+      {(
+        <div className="space-y-4">
+          <section className="panel">
+            <h2 className="text-lg font-semibold">Report evidence guidance</h2>
+            <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
+              <p>รายงานควรมี abstract, background, objectives, methods, results, conclusion และ references ครบถ้วน</p>
+              <p>วัตถุประสงค์ วิธีดำเนินงาน และผลลัพธ์ในรายงานควรสอดคล้องกันและตรวจสอบย้อนกลับไปยัง Proposal ได้</p>
+              <p>ผลลัพธ์หรือข้อสรุปควรมีหลักฐานรองรับ เช่น proof, analysis, implementation, experiment result หรือ artifact ที่ตรวจได้</p>
+              <p>สมการ รูปภาพ ตาราง และเอกสารอ้างอิงควรมีรูปแบบสม่ำเสมอเพื่อใช้เป็นหลักฐาน QA/AUN-QA</p>
+            </div>
+          </section>
+          <FinalQaRubricPanel audience="student" />
+        </div>
+      )}
 
       <FormSection title="ส่งเล่มรายงาน version ใหม่" description={reportSubmissionReasonLabel(gate.reason)}>
         <DraftPreservingForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} clearOnSuccess={params.success === "report_submitted"} className="space-y-4">
