@@ -20,6 +20,7 @@ describe("QA login source guards", () => {
     expect(actionSource).toContain("verifyQaLoginSecret");
     expect(actionSource).toContain("QA_LOGIN_SECRET");
     expect(actionSource).toContain("encodeDevSession");
+    expect(actionSource).toContain("clearRealAuthCookies");
   });
 
   it("lets auth read QA sessions only through the QA gate", () => {

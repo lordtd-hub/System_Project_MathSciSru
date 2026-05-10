@@ -22,7 +22,21 @@ function qaError(error: string): never {
 
 async function setQaSession(payload: DevSessionPayload) {
   const cookieStore = await cookies();
+  clearRealAuthCookies(cookieStore);
   cookieStore.set(DEV_SESSION_COOKIE, encodeDevSession(payload), getDevSessionCookieOptions());
+}
+
+function clearRealAuthCookies(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  for (const cookie of cookieStore.getAll()) {
+    if (
+      cookie.name.startsWith("authjs.") ||
+      cookie.name.startsWith("__Secure-authjs.") ||
+      cookie.name.startsWith("next-auth.") ||
+      cookie.name.startsWith("__Secure-next-auth.")
+    ) {
+      cookieStore.delete(cookie.name);
+    }
+  }
 }
 
 export async function selectQaUser(formData: FormData) {
@@ -125,6 +139,7 @@ export async function selectQaUser(formData: FormData) {
 export async function clearQaUser() {
   if (!isQaLoginEnabled()) qaError("QA login is disabled for this environment.");
   const cookieStore = await cookies();
+  clearRealAuthCookies(cookieStore);
   cookieStore.delete(DEV_SESSION_COOKIE);
   redirectWithQuery("/qa-login", { success: "signed_out" });
 }

@@ -1,10 +1,13 @@
-import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DEV_SESSION_COOKIE, decodeDevSession } from "@/lib/auth/devSession";
 import { hasQaLoginSecret, isQaLoginEnabled } from "@/lib/auth/qaLogin";
 import { clearQaUser, selectQaUser } from "./actions";
+
+export const dynamic = "force-dynamic";
 
 export default async function QaLoginPage({
   searchParams
@@ -23,7 +26,8 @@ export default async function QaLoginPage({
     );
   }
 
-  const [params, session] = await Promise.all([(await searchParams) ?? {}, auth()]);
+  const [params, cookieStore] = await Promise.all([(await searchParams) ?? {}, cookies()]);
+  const qaSession = decodeDevSession(cookieStore.get(DEV_SESSION_COOKIE)?.value);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -41,18 +45,21 @@ export default async function QaLoginPage({
           ตั้งค่า QA_LOGIN_SECRET ใน environment ของ preview/staging ก่อนใช้งาน หน้านี้จะปฏิเสธการ login ทุกครั้งจนกว่าจะตั้งค่า
         </WarningAlert>
       ) : null}
-      {session?.user ? (
+      {qaSession ? (
         <section className="panel flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-sm text-muted">QA session ปัจจุบัน</div>
-            <div className="font-semibold">{session.user.name} · {session.user.role}</div>
-            <div className="text-sm text-muted">{session.user.email}</div>
+            <div className="font-semibold">{qaSession.name} · {qaSession.role}</div>
+            <div className="text-sm text-muted">{qaSession.email}</div>
           </div>
           <form action={clearQaUser}>
             <button type="submit" className="button-secondary">ออกจาก QA session</button>
           </form>
         </section>
       ) : null}
+      <InfoAlert title="เวลาสลับบทบาท">
+        ให้กลับมาที่หน้านี้แล้วเลือกบทบาทใหม่แทนการกด Back ของ browser เพื่อไม่ให้สับสนกับ history หรือ session จริงที่เคยเปิดไว้
+      </InfoAlert>
       <section className="panel space-y-4">
         <div>
           <h2 className="text-lg font-semibold">เลือกบทบาทสำหรับทดสอบ</h2>
