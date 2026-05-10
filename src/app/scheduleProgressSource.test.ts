@@ -41,6 +41,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain('name="progress_evidence"');
     expect(page).toContain('name="progress_status"');
     expect(page).toContain('name="progress_challenges_next"');
+    expect(page).toContain("ProposalPlanMiniReference");
+    expect(page).toContain("normalizeProgressPlanTasks");
+    expect(page).toContain("doesTaskOverlapWeekWindow");
     expect(page).toContain('name="final_objectives_evidence"');
     expect(page).toContain('name="final_methods_results"');
     expect(page).toContain('name="final_timeline_adaptation"');

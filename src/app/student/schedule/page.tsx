@@ -19,7 +19,14 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { prisma } from "@/lib/db";
 import { getAssessmentCardState } from "@/lib/lifecycle/nextActions";
-import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
+import {
+  classifyPlanTaskForRound,
+  doesTaskOverlapWeekWindow,
+  getProgressRoundWeekWindow,
+  isQaProgressPlanCheckEnabled,
+  normalizeProgressPlanTasks,
+  type PlanTaskClassification
+} from "@/lib/qa/progressPlanCheckConfig";
 import { assessmentKindToRoundType } from "@/lib/scheduling/scheduleRules";
 
 const scheduleRoundTypes = ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const;
@@ -38,6 +45,69 @@ function scheduleKindLabel(kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") 
 
 function roundTypeToScheduleKind(roundType: (typeof scheduleRoundTypes)[number]) {
   return roundType === "FINAL_PRESENTATION" ? "FINAL_PRESENT" : roundType;
+}
+
+function compactPlanTaskLabel(classification: PlanTaskClassification) {
+  if (classification === "due_in_this_round") return "ควรเสร็จในรอบนี้";
+  if (classification === "ongoing_in_this_round") return "คาบเกี่ยว/ทำต่อ";
+  if (classification === "previous_task") return "ก่อนรอบนี้";
+  return "หลังรอบนี้";
+}
+
+function ProposalPlanMiniReference({
+  roundType,
+  timelineItems
+}: {
+  roundType: "PROGRESS_1" | "PROGRESS_2";
+  timelineItems: unknown;
+}) {
+  const weekWindow = getProgressRoundWeekWindow(roundType);
+  const tasks = normalizeProgressPlanTasks(timelineItems);
+  if (!weekWindow) return null;
+
+  const classifiedTasks = tasks.map((task) => ({
+    task,
+    relevant: doesTaskOverlapWeekWindow(task, weekWindow),
+    classification: classifyPlanTaskForRound(task, weekWindow)
+  }));
+  const relevantTasks = classifiedTasks.filter((item) => item.relevant);
+
+  return (
+    <div className="md:col-span-3 rounded-md border border-line bg-paper p-3 text-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="font-semibold">แผนจาก Proposal ที่ควรใช้เทียบรอบนี้</div>
+          <p className="mt-1 text-muted">
+            {roundType === "PROGRESS_1" ? "Progress 1 ตรวจเทียบช่วงสัปดาห์ 1-8" : "Progress 2 ตรวจเทียบช่วงสัปดาห์ 9-16"}
+          </p>
+        </div>
+        <span className="rounded-full border border-line bg-surface px-2 py-1 text-xs font-semibold">
+          {relevantTasks.length}/{tasks.length} งานเกี่ยวข้อง
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {relevantTasks.length ? (
+          relevantTasks.map(({ task, classification }, index) => (
+            <div key={`${index}-${task.startWeek}-${task.endWeek}-${task.activity}`} className="rounded-md border border-line bg-surface p-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="font-medium">{task.activity || "ยังไม่ระบุงาน"}</div>
+                <span className="rounded-full border border-line px-2 py-0.5 text-xs">{compactPlanTaskLabel(classification)}</span>
+              </div>
+              <div className="mt-1 text-muted">
+                สัปดาห์ {task.startWeek}-{task.endWeek}
+                {task.deliverable ? ` · หลักฐานที่คาดไว้: ${task.deliverable}` : " · ยังไม่ระบุหลักฐานที่คาดไว้"}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-muted">
+            ยังไม่พบแผน 16 สัปดาห์ที่คาบเกี่ยวกับรอบนี้ ถ้า Proposal มีแผนแล้วให้ตรวจว่าแผนถูกบันทึกจากตาราง timeline หรือไม่
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default async function StudentSchedulePage({
@@ -284,6 +354,7 @@ export default async function StudentSchedulePage({
                     </>
                   ) : (
                     <>
+                      <ProposalPlanMiniReference roundType={kind} timelineItems={proposalContent?.timelineItems} />
                       <div className="md:col-span-3">
                         <MarkdownLatexEditor name="progress_plan_tasks" label="งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้ *" defaultValue={String(content.progressPlanTasks ?? "")} placeholder="ระบุ task จากแผน Proposal ที่เกี่ยวข้องกับรอบนี้ เช่น สัปดาห์ 1-8 งานใดเสร็จแล้ว งานใดกำลังทำ" required rows={4} />
                       </div>
