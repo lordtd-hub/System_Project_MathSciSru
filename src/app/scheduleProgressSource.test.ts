@@ -20,6 +20,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("findFirst");
     expect(actions).toContain("examScheduleProposal.update");
     expect(actions).toContain("examScheduleProposal.create");
+    expect(actions).toContain('role: { in: ["ADVISOR", "HEAD", "MEMBER"] }');
+    expect(actions).toContain("advisorRequest.findMany");
+    expect(actions).toContain("requiredApproverIds");
   });
 
   it("keeps schedule views role guarded", () => {
@@ -72,9 +75,25 @@ describe("self-scheduling and progress scoring source guards", () => {
     const progress1 = read("src/app/teacher/progress1/page.tsx");
     const progress2 = read("src/app/teacher/progress2/page.tsx");
     expect(teacherSchedules).toContain("assessmentSubmissions");
+    expect(teacherSchedules).toContain("reviewExamSchedule");
+    expect(teacherSchedules).toContain("อนุมัติวันสอบ");
+    expect(teacherSchedules).toContain("ไม่อนุมัติ / ขอเปลี่ยนเวลา");
     expect(teacherSchedules).toContain("เปิดเอกสาร/หลักฐาน");
     expect(progress1).toContain('where: { kind: "PROGRESS_1" }');
     expect(progress2).toContain('where: { kind: "PROGRESS_2" }');
+  });
+
+  it("keeps schedule approval dashboard counts actionable and round-open only", () => {
+    const teacherDashboard = read("src/app/teacher/page.tsx");
+    const teacherActions = read("src/app/teacher/actions.ts");
+    expect(teacherDashboard).toContain('status: "PROPOSED"');
+    expect(teacherDashboard).toContain('assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } }');
+    expect(teacherDashboard).toContain('role: { in: ["ADVISOR", "HEAD", "MEMBER"] }');
+    expect(teacherDashboard).toContain('NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }');
+    expect(teacherActions).toContain("reviewExamSchedule");
+    expect(teacherActions).toContain("EXAM_SCHEDULE_APPROVED");
+    expect(teacherActions).toContain("EXAM_SCHEDULE_REJECTED");
+    expect(teacherActions).toContain('nextStatus = decision === "REJECT"');
   });
 
   it("keeps Progress 1 scoring assigned-teacher only and duplicate-safe", () => {

@@ -17,7 +17,18 @@ import { openProposalScoring } from "./actions";
 function getTeacherWorkloadCounts(teacherId: string) {
   return Promise.all([
     prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
-    prisma.examScheduleApproval.count({ where: { teacherId, decision: "PENDING" } }),
+    prisma.examScheduleProposal.count({
+      where: {
+        status: "PROPOSED",
+        assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } },
+        OR: [
+          { approvals: { some: { teacherId, decision: "PENDING" } } },
+          { project: { committeeAssignments: { some: { teacherId, active: true, role: { in: ["ADVISOR", "HEAD", "MEMBER"] } } } } },
+          { project: { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" } } } }
+        ],
+        NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }
+      }
+    }),
     prisma.reportReview.count({ where: { reviewerTeacherId: teacherId, decision: "FAIL" } }),
     prisma.project.count({
       where: {

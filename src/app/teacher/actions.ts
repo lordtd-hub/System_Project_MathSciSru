@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
+import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
@@ -29,6 +30,10 @@ import {
   latestReportVersionHasRevisionRequest,
   requiredReportReviewerIds
 } from "@/lib/reports/reportWorkflow";
+
+function uniqueIds(ids: string[]) {
+  return [...new Set(ids)];
+}
 
 async function requireTeacherUser() {
   const session = await auth();
@@ -159,6 +164,107 @@ export async function reviewAdvisorRequest(formData: FormData) {
 
   revalidatePath("/teacher/advisor-requests");
   redirect("/teacher/advisor-requests?success=advisor_request_reviewed");
+}
+
+export async function reviewExamSchedule(formData: FormData) {
+  const user = await requireTeacherUser();
+  assertRateLimit(`teacher:${user.id}:reviewExamSchedule`, pilotRateLimits.workflowMutation);
+  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
+
+  const scheduleId = String(formData.get("schedule_id") ?? "");
+  const decision = String(formData.get("decision") ?? "");
+  const comment = String(formData.get("comment") ?? "").trim();
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "schedule approval comment");
+  if (decision !== "APPROVE" && decision !== "REJECT") throw new Error("ผลการพิจารณาวันสอบไม่ถูกต้อง");
+  if (decision === "REJECT" && !comment) throw new Error("กรุณาระบุเหตุผลเมื่อไม่อนุมัติวันสอบ");
+  if (comment) {
+    const commentErrors = validateMarkdownInput(comment, "schedule approval comment");
+    if (commentErrors.length) throw new Error(commentErrors.join("\n"));
+  }
+
+  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
+  const schedule = await prisma.examScheduleProposal.findUniqueOrThrow({
+    where: { id: scheduleId },
+    include: {
+      assessmentRound: true,
+      approvals: true,
+      project: {
+        include: {
+          committeeAssignments: { where: { active: true } },
+          advisorRequests: { where: { status: "APPROVED" } }
+        }
+      }
+    }
+  });
+  if (schedule.status !== "PROPOSED") {
+    redirectWithQuery("/teacher/schedules", { error: "schedule_already_reviewed" });
+  }
+  if (schedule.assessmentRound && !isRoundOpen(schedule.assessmentRound.status)) {
+    redirectWithQuery("/teacher/schedules", { error: "schedule_round_not_open" });
+  }
+
+  const requiredApproverIds = uniqueIds([
+    ...schedule.project.committeeAssignments
+      .filter((assignment) => ["ADVISOR", "HEAD", "MEMBER"].includes(assignment.role))
+      .map((assignment) => assignment.teacherId),
+    ...schedule.project.advisorRequests.map((request) => request.advisorTeacherId)
+  ]);
+  if (!requiredApproverIds.includes(teacher.id)) {
+    throw new Error("เฉพาะอาจารย์ที่ปรึกษา HEAD หรือ MEMBER ของโครงงานนี้เท่านั้นที่อนุมัติวันสอบได้");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.examScheduleApproval.upsert({
+      where: { scheduleProposalId_teacherId: { scheduleProposalId: schedule.id, teacherId: teacher.id } },
+      update: {
+        decision,
+        comment: comment || null,
+        decidedAt: new Date()
+      },
+      create: {
+        scheduleProposalId: schedule.id,
+        teacherId: teacher.id,
+        decision,
+        comment: comment || null,
+        decidedAt: new Date()
+      }
+    });
+
+    const approvals = await tx.examScheduleApproval.findMany({
+      where: { scheduleProposalId: schedule.id },
+      select: { teacherId: true, decision: true }
+    });
+    const decisionByTeacher = new Map(approvals.map((approval) => [approval.teacherId, approval.decision]));
+    const nextStatus = decision === "REJECT"
+      ? "REJECTED"
+      : requiredApproverIds.every((teacherId) => decisionByTeacher.get(teacherId) === "APPROVE")
+        ? "CONFIRMED"
+        : "PROPOSED";
+
+    await tx.examScheduleProposal.update({
+      where: { id: schedule.id },
+      data: { status: nextStatus }
+    });
+    await tx.projectTimelineEvent.create({
+      data: {
+        projectId: schedule.projectId,
+        eventType: decision === "APPROVE" ? "EXAM_SCHEDULE_APPROVED" : "EXAM_SCHEDULE_REJECTED",
+        eventTitle: decision === "APPROVE" ? "อาจารย์อนุมัติวันสอบ" : "อาจารย์ไม่อนุมัติวันสอบ",
+        eventDescription: comment || null,
+        actorUserId: user.id,
+        relatedEntityType: "ExamScheduleApproval",
+        relatedEntityId: schedule.id,
+        metadataJson: { scheduleId: schedule.id, decision, nextStatus }
+      }
+    });
+  });
+
+  revalidatePath("/teacher");
+  revalidatePath("/teacher/schedules");
+  revalidatePath("/student");
+  revalidatePath("/student/schedule");
+  revalidatePath("/admin/schedules");
+  redirectWithQuery("/teacher/schedules", { success: decision === "APPROVE" ? "schedule_approved" : "schedule_rejected" });
 }
 
 export async function submitProposalScore(formData: FormData) {

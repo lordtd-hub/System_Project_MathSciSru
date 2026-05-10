@@ -563,15 +563,22 @@ export async function submitExamSchedule(formData: FormData) {
     : await prisma.examScheduleProposal.create({ data: { ...scheduleData, projectId: project.id } });
 
   const committee = await prisma.committeeAssignment.findMany({
-    where: { projectId: project.id, active: true, role: { in: ["HEAD", "MEMBER"] } },
+    where: { projectId: project.id, active: true, role: { in: ["ADVISOR", "HEAD", "MEMBER"] } },
     select: { teacherId: true }
   });
+  const advisors = await prisma.advisorRequest.findMany({
+    where: { projectId: project.id, status: "APPROVED" },
+    select: { advisorTeacherId: true }
+  });
+  const requiredApproverIds = [
+    ...new Set([...committee.map((assignment) => assignment.teacherId), ...advisors.map((request) => request.advisorTeacherId)])
+  ];
   await Promise.all(
-    committee.map((assignment) =>
+    requiredApproverIds.map((teacherId) =>
       prisma.examScheduleApproval.upsert({
-        where: { scheduleProposalId_teacherId: { scheduleProposalId: schedule.id, teacherId: assignment.teacherId } },
+        where: { scheduleProposalId_teacherId: { scheduleProposalId: schedule.id, teacherId } },
         update: { decision: "PENDING", comment: null, decidedAt: null },
-        create: { scheduleProposalId: schedule.id, teacherId: assignment.teacherId }
+        create: { scheduleProposalId: schedule.id, teacherId }
       })
     )
   );
