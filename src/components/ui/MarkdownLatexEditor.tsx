@@ -36,6 +36,17 @@ export function MarkdownLatexEditor({
     if (value !== undefined) setDraft(value);
   }, [value]);
 
+  useEffect(() => {
+    function restoreDraft(event: Event) {
+      const values = (event as CustomEvent<Record<string, string | boolean>>).detail;
+      const restored = values?.[name];
+      if (typeof restored === "string") setDraft(restored);
+    }
+
+    window.addEventListener("proposal-draft-restore", restoreDraft);
+    return () => window.removeEventListener("proposal-draft-restore", restoreDraft);
+  }, [name]);
+
   const helper = helpText ?? "ใช้ `$...$` สำหรับสมการในบรรทัด และใช้ `$$...$$` สำหรับสมการแยกบรรทัด ไม่อนุญาต raw HTML";
 
   return (

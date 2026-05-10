@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TimelineRow = {
   activity: string;
@@ -59,6 +59,21 @@ export function ProposalTimelineBuilder({
 }) {
   const [rows, setRows] = useState<TimelineRow[]>(() => parseTimeline(defaultValue));
   const timelineMarkdown = useMemo(() => buildTimelineMarkdown(rows), [rows]);
+
+  useEffect(() => {
+    function restoreDraft(event: Event) {
+      const values = (event as CustomEvent<Record<string, string | boolean>>).detail;
+      const restored = values?.timeline;
+      if (typeof restored === "string") setRows(parseTimeline(restored));
+    }
+
+    window.addEventListener("proposal-draft-restore", restoreDraft);
+    return () => window.removeEventListener("proposal-draft-restore", restoreDraft);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("proposal-draft-field-change"));
+  }, [timelineMarkdown]);
 
   function updateRow(index: number, key: keyof TimelineRow, value: string) {
     setRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, [key]: value } : row)));

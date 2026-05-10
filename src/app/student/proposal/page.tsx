@@ -8,10 +8,13 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProposalDraftForm } from "@/components/ui/ProposalDraftForm";
 import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
+import { canEditUntilDeadline } from "@/lib/submissions/versioning";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { saveProposalSubmission } from "../actions";
 
@@ -41,7 +44,15 @@ export default async function ProposalSubmissionPage({
   const submission = project?.presentationSubmissions[0];
   const content = submission?.contentJson as Record<string, string> | undefined;
   const proposalComments = project?.attempts.flatMap((attempt) => attempt.proposalVotes.filter((vote) => vote.visibleToStudent)) ?? [];
-  const canSubmitProposal = project?.status === "PROPOSAL_PENDING";
+  const proposalRound = project
+    ? await prisma.assessmentRound.findFirst({
+        where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" },
+        select: { status: true, submissionDeadline: true }
+      })
+    : null;
+  const canPrepareProposal = project?.status === "PROPOSAL_PENDING";
+  const canSubmitProposal =
+    Boolean(canPrepareProposal && proposalRound && isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline));
 
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาสร้างโปรเจคก่อนส่ง Proposal" actionLabel="ไปหน้าโปรเจค" href="/student/project" />;
@@ -68,7 +79,7 @@ export default async function ProposalSubmissionPage({
           กรุณาสร้าง/แก้ไขโปรเจคและส่งคำขอที่ปรึกษาก่อนส่ง Proposal
         </WarningAlert>
       ) : null}
-      <form action={saveProposalSubmission}>
+      <ProposalDraftForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`} clearOnSuccess={params.success === "proposal_submitted"}>
         <FormSection title="แบบฟอร์ม Proposal" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -115,13 +126,21 @@ export default async function ProposalSubmissionPage({
               <span>ข้าพเจ้ารับรองว่า Proposal นี้เป็นงานของตนเองและไม่ใช้ raw HTML</span>
             </label>
           </div>
-          <div className="sticky bottom-0 -mx-4 mt-4 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+          {!canSubmitProposal ? (
+            <InfoAlert title="ยังส่ง Proposal ไม่ได้">
+              สามารถกรอกและกด “บันทึกไว้ก่อน” ได้ ข้อมูลจะเก็บไว้ในเครื่องนี้ เมื่อผู้ดูแลระบบเปิดรอบ Proposal แล้วจึงกลับมากดส่ง Proposal
+            </InfoAlert>
+          ) : null}
+          <div className="sticky bottom-0 -mx-4 mt-4 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
+            <button type="button" data-proposal-draft-save className="button-secondary w-full sm:w-auto">
+              บันทึกไว้ก่อน
+            </button>
             <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่ง Proposal..." className="w-full sm:w-auto">
               {canSubmitProposal ? "ส่ง Proposal" : "Proposal ยังไม่เปิดให้แก้ไข"}
             </SubmitButton>
           </div>
         </FormSection>
-      </form>
+      </ProposalDraftForm>
       <section className="panel">
         <h2 className="text-lg font-semibold">Comment จากอาจารย์</h2>
         <p className="mt-1 text-sm text-muted">ส่วนนี้แสดง comment ทันที พร้อมชื่ออาจารย์ แต่ไม่แสดงคะแนน Proposal</p>
