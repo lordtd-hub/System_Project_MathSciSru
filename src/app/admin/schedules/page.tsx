@@ -4,6 +4,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
+import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 export default async function AdminSchedulesPage() {
@@ -51,7 +52,7 @@ export default async function AdminSchedulesPage() {
             <dl className="mt-4 grid gap-2 text-sm md:grid-cols-3">
               <div><dt className="font-semibold">ภาคเรียน</dt><dd className="text-muted">{schedule.courseOffering?.term.displayName ?? "-"}</dd></div>
               <div><dt className="font-semibold">รอบ</dt><dd className="text-muted">{schedule.assessmentRound?.name ?? schedule.roundType ?? schedule.assessmentKind}</dd></div>
-              <div><dt className="font-semibold">วันเวลา</dt><dd className="text-muted">{schedule.proposedStartAt.toLocaleString("th-TH")}{schedule.proposedEndAt ? ` - ${schedule.proposedEndAt.toLocaleTimeString("th-TH")}` : ""}</dd></div>
+              <div><dt className="font-semibold">วันเวลา</dt><dd className="text-muted">{formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}</dd></div>
               <div><dt className="font-semibold">ห้อง</dt><dd className="text-muted">{schedule.room ?? "-"}</dd></div>
               <div><dt className="font-semibold">ที่ปรึกษา</dt><dd className="text-muted">{schedule.project.advisorRequests[0]?.advisorTeacher ? teacherDisplayName(schedule.project.advisorRequests[0].advisorTeacher) : "-"}</dd></div>
               <div><dt className="font-semibold">อนุมัติ</dt><dd className="text-muted">{schedule.approvals.filter((approval) => approval.decision === "APPROVE").length}/{schedule.approvals.length}</dd></div>

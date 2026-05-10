@@ -18,6 +18,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24, formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getAssessmentCardState } from "@/lib/lifecycle/nextActions";
 import {
   classifyPlanTaskForRound,
@@ -333,7 +334,7 @@ export default async function StudentSchedulePage({
                 {submission ? (
                   <div className="mt-2 space-y-1 text-muted">
                     <div>{submission.title ?? "เอกสารประกอบรอบสอบ"}</div>
-                    <div>บันทึกล่าสุด {submission.submittedAt.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}</div>
+                    <div>บันทึกล่าสุด {formatThaiDateTime24(submission.submittedAt)}</div>
                     <a className="text-brand hover:underline" href={submission.materialLink} target="_blank" rel="noreferrer">
                       เปิดเอกสาร
                     </a>
@@ -491,7 +492,7 @@ export default async function StudentSchedulePage({
                 <div key={proposal.id} className="rounded-md border border-line p-3 text-sm">
                   <div className="font-medium">{assessmentKindToRoundType(proposal.assessmentKind)} · {proposal.status}</div>
                   <div className="mt-1 text-muted">
-                    {proposal.proposedStartAt.toLocaleString("th-TH")} {proposal.room ? `· ห้อง ${proposal.room}` : ""}
+                    {formatThaiScheduleRange(proposal.proposedStartAt, proposal.proposedEndAt)} {proposal.room ? `· ห้อง ${proposal.room}` : ""}
                   </div>
                   {proposal.note ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={proposal.note} /> : null}
                   <div className="mt-2 text-muted">
