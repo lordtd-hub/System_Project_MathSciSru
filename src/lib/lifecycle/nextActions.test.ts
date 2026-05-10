@@ -65,6 +65,13 @@ describe("next action helpers", () => {
     expect(getNextActionForAdmin([{ status: "PROPOSAL_ADMIN_DECISION", proposalVotes: [{ vote: "FAIL" }, { vote: "PASS" }] }]).tone).toBe("warning");
   });
 
+  it("routes submitted proposal assessments to admin final decision", () => {
+    const action = getNextActionForAdmin([{ status: "PROPOSAL_ADMIN_DECISION" }]);
+
+    expect(action.href).toBe("/admin/proposals");
+    expect(action.title).toContain("Proposal");
+  });
+
   it("routes admin closeout states to the closeout page", () => {
     expect(getNextActionForAdmin([{ status: "ADVISOR_SCORING" }]).href).toBe("/admin/closeout");
     expect(getNextActionForAdmin([{ status: "REPORT_APPROVED" }]).href).toBe("/admin/closeout");

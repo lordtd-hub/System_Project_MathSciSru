@@ -295,6 +295,9 @@ export function getNextActionForAdmin(projects: AdminProjectLike[]): NextAction 
   if (projects.some((project) => project.status === "PENDING_ADMIN")) {
     return { title: "มี project รอ Admin ยืนยัน", description: "ตรวจ advisor และข้อมูลโครงงานก่อนส่งเข้าสู่ Proposal", href: "/admin" };
   }
+  if (projects.some((project) => project.status === "PROPOSAL_ADMIN_DECISION")) {
+    return { title: "มี Proposal รอ Admin ตัดสินผล", description: "อาจารย์ส่งคะแนนแล้ว กรุณาตรวจคะแนน/comment แล้วบันทึก final decision", href: "/admin/proposals", tone: "warning" };
+  }
   if (projects.some((project) => shouldAlertAdminForFailVotes(project.proposalVotes ?? []))) {
     return { title: "มี Proposal ที่ FAIL ≥ 50%", description: "ระบบไม่ตัดสินผลอัตโนมัติ กรุณาตรวจ vote และ comment อย่างละเอียด", href: "/admin/proposals", tone: "warning" };
   }

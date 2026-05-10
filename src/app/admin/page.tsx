@@ -153,12 +153,24 @@ export default async function AdminDashboardPage({
     prisma.proposalVote.findMany({
       where: { project: { status: { in: ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"] } } },
       select: { projectId: true, vote: true }
+    }),
+    prisma.assessmentAttempt.count({
+      where: {
+        assessmentRound: { roundType: "PROPOSAL" },
+        proposalResult: null,
+        evaluatorAssignments: {
+          some: {
+            status: "SUBMITTED",
+            scoreSubmission: { status: "SUBMITTED" }
+          }
+        }
+      }
     })
   ]));
 
   const [
     offerings,
-    [students, claims, statusGroups, pendingAdminProjects, proposalVotesForFailAlert]
+    [students, claims, statusGroups, pendingAdminProjects, proposalVotesForFailAlert, proposalDecisionReadyCount]
   ] = await Promise.all([offeringsQuery, independentDashboardQueries]);
 
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
@@ -173,6 +185,7 @@ export default async function AdminDashboardPage({
   const failAlertCount = [...proposalVotesByProject.values()].filter((votes) => shouldAlertAdminForFailVotes(votes)).length;
   const nextActionProjects = [
     ...(pendingAdminProjects.length ? [{ status: "PENDING_ADMIN" as const }] : []),
+    ...(proposalDecisionReadyCount ? [{ status: "PROPOSAL_ADMIN_DECISION" as const }] : []),
     ...(failAlertCount ? [{ status: "PROPOSAL_REVIEW" as const, proposalVotes: [{ vote: "FAIL" as const }, { vote: "PASS" as const }] }] : []),
     ...(countFromStatus(statusCounts, "TOPIC_APPROVED") ? [{ status: "TOPIC_APPROVED" as const }] : []),
     ...(countFromStatus(statusCounts, "ADVISOR_SCORING") ? [{ status: "ADVISOR_SCORING" as const }] : []),
@@ -181,7 +194,7 @@ export default async function AdminDashboardPage({
   const nextAction = getNextActionForAdmin(nextActionProjects);
   const adminWorkflowCards = [
     { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "#pending-admin-confirmation", tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const },
-    { label: "รอตัดสิน Proposal", value: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") ? "ready" as const : "quiet" as const },
+    { label: "รอตัดสิน Proposal", value: proposalDecisionReadyCount, href: "/admin/proposals", tone: proposalDecisionReadyCount ? "ready" as const : "quiet" as const },
     { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const },
     { label: "รอ Advisor score", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" as const : "quiet" as const },
     { label: "พร้อมตรวจ closeout", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const }
@@ -208,9 +221,9 @@ export default async function AdminDashboardPage({
       title: "ตัดสินผล Proposal",
       description: "ตรวจคะแนน ความเห็น และผลประชุมก่อนยืนยันผลสุดท้ายของ Proposal",
       href: "/admin/proposals",
-      count: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"),
-      tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") || failAlertCount ? "urgent" as const : "quiet" as const,
-      statusLabel: failAlertCount ? "มี FAIL ≥ 50%" : "รอตัดสิน"
+      count: proposalDecisionReadyCount,
+      tone: proposalDecisionReadyCount || failAlertCount ? "urgent" as const : "quiet" as const,
+      statusLabel: proposalDecisionReadyCount ? "ต้องบันทึก final decision" : failAlertCount ? "มี FAIL ≥ 50%" : "รอตัดสิน"
     },
     {
       title: "แต่งตั้งกรรมการ",
