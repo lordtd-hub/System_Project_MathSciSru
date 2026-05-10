@@ -87,6 +87,8 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(teacherSchedules).toContain("เปิดเอกสาร/หลักฐาน");
     expect(progress1).toContain('where: { kind: "PROGRESS_1" }');
     expect(progress2).toContain('where: { kind: "PROGRESS_2" }');
+    expect(progress1).toContain('scheduleProposals: { some: { assessmentKind: "PROGRESS_1", status: "CONFIRMED" } }');
+    expect(progress2).toContain('scheduleProposals: { some: { assessmentKind: "PROGRESS_2", status: "CONFIRMED" } }');
   });
 
   it("keeps schedule approval dashboard counts actionable and round-open only", () => {
@@ -108,6 +110,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("hasApprovedTeacherCapability(user)");
     expect(actions).toContain('project.status !== "IN_PROGRESS"');
     expect(actions).toContain('["HEAD", "MEMBER"].includes(assignment.role)');
+    expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_1", "Progress 1")');
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
@@ -119,6 +122,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("submitProgress2Score");
     expect(actions).toContain('roundType: "PROGRESS_2"');
     expect(actions).toContain('attemptType: "PROGRESS_2"');
+    expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_2", "Progress 2")');
     expect(actions).toContain("validateProgress2Score");
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
@@ -134,6 +138,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("submitFinalPresentationScore");
     expect(actions).toContain('roundType: "FINAL_PRESENTATION"');
     expect(actions).toContain('attemptType: "FINAL_PRESENTATION"');
+    expect(actions).toContain('assertConfirmedSchedule(project.id, "FINAL_PRESENT", "Final Presentation")');
     expect(actions).toContain("finalQaRubricItems");
     expect(actions).toContain("calculateFinalQaCriterionScore");
     expect(actions).toContain("assessmentAttempt.upsert");

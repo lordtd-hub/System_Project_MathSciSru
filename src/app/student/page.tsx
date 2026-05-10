@@ -20,6 +20,13 @@ function daysWaiting(from?: Date | null) {
   return Math.floor((Date.now() - from.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function assessmentKindLabel(kind?: string | null) {
+  if (kind === "PROGRESS_1") return "Progress 1";
+  if (kind === "PROGRESS_2") return "Progress 2";
+  if (kind === "FINAL_PRESENT") return "Final Presentation";
+  return "รอบสอบ";
+}
+
 function buildStudentTasks(status: string): TaskListItem[] {
   if (status === "STUDENT_PROFILE") {
     return [{ title: "กรอกข้อมูลนักศึกษา", description: "ต้องกรอกข้อมูลนี้ก่อนสร้างโปรเจค", href: "/student/profile", urgency: "สูง" }];
@@ -190,6 +197,32 @@ export default async function StudentDashboardPage() {
   const latestScheduleRejectedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "REJECT").length ?? 0;
   const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
   const latestSchedulePendingCount = Math.max(latestScheduleTotalCount - latestScheduleApprovedCount - latestScheduleRejectedCount, 0);
+  const latestScheduleRoundLabel = assessmentKindLabel(latestSchedule?.assessmentKind);
+  const studentNextAction = latestSchedule?.status === "REJECTED"
+    ? {
+        title: `${latestScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
+        description: "กรุณาเสนอวันสอบใหม่ ระบบจะแจ้งกรรมการทุกคนให้พิจารณารอบใหม่อีกครั้ง",
+        actionLabel: "เสนอวันสอบใหม่",
+        href: "/student/schedule",
+        tone: "warning" as const
+      }
+    : latestSchedule?.status === "PROPOSED"
+      ? {
+          title: `รอกรรมการยืนยันวันสอบ ${latestScheduleRoundLabel}`,
+          description: `อนุมัติแล้ว ${latestScheduleApprovedCount}/${latestScheduleTotalCount} คน ยังรอ ${latestSchedulePendingCount} คน เมื่อครบแล้วจึงเข้าสอบและรอกรรมการบันทึกคะแนน`,
+          actionLabel: "ดูสถานะวันสอบ",
+          href: "/student/schedule",
+          tone: "warning" as const
+        }
+      : latestSchedule?.status === "CONFIRMED"
+        ? {
+            title: `${latestScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
+            description: "ขั้นตอนถัดไปคือเข้าสอบตามวันเวลาที่เสนอไว้ หลังสอบแล้วรอกรรมการบันทึกคะแนนในระบบ",
+            actionLabel: "ดูรายละเอียดวันสอบ",
+            href: "/student/schedule",
+            tone: "success" as const
+          }
+        : nextAction;
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   timer.end();
@@ -202,7 +235,7 @@ export default async function StudentDashboardPage() {
         actions={<StatusBadge status={project.status} />}
       />
 
-      <NextActionCard action={nextAction} />
+      <NextActionCard action={studentNextAction} />
 
       {latestSchedule?.status === "REJECTED" ? (
         <WarningAlert title="มีอาจารย์ไม่สะดวกตามวันสอบที่เสนอ">
@@ -220,7 +253,7 @@ export default async function StudentDashboardPage() {
         </InfoAlert>
       ) : latestSchedule?.status === "CONFIRMED" ? (
         <SuccessAlert title="วันสอบได้รับการยืนยันแล้ว">
-          กรรมการอนุมัติครบ {latestScheduleApprovedCount}/{latestScheduleTotalCount}
+          กรรมการอนุมัติครบ {latestScheduleApprovedCount}/{latestScheduleTotalCount} คน สำหรับ {latestScheduleRoundLabel} แล้ว ขั้นตอนถัดไปคือเข้าสอบตามวันเวลา และรอกรรมการบันทึกคะแนนหลังสอบ
         </SuccessAlert>
       ) : null}
 

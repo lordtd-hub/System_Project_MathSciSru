@@ -52,6 +52,7 @@ export default async function TeacherProgress2Page({
         where: {
           status: "IN_PROGRESS",
           courseOfferingId: progress2Round.courseOfferingId,
+          scheduleProposals: { some: { assessmentKind: "PROGRESS_2", status: "CONFIRMED" } },
           committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } }
         },
         include: {
@@ -196,7 +197,7 @@ export default async function TeacherProgress2Page({
             </section>
           );
         }) : progress2Round ? (
-          <EmptyState title="ยังไม่มีโครงงาน Progress 2 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านได้รับแต่งตั้งเป็น HEAD/MEMBER ของโครงงานที่อยู่ใน IN_PROGRESS" />
+          <EmptyState title="ยังไม่มีโครงงาน Progress 2 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็น HEAD/MEMBER และกรรมการยืนยันวันสอบ Progress 2 ครบแล้ว" />
         ) : null}
       </div>
     </div>

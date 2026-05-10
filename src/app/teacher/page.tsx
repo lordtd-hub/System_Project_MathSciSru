@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { AssessmentStatus, CommitteeRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
@@ -15,6 +16,18 @@ import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
 function getTeacherWorkloadCounts(teacherId: string) {
+  const openScoringRoundStatuses: AssessmentStatus[] = ["SUBMISSION_OPEN", "SCORING_OPEN"];
+  const scoringCommitteeRoles: CommitteeRole[] = ["HEAD", "MEMBER"];
+  const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") => ({
+    status: "CONFIRMED" as const,
+    assessmentKind,
+    assessmentRound: { status: { in: openScoringRoundStatuses } },
+    project: {
+      status: "IN_PROGRESS" as const,
+      committeeAssignments: { some: { teacherId, active: true, role: { in: scoringCommitteeRoles } } }
+    }
+  });
+
   return Promise.all([
     prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
     prisma.examScheduleProposal.count({
@@ -38,7 +51,10 @@ function getTeacherWorkloadCounts(teacherId: string) {
           { committeeAssignments: { some: { teacherId, active: true, role: "ADVISOR" } } }
         ]
       }
-    })
+    }),
+    prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_1") }),
+    prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_2") }),
+    prisma.examScheduleProposal.count({ where: readyScoreWhere("FINAL_PRESENT") })
   ]);
 }
 
@@ -111,21 +127,34 @@ export default async function TeacherDashboardPage() {
     return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์อาจารย์ก่อนใช้งาน" actionLabel="Claim โปรไฟล์" href="/teacher/claim" />;
   }
 
-  const [advisorRequestCount, scheduleApprovalCount, reportReviewCount, advisorScoreProjectCount] = await (
+  const [
+    advisorRequestCount,
+    scheduleApprovalCount,
+    reportReviewCount,
+    advisorScoreProjectCount,
+    progress1ScoreReadyCount,
+    progress2ScoreReadyCount,
+    finalScoreReadyCount
+  ] = await (
     sessionTeacherWorkloadQuery ?? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(teacher.id))
   );
+  const presentationScoreReadyCount = progress1ScoreReadyCount + progress2ScoreReadyCount + finalScoreReadyCount;
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequestCount,
     pendingProposalScores: pendingProposalScores.length,
     pendingScheduleApprovals: scheduleApprovalCount,
     pendingReportReviews: reportReviewCount,
+    progress1ScoreReady: progress1ScoreReadyCount,
+    progress2ScoreReady: progress2ScoreReadyCount,
+    finalScoreReady: finalScoreReadyCount,
     advisorScoreUnlocked: advisorScoreProjectCount > 0
   });
   const workloadCards = [
     { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
     { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "ready" as const : "quiet" as const },
     { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const },
+    { label: "พร้อมให้คะแนน", value: presentationScoreReadyCount, href: progress1ScoreReadyCount ? "/teacher/progress1" : progress2ScoreReadyCount ? "/teacher/progress2" : "/teacher/final", tone: presentationScoreReadyCount ? "ready" as const : "quiet" as const },
     { label: "งานตรวจเล่ม/แก้ไข", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" as const : "quiet" as const },
     { label: "Advisor score", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const }
   ];
@@ -172,24 +201,27 @@ export default async function TeacherDashboardPage() {
     },
     {
       title: "คะแนน Progress 1",
-      description: "เปิด workspace สำหรับงานประเมิน Progress 1 ตาม assignment ที่ระบบมีอยู่",
+      description: progress1ScoreReadyCount ? "วันสอบ Progress 1 ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบ Progress 1 ครบ",
       href: "/teacher/progress1",
-      tone: "quiet" as const,
-      statusLabel: "ติดตาม"
+      count: progress1ScoreReadyCount,
+      tone: progress1ScoreReadyCount ? "ready" as const : "quiet" as const,
+      statusLabel: progress1ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบยืนยัน"
     },
     {
       title: "คะแนน Progress 2",
-      description: "เปิด workspace สำหรับงานประเมิน Progress 2 ตาม assignment ที่ระบบมีอยู่",
+      description: progress2ScoreReadyCount ? "วันสอบ Progress 2 ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบ Progress 2 ครบ",
       href: "/teacher/progress2",
-      tone: "quiet" as const,
-      statusLabel: "ติดตาม"
+      count: progress2ScoreReadyCount,
+      tone: progress2ScoreReadyCount ? "ready" as const : "quiet" as const,
+      statusLabel: progress2ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบยืนยัน"
     },
     {
       title: "คะแนน Final Presentation",
-      description: "เปิด workspace สำหรับงานประเมิน Final ตาม assignment ที่ระบบมีอยู่",
+      description: finalScoreReadyCount ? "วันสอบ Final Presentation ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบ Final ครบ",
       href: "/teacher/final",
-      tone: "quiet" as const,
-      statusLabel: "ติดตาม"
+      count: finalScoreReadyCount,
+      tone: finalScoreReadyCount ? "ready" as const : "quiet" as const,
+      statusLabel: finalScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบยืนยัน"
     }
   ];
   timer.end();
@@ -268,9 +300,9 @@ export default async function TeacherDashboardPage() {
           compact
           tasks={[
             { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
-            { title: "คะแนน Progress 1", description: "เปิดหน้าประเมิน Progress 1", href: "/teacher/progress1" },
-            { title: "คะแนน Progress 2", description: "เปิดหน้าประเมิน Progress 2", href: "/teacher/progress2" },
-            { title: "คะแนน Final", description: "เปิดหน้าประเมิน Final Presentation", href: "/teacher/final" }
+            { title: "คะแนน Progress 1", description: `${progress1ScoreReadyCount} รายการพร้อมให้คะแนนหลังยืนยันวันสอบ`, href: "/teacher/progress1", urgency: progress1ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบ" },
+            { title: "คะแนน Progress 2", description: `${progress2ScoreReadyCount} รายการพร้อมให้คะแนนหลังยืนยันวันสอบ`, href: "/teacher/progress2", urgency: progress2ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบ" },
+            { title: "คะแนน Final", description: `${finalScoreReadyCount} รายการพร้อมให้คะแนนหลังยืนยันวันสอบ`, href: "/teacher/final", urgency: finalScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบ" }
           ]}
         />
       </div>

@@ -264,6 +264,9 @@ export type TeacherTaskCounts = {
   pendingProposalScores: number;
   pendingScheduleApprovals: number;
   pendingReportReviews: number;
+  progress1ScoreReady?: number;
+  progress2ScoreReady?: number;
+  finalScoreReady?: number;
   advisorScoreUnlocked: boolean;
 };
 
@@ -276,6 +279,15 @@ export function getNextActionForTeacher(tasks: TeacherTaskCounts): NextAction {
   }
   if (tasks.pendingScheduleApprovals > 0) {
     return { title: "กรรมการยังอนุมัติวันสอบไม่ครบ", description: "กรุณา approve/reject วันสอบที่นักศึกษาเสนอ", href: "/teacher/schedules", tone: "warning" };
+  }
+  if ((tasks.progress1ScoreReady ?? 0) > 0) {
+    return { title: "มี Progress 1 พร้อมให้คะแนน", description: "วันสอบได้รับการยืนยันครบแล้ว หลังสอบให้บันทึกคะแนน Progress 1", href: "/teacher/progress1" };
+  }
+  if ((tasks.progress2ScoreReady ?? 0) > 0) {
+    return { title: "มี Progress 2 พร้อมให้คะแนน", description: "วันสอบได้รับการยืนยันครบแล้ว หลังสอบให้บันทึกคะแนน Progress 2", href: "/teacher/progress2" };
+  }
+  if ((tasks.finalScoreReady ?? 0) > 0) {
+    return { title: "มี Final Presentation พร้อมให้คะแนน", description: "วันสอบได้รับการยืนยันครบแล้ว หลังสอบให้บันทึกคะแนน Final Presentation", href: "/teacher/final" };
   }
   if (tasks.pendingReportReviews > 0) {
     return { title: "มีเล่มรายงานรอตรวจ", description: "ให้ PASS หรือ FAIL พร้อม comment", href: "/teacher/reports" };

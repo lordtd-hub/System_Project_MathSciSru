@@ -44,6 +44,7 @@ export default async function TeacherProgress1Page({
     prisma.project.findMany({
       where: {
         status: "IN_PROGRESS",
+        scheduleProposals: { some: { assessmentKind: "PROGRESS_1", status: "CONFIRMED" } },
         committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } }
       },
       include: {
@@ -185,7 +186,7 @@ export default async function TeacherProgress1Page({
             </section>
           );
         }) : (
-          <EmptyState title="ยังไม่มีโครงงาน Progress 1 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านได้รับแต่งตั้งเป็น HEAD/MEMBER ของโครงงานที่อยู่ใน IN_PROGRESS" />
+          <EmptyState title="ยังไม่มีโครงงาน Progress 1 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็น HEAD/MEMBER และกรรมการยืนยันวันสอบ Progress 1 ครบแล้ว" />
         )}
       </div>
     </div>

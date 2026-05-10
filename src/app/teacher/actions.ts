@@ -51,6 +51,16 @@ async function requirePendingTeacherClaimUser() {
   return session.user;
 }
 
+async function assertConfirmedSchedule(projectId: string, assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", label: string) {
+  const confirmedSchedule = await prisma.examScheduleProposal.findFirst({
+    where: { projectId, assessmentKind, status: "CONFIRMED" },
+    select: { id: true }
+  });
+  if (!confirmedSchedule) {
+    throw new Error(`${label} ต้องมีการยืนยันวันสอบจากกรรมการครบก่อนจึงจะบันทึกคะแนนได้`);
+  }
+}
+
 export async function claimTeacherProfile(formData: FormData) {
   const user = await requirePendingTeacherClaimUser();
   assertRateLimit(`teacher:${user.id}:claimTeacherProfile`, pilotRateLimits.workflowMutation);
@@ -630,6 +640,7 @@ export async function submitProgress1Score(formData: FormData) {
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
   if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Progress 1 ได้");
+  await assertConfirmedSchedule(project.id, "PROGRESS_1", "Progress 1");
 
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
@@ -744,6 +755,7 @@ export async function submitProgress2Score(formData: FormData) {
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
   if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Progress 2 ได้");
+  await assertConfirmedSchedule(project.id, "PROGRESS_2", "Progress 2");
 
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
@@ -851,6 +863,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
   if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Final Presentation ได้");
+  await assertConfirmedSchedule(project.id, "FINAL_PRESENT", "Final Presentation");
 
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUnique({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "FINAL_PRESENTATION" } }

@@ -40,6 +40,7 @@ export default async function TeacherFinalPage({
         where: {
           status: "IN_PROGRESS",
           courseOfferingId: finalRound.courseOfferingId,
+          scheduleProposals: { some: { assessmentKind: "FINAL_PRESENT", status: "CONFIRMED" } },
           committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } }
         },
         include: {
@@ -156,7 +157,7 @@ export default async function TeacherFinalPage({
             </section>
           );
         }) : finalRound ? (
-          <EmptyState title="ยังไม่มีโครงงาน Final Presentation ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านได้รับแต่งตั้งเป็น HEAD/MEMBER ของโครงงานที่อยู่ใน IN_PROGRESS" />
+          <EmptyState title="ยังไม่มีโครงงาน Final Presentation ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็น HEAD/MEMBER และกรรมการยืนยันวันสอบ Final Presentation ครบแล้ว" />
         ) : null}
       </div>
     </div>

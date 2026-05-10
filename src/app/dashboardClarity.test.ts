@@ -23,6 +23,10 @@ describe("dashboard clarity phase 2", () => {
     expect(page).toContain("advisorRequestCount");
     expect(page).toContain("pendingProposalScores.length");
     expect(page).toContain("scheduleApprovalCount");
+    expect(page).toContain("progress1ScoreReadyCount");
+    expect(page).toContain("progress2ScoreReadyCount");
+    expect(page).toContain("finalScoreReadyCount");
+    expect(page).toContain("พร้อมให้คะแนน");
   });
 
   it("surfaces admin bottlenecks without new route or query architecture", () => {
