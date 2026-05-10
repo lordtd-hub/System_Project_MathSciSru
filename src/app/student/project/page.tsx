@@ -40,6 +40,7 @@ export default async function StudentProjectPage({
   const teachers = await prisma.teacher.findMany({ where: { active: true, isInternal: true }, orderBy: [{ firstNameTh: "asc" }] });
   const advisorRequest = project?.advisorRequests[0];
   const canEditProject = project?.status === "DRAFT";
+  const latestAdvisorRejected = canEditProject && advisorRequest?.status === "REJECTED";
 
   if (!student || !project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
@@ -51,6 +52,18 @@ export default async function StudentProjectPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {latestAdvisorRejected ? (
+        <section className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-ink">
+          <p className="font-semibold">คำขอที่ปรึกษาถูกปฏิเสธ</p>
+          <p className="mt-1 text-muted">กรุณาอ่านความเห็นของอาจารย์ แก้ไขข้อมูลหัวข้อ แล้วส่งคำขอใหม่หลังปรับข้อมูลเรียบร้อย</p>
+          {advisorRequest.advisorComment ? (
+            <div className="mt-3 rounded-md border border-line bg-surface p-3">
+              <div className="mb-1 font-medium">ความเห็นจากอาจารย์</div>
+              <MarkdownLatexViewer className="border-0 bg-transparent p-0 text-muted" value={advisorRequest.advisorComment} />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       {canEditProject ? (
         <section className="rounded-md border border-brand/25 bg-brand/5 p-4 text-sm text-ink">
           <p className="font-semibold">ก่อนส่งคำขอที่ปรึกษา</p>
@@ -130,7 +143,7 @@ export default async function StudentProjectPage({
           </label>
         </div>
         <SubmitButton disabled={!canEditProject} pendingText="กำลังส่งคำขอ..." className="mt-4">
-          {canEditProject ? "ส่งคำขอให้อาจารย์ที่ปรึกษา" : "ขั้นตอนนี้ถูกล็อก"}
+          {canEditProject ? (latestAdvisorRejected ? "ส่งคำขอใหม่หลังแก้ไข" : "ส่งคำขอให้อาจารย์ที่ปรึกษา") : "ขั้นตอนนี้ถูกล็อก"}
         </SubmitButton>
       </FormSection>
     </form>

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { LifecycleStepper } from "@/components/ui/LifecycleStepper";
+import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -119,6 +120,8 @@ export default async function StudentDashboardPage() {
           advisorRequests: {
             select: {
               requestedAt: true,
+              status: true,
+              advisorComment: true,
               advisorTeacher: { select: { academicPrefix: true, firstNameTh: true, lastNameTh: true } }
             },
             orderBy: { requestedAt: "desc" },
@@ -184,6 +187,7 @@ export default async function StudentDashboardPage() {
   const proposal = project.presentationSubmissions[0];
   const latestSchedule = project.scheduleProposals[0];
   const latestReport = project.reportVersions[0];
+  const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   timer.end();
 
   return (
@@ -195,6 +199,21 @@ export default async function StudentDashboardPage() {
       />
 
       <NextActionCard action={nextAction} />
+
+      {latestAdvisorRejected ? (
+        <WarningAlert title="คำขอที่ปรึกษาถูกปฏิเสธ">
+          <div className="space-y-2">
+            <p>
+              {advisorRequest?.advisorTeacher ? `${teacherDisplayName(advisorRequest.advisorTeacher)} ปฏิเสธคำขอที่ปรึกษา` : "อาจารย์ที่ปรึกษาปฏิเสธคำขอ"}
+              {" "}กรุณาแก้ไขข้อมูลหัวข้อก่อนส่งคำขอใหม่
+            </p>
+            {advisorRequest?.advisorComment ? (
+              <MarkdownLatexViewer className="rounded-md border border-line bg-surface p-3 text-sm text-muted" value={advisorRequest.advisorComment} />
+            ) : null}
+            <Link className="button-secondary inline-flex" href="/student/project">ไปแก้ไขร่างโครงงาน</Link>
+          </div>
+        </WarningAlert>
+      ) : null}
 
       {project.status === "PENDING_ADVISOR" && waitingDays > 7 ? (
         <WarningAlert title="รอการตอบรับเกิน 7 วัน">

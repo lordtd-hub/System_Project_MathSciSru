@@ -10,7 +10,7 @@ import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TaskListCard } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
-import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
+import { WarningAlert } from "@/components/ui/Alert";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { ProjectStatus } from "@prisma/client";
 import { courseLevelRoundTypes, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
@@ -180,7 +180,7 @@ export default async function AdminDashboardPage({
   ];
   const nextAction = getNextActionForAdmin(nextActionProjects);
   const adminWorkflowCards = [
-    { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "/admin", tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const },
+    { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "#pending-admin-confirmation", tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const },
     { label: "รอตัดสิน Proposal", value: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION"), href: "/admin/proposals", tone: countFromStatus(statusCounts, "PROPOSAL_ADMIN_DECISION") ? "ready" as const : "quiet" as const },
     { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const },
     { label: "รอ Advisor score", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" as const : "quiet" as const },
@@ -198,7 +198,8 @@ export default async function AdminDashboardPage({
     {
       title: "ยืนยันโปรเจคและอาจารย์ที่ปรึกษา",
       description: pendingAdminProjects.length ? "โปรเจคที่ advisor อนุมัติแล้วรอ Admin confirmation" : "ยังไม่มีโปรเจครอ Admin confirmation",
-      href: "/admin",
+      href: "#pending-admin-confirmation",
+      ctaLabel: pendingAdminProjects.length ? "ไปยืนยัน" : "ดูรายการ",
       count: pendingAdminProjects.length,
       tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const,
       statusLabel: pendingAdminProjects.length ? "พร้อมดำเนินการ" : "ปกติ"
@@ -329,8 +330,8 @@ export default async function AdminDashboardPage({
         <AdminRoundGateSection activeOfferingId={activeOffering?.id ?? null} courseOfferingIds={dashboardOfferingIds} />
       </Suspense>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
-        <section className="panel dashboard-console-panel">
-          <h2 className="text-lg font-semibold">Pending Admin confirmation</h2>
+        <section id="pending-admin-confirmation" className="panel dashboard-console-panel scroll-mt-24">
+          <h2 className="text-lg font-semibold">โปรเจครอ Admin ยืนยัน</h2>
           <p className="mt-1 text-sm text-muted">เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น PROPOSAL_PENDING</p>
           <div className="mt-3 space-y-3">
             {pendingAdminProjects.length ? pendingAdminProjects.map((project) => (
@@ -362,7 +363,7 @@ export default async function AdminDashboardPage({
       <Suspense fallback={<DashboardSectionSkeleton title="Project status overview" />}>
         <ProjectStatusOverviewSection projectsPromise={recentProjectsQuery} statusGroupsPromise={statusGroupsQuery} />
       </Suspense>
-      <Suspense fallback={<DashboardSectionSkeleton title="Notification" />}>
+      <Suspense fallback={null}>
         <AdminNotificationsSection notificationsPromise={notificationsQuery} />
       </Suspense>
       <Suspense fallback={<DashboardSectionSkeleton title="Latest evidence" />}>
@@ -531,17 +532,21 @@ async function AdminNotificationsSection({
   notificationsPromise: Promise<Awaited<ReturnType<typeof getUnreadAdminNotifications>>>;
 }) {
   const notifications = await notificationsPromise;
+  if (!notifications.length) return null;
 
   return (
-    <section className="panel">
-      <h2 className="text-lg font-semibold">Notification ที่ต้องติดตาม</h2>
+    <section className="panel dashboard-console-panel">
+      <DashboardSectionHeader
+        title="Notification ที่ต้องติดตาม"
+        description="แสดงเฉพาะรายการที่ระบบต้องการให้ผู้ดูแลระบบเห็นเพิ่มเติม"
+      />
       <div className="mt-3 space-y-2">
-        {notifications.length ? notifications.map((notification) => (
+        {notifications.map((notification) => (
           <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
             <div className="font-medium">{notification.title}</div>
             {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
           </div>
-        )) : <InfoAlert title="ยังไม่มี notification">เมื่อมีคำเตือนหรือรายการต้องติดตาม ระบบจะแสดงที่นี่</InfoAlert>}
+        ))}
       </div>
     </section>
   );
