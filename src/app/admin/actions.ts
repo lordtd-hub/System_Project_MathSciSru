@@ -431,7 +431,7 @@ export async function closeProposalRound(formData: FormData) {
     select: { id: true, projectId: true }
   }));
 
-  const closedRoundData = buildCloseAssessmentRoundData(adminUserId);
+  const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
   await timer.measure("close_round", () => prisma.$transaction([
     prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
     prisma.auditLog.create({
@@ -494,7 +494,10 @@ export async function openCourseRound(formData: FormData) {
       closedAt: null,
       closedByAdminId: null,
       courseWeight: defaultCourseRoundWeight(roundType),
-      rawScoreMax: 100
+      rawScoreMax: 100,
+      showScoreToStudent: false,
+      showFeedbackToStudent: false,
+      showEvaluatorNameToStudent: false
     },
     create: {
       courseOfferingId,
@@ -503,7 +506,10 @@ export async function openCourseRound(formData: FormData) {
       status: roundType === "PROPOSAL" ? "SCORING_OPEN" : "SUBMISSION_OPEN",
       submissionOpenAt: new Date(),
       courseWeight: defaultCourseRoundWeight(roundType),
-      rawScoreMax: 100
+      rawScoreMax: 100,
+      showScoreToStudent: false,
+      showFeedbackToStudent: false,
+      showEvaluatorNameToStudent: false
     }
   });
   await prisma.auditLog.create({
@@ -533,7 +539,7 @@ export async function closeCourseRound(formData: FormData) {
   const round = await prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } });
   if (isRoundClosed(round.status)) throw new Error("รอบสอบนี้ปิดแล้ว");
 
-  const closedRoundData = buildCloseAssessmentRoundData(adminUserId);
+  const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
   await prisma.$transaction([
     prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
     prisma.auditLog.create({

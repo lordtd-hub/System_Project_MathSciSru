@@ -24,8 +24,19 @@ function daysWaiting(from?: Date | null) {
 function assessmentKindLabel(kind?: string | null) {
   if (kind === "PROGRESS_1") return "Progress 1";
   if (kind === "PROGRESS_2") return "Progress 2";
+  if (kind === "FINAL_PRESENTATION") return "Final Presentation";
   if (kind === "FINAL_PRESENT") return "Final Presentation";
   return "รอบสอบ";
+}
+
+function scoreAverage(scores: number[]) {
+  if (!scores.length) return null;
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+}
+
+function formatScore(score: number | null) {
+  if (score === null) return "-";
+  return Number.isInteger(score) ? String(score) : score.toFixed(2);
 }
 
 function buildStudentTasks(status: string): TaskListItem[] {
@@ -150,6 +161,40 @@ export default async function StudentDashboardPage() {
           },
           reportVersions: { select: { versionNo: true }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          attempts: {
+            where: { attemptType: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
+            select: {
+              id: true,
+              attemptType: true,
+              officialScore: true,
+              assessmentRound: {
+                select: {
+                  roundType: true,
+                  status: true,
+                  closedAt: true,
+                  showScoreToStudent: true,
+                  showFeedbackToStudent: true,
+                  showEvaluatorNameToStudent: true
+                }
+              },
+              evaluatorAssignments: {
+                select: {
+                  id: true,
+                  evaluatorDisplayNameSnapshot: true,
+                  scoreSubmission: {
+                    select: {
+                      totalScore: true,
+                      overallComment: true,
+                      status: true,
+                      submittedAt: true
+                    }
+                  }
+                },
+                orderBy: { assignedAt: "asc" }
+              }
+            },
+            orderBy: { createdAt: "asc" }
+          },
           timelineEvents: {
             select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
             orderBy: { occurredAt: "desc" },
@@ -232,6 +277,30 @@ export default async function StudentDashboardPage() {
     : studentNextAction;
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
+  const visibleAssessmentResults = project.attempts
+    .map((attempt) => {
+      const round = attempt.assessmentRound;
+      const roundClosed = round.status === "SCORING_CLOSED";
+      const showScore = roundClosed || round.showScoreToStudent;
+      const showFeedback = roundClosed || round.showFeedbackToStudent;
+      const submittedScores = attempt.evaluatorAssignments
+        .map((assignment) => assignment.scoreSubmission)
+        .filter((score): score is NonNullable<typeof score> => score?.status === "SUBMITTED" || score?.status === "LOCKED");
+      const scores = submittedScores.map((score) => Number(score.totalScore));
+      return {
+        attempt,
+        showScore,
+        showFeedback,
+        averageScore: attempt.officialScore != null ? Number(attempt.officialScore) : scoreAverage(scores),
+        submittedCount: submittedScores.length,
+        evaluatorCount: attempt.evaluatorAssignments.length
+      };
+    })
+    .filter((result) => result.showScore || result.showFeedback)
+    .sort((a, b) => {
+      const order = { PROGRESS_1: 1, PROGRESS_2: 2, FINAL_PRESENTATION: 3 } as const;
+      return (order[a.attempt.attemptType as keyof typeof order] ?? 99) - (order[b.attempt.attemptType as keyof typeof order] ?? 99);
+    });
   timer.end();
 
   return (
@@ -290,6 +359,62 @@ export default async function StudentDashboardPage() {
       ) : null}
 
       <LifecycleStepper status={project.status} />
+
+      {visibleAssessmentResults.length ? (
+        <section className="panel">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand">Assessment results</p>
+              <h2 className="mt-1 text-lg font-semibold">ผลการประเมินรอบสอบ</h2>
+              <p className="mt-1 text-sm text-muted">
+                แสดงหลังผู้ดูแลระบบปิดรอบสอบแล้ว คะแนน Proposal ยังถูกซ่อนตามนโยบายรายวิชา
+              </p>
+            </div>
+            <Link className="button-secondary" href="/student/feedback">ดู feedback Proposal</Link>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {visibleAssessmentResults.map((result) => (
+              <div key={result.attempt.id} className="rounded-md border border-line bg-surface p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">{assessmentKindLabel(result.attempt.attemptType)}</h3>
+                    <p className="mt-1 text-xs text-muted">
+                      กรรมการบันทึกคะแนน {result.submittedCount}/{result.evaluatorCount} คน
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs text-muted">
+                    ปิดรอบแล้ว
+                  </span>
+                </div>
+                {result.showScore ? (
+                  <div className="mt-3 rounded-md border border-line bg-paper p-3">
+                    <div className="text-xs text-muted">คะแนนเฉลี่ย</div>
+                    <div className="mt-1 text-2xl font-semibold text-ink">{formatScore(result.averageScore)} / 100</div>
+                  </div>
+                ) : null}
+                {result.showFeedback ? (
+                  <div className="mt-3 space-y-2">
+                    {result.attempt.evaluatorAssignments
+                      .filter((assignment) => assignment.scoreSubmission?.overallComment)
+                      .map((assignment) => (
+                        <div key={assignment.id} className="rounded-md border border-line bg-paper p-3 text-sm">
+                          <div className="font-medium">
+                            {result.attempt.assessmentRound.showEvaluatorNameToStudent || result.attempt.assessmentRound.status === "SCORING_CLOSED"
+                              ? assignment.evaluatorDisplayNameSnapshot
+                              : "กรรมการ"}
+                          </div>
+                          {assignment.scoreSubmission?.overallComment ? (
+                            <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-sm" value={assignment.scoreSubmission.overallComment} />
+                          ) : null}
+                        </div>
+                      ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-4">
         <div className="dashboard-metric dashboard-metric-current">
