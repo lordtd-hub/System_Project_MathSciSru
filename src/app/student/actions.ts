@@ -37,6 +37,34 @@ function requiredText(formData: FormData, key: string, label: string): string {
   return value;
 }
 
+type ProposalTimelineItem = {
+  activity: string;
+  startWeek: number;
+  endWeek: number;
+  deliverable: string;
+};
+
+function parseProposalTimelineItems(value: FormDataEntryValue | null): ProposalTimelineItem[] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  const parsed = JSON.parse(value) as Array<Partial<ProposalTimelineItem>>;
+  return parsed
+    .map((item) => {
+      const startWeek = Number(item.startWeek);
+      const endWeek = Number(item.endWeek);
+      if (!Number.isInteger(startWeek) || !Number.isInteger(endWeek) || startWeek < 1 || startWeek > 16 || endWeek < 1 || endWeek > 16) {
+        throw new Error("สัปดาห์ในแผนดำเนินงานต้องอยู่ระหว่าง 1-16");
+      }
+      if (endWeek < startWeek) throw new Error("สัปดาห์สิ้นสุดต้องไม่อยู่ก่อนสัปดาห์เริ่ม");
+      return {
+        activity: String(item.activity ?? "").trim(),
+        startWeek,
+        endWeek,
+        deliverable: String(item.deliverable ?? "").trim()
+      };
+    })
+    .filter((item) => item.activity || item.deliverable);
+}
+
 export async function saveStudentProfile(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
   const preferredName = String(formData.get("preferred_name") ?? "").trim() || null;
@@ -205,19 +233,21 @@ export async function saveProposalSubmission(formData: FormData) {
   if (!linkResult.ok) throw new Error(linkResult.reason);
   if (formData.get("student_declaration") !== "on") throw new Error("กรุณายืนยันคำรับรองของนักศึกษา");
 
+  const timelineItems = parseProposalTimelineItems(formData.get("timeline_items_json"));
   const content = {
     motivationBackground: requiredText(formData, "motivation_background", "ที่มาและความสำคัญ"),
     objectives: requiredText(formData, "objectives", "วัตถุประสงค์"),
     proposedMethods: requiredText(formData, "proposed_methods", "วิธีดำเนินงาน"),
     expectedOutcomes: requiredText(formData, "expected_outcomes", "ผลที่คาดว่าจะได้รับ"),
     timeline: requiredText(formData, "timeline", "แผนดำเนินงาน"),
+    timelineItems,
     questionsForTeachers: String(formData.get("questions_for_teachers") ?? "").trim()
   };
   assertTextSize(content.questionsForTeachers, requestSizeLimits.commentTextBytes, "questions for teachers");
 
   const markdownErrors = [
     ...validateMarkdownInput(requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ"), "บทคัดย่อการนำเสนอ"),
-    ...Object.entries(content).flatMap(([key, value]) => (key === "questionsForTeachers" ? [] : validateMarkdownInput(value, key)))
+    ...Object.entries(content).flatMap(([key, value]) => (key === "questionsForTeachers" || key === "timelineItems" || typeof value !== "string" ? [] : validateMarkdownInput(value, key)))
   ];
   if (markdownErrors.length) throw new Error(markdownErrors.join("\n"));
 

@@ -42,7 +42,7 @@ export default async function ProposalSubmissionPage({
   });
   const project = student?.projects[0];
   const submission = project?.presentationSubmissions[0];
-  const content = submission?.contentJson as Record<string, string> | undefined;
+  const content = submission?.contentJson as Record<string, unknown> | undefined;
   const proposalComments = project?.attempts.flatMap((attempt) => attempt.proposalVotes.filter((vote) => vote.visibleToStudent)) ?? [];
   const proposalRound = project
     ? await prisma.assessmentRound.findFirst({
@@ -94,25 +94,28 @@ export default async function ProposalSubmissionPage({
               <MarkdownLatexEditor name="abstract_of_talk" label="บทคัดย่อการนำเสนอ" defaultValue={submission?.abstractText ?? ""} rows={7} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="motivation_background" label="ที่มาและความสำคัญ" defaultValue={content?.motivationBackground ?? ""} rows={5} />
+              <MarkdownLatexEditor name="motivation_background" label="ที่มาและความสำคัญ" defaultValue={typeof content?.motivationBackground === "string" ? content.motivationBackground : ""} rows={5} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="objectives" label="วัตถุประสงค์" defaultValue={content?.objectives ?? ""} rows={5} />
+              <MarkdownLatexEditor name="objectives" label="วัตถุประสงค์" defaultValue={typeof content?.objectives === "string" ? content.objectives : ""} rows={5} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="proposed_methods" label="วิธีดำเนินงาน" defaultValue={content?.proposedMethods ?? ""} rows={5} />
+              <MarkdownLatexEditor name="proposed_methods" label="วิธีดำเนินงาน" defaultValue={typeof content?.proposedMethods === "string" ? content.proposedMethods : ""} rows={5} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="expected_outcomes" label="ผลที่คาดว่าจะได้รับ" defaultValue={content?.expectedOutcomes ?? ""} rows={5} />
+              <MarkdownLatexEditor name="expected_outcomes" label="ผลที่คาดว่าจะได้รับ" defaultValue={typeof content?.expectedOutcomes === "string" ? content.expectedOutcomes : ""} rows={5} />
             </div>
             <div className="md:col-span-2">
-              <ProposalTimelineBuilder defaultValue={content?.timeline} />
+              <ProposalTimelineBuilder
+                defaultValue={typeof content?.timeline === "string" ? content.timeline : ""}
+                defaultItemsJson={content?.timelineItems ? JSON.stringify(content.timelineItems) : undefined}
+              />
             </div>
             <div className="md:col-span-2">
               <MarkdownLatexEditor
                 name="questions_for_teachers"
                 label="คำถามหรือประเด็นที่ต้องการให้อาจารย์ช่วยพิจารณา"
-                defaultValue={content?.questionsForTeachers ?? ""}
+                defaultValue={typeof content?.questionsForTeachers === "string" ? content.questionsForTeachers : ""}
                 helpText="ระบุข้อสงสัย จุดที่ยังไม่มั่นใจ หรือประเด็นใน Proposal ที่ต้องการให้อาจารย์ช่วยให้คำแนะนำ หากไม่มีให้เว้นว่างได้"
                 rows={5}
                 required={false}
