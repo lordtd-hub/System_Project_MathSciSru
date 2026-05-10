@@ -10,8 +10,13 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { selectableSourceTypes, sourceTypeLabelTh } from "@/lib/projects/sourceType";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { saveProjectOrigin } from "../actions";
+
+function RequiredMark() {
+  return <span className="ml-1 text-brand" aria-label="จำเป็นต้องกรอก">*</span>;
+}
 
 export default async function StudentProjectPage({
   searchParams
@@ -46,6 +51,14 @@ export default async function StudentProjectPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {canEditProject ? (
+        <section className="rounded-md border border-brand/25 bg-brand/5 p-4 text-sm text-ink">
+          <p className="font-semibold">ก่อนส่งคำขอที่ปรึกษา</p>
+          <p className="mt-1 text-muted">
+            หลังส่งคำขอแล้ว นักศึกษาจะไม่สามารถแก้ไขข้อมูลหัวข้อได้ระหว่างรออาจารย์ที่ปรึกษาอนุมัติ หากอาจารย์ปฏิเสธหรือส่งกลับแก้ไข ระบบจึงจะเปิดให้แก้ไขอีกครั้ง
+          </p>
+        </section>
+      ) : null}
       <GuidancePanel
         title="ขั้นร่างหัวข้อ"
         current="กรอกชื่อหัวข้อ เหตุผล ขอบเขต และเลือกอาจารย์ที่ปรึกษา"
@@ -69,7 +82,7 @@ export default async function StudentProjectPage({
       <FormSection title="ข้อมูลหัวข้อ" description="ใช้เป็นหลักฐานต้นทางของโปรเจคและส่งต่อให้ที่ปรึกษาพิจารณา">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label>ชื่อหัวข้อภาษาไทย</label>
+            <label>ชื่อหัวข้อภาษาไทย<RequiredMark /></label>
             <input name="initial_project_title_th" required defaultValue={project.origin?.initialProjectTitleTh ?? project.currentTitleTh ?? ""} />
           </div>
           <div>
@@ -86,7 +99,7 @@ export default async function StudentProjectPage({
             <MarkdownLatexEditor name="consultation_summary" label="สรุปการปรึกษาเบื้องต้น" defaultValue={project.origin?.consultationSummary ?? ""} rows={4} />
           </div>
           <div>
-            <label>อาจารย์ที่ปรึกษา</label>
+            <label>อาจารย์ที่ปรึกษา<RequiredMark /></label>
             <select name="tentative_advisor_id" required defaultValue={project.origin?.tentativeAdvisorId ?? ""}>
               <option value="">เลือกอาจารย์ที่ปรึกษา</option>
               {teachers.map((teacher) => (
@@ -97,7 +110,9 @@ export default async function StudentProjectPage({
           <div>
             <label>แหล่งที่มาหัวข้อ</label>
             <select name="source_type" defaultValue={project.origin?.sourceType ?? "STUDENT_INITIATED"}>
-              <option value="STUDENT_INITIATED">นักศึกษาเสนอเอง</option>
+              {selectableSourceTypes.map((sourceType) => (
+                <option key={sourceType} value={sourceType}>{sourceTypeLabelTh(sourceType)}</option>
+              ))}
             </select>
           </div>
           <div className="md:col-span-2">
@@ -108,7 +123,10 @@ export default async function StudentProjectPage({
           </div>
           <label className="flex items-center gap-2 md:col-span-2">
             <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={project.origin?.declarationAccepted ?? false} />
-            <span>ข้าพเจ้ารับรองว่าข้อมูลนี้เป็นงานของตนเองและไม่ใช้ raw HTML</span>
+            <span>
+              ข้าพเจ้ารับรองว่าเนื้อหาที่ส่งเป็นงานของตนเอง และใช้เฉพาะข้อความ/สูตรที่ระบบรองรับ
+              <span className="mt-1 block text-xs text-muted">รองรับข้อความธรรมดา Markdown และสูตรคณิตศาสตร์ LaTeX หากต้องการแนบไฟล์ รูปภาพ หรือเอกสาร ให้ใส่เป็นลิงก์ Google Drive/Docs/Classroom แทน</span>
+            </span>
           </label>
         </div>
         <SubmitButton disabled={!canEditProject} pendingText="กำลังส่งคำขอ..." className="mt-4">

@@ -41,7 +41,10 @@ export function MarkdownLatexEditor({
   return (
     <div className="markdown-latex-editor grid gap-3 lg:grid-cols-2">
       <div className="space-y-1.5">
-        <label htmlFor={name}>{label}</label>
+        <label htmlFor={name}>
+          {label}
+          {required ? <span className="ml-1 text-brand" aria-label="จำเป็นต้องกรอก">*</span> : null}
+        </label>
         <div className="rounded-t-md border border-b-0 border-line bg-paper px-3 py-2 text-xs font-medium">เขียน</div>
         <textarea
           id={name}

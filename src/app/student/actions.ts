@@ -13,6 +13,7 @@ import { validateMarkdownInput } from "@/lib/validators/submissionContent";
 import { getReportSubmissionGate, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
+import { parseSelectableSourceType } from "@/lib/projects/sourceType";
 
 async function requireStudentContext() {
   const session = await auth();
@@ -90,7 +91,7 @@ export async function saveProjectOrigin(formData: FormData) {
   const data = {
     initialProjectTitleTh: requiredText(formData, "initial_project_title_th", "ชื่อหัวข้อภาษาไทย"),
     initialProjectTitleEn: String(formData.get("initial_project_title_en") ?? "").trim() || null,
-    sourceType: String(formData.get("source_type") ?? "STUDENT_INITIATED") as "STUDENT_INITIATED",
+    sourceType: parseSelectableSourceType(formData.get("source_type")),
     reasonForTopic: requiredText(formData, "reason_for_topic", "เหตุผลที่เลือกหัวข้อ"),
     expectedMathArea: requiredText(formData, "expected_math_area", "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง"),
     tentativeAdvisorId: String(formData.get("tentative_advisor_id") ?? "") || null,
