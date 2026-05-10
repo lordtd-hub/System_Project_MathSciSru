@@ -52,7 +52,10 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("hasCompletedScores");
     expect(page).toContain("activeScheduleByKind");
     expect(page).toContain("lockedScheduleRounds");
+    expect(page).toContain("editableEvidenceRounds");
     expect(page).toContain("ส่งขอนัดแล้ว");
+    expect(page).toContain("ยืนยันวันสอบแล้ว");
+    expect(page).toContain("ตรวจสอบก่อนส่งวันสอบ");
     expect(page).toContain("ส่งข้อเสนอวันสอบ");
     expect(page).toContain("ยังแก้ไขเอกสารได้จนกว่าจะส่งเสนอวันสอบ");
     expect(page).toContain("ส่งเสนอวันสอบแล้ว จึงล็อกชุดหลักฐานรอบนี้ไว้ให้กรรมการตรวจ");
@@ -81,6 +84,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     const progress1 = read("src/app/teacher/progress1/page.tsx");
     const progress2 = read("src/app/teacher/progress2/page.tsx");
     expect(teacherSchedules).toContain("assessmentSubmissions");
+    expect(teacherSchedules).toContain("confirmedScheduleCalendar");
+    expect(teacherSchedules).toContain("ตารางสอบที่ยืนยันแล้ว");
+    expect(teacherSchedules).toContain("ไม่แสดงเอกสารหลักฐานของนักศึกษา");
     expect(teacherSchedules).toContain("reviewExamSchedule");
     expect(teacherSchedules).toContain("อนุมัติวันสอบ");
     expect(teacherSchedules).toContain("ไม่อนุมัติ / ขอเปลี่ยนเวลา");

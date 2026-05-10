@@ -27,29 +27,58 @@ export default async function TeacherSchedulesPage({
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
 
-  const schedules = await prisma.examScheduleProposal.findMany({
-    where: {
-      OR: [
-        { approvals: { some: { teacherId: teacher.id } } },
-        { project: { committeeAssignments: { some: { teacherId: teacher.id, active: true } } } },
-        { project: { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } } }
-      ]
-    },
-    include: {
-      courseOffering: { include: { term: true } },
-      assessmentRound: true,
-      project: {
-        include: {
-          student: true,
-          committeeAssignments: { where: { active: true }, include: { teacher: true } },
-          advisorRequests: { where: { status: "APPROVED" }, include: { advisorTeacher: true } },
-          assessmentSubmissions: { orderBy: { submittedAt: "desc" } }
+  const [schedules, confirmedScheduleCalendar] = await Promise.all([
+    prisma.examScheduleProposal.findMany({
+      where: {
+        OR: [
+          { approvals: { some: { teacherId: teacher.id } } },
+          { project: { committeeAssignments: { some: { teacherId: teacher.id, active: true } } } },
+          { project: { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } } }
+        ]
+      },
+      include: {
+        courseOffering: { include: { term: true } },
+        assessmentRound: true,
+        project: {
+          include: {
+            student: true,
+            committeeAssignments: { where: { active: true }, include: { teacher: true } },
+            advisorRequests: { where: { status: "APPROVED" }, include: { advisorTeacher: true } },
+            assessmentSubmissions: { orderBy: { submittedAt: "desc" } }
+          }
+        },
+        approvals: { include: { teacher: true } }
+      },
+      orderBy: { proposedStartAt: "asc" }
+    }),
+    prisma.examScheduleProposal.findMany({
+      where: { status: "CONFIRMED" },
+      select: {
+        id: true,
+        assessmentKind: true,
+        roundType: true,
+        proposedStartAt: true,
+        proposedEndAt: true,
+        room: true,
+        project: {
+          select: {
+            currentTitleTh: true,
+            student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+            committeeAssignments: {
+              where: { active: true },
+              select: {
+                role: true,
+                teacher: { select: { academicPrefix: true, firstNameTh: true, lastNameTh: true } }
+              },
+              orderBy: { appointedAt: "asc" }
+            }
+          }
         }
       },
-      approvals: { include: { teacher: true } }
-    },
-    orderBy: { proposedStartAt: "asc" }
-  });
+      orderBy: { proposedStartAt: "asc" },
+      take: 100
+    })
+  ]);
 
   return (
     <div className="space-y-6">
@@ -61,6 +90,40 @@ export default async function TeacherSchedulesPage({
         next="การอนุมัติ/ปฏิเสธเชิงละเอียดจะทำใน workflow ถัดไป"
         actor="อาจารย์ที่ปรึกษา HEAD และ MEMBER"
       />
+      <section className="panel">
+        <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
+        <p className="mt-1 text-sm text-muted">
+          อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วได้ เพื่อวางแผนเข้าร่วมฟังหรือหลีกเลี่ยงเวลาซ้อนกัน โดยส่วนนี้ไม่แสดงเอกสารหลักฐานของนักศึกษา
+        </p>
+        <div className="mt-3 space-y-2">
+          {confirmedScheduleCalendar.length ? confirmedScheduleCalendar.map((schedule) => (
+            <div key={schedule.id} className="rounded-md border border-line bg-surface p-3 text-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold">{schedule.roundType ?? schedule.assessmentKind}</div>
+                  <div className="mt-1 text-muted">
+                    {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
+                    {schedule.project.currentTitleTh ? ` · ${schedule.project.currentTitleTh}` : ""}
+                  </div>
+                </div>
+                <div className="text-right font-semibold text-ink">
+                  {formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}
+                  {schedule.room ? <div className="text-xs text-muted">ห้อง {schedule.room}</div> : null}
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {schedule.project.committeeAssignments.map((assignment) => (
+                  <span key={`${schedule.id}-${assignment.role}-${teacherDisplayName(assignment.teacher)}`} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">
+                    {assignment.role}: {teacherDisplayName(assignment.teacher)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )) : (
+            <EmptyState title="ยังไม่มีตารางสอบที่ยืนยันแล้ว" description="เมื่อกรรมการอนุมัติวันสอบครบ รายการจะปรากฏที่นี่" />
+          )}
+        </div>
+      </section>
       <div className="space-y-3">
         {schedules.length ? schedules.map((schedule) => {
           const submission = schedule.project.assessmentSubmissions.find((item) => item.kind === schedule.assessmentKind);

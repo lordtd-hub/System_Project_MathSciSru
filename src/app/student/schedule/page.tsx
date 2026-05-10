@@ -221,6 +221,7 @@ export default async function StudentSchedulePage({
     return true;
   });
   const lockedScheduleRounds = visibleGuidanceRounds.filter((roundType) => activeScheduleByKind.has(roundTypeToScheduleKind(roundType)));
+  const editableEvidenceRounds = visibleGuidanceRounds.filter((roundType) => !activeScheduleByKind.has(roundTypeToScheduleKind(roundType)));
   const schedulableRoundsWithEvidence = visibleGuidanceRounds.filter((roundType) => {
     const kind = roundTypeToScheduleKind(roundType);
     return latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind);
@@ -307,6 +308,7 @@ export default async function StudentSchedulePage({
           {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
             const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
             const hasEvidence = project.assessmentSubmissions.some((item) => item.kind === kind);
+            const activeSchedule = activeScheduleByKind.get(kind);
             const rawState = getAssessmentCardState(
               kind,
               project.status,
@@ -317,15 +319,21 @@ export default async function StudentSchedulePage({
           const evidenceReadyState = hasEvidence && rawState.editable
             ? { label: "มีเอกสารแล้ว", buttonLabel: "แก้เอกสาร/เสนอวันสอบ", editable: true }
             : rawState;
-          const state = kind === "PROGRESS_1" && (!progress1Open || !progress1Readiness.eligible)
-            ? { label: progress1BlockedText, buttonLabel: "ยังไม่พร้อม", editable: false }
-            : evidenceReadyState;
+          const state = activeSchedule?.status === "CONFIRMED"
+            ? { label: "ยืนยันวันสอบแล้ว", buttonLabel: "ล็อกแล้ว", editable: false }
+            : activeSchedule?.status === "PROPOSED"
+              ? { label: "ส่งขอนัดแล้ว", buttonLabel: "รอกรรมการ", editable: false }
+              : kind === "PROGRESS_1" && (!progress1Open || !progress1Readiness.eligible)
+                ? { label: progress1BlockedText, buttonLabel: "ยังไม่พร้อม", editable: false }
+                : evidenceReadyState;
           return (
             <div key={kind} className="panel">
               <div className="text-sm text-muted">{scheduleKindLabel(kind)}</div>
               <h2 className="mt-1 text-lg font-semibold">{state.label}</h2>
               <p className="mt-2 text-sm text-muted">
-                {state.editable ? "ดำเนินการได้จากแบบฟอร์มด้านล่างเมื่อรอบสอบเปิดอยู่" : "ขั้นตอนนี้ยังไม่ใช่ action หลักที่แก้ไขได้ตอนนี้"}
+                {activeSchedule
+                  ? `${formatThaiScheduleRange(activeSchedule.proposedStartAt, activeSchedule.proposedEndAt)}${activeSchedule.room ? ` · ห้อง ${activeSchedule.room}` : ""}`
+                  : state.editable ? "ดำเนินการได้จากแบบฟอร์มด้านล่างเมื่อรอบสอบเปิดอยู่" : "ขั้นตอนนี้ยังไม่ใช่ action หลักที่แก้ไขได้ตอนนี้"}
               </p>
               <button type="button" disabled={!state.editable} className="mt-3">{state.buttonLabel}</button>
             </div>
@@ -376,7 +384,7 @@ export default async function StudentSchedulePage({
         </div>
 
         <div className="mt-4 space-y-4">
-          {visibleGuidanceRounds.map((roundType) => {
+          {editableEvidenceRounds.map((roundType) => {
             const kind = roundTypeToScheduleKind(roundType);
             const isFinal = kind === "FINAL_PRESENT";
             const submission = latestSubmissionByKind.get(kind);
@@ -454,9 +462,15 @@ export default async function StudentSchedulePage({
             รายการที่ส่งแล้วจะแก้ไขวัน เวลา หรือห้องสอบไม่ได้ระหว่างรอกรรมการพิจารณา หากกรรมการไม่อนุมัติ นักศึกษาจึงจะเสนอเวลาใหม่ได้
           </WarningAlert>
         ) : null}
-        {!schedulableRoundsWithEvidence.length ? (
+        {!schedulableRoundsWithEvidence.length && !lockedScheduleRounds.length ? (
           <WarningAlert title="ต้องบันทึกเอกสารก่อนเสนอวันสอบ">บันทึกลิงก์เอกสาร/หลักฐานของรอบสอบก่อน แล้วจึงเสนอวัน เวลา และห้องสอบให้กรรมการพิจารณา</WarningAlert>
         ) : null}
+        {schedulableRoundsWithEvidence.length ? (
+          <WarningAlert title="ตรวจสอบก่อนส่งวันสอบ">
+            เมื่อส่งข้อเสนอวันสอบแล้ว ระบบจะล็อกเอกสาร วัน เวลา และห้องสอบรอบนี้ไว้ให้กรรมการพิจารณา และเมื่ออาจารย์ทั้ง 3 คนอนุมัติครบแล้ว นักศึกษาจะไม่สามารถแก้ไขวันสอบหรือเอกสารรอบนี้ในระบบได้อีก
+          </WarningAlert>
+        ) : null}
+        {schedulableRoundsWithEvidence.length ? (
         <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
@@ -515,6 +529,7 @@ export default async function StudentSchedulePage({
             </div>
           </div>
         </DraftPreservingForm>
+        ) : null}
       </FormSection>
       <section className="panel">
         <h2 className="text-lg font-semibold">ข้อเสนอวันสอบล่าสุด</h2>
