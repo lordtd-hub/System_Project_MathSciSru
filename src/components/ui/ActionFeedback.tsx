@@ -67,6 +67,7 @@ errorMessages.progress_1_project_not_ready = "โครงงานนี้ย�
 errorMessages.report_not_available = "ยังส่งเล่มรายงานไม่ได้ในสถานะปัจจุบัน กรุณาตรวจสอบขั้นตอนของโครงงาน";
 
 errorMessages.proposal_rubric_missing = "ยังไม่มี Rubric สำหรับ Proposal กรุณาให้ผู้ดูแลระบบตั้งค่า rubric baseline ก่อนประเมิน";
+successMessages.rubric_baseline_seeded = "ตั้งค่า Rubric baseline สำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation เรียบร้อยแล้ว";
 
 export function ActionFeedback({
   success,

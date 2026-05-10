@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
+import { seedBaselineRubrics } from "@/lib/admin/rubricBaseline";
 import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
@@ -395,6 +396,27 @@ export async function seedTeacherBaselineFromAdmin() {
 
   revalidatePath("/admin/teachers");
   redirect("/admin/teachers?success=teacher_baseline_seeded");
+}
+
+export async function seedRubricBaselineFromAdmin() {
+  const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:seedRubricBaselineFromAdmin`, pilotRateLimits.workflowMutation);
+  const result = await seedBaselineRubrics(prisma);
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "RUBRIC_BASELINE_SEEDED",
+      entityType: "Rubric",
+      entityId: "baseline",
+      afterJson: { seeded: result.seeded }
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/rounds");
+  revalidatePath("/teacher");
+  redirect("/admin/rounds?success=rubric_baseline_seeded");
 }
 
 export async function closeProposalRound(formData: FormData) {

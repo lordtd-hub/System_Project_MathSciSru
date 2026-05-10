@@ -5,11 +5,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, defaultCourseRoundName, isRoundClosed, isRoundOpen, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
+import { baselineRubricDefinitions } from "@/lib/admin/rubricBaseline";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
-import { closeCourseRound, openCourseRound, resetCourseRound } from "../actions";
+import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
@@ -45,7 +46,18 @@ export default async function AdminRoundsPage({
   });
   const roundMap = new Map(rounds.map((round) => [round.roundType, round]));
   const roundStatuses = Object.fromEntries(courseLevelRoundTypes.map((roundType) => [roundType, roundMap.get(roundType)?.status ?? "DRAFT"]));
-  const progress1Eligibility = await getRoundEligibility(offering.id, "PROGRESS_1");
+  const [progress1Eligibility, rubrics] = await Promise.all([
+    getRoundEligibility(offering.id, "PROGRESS_1"),
+    prisma.rubric.findMany({
+      where: { roundType: { in: [...courseLevelRoundTypes] }, version: 1 },
+      select: { id: true, roundType: true, active: true, items: { select: { id: true } } }
+    })
+  ]);
+  const rubricMap = new Map(rubrics.map((rubric) => [rubric.roundType, rubric]));
+  const missingRubricCount = baselineRubricDefinitions.filter((definition) => {
+    const rubric = rubricMap.get(definition.roundType);
+    return !rubric?.active || rubric.items.length === 0;
+  }).length;
 
   return (
     <div className="space-y-6">
@@ -58,6 +70,43 @@ export default async function AdminRoundsPage({
       <InfoAlert title="การเปิดรอบเป็นระดับรายวิชา">
         การปิด Proposal ไม่ได้เปิด Progress 1 อัตโนมัติ ผู้ดูแลระบบต้องตัดสินผล Proposal แต่งตั้งกรรมการ แล้วเปิดรอบ Progress 1 เอง
       </InfoAlert>
+
+      <section className="panel">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-brand">Rubric baseline</p>
+            <h2 className="mt-1 text-lg font-semibold">เกณฑ์ประเมินสำหรับรอบสอบ</h2>
+            <p className="mt-1 text-sm text-muted">
+              ใช้ตั้งค่า rubric มาตรฐานสำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation เพื่อให้ pilot เดิน workflow ประเมินต่อได้
+            </p>
+          </div>
+          <form action={seedRubricBaselineFromAdmin}>
+            <SubmitButton className="button-secondary" pendingText="กำลังตั้งค่า Rubric...">
+              ตั้งค่า Rubric baseline
+            </SubmitButton>
+          </form>
+        </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-4">
+          {baselineRubricDefinitions.map((definition) => {
+            const rubric = rubricMap.get(definition.roundType);
+            const isReady = Boolean(rubric?.active && rubric.items.length > 0);
+            return (
+              <div key={definition.roundType} className="rounded-md border border-line bg-paper p-3 text-sm">
+                <div className="font-semibold">{roundTypeLabelTh(definition.roundType)}</div>
+                <div className="mt-1 text-muted">{rubric?.items.length ?? 0} รายการ</div>
+                <div className={isReady ? "mt-2 text-xs font-semibold text-green-700" : "mt-2 text-xs font-semibold text-red-700"}>
+                  {isReady ? "พร้อมใช้งาน" : "ยังไม่พร้อม"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {missingRubricCount ? (
+          <p className="mt-3 text-sm text-red-700">มี rubric ที่ยังไม่พร้อม {missingRubricCount} รอบ กดปุ่มด้านบนเพื่อเติม baseline ที่ขาด</p>
+        ) : (
+          <p className="mt-3 text-sm text-muted">Rubric baseline พร้อมสำหรับการทดสอบทุก presentation round แล้ว</p>
+        )}
+      </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {courseLevelRoundTypes.map((roundType) => {
