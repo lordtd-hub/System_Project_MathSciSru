@@ -136,6 +136,19 @@ export default async function StudentDashboardPage() {
           id: true,
           status: true,
           currentTitleTh: true,
+          courseOffering: {
+            select: {
+              assessmentRounds: {
+                select: {
+                  roundType: true,
+                  status: true,
+                  showScoreToStudent: true,
+                  showFeedbackToStudent: true,
+                  showEvaluatorNameToStudent: true
+                }
+              }
+            }
+          },
           advisorRequests: {
             select: {
               requestedAt: true,
@@ -236,10 +249,17 @@ export default async function StudentDashboardPage() {
   const advisorRequest = project.advisorRequests[0];
   const waitingDays = daysWaiting(advisorRequest?.requestedAt);
   const requiredCommitteeScores = project.committeeAssignments.filter((assignment) => assignment.role === "HEAD" || assignment.role === "MEMBER").length;
-  const hasCompletedScores = (attemptType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
+  const roundStatusByType = new Map(project.courseOffering.assessmentRounds.map((round) => [round.roundType, round.status]));
+  const hasScheduleForRound = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
+    const scheduleKind = roundType === "FINAL_PRESENTATION" ? "FINAL_PRESENT" : roundType;
+    return project.scheduleProposals.some((schedule) => schedule.assessmentKind === scheduleKind);
+  };
+  const hasCompletedScores = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
+    const courseRoundClosed = ["SCORING_CLOSED", "RELEASED"].includes(roundStatusByType.get(roundType) ?? "");
+    if (courseRoundClosed && hasScheduleForRound(roundType)) return true;
     if (requiredCommitteeScores <= 0) return false;
-    for (const attempt of project.attempts.filter((item) => item.attemptType === attemptType)) {
-      const roundClosed = attempt.assessmentRound.status === "SCORING_CLOSED";
+    for (const attempt of project.attempts.filter((item) => item.assessmentRound.roundType === roundType || item.attemptType === roundType)) {
+      const roundClosed = ["SCORING_CLOSED", "RELEASED"].includes(attempt.assessmentRound.status);
       const submittedCount = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED").length;
       if (roundClosed || submittedCount >= requiredCommitteeScores) return true;
     }
@@ -372,7 +392,7 @@ export default async function StudentDashboardPage() {
     .filter((result) => result.showScore || result.showFeedback)
     .sort((a, b) => {
       const order = { PROGRESS_1: 1, PROGRESS_2: 2, FINAL_PRESENTATION: 3 } as const;
-      return (order[a.attempt.attemptType as keyof typeof order] ?? 99) - (order[b.attempt.attemptType as keyof typeof order] ?? 99);
+      return (order[a.attempt.assessmentRound.roundType as keyof typeof order] ?? 99) - (order[b.attempt.assessmentRound.roundType as keyof typeof order] ?? 99);
     });
   timer.end();
 
