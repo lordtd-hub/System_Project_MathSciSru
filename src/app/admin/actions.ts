@@ -537,12 +537,28 @@ export async function closeCourseRound(formData: FormData) {
   assertRateLimit(`admin:${adminUserId}:closeCourseRound`, pilotRateLimits.workflowMutation);
   const roundId = String(formData.get("round_id"));
   const round = await prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } });
+  const finalDoneProjectIds = round.roundType === "FINAL_PRESENTATION"
+    ? [
+        ...new Set(
+          (await prisma.assessmentAttempt.findMany({
+            where: {
+              assessmentRoundId: roundId,
+              project: { status: "IN_PROGRESS" },
+              evaluatorAssignments: {
+                some: { scoreSubmission: { is: { status: "SUBMITTED" } } }
+              }
+            },
+            select: { projectId: true }
+          })).map((attempt) => attempt.projectId)
+        )
+      ]
+    : [];
   if (isRoundClosed(round.status)) throw new Error("รอบสอบนี้ปิดแล้ว");
 
   const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
-  await prisma.$transaction([
-    prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
-    prisma.auditLog.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.assessmentRound.update({ where: { id: roundId }, data: closedRoundData });
+    await tx.auditLog.create({
       data: {
         actorUserId: adminUserId,
         action: "ASSESSMENT_ROUND_CLOSED",
@@ -557,10 +573,49 @@ export async function closeCourseRound(formData: FormData) {
         afterJson: closedRoundData,
         metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId }
       }
-    })
-  ]);
+    });
+
+    if (finalDoneProjectIds.length) {
+      await tx.project.updateMany({
+        where: { id: { in: finalDoneProjectIds }, status: "IN_PROGRESS" },
+        data: { status: "FINAL_DONE" }
+      });
+      await Promise.all(
+        finalDoneProjectIds.map((projectId) =>
+          tx.projectStatusHistory.create({
+            data: {
+              projectId,
+              fromStatus: "IN_PROGRESS",
+              toStatus: "FINAL_DONE",
+              reason: "FINAL_PRESENTATION_ROUND_CLOSED",
+              actorUserId: adminUserId,
+              metadataJson: { assessmentRoundId: roundId }
+            }
+          })
+        )
+      );
+      await Promise.all(
+        finalDoneProjectIds.map((projectId) =>
+          tx.projectTimelineEvent.create({
+            data: {
+              projectId,
+              eventType: "FINAL_PRESENTATION_DONE",
+              eventTitle: "Final Presentation เสร็จแล้ว",
+              eventDescription: "ปิดรอบ Final Presentation แล้ว นักศึกษาสามารถส่งเล่มรายงานฉบับสมบูรณ์ให้ที่ปรึกษาและกรรมการตรวจได้",
+              actorUserId: adminUserId,
+              relatedEntityType: "AssessmentRound",
+              relatedEntityId: roundId
+            }
+          })
+        )
+      );
+    }
+  });
 
   revalidatePath("/admin/rounds");
+  revalidatePath("/student");
+  revalidatePath("/student/report");
+  revalidatePath("/teacher/reports");
   redirectWithQuery("/admin/rounds", { success: round.roundType === "PROGRESS_1" ? "progress_1_closed" : "round_closed" });
 }
 

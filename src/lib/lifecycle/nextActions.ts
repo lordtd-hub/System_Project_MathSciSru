@@ -118,7 +118,7 @@ export function getStudentAvailableActions(
           action("progress_2", "Progress 2", "ดูย้อนหลัง", "history", "/student/schedule"),
           action("final_present", "Final Presentation", "ดูย้อนหลัง", "history", "/student/schedule")
         );
-        result.blocked_waiting_for.push(action("waiting_after_final", "รอเข้าสู่ขั้นส่งรายงาน", "Final Presentation เสร็จแล้ว รอระบบหรือผู้ดูแลระบบพาไปขั้นรายงาน", "blocked"));
+        result.available_now.push(action("report", "ส่งเล่มรายงานฉบับสมบูรณ์", "หลัง Final Presentation ให้แก้เล่มตามข้อเสนอแนะ แล้วส่งเล่มให้ที่ปรึกษาและกรรมการตรวจ", "available", "/student/report"));
       }
       break;
     }

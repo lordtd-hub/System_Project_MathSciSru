@@ -10,8 +10,9 @@ export type ReportSubmissionBlockReason =
 export function getReportSubmissionGate(input: {
   projectStatus: ProjectStatus;
   latestReportHasRevisionRequest: boolean;
+  finalPresentationCompleted?: boolean;
 }) {
-  if (input.projectStatus === "FINAL_DONE") {
+  if (input.projectStatus === "FINAL_DONE" || (input.projectStatus === "IN_PROGRESS" && input.finalPresentationCompleted)) {
     return { allowed: true, reason: null };
   }
   if (input.projectStatus === "REPORT_REVIEW") {
@@ -77,12 +78,20 @@ export function isAssignedReportReviewer(input: {
   return committeeReviewer || advisorReviewer;
 }
 
-export function requiredReportReviewerIds(assignments: ReportCommitteeAssignment[]) {
+export function requiredReportReviewerIds(
+  assignments: ReportCommitteeAssignment[],
+  advisorRequests: ReportAdvisorRequest[] = []
+) {
   return [
     ...new Set(
-      assignments
+      [
+        ...assignments
         .filter((assignment) => assignment.active && (assignment.role === "HEAD" || assignment.role === "MEMBER"))
-        .map((assignment) => assignment.teacherId)
+        .map((assignment) => assignment.teacherId),
+        ...advisorRequests
+          .filter((request) => request.status === "APPROVED")
+          .map((request) => request.advisorTeacherId)
+      ]
     )
   ];
 }

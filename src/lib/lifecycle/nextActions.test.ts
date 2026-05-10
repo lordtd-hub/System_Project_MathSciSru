@@ -34,9 +34,9 @@ describe("next action helpers", () => {
       PROGRESS_2: "COMPLETED",
       FINAL_PRESENT: "COMPLETED"
     });
-    expect(afterFinal.available_now).toHaveLength(0);
+    expect(afterFinal.available_now.map((item) => item.key)).toContain("report");
     expect(afterFinal.read_only_history.map((item) => item.key)).toEqual(["proposal", "progress_1", "progress_2", "final_present"]);
-    expect(afterFinal.blocked_waiting_for.map((item) => item.key)).toContain("waiting_after_final");
+    expect(afterFinal.blocked_waiting_for.map((item) => item.key)).not.toContain("waiting_after_final");
   });
 
   it("makes completed assessment cards read-only and future cards locked", () => {

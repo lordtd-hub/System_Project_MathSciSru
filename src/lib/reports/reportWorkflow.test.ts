@@ -8,8 +8,18 @@ import {
 } from "./reportWorkflow";
 
 describe("report workflow gates", () => {
-  it("allows the first report submission only after Final is done", () => {
+  it("allows the first report submission after Final is done or final presentation is completed", () => {
     expect(getReportSubmissionGate({ projectStatus: "FINAL_DONE", latestReportHasRevisionRequest: false })).toEqual({
+      allowed: true,
+      reason: null
+    });
+    expect(
+      getReportSubmissionGate({
+        projectStatus: "IN_PROGRESS",
+        latestReportHasRevisionRequest: false,
+        finalPresentationCompleted: true
+      })
+    ).toEqual({
       allowed: true,
       reason: null
     });
@@ -66,23 +76,24 @@ describe("report reviewer rules", () => {
     ).toBe(false);
   });
 
-  it("uses active HEAD/MEMBER as required approvers", () => {
-    expect(requiredReportReviewerIds(committeeAssignments)).toEqual(["head", "member"]);
+  it("uses active HEAD/MEMBER and approved advisor as required approvers", () => {
+    expect(requiredReportReviewerIds(committeeAssignments, [{ advisorTeacherId: "advisor", status: "APPROVED" as const }])).toEqual(["head", "member", "advisor"]);
     expect(
       allRequiredReportReviewersPassed({
-        requiredReviewerIds: ["head", "member"],
+        requiredReviewerIds: ["head", "member", "advisor"],
         reviews: [
           { reviewerTeacherId: "head", decision: "PASS" as const },
-          { reviewerTeacherId: "member", decision: "PASS" as const }
+          { reviewerTeacherId: "member", decision: "PASS" as const },
+          { reviewerTeacherId: "advisor", decision: "PASS" as const }
         ]
       })
     ).toBe(true);
     expect(
       allRequiredReportReviewersPassed({
-        requiredReviewerIds: ["head", "member"],
+        requiredReviewerIds: ["head", "member", "advisor"],
         reviews: [
           { reviewerTeacherId: "head", decision: "PASS" as const },
-          { reviewerTeacherId: "member", decision: "FAIL" as const }
+          { reviewerTeacherId: "member", decision: "PASS" as const }
         ]
       })
     ).toBe(false);

@@ -306,10 +306,10 @@ export default async function StudentDashboardPage() {
               href: "/student/schedule"
             }
           : {
-              title: "Final Presentation เสร็จแล้ว",
-              description: "รอบสอบ Final ปิดแล้ว ขั้นตอนถัดไปคือรอเข้าสู่ขั้นส่งรายงานหรือรอผู้ดูแลระบบดำเนินการต่อ",
-              actionLabel: "ดูผลและ feedback",
-              href: "/student/schedule",
+              title: "ส่งเล่มรายงานฉบับสมบูรณ์",
+              description: "Final Presentation เสร็จแล้ว ขั้นตอนถัดไปคือแก้เล่มตามข้อเสนอแนะและส่งให้ที่ปรึกษา/กรรมการตรวจ",
+              actionLabel: "เปิดหน้าส่งเล่ม",
+              href: "/student/report",
               tone: "success" as const
             }
     : nextAction;
@@ -368,7 +368,7 @@ export default async function StudentDashboardPage() {
               ? [{ title: "เตรียม Progress 2", description: "Progress 1 เสร็จแล้ว ขั้นตอนถัดไปคือ Progress 2", href: "/student/schedule", urgency: "สูง" }]
               : assessmentStates.FINAL_PRESENT !== "COMPLETED"
                 ? [{ title: "เตรียม Final Presentation", description: "Progress 1 และ Progress 2 เสร็จแล้ว ขั้นตอนถัดไปคือ Final Presentation", href: "/student/schedule", urgency: "สูง" }]
-                : [{ title: "Final Presentation เสร็จแล้ว", description: "รอเข้าสู่ขั้นส่งรายงานหรือรอผู้ดูแลระบบดำเนินการต่อ", href: "/student/schedule", urgency: "รอคนอื่น" }]
+                : [{ title: "ส่งเล่มรายงานฉบับสมบูรณ์", description: "แก้เล่มตามข้อเสนอแนะ แล้วส่ง version รายงานให้ที่ปรึกษาและกรรมการตรวจ", href: "/student/report", urgency: "สูง" }]
     : buildStudentTasks(project.status);
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";

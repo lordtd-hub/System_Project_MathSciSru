@@ -1070,7 +1070,10 @@ export async function reviewReportVersion(formData: FormData) {
   const projectReviews = await prisma.reportReview.findMany({
     where: { reportVersion: { projectId: reportVersion.projectId } }
   });
-  const requiredReviewerIds = requiredReportReviewerIds(reportVersion.project.committeeAssignments);
+  const requiredReviewerIds = requiredReportReviewerIds(
+    reportVersion.project.committeeAssignments,
+    reportVersion.project.advisorRequests
+  );
   const latestReviews = await prisma.reportReview.findMany({
     where: { reportVersionId: reportVersion.id }
   });

@@ -624,9 +624,14 @@ export async function submitReportVersion(formData: FormData) {
     include: { reviews: true },
     orderBy: { versionNo: "desc" }
   });
+  const finalPresentationCompleted =
+    project.status === "IN_PROGRESS"
+      ? await hasCompletedPresentationScores(project.id, "FINAL_PRESENTATION")
+      : false;
   const gate = getReportSubmissionGate({
     projectStatus: project.status,
-    latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"))
+    latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL")),
+    finalPresentationCompleted
   });
   if (!gate.allowed) redirectWithQuery("/student/report", { error: "report_not_available" });
 
@@ -645,7 +650,7 @@ export async function submitReportVersion(formData: FormData) {
     _max: { versionNo: true }
   });
   const versionNo = (maxVersion._max.versionNo ?? 0) + 1;
-  const shouldMoveToReview = project.status === "FINAL_DONE";
+  const shouldMoveToReview = project.status === "FINAL_DONE" || finalPresentationCompleted;
 
   await prisma.$transaction(async (tx) => {
     const reportVersion = await tx.reportVersion.create({

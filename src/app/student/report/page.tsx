@@ -56,9 +56,23 @@ export default async function StudentReportPage({
   }
 
   const latestReport = project.reportVersions[0];
+  const finalPresentationCompleted = project.status === "IN_PROGRESS"
+    ? Boolean(await prisma.assessmentAttempt.findFirst({
+        where: {
+          projectId: project.id,
+          assessmentRound: { roundType: "FINAL_PRESENTATION" },
+          OR: [
+            { assessmentRound: { status: { in: ["SCORING_CLOSED", "RELEASED"] } } },
+            { evaluatorAssignments: { some: { scoreSubmission: { is: { status: "SUBMITTED" } } } } }
+          ]
+        },
+        select: { id: true }
+      }))
+    : false;
   const gate = getReportSubmissionGate({
     projectStatus: project.status,
-    latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"))
+    latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL")),
+    finalPresentationCompleted
   });
 
   return (

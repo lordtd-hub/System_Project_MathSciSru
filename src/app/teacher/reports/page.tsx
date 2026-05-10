@@ -59,7 +59,7 @@ export default async function TeacherReportsPage({
       <GuidancePanel
         title="Report approval loop"
         current="ตรวจเฉพาะ version ล่าสุดของโครงงานที่อยู่ในสถานะ REPORT_REVIEW"
-        next="ถ้า HEAD/MEMBER ที่กำหนดอนุมัติครบ ระบบจะเปลี่ยนสถานะเป็น REPORT_APPROVED และหยุดก่อน Advisor scoring"
+        next="ถ้าอาจารย์ที่ปรึกษาและ HEAD/MEMBER ที่กำหนดอนุมัติครบ ระบบจะเปลี่ยนสถานะเป็น REPORT_APPROVED และหยุดก่อน Advisor scoring"
         actor="อาจารย์ที่ปรึกษา หรือ HEAD/MEMBER ที่ได้รับแต่งตั้ง"
       />
 
@@ -68,7 +68,7 @@ export default async function TeacherReportsPage({
           projects.map((project) => {
             const latestReport = project.reportVersions[0];
             const previousReview = latestReport?.reviews.find((review) => review.reviewerTeacherId === teacher.id);
-            const requiredReviewerIds = requiredReportReviewerIds(project.committeeAssignments);
+            const requiredReviewerIds = requiredReportReviewerIds(project.committeeAssignments, project.advisorRequests);
             const projectReviews = project.reportVersions.flatMap((version) => version.reviews);
             const allPassed = allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: projectReviews });
 
