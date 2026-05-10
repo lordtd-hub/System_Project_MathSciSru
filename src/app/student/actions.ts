@@ -387,9 +387,26 @@ export async function saveAssessmentEvidence(formData: FormData) {
   const linkResult = validateMaterialLink(materialLink);
   if (!linkResult.ok) throw new Error(linkResult.reason);
   const title = String(formData.get("submission_title") ?? "").trim() || null;
-  const summary = requiredText(formData, "evidence_summary", "สรุปเอกสารและหลักฐาน");
-  assertTextSize(summary, requestSizeLimits.markdownTextBytes, "สรุปเอกสารและหลักฐาน");
-  const markdownErrors = validateMarkdownInput(summary, "สรุปเอกสารและหลักฐาน");
+  const content = kind === "FINAL_PRESENT"
+    ? {
+        finalObjectivesEvidence: requiredText(formData, "final_objectives_evidence", "วัตถุประสงค์ที่ทำสำเร็จและหลักฐาน"),
+        finalMethodsResults: requiredText(formData, "final_methods_results", "วิธีการ ผลลัพธ์ และการวิเคราะห์"),
+        finalTimelineAdaptation: requiredText(formData, "final_timeline_adaptation", "การดำเนินงานเทียบแผนและการปรับแผน"),
+        finalReportReadiness: requiredText(formData, "final_report_readiness", "รายงาน บทความ และประเด็นตอบคำถาม")
+      }
+    : {
+        progressPlanTasks: requiredText(formData, "progress_plan_tasks", "งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้"),
+        progressEvidence: requiredText(formData, "progress_evidence", "หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า"),
+        progressStatus: requiredText(formData, "progress_status", "สถานะงาน"),
+        progressChallengesNext: requiredText(formData, "progress_challenges_next", "ปัญหา วิธีแก้ และขั้นตอนถัดไป")
+      };
+  const summary = kind === "FINAL_PRESENT"
+    ? [content.finalObjectivesEvidence, content.finalMethodsResults, content.finalTimelineAdaptation, content.finalReportReadiness].join("\n\n")
+    : [content.progressPlanTasks, content.progressEvidence, content.progressStatus, content.progressChallengesNext].join("\n\n");
+  for (const [field, value] of Object.entries(content)) {
+    assertTextSize(value, requestSizeLimits.markdownTextBytes, field);
+  }
+  const markdownErrors = Object.entries(content).flatMap(([field, value]) => validateMarkdownInput(value, field));
   if (markdownErrors.length) throw new Error(markdownErrors.join("\n"));
 
   const existing = await prisma.assessmentSubmission.findFirst({
@@ -401,7 +418,7 @@ export async function saveAssessmentEvidence(formData: FormData) {
     kind: kind as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT",
     title,
     materialLink: linkResult.normalizedUrl,
-    contentJson: { summary },
+    contentJson: { ...content, summary },
     submittedAt: new Date()
   };
   const submission = existing

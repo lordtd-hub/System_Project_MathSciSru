@@ -37,6 +37,24 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("บันทึกเอกสาร/หลักฐานสำหรับรอบสอบ");
     expect(page).toContain("saveAssessmentEvidence");
     expect(page).toContain("schedulableRoundsWithEvidence");
+    expect(page).toContain('name="progress_plan_tasks"');
+    expect(page).toContain('name="progress_evidence"');
+    expect(page).toContain('name="progress_status"');
+    expect(page).toContain('name="progress_challenges_next"');
+    expect(page).toContain('name="final_objectives_evidence"');
+    expect(page).toContain('name="final_methods_results"');
+    expect(page).toContain('name="final_timeline_adaptation"');
+    expect(page).toContain('name="final_report_readiness"');
+
+    const actions = read("src/app/student/actions.ts");
+    expect(actions).toContain("progressPlanTasks");
+    expect(actions).toContain("progressEvidence");
+    expect(actions).toContain("progressStatus");
+    expect(actions).toContain("progressChallengesNext");
+    expect(actions).toContain("finalObjectivesEvidence");
+    expect(actions).toContain("finalMethodsResults");
+    expect(actions).toContain("finalTimelineAdaptation");
+    expect(actions).toContain("finalReportReadiness");
   });
 
   it("shows assessment evidence to committee teachers before scoring", () => {

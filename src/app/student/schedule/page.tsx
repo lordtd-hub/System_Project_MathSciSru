@@ -238,45 +238,77 @@ export default async function StudentSchedulePage({
           })}
         </div>
 
-        <form action={saveAssessmentEvidence} className="mt-4 grid gap-4 md:grid-cols-3">
-          <div>
-            <label>รอบสอบที่ต้องการบันทึกเอกสาร</label>
-            <select name="assessment_kind" defaultValue={visibleGuidanceRounds[0] ? roundTypeToScheduleKind(visibleGuidanceRounds[0]) : "PROGRESS_1"}>
-              {scheduleRoundTypes.map((roundType) => {
-                const round = roundMap.get(roundType);
-                const open = Boolean(round && isRoundOpen(round.status));
-                const kind = roundTypeToScheduleKind(roundType);
-                const disabled = !open || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
-                return (
-                  <option key={roundType} value={kind} disabled={disabled}>
-                    {scheduleRoundLabel(roundType)} {disabled ? "(ยังไม่พร้อม)" : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label>ชื่อเอกสาร/ชุดหลักฐาน</label>
-            <input name="submission_title" placeholder="เช่น เอกสาร Progress 1 และหลักฐานประกอบ" />
-          </div>
-          <div className="md:col-span-3">
-            <MaterialLinkField />
-          </div>
-          <div className="md:col-span-3">
-            <MarkdownLatexEditor
-              name="evidence_summary"
-              label="สรุปเอกสารและหลักฐาน"
-              placeholder="ระบุว่างานใดเสร็จแล้ว หลักฐานอยู่ตรงไหน มีความล่าช้าหรือปรับแผนอะไรบ้าง ใช้ $...$ ได้"
-              required
-              rows={5}
-            />
-          </div>
-          <div className="md:col-span-3">
-            <SubmitButton disabled={!visibleGuidanceRounds.length} pendingText="กำลังบันทึกเอกสาร...">
-              บันทึกเอกสารรอบสอบ
-            </SubmitButton>
-          </div>
-        </form>
+        <div className="mt-4 space-y-4">
+          {visibleGuidanceRounds.map((roundType) => {
+            const kind = roundTypeToScheduleKind(roundType);
+            const isFinal = kind === "FINAL_PRESENT";
+            const submission = latestSubmissionByKind.get(kind);
+            const content = (typeof submission?.contentJson === "object" && submission?.contentJson ? submission.contentJson : {}) as Record<string, unknown>;
+            return (
+              <form key={kind} action={saveAssessmentEvidence} className="rounded-md border border-line bg-surface p-4">
+                <input type="hidden" name="assessment_kind" value={kind} />
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">แบบฟอร์มหลักฐาน {scheduleKindLabel(kind)}</h3>
+                    <p className="mt-1 text-sm text-muted">
+                      {isFinal
+                        ? "กรอกหลักฐานให้ล้อกับ rubric Final: วัตถุประสงค์ วิธีการ ผลลัพธ์ รายงาน และการตอบคำถาม"
+                        : "กรอกหลักฐานให้ล้อกับ rubric Progress: งานตามแผน หลักฐาน ความล่าช้า ปัญหา วิธีแก้ และงานถัดไป"}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-line bg-paper px-2 py-1 text-xs">{submission ? "แก้ไขเอกสารเดิม" : "บันทึกใหม่"}</span>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <div className="md:col-span-3">
+                    <label>ชื่อเอกสาร/ชุดหลักฐาน</label>
+                    <input name="submission_title" defaultValue={submission?.title ?? ""} placeholder={`เช่น เอกสาร ${scheduleKindLabel(kind)} และหลักฐานประกอบ`} />
+                  </div>
+                  <div className="md:col-span-3">
+                    <MaterialLinkField defaultValue={submission?.materialLink} />
+                  </div>
+
+                  {isFinal ? (
+                    <>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="final_objectives_evidence" label="วัตถุประสงค์ที่ทำสำเร็จและหลักฐาน *" defaultValue={String(content.finalObjectivesEvidence ?? "")} placeholder="ระบุวัตถุประสงค์จาก Proposal ที่ผลงานสุดท้ายตอบได้ และชี้หลักฐาน/ชิ้นงาน/ผลลัพธ์ที่ตรวจสอบได้" required rows={4} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="final_methods_results" label="วิธีการ ผลลัพธ์ และการวิเคราะห์ *" defaultValue={String(content.finalMethodsResults ?? "")} placeholder="อธิบายวิธีที่ใช้จริง ผลลัพธ์สำคัญ หลักฐานการพิสูจน์/การทดลอง/การพัฒนา และความสอดคล้องกับข้อสรุป" required rows={4} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="final_timeline_adaptation" label="การดำเนินงานเทียบแผนและการปรับแผน *" defaultValue={String(content.finalTimelineAdaptation ?? "")} placeholder="สรุปว่างานหลักทำตาม timeline หรือปรับอย่างไร มีปัญหา/การแก้ไขอะไร และยังรักษาวัตถุประสงค์เดิมอย่างไร" required rows={4} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="final_report_readiness" label="รายงาน บทความ และประเด็นตอบคำถาม *" defaultValue={String(content.finalReportReadiness ?? "")} placeholder="ระบุส่วนรายงานที่ครบถ้วน รูป/ตาราง/สมการ/อ้างอิง และประเด็นที่คณะกรรมการควรตรวจหรือซักถาม" required rows={4} />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="progress_plan_tasks" label="งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้ *" defaultValue={String(content.progressPlanTasks ?? "")} placeholder="ระบุ task จากแผน Proposal ที่เกี่ยวข้องกับรอบนี้ เช่น สัปดาห์ 1-8 งานใดเสร็จแล้ว งานใดกำลังทำ" required rows={4} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="progress_evidence" label="หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า *" defaultValue={String(content.progressEvidence ?? "")} placeholder="ระบุไฟล์ หน้าเอกสาร รูป ตาราง proof draft code dataset result หรือ screenshot ที่พิสูจน์ว่างานเกิดขึ้นจริง" required rows={4} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="progress_status" label="สถานะงาน: เสร็จแล้ว / กำลังทำ / ล่าช้า *" defaultValue={String(content.progressStatus ?? "")} placeholder="แยกให้ชัดว่างานใดเสร็จ งานใดยังทำอยู่ งานใดล่าช้า และถ้าล่าช้ามีเหตุผลหรือแผนปรับอย่างไร" required rows={4} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <MarkdownLatexEditor name="progress_challenges_next" label="ปัญหา วิธีแก้ และขั้นตอนถัดไป *" defaultValue={String(content.progressChallengesNext ?? "")} placeholder="ระบุอุปสรรค วิธีแก้/แนวทางตอบสนอง และงานถัดไปที่จะทำก่อนรอบต่อไป" required rows={4} />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="md:col-span-3">
+                    <SubmitButton pendingText="กำลังบันทึกเอกสาร...">
+                      บันทึกเอกสาร {scheduleKindLabel(kind)}
+                    </SubmitButton>
+                  </div>
+                </div>
+              </form>
+            );
+          })}
+        </div>
       </FormSection>
       <FormSection title="2. เสนอวันสอบใหม่" description="ระบบจะอัปเดตรายการเดิมของโปรเจคนี้ในรอบเดียวกัน ไม่สร้างรายการซ้ำ และแนบเอกสารรอบสอบที่บันทึกไว้ให้กรรมการตรวจประกอบการอนุมัติ">
         {!schedulableRoundsWithEvidence.length ? (
