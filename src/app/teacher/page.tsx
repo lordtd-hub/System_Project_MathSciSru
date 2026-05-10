@@ -209,6 +209,38 @@ export default async function TeacherDashboardPage() {
         orderBy: { proposedStartAt: "asc" }
       })
     : null;
+  const ownConfirmedScheduleAgenda = await prisma.examScheduleProposal.findMany({
+    where: {
+      status: "CONFIRMED",
+      OR: [
+        { project: { committeeAssignments: { some: { teacherId: teacher.id, active: true } } } },
+        { project: { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } } }
+      ]
+    },
+    select: {
+      id: true,
+      assessmentKind: true,
+      proposedStartAt: true,
+      proposedEndAt: true,
+      room: true,
+      project: {
+        select: {
+          currentTitleTh: true,
+          student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+          committeeAssignments: {
+            where: { teacherId: teacher.id, active: true },
+            select: { role: true }
+          },
+          advisorRequests: {
+            where: { advisorTeacherId: teacher.id, status: "APPROVED" },
+            select: { id: true }
+          }
+        }
+      }
+    },
+    orderBy: { proposedStartAt: "asc" },
+    take: 8
+  });
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequestCount,
@@ -326,6 +358,45 @@ export default async function TeacherDashboardPage() {
         />
         <div className="space-y-3">
           <NextActionCard action={teacherNextAction} />
+          <section className="panel dashboard-console-panel">
+            <DashboardSectionHeader
+              title="ตารางสอบของท่าน"
+              description="เรียงตามวันเวลา สำหรับโครงงานที่ท่านเป็นที่ปรึกษา HEAD หรือ MEMBER"
+            />
+            <div className="mt-3 space-y-2">
+              {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
+                const roles = [
+                  ...schedule.project.committeeAssignments.map((assignment) => assignment.role),
+                  ...(schedule.project.advisorRequests.length ? ["ADVISOR" as const] : [])
+                ];
+                return (
+                  <Link key={schedule.id} className="block rounded-md border border-line bg-surface p-3 text-sm hover:border-brand" href="/teacher/schedules">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold">{assessmentKindLabel(schedule.assessmentKind)}</div>
+                        <div className="mt-1 text-muted">
+                          {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
+                        </div>
+                        {schedule.project.currentTitleTh ? <div className="mt-1 text-xs text-muted">{schedule.project.currentTitleTh}</div> : null}
+                      </div>
+                      <div className="text-right font-semibold text-ink">
+                        {formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}
+                        {schedule.room ? <div className="text-xs text-muted">ห้อง {schedule.room}</div> : null}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {roles.map((role) => (
+                        <span key={`${schedule.id}-${role}`} className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">{role}</span>
+                      ))}
+                    </div>
+                  </Link>
+                );
+              }) : (
+                <p className="text-sm text-muted">ยังไม่มีตารางสอบที่ยืนยันแล้วสำหรับโครงงานที่ท่านเกี่ยวข้อง</p>
+              )}
+            </div>
+            <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบทั้งหมด</Link>
+          </section>
           <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยัง workspace ของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือ flow เดิม" />
             <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>

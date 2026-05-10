@@ -171,6 +171,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     const studentPage = read("src/app/student/page.tsx");
     expect(teacherPage).toContain("nextConfirmedScoringSchedule");
     expect(teacherPage).toContain("confirmedScheduleCalendarCount");
+    expect(teacherPage).toContain("ownConfirmedScheduleAgenda");
+    expect(teacherPage).toContain("ตารางสอบของท่าน");
+    expect(teacherPage).toContain("ADVISOR");
     expect(teacherPage).toContain("scoreSubmission: { is: { status: submittedScoreStatus } }");
     expect(studentPage).toContain("latestScheduleDateText");
     expect(studentPage).toContain("scheduleAwareStudentNextAction");
