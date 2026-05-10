@@ -2,6 +2,11 @@ import { timingSafeEqual } from "node:crypto";
 import type { DevSessionPayload } from "./devSession";
 
 export type QaRole = "admin" | "teacher" | "student";
+export type QaTeacherOption = {
+  key: string;
+  label: string;
+  email: string;
+};
 
 type EnvLike = Record<string, string | undefined>;
 
@@ -41,6 +46,42 @@ export function parseQaRole(value: FormDataEntryValue | null): QaRole | null {
 export function getQaRoleEmail(role: QaRole, env: EnvLike = process.env) {
   const envName = role === "admin" ? "QA_ADMIN_EMAIL" : role === "teacher" ? "QA_TEACHER_EMAIL" : "QA_STUDENT_EMAIL";
   return readEnv(env, envName)?.toLowerCase();
+}
+
+function splitEmailList(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption[] {
+  const entries: QaTeacherOption[] = [];
+  const seen = new Set<string>();
+  const add = (key: string, label: string, email: string | undefined) => {
+    const normalized = email?.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    entries.push({ key, label, email: normalized });
+  };
+
+  add("default", "QA Teacher", readEnv(env, "QA_TEACHER_EMAIL"));
+  add("advisor", "QA Advisor", readEnv(env, "QA_TEACHER_ADVISOR_EMAIL") ?? readEnv(env, "QA_TEACHER_EMAIL_1"));
+  add("committee1", "QA Committee 1", readEnv(env, "QA_TEACHER_COMMITTEE1_EMAIL") ?? readEnv(env, "QA_TEACHER_EMAIL_2"));
+  add("committee2", "QA Committee 2", readEnv(env, "QA_TEACHER_COMMITTEE2_EMAIL") ?? readEnv(env, "QA_TEACHER_EMAIL_3"));
+
+  splitEmailList(readEnv(env, "QA_TEACHER_EMAILS")).forEach((email, index) => {
+    add(`extra-${index + 1}`, `QA Teacher ${index + 1}`, email);
+  });
+
+  return entries;
+}
+
+export function getQaTeacherEmail(selection: FormDataEntryValue | null, env: EnvLike = process.env) {
+  const options = getQaTeacherOptions(env);
+  if (!options.length) return undefined;
+  const keyOrEmail = String(selection ?? "").trim().toLowerCase();
+  return options.find((option) => option.key === keyOrEmail || option.email === keyOrEmail)?.email ?? options[0].email;
 }
 
 export function getQaRoleDashboardPath(role: QaRole) {

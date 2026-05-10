@@ -4,8 +4,8 @@ import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DEV_SESSION_COOKIE, decodeDevSession } from "@/lib/auth/devSession";
-import { hasQaLoginSecret, isQaLoginEnabled } from "@/lib/auth/qaLogin";
-import { clearQaUser, selectQaUser } from "./actions";
+import { getQaTeacherOptions, hasQaLoginSecret, isQaLoginEnabled } from "@/lib/auth/qaLogin";
+import { clearQaUser, prepareQaTeacherProfiles, selectQaUser } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,7 @@ export default async function QaLoginPage({
 
   const [params, cookieStore] = await Promise.all([(await searchParams) ?? {}, cookies()]);
   const qaSession = decodeDevSession(cookieStore.get(DEV_SESSION_COOKIE)?.value);
+  const teacherOptions = getQaTeacherOptions();
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -64,7 +65,7 @@ export default async function QaLoginPage({
         <div>
           <h2 className="text-lg font-semibold">เลือกบทบาทสำหรับทดสอบ</h2>
           <p className="mt-1 text-sm text-muted">
-            บทบาทจะผูกกับ QA_ADMIN_EMAIL, QA_TEACHER_EMAIL หรือ QA_STUDENT_EMAIL ที่ตั้งไว้ใน environment
+            Admin/Student ผูกกับ QA_ADMIN_EMAIL และ QA_STUDENT_EMAIL ส่วน Teacher สามารถเลือกหลาย identity สำหรับที่ปรึกษาและกรรมการสอบ
           </p>
         </div>
         <form action={selectQaUser} className="space-y-4">
@@ -75,6 +76,19 @@ export default async function QaLoginPage({
               <option value="teacher">Teacher</option>
               <option value="student">Student</option>
             </select>
+          </div>
+          <div>
+            <label htmlFor="teacher_email">Teacher identity สำหรับทดสอบกรรมการ</label>
+            <select id="teacher_email" name="teacher_email" defaultValue={teacherOptions[0]?.key ?? ""} disabled={!teacherOptions.length}>
+              {teacherOptions.length ? teacherOptions.map((option) => (
+                <option key={option.key} value={option.key}>{option.label} · {option.email}</option>
+              )) : (
+                <option value="">ยังไม่ได้ตั้งค่า QA teacher emails</option>
+              )}
+            </select>
+            <p className="mt-1 text-xs text-muted">
+              ช่องนี้ใช้เมื่อเลือกบทบาท Teacher เพื่อสลับเป็นอาจารย์ที่ปรึกษา/กรรมการคนละคน โดย workflow และ permission ยังทำงานจริง
+            </p>
           </div>
           <div>
             <label htmlFor="secret">QA login secret</label>
@@ -90,8 +104,30 @@ export default async function QaLoginPage({
           <button type="submit" disabled={!secretConfigured}>เข้าสู่ระบบ QA</button>
         </form>
       </section>
+      <section className="panel space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">เตรียมอาจารย์ QA สำหรับกรรมการสอบ</h2>
+          <p className="mt-1 text-sm text-muted">
+            ใช้สร้าง/เปิดใช้งาน teacher profiles จาก QA teacher emails ที่ตั้งไว้ เพื่อให้ Admin เลือกเป็นที่ปรึกษาและกรรมการ 2 คนได้ในการทดสอบ pilot
+          </p>
+        </div>
+        <form action={prepareQaTeacherProfiles} className="space-y-3">
+          <div>
+            <label htmlFor="prepare_secret">QA login secret</label>
+            <input id="prepare_secret" name="secret" type="password" required autoComplete="off" />
+          </div>
+          <button type="submit" className="button-secondary" disabled={!secretConfigured || teacherOptions.length < 3}>
+            เตรียม Teacher profiles สำหรับ QA
+          </button>
+          {teacherOptions.length < 3 ? (
+            <p className="text-xs text-red-700">ต้องตั้งค่า QA teacher emails อย่างน้อย 3 อีเมลก่อน เพื่อทดสอบที่ปรึกษาและกรรมการครบ</p>
+          ) : (
+            <p className="text-xs text-muted">จะเตรียมอาจารย์ QA {Math.min(teacherOptions.length, 4)} profiles จาก environment ที่ตั้งไว้</p>
+          )}
+        </form>
+      </section>
       <InfoAlert title="Setup ที่ต้องมี">
-        QA Student ต้องถูก import เข้า roster แล้ว, QA Teacher ต้องมี teacher profile ที่ active และผูก email แล้ว,
+        QA Student ต้องถูก import เข้า roster แล้ว, QA Teacher profiles ต้อง active และผูก email แล้ว,
         ส่วน QA Admin จะใช้สิทธิ์ Admin สำหรับ preview/staging เท่านั้น
       </InfoAlert>
     </div>

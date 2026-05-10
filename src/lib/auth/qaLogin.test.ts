@@ -3,6 +3,8 @@ import {
   buildQaSessionPayload,
   getQaRoleDashboardPath,
   getQaRoleEmail,
+  getQaTeacherEmail,
+  getQaTeacherOptions,
   hasQaLoginSecret,
   isQaLoginEnabled,
   isQaLoginEnvironmentAllowed,
@@ -60,6 +62,26 @@ describe("QA login gate", () => {
     expect(parseQaRole("student")).toBe("student");
     expect(parseQaRole("owner")).toBeNull();
     expect(parseQaRole(null)).toBeNull();
+  });
+
+  it("supports multiple QA teacher identities for committee testing", () => {
+    const env = {
+      QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th",
+      QA_TEACHER_ADVISOR_EMAIL: "qa.advisor@sru.ac.th",
+      QA_TEACHER_COMMITTEE1_EMAIL: "qa.committee1@sru.ac.th",
+      QA_TEACHER_COMMITTEE2_EMAIL: "qa.committee2@sru.ac.th",
+      QA_TEACHER_EMAILS: "qa.extra@sru.ac.th"
+    };
+
+    expect(getQaTeacherOptions(env).map((option) => option.email)).toEqual([
+      "qa.teacher@sru.ac.th",
+      "qa.advisor@sru.ac.th",
+      "qa.committee1@sru.ac.th",
+      "qa.committee2@sru.ac.th",
+      "qa.extra@sru.ac.th"
+    ]);
+    expect(getQaTeacherEmail("committee1", env)).toBe("qa.committee1@sru.ac.th");
+    expect(getQaTeacherEmail(null, env)).toBe("qa.teacher@sru.ac.th");
   });
 });
 

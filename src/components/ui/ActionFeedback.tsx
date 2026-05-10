@@ -68,6 +68,7 @@ errorMessages.report_not_available = "ยังส่งเล่มรายง
 
 errorMessages.proposal_rubric_missing = "ยังไม่มี Rubric สำหรับ Proposal กรุณาให้ผู้ดูแลระบบตั้งค่า rubric baseline ก่อนประเมิน";
 successMessages.rubric_baseline_seeded = "ตั้งค่า Rubric baseline สำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation เรียบร้อยแล้ว";
+successMessages.qa_teachers_prepared = "เตรียม Teacher profiles สำหรับ QA เรียบร้อยแล้ว";
 
 export function ActionFeedback({
   success,
