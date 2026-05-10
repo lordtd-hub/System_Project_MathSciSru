@@ -206,6 +206,12 @@ export default async function StudentSchedulePage({
     }
   }
   const anyOpenRound = rounds.some((round) => isRoundOpen(round.status));
+  const activeScheduleByKind = new Map<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", (typeof project.scheduleProposals)[number]>();
+  for (const proposal of project.scheduleProposals) {
+    if ((proposal.status === "PROPOSED" || proposal.status === "CONFIRMED") && !activeScheduleByKind.has(proposal.assessmentKind)) {
+      activeScheduleByKind.set(proposal.assessmentKind, proposal);
+    }
+  }
   const visibleGuidanceRounds = scheduleRoundTypes.filter((roundType) => {
     const round = roundMap.get(roundType);
     if (!round || !isRoundOpen(round.status)) return false;
@@ -214,7 +220,12 @@ export default async function StudentSchedulePage({
     if (roundType === "FINAL_PRESENTATION") return completed.PROGRESS_1 && completed.PROGRESS_2;
     return true;
   });
-  const schedulableRoundsWithEvidence = visibleGuidanceRounds.filter((roundType) => latestSubmissionByKind.has(roundTypeToScheduleKind(roundType)));
+  const lockedScheduleRounds = visibleGuidanceRounds.filter((roundType) => activeScheduleByKind.has(roundTypeToScheduleKind(roundType)));
+  const schedulableRoundsWithEvidence = visibleGuidanceRounds.filter((roundType) => {
+    const kind = roundTypeToScheduleKind(roundType);
+    return latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind);
+  });
+  const defaultScheduleRoundType = schedulableRoundsWithEvidence[0] ?? "PROGRESS_1";
 
   return (
     <div className="space-y-6">
@@ -437,22 +448,28 @@ export default async function StudentSchedulePage({
           })}
         </div>
       </FormSection>
-      <FormSection title="2. เสนอวันสอบใหม่" description="ระบบจะอัปเดตรายการเดิมของโปรเจคนี้ในรอบเดียวกัน ไม่สร้างรายการซ้ำ และแนบเอกสารรอบสอบที่บันทึกไว้ให้กรรมการตรวจประกอบการอนุมัติ">
+      <FormSection title="2. เสนอวันสอบ" description="หลังส่งแล้วระบบจะล็อกวัน เวลา และห้องสอบไว้ให้กรรมการพิจารณา หากต้องเปลี่ยนต้องรอให้กรรมการไม่อนุมัติหรือประสานผู้ดูแลระบบ">
+        {lockedScheduleRounds.length ? (
+          <WarningAlert title="ส่งขอนัดวันสอบแล้ว">
+            รายการที่ส่งแล้วจะแก้ไขวัน เวลา หรือห้องสอบไม่ได้ระหว่างรอกรรมการพิจารณา หากกรรมการไม่อนุมัติ นักศึกษาจึงจะเสนอเวลาใหม่ได้
+          </WarningAlert>
+        ) : null}
         {!schedulableRoundsWithEvidence.length ? (
           <WarningAlert title="ต้องบันทึกเอกสารก่อนเสนอวันสอบ">บันทึกลิงก์เอกสาร/หลักฐานของรอบสอบก่อน แล้วจึงเสนอวัน เวลา และห้องสอบให้กรรมการพิจารณา</WarningAlert>
         ) : null}
         <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
-            <select name="round_type" defaultValue="PROGRESS_1">
+            <select name="round_type" defaultValue={defaultScheduleRoundType}>
               {scheduleRoundTypes.map((roundType) => {
                 const round = roundMap.get(roundType);
                 const kind = roundTypeToScheduleKind(roundType);
                 const hasEvidence = latestSubmissionByKind.has(kind);
-                const disabled = project.status !== "IN_PROGRESS" || !round || !isRoundOpen(round.status) || !hasEvidence || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
+                const hasActiveSchedule = activeScheduleByKind.has(kind);
+                const disabled = project.status !== "IN_PROGRESS" || !round || !isRoundOpen(round.status) || !hasEvidence || hasActiveSchedule || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
                 return (
                   <option key={roundType} value={roundType} disabled={disabled}>
-                    {scheduleRoundLabel(roundType)} {disabled ? hasEvidence ? "(ยังไม่พร้อม)" : "(ยังไม่มีเอกสาร)" : ""}
+                    {scheduleRoundLabel(roundType)} {disabled ? hasActiveSchedule ? "(ส่งขอนัดแล้ว)" : hasEvidence ? "(ยังไม่พร้อม)" : "(ยังไม่มีเอกสาร)" : ""}
                   </option>
                 );
               })}
@@ -493,7 +510,7 @@ export default async function StudentSchedulePage({
                 บันทึกไว้ก่อน
               </button>
               <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound || !schedulableRoundsWithEvidence.length} pendingText="กำลังบันทึกวันสอบ..." className="w-full sm:w-auto">
-                ส่ง/แก้ไขข้อเสนอวันสอบ
+                ส่งข้อเสนอวันสอบ
               </SubmitButton>
             </div>
           </div>

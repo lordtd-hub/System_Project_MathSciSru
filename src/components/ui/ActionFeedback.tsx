@@ -31,7 +31,8 @@ const successMessages: Record<string, string> = {
 };
 
 const errorMessages: Record<string, string> = {
-  action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง"
+  action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง",
+  schedule_request_locked: "ส่งขอนัดวันสอบแล้ว จึงแก้ไขวัน เวลา หรือห้องสอบไม่ได้ ต้องรอกรรมการอนุมัติหรือไม่อนุมัติก่อน"
 };
 
 successMessages.course_offering_opened = "เปิดรายวิชาเรียบร้อยแล้ว";

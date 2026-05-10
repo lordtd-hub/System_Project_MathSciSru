@@ -545,6 +545,9 @@ export async function submitExamSchedule(formData: FormData) {
   const existing = await prisma.examScheduleProposal.findFirst({
     where: { projectId: project.id, assessmentRoundId: round.id }
   });
+  if (existing?.status === "PROPOSED" || existing?.status === "CONFIRMED") {
+    redirectWithQuery("/student/schedule", { error: "schedule_request_locked" });
+  }
   const scheduleData = {
     courseOfferingId: project.courseOfferingId,
     assessmentRoundId: round.id,

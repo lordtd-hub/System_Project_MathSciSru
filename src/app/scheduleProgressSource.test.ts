@@ -17,6 +17,8 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("assessmentRoundId: round.id");
     expect(actions).toContain("saveAssessmentEvidence");
     expect(actions).toContain("assessment_evidence_required");
+    expect(actions).toContain("schedule_request_locked");
+    expect(actions).toContain('existing?.status === "PROPOSED" || existing?.status === "CONFIRMED"');
     expect(actions).toContain("findFirst");
     expect(actions).toContain("examScheduleProposal.update");
     expect(actions).toContain("examScheduleProposal.create");
@@ -48,6 +50,10 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("normalizeProgressPlanTasks");
     expect(page).toContain("doesTaskOverlapWeekWindow");
     expect(page).toContain("hasCompletedScores");
+    expect(page).toContain("activeScheduleByKind");
+    expect(page).toContain("lockedScheduleRounds");
+    expect(page).toContain("ส่งขอนัดแล้ว");
+    expect(page).toContain("ส่งข้อเสนอวันสอบ");
     expect(page).toContain("ยังแก้ไขเอกสารได้จนกว่าจะส่งเสนอวันสอบ");
     expect(page).toContain("ส่งเสนอวันสอบแล้ว จึงล็อกชุดหลักฐานรอบนี้ไว้ให้กรรมการตรวจ");
     expect(page).toContain('name="final_objectives_evidence"');
