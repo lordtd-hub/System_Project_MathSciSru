@@ -328,7 +328,18 @@ async function ensureProgress1Rubric() {
   });
   const items = progressQaRubricItems();
   const hasConditionItems = existing?.items.some((item) => Boolean(findProgressQaCriterion(item.itemKey)));
-  if (existing && hasConditionItems) return existing;
+  if (existing && hasConditionItems) {
+    await Promise.all(items.map((item) =>
+      prisma.rubricItem.updateMany({
+        where: { rubricId: existing.id, itemKey: item.itemKey },
+        data: { groupLabelTh: item.groupLabelTh, itemLabelTh: item.itemLabelTh, evidenceHint: item.evidenceHint }
+      })
+    ));
+    return prisma.rubric.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: { items: { orderBy: { displayOrder: "asc" } } }
+    });
+  }
 
   const latest = await prisma.rubric.findFirst({ where: { roundType: "PROGRESS_1" }, orderBy: { version: "desc" } });
   await prisma.rubric.updateMany({ where: { roundType: "PROGRESS_1", active: true }, data: { active: false } });
@@ -362,7 +373,18 @@ async function ensureProgress2Rubric() {
   });
   const items = progressQaRubricItems();
   const hasConditionItems = existing?.items.some((item) => Boolean(findProgressQaCriterion(item.itemKey)));
-  if (existing && hasConditionItems) return existing;
+  if (existing && hasConditionItems) {
+    await Promise.all(items.map((item) =>
+      prisma.rubricItem.updateMany({
+        where: { rubricId: existing.id, itemKey: item.itemKey },
+        data: { groupLabelTh: item.groupLabelTh, itemLabelTh: item.itemLabelTh, evidenceHint: item.evidenceHint }
+      })
+    ));
+    return prisma.rubric.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: { items: { orderBy: { displayOrder: "asc" } } }
+    });
+  }
 
   const latest = await prisma.rubric.findFirst({ where: { roundType: "PROGRESS_2" }, orderBy: { version: "desc" } });
   await prisma.rubric.updateMany({ where: { roundType: "PROGRESS_2", active: true }, data: { active: false } });
@@ -396,7 +418,18 @@ async function ensureFinalRubric() {
   });
   const finalItems = finalQaRubricItems();
   const hasExpectedItems = existing?.items.some((item) => Boolean(findFinalQaCriterion(item.itemKey)));
-  if (existing && hasExpectedItems) return existing;
+  if (existing && hasExpectedItems) {
+    await Promise.all(finalItems.map((item) =>
+      prisma.rubricItem.updateMany({
+        where: { rubricId: existing.id, itemKey: item.itemKey },
+        data: { groupLabelTh: item.groupLabelTh, itemLabelTh: item.itemLabelTh, evidenceHint: item.evidenceHint }
+      })
+    ));
+    return prisma.rubric.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: { items: { orderBy: { displayOrder: "asc" } } }
+    });
+  }
 
   const latest = await prisma.rubric.findFirst({ where: { roundType: "FINAL_PRESENTATION" }, orderBy: { version: "desc" } });
   await prisma.rubric.updateMany({ where: { roundType: "FINAL_PRESENTATION", active: true }, data: { active: false } });

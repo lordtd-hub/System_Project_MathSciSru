@@ -6,9 +6,24 @@ export async function ensureProposalConditionRubric(prisma: PrismaClient) {
     where: { roundType: "PROPOSAL", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
   });
-  if (existing?.items.some((item) => Boolean(findProposalQaCriterion(item.itemKey)))) return existing;
-
   const items = proposalQaRubricItems();
+  if (existing?.items.some((item) => Boolean(findProposalQaCriterion(item.itemKey)))) {
+    await Promise.all(items.map((item) =>
+      prisma.rubricItem.updateMany({
+        where: { rubricId: existing.id, itemKey: item.itemKey },
+        data: {
+          groupLabelTh: item.groupLabelTh,
+          itemLabelTh: item.itemLabelTh,
+          evidenceHint: item.evidenceHint
+        }
+      })
+    ));
+    return prisma.rubric.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: { items: { orderBy: { displayOrder: "asc" } } }
+    });
+  }
+
   const latest = await prisma.rubric.findFirst({
     where: { roundType: "PROPOSAL" },
     orderBy: { version: "desc" },

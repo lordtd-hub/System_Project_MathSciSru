@@ -21,5 +21,8 @@ describe("QA progress condition rubric", () => {
     expect(items).toHaveLength(11);
     expect(items.reduce((sum, item) => sum + item.points, 0)).toBe(100);
     expect(items.map((item) => item.itemKey)).toEqual(["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "D1", "D2"]);
+    expect(items[0].itemLabelTh).toContain(" / ");
+    expect(items[0].evidenceHint).toContain("นักศึกษา");
+    expect(items[0].evidenceHint).toContain("The student identifies");
   });
 });

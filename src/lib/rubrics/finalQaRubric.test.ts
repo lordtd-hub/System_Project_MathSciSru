@@ -3,6 +3,7 @@ import {
   calculateFinalQaCriterionScore,
   calculateFinalQaSectionSubtotals,
   finalQaRubric,
+  finalQaRubricItems,
   findFinalQaCriterion,
   validateFinalQaRubricTotalIs100
 } from "./finalQaRubric";
@@ -35,5 +36,13 @@ describe("final QA rubric", () => {
     expect(subtotals.find((section) => section.code === "A")?.score).toBe(21);
     expect(subtotals.find((section) => section.code === "E")?.score).toBe(7);
     expect(finalQaRubric).toHaveLength(5);
+  });
+
+  it("maps to bilingual persisted final rubric items", () => {
+    const items = finalQaRubricItems();
+    expect(items).toHaveLength(11);
+    expect(items[0].itemLabelTh).toContain(" / ");
+    expect(items[0].evidenceHint).toContain("ผลลัพธ์สุดท้าย");
+    expect(items[0].evidenceHint).toContain("Final result addresses");
   });
 });

@@ -27,7 +27,85 @@ export type ProgressQaRubricItem = {
   evidenceHint: string;
 };
 
-export const progressQaRubric: ProgressQaRubricSection[] = [
+const progressSectionTitleTh: Record<string, string> = {
+  A: "ความก้าวหน้าเทียบกับแผนที่อนุมัติ",
+  B: "การแก้ปัญหาและการปรับตัว",
+  C: "คุณภาพของหลักฐานหรือชิ้นงาน",
+  D: "การนำเสนอและการตอบคำถาม"
+};
+
+const progressCriterionTitleTh: Record<string, string> = {
+  A1: "งานตามแผนที่เกี่ยวข้องมีหลักฐาน",
+  A2: "ความก้าวหน้าสอดคล้องกับช่วงสัปดาห์ในแผน",
+  A3: "ความก้าวหน้าที่รายงานสะท้อนงานที่ทำจริง",
+  B1: "ระบุปัญหาหรืออุปสรรคได้",
+  B2: "อธิบายการตอบสนองต่อปัญหา",
+  B3: "บันทึกการปรับแผนเมื่อจำเป็น",
+  C1: "หลักฐานหรือชิ้นงานแสดงความก้าวหน้าที่มีนัยสำคัญ",
+  C2: "ผลปัจจุบันสอดคล้องกับวัตถุประสงค์ที่อนุมัติ",
+  C3: "ใช้วิธีดำเนินงานอย่างสอดคล้อง",
+  D1: "การนำเสนอครอบคลุมสถานะความก้าวหน้า",
+  D2: "การตอบคำถามอ้างอิงหลักฐานของโครงงาน"
+};
+
+const progressConditionTh: Record<string, string[]> = {
+  A1: [
+    "นักศึกษาระบุว่างานตามแผนข้อใดกำลังถูกรายงาน",
+    "มีการลิงก์หรืออธิบายหลักฐาน/ชิ้นงานสำหรับงานที่รายงาน",
+    "หลักฐานสอดคล้องกับงานตามแผนที่เลือก"
+  ],
+  A2: [
+    "งานที่ควรเสร็จในรอบนี้เสร็จแล้วหรือระบุชัดว่าเลื่อน",
+    "งานที่กำลังดำเนินการมีผลลัพธ์บางส่วนหรือหลักฐานสถานะ",
+    "งานที่ล่าช้ามีเหตุผลหรือแผนปรับปรุง"
+  ],
+  A3: [
+    "รายงาน/การนำเสนอแยกงานที่เสร็จแล้วออกจากงานที่กำลังทำ",
+    "การอ้างว่างานเสร็จมีชิ้นงาน ร่างพิสูจน์ โค้ด ชุดข้อมูล ผลลัพธ์ หรือเอกสารรองรับ",
+    "หลีกเลี่ยงคำอธิบายกว้าง ๆ เช่น ทำต่อไป โดยไม่มีหลักฐาน"
+  ],
+  B1: ["ระบุอุปสรรค ความยาก หรือความเสี่ยงจริงอย่างน้อยหนึ่งอย่าง", "อุปสรรคเชื่อมโยงกับงานตามแผนหรือวัตถุประสงค์ของโครงงาน"],
+  B2: [
+    "อธิบายวิธีแก้หรือแนวทางตอบสนองที่ทำแล้วหรือจะทำ",
+    "วิธีแก้เชื่อมโยงกับปัญหาที่ระบุ",
+    "วิธีแก้ทำให้โครงงานเดินต่อได้โดยไม่ขัดกับวัตถุประสงค์ที่อนุมัติ"
+  ],
+  B3: [
+    "ถ้ามีความล่าช้าหรือเบี่ยงเบน นักศึกษาระบุการปรับการดำเนินงาน",
+    "การปรับยังคงรักษาวัตถุประสงค์ของโครงงานหรืออธิบายเหตุผลของการปรับขอบเขต"
+  ],
+  C1: ["มีชิ้นงานหรือหลักฐานที่เป็นรูปธรรมอย่างน้อยหนึ่งรายการ", "ชิ้นงานเชื่อมโยงกับงานตามแผน", "ชิ้นงานแสดงพัฒนาการหลังจากขั้น Proposal"],
+  C2: [
+    "ผลปัจจุบันตอบวัตถุประสงค์ที่อนุมัติอย่างน้อยหนึ่งข้อ",
+    "ผลลัพธ์ไม่แสดงการเบี่ยงขอบเขตใหญ่โดยควบคุมไม่ได้",
+    "นักศึกษาบอกได้ว่าผลนั้นสนับสนุนโครงงานสุดท้ายอย่างไร"
+  ],
+  C3: [
+    "ใช้วิธีที่ระบุใน Proposal หรือฉบับแก้ไขที่อนุมัติ",
+    "การใช้วิธีแสดงผ่านชิ้นงานหรือหลักฐาน",
+    "การใช้วิธีสอดคล้องกับงานที่กำลังรายงาน"
+  ],
+  D1: ["งานที่เสร็จแล้ว", "งานที่กำลังดำเนินการ", "ขั้นตอนถัดไป", "ปัญหาหรือความเสี่ยงปัจจุบัน"],
+  D2: [
+    "คำตอบตอบตรงคำถาม",
+    "คำตอบอ้างอิงงานที่ส่ง แผน ชิ้นงาน ผลลัพธ์ หรือวัตถุประสงค์ที่อนุมัติ",
+    "คำตอบมีเหตุผล หลักฐาน ตัวอย่าง หรือคำอธิบาย"
+  ]
+};
+
+const progressNoteTh: Record<string, string> = {
+  B3: "ถ้าไม่มีความล่าช้าหรือการเบี่ยงเบน ผู้ประเมินอาจถือว่าครบทั้งสองเงื่อนไขได้เมื่อนักศึกษาระบุชัดว่าแผนเดิมยังใช้ได้"
+};
+
+function bilingual(th: string | undefined, en: string) {
+  return th ? `${th} / ${en}` : en;
+}
+
+function bilingualList(thItems: string[] | undefined, enItems: string[]) {
+  return enItems.map((item, index) => bilingual(thItems?.[index], item));
+}
+
+const progressQaRubricBase: ProgressQaRubricSection[] = [
   {
     code: "A",
     title: "Progress Against Approved Plan",
@@ -226,6 +304,17 @@ export const progressQaRubric: ProgressQaRubricSection[] = [
     ]
   }
 ];
+
+export const progressQaRubric: ProgressQaRubricSection[] = progressQaRubricBase.map((section) => ({
+  ...section,
+  title: bilingual(progressSectionTitleTh[section.code], section.title),
+  criteria: section.criteria.map((criterion) => ({
+    ...criterion,
+    title: bilingual(progressCriterionTitleTh[criterion.code], criterion.title),
+    conditions: bilingualList(progressConditionTh[criterion.code], criterion.conditions),
+    note: criterion.note ? bilingual(progressNoteTh[criterion.code], criterion.note) : undefined
+  }))
+}));
 
 function sortedMappings(criterion: ProgressQaCriterion) {
   return [...criterion.scoreMappings].sort((a, b) => b.conditionCount - a.conditionCount);

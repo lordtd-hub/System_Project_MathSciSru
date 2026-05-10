@@ -4,6 +4,7 @@ type RubricCriterion = {
   maxScore: number;
   conditions: string[];
   scoreMappings: { conditionCount: number; score: number }[];
+  requiredSections?: string[];
   note?: string;
 };
 
@@ -53,7 +54,7 @@ export function ConditionBasedRubricView({
                     <span className="text-xs text-muted">{criterion.maxScore} คะแนน</span>
                   </div>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
-                    {criterion.conditions.map((condition) => (
+                    {(criterion.conditions.length ? criterion.conditions : criterion.requiredSections ?? []).map((condition) => (
                       <li key={condition}>{condition}</li>
                     ))}
                   </ul>

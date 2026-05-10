@@ -30,7 +30,71 @@ export type ProposalQaRubricSection = {
   criteria: ProposalQaCriterion[];
 };
 
-export const proposalQaRubric: ProposalQaRubricSection[] = [
+const proposalSectionTitleTh: Record<string, string> = {
+  A: "การกำหนดปัญหาและวัตถุประสงค์",
+  B: "วิธีดำเนินงานและแผนงาน",
+  C: "ความครบถ้วนและความสอดคล้องของโครงร่าง",
+  D: "การนำเสนอและการตอบคำถาม"
+};
+
+const proposalCriterionTitleTh: Record<string, string> = {
+  A1: "บริบทของปัญหา",
+  A2: "ความชัดเจนของวัตถุประสงค์",
+  A3: "การกำหนดขอบเขต",
+  B1: "โครงสร้างวิธีดำเนินงาน",
+  B2: "ความเหมาะสมทางคณิตศาสตร์ สถิติ คอมพิวเตอร์ หรือเทคนิค",
+  B3: "ความเป็นไปได้ของแผนเวลา",
+  B4: "การศึกษาพื้นฐานหรือเอกสารอ้างอิง",
+  C1: "ความครบถ้วนของหัวข้อที่จำเป็น",
+  C2: "ความสอดคล้องภายใน",
+  D1: "ความครอบคลุมของการนำเสนอ",
+  D2: "การตอบคำถาม"
+};
+
+const proposalConditionTh: Record<string, string[]> = {
+  A1: [
+    "ระบุปัญหาหรือ pain point ของโครงงาน",
+    "ระบุกลุ่มผู้ใช้หรือบริบทของปัญหา",
+    "อธิบายว่าปัญหานี้สำคัญเพราะอะไร"
+  ],
+  A2: [
+    "วัตถุประสงค์ระบุชัดว่าจะศึกษา พัฒนา พิสูจน์ วิเคราะห์ สร้าง หรือประเมินอะไร",
+    "วัตถุประสงค์สอดคล้องกับหัวข้อโครงงาน",
+    "วัตถุประสงค์สามารถตรวจสอบได้จากผลลัพธ์สุดท้ายของโครงงาน"
+  ],
+  A3: ["ระบุสิ่งที่โครงงานจะครอบคลุม", "ระบุข้อจำกัด สิ่งที่ไม่ทำ หรือขอบเขตของงาน"],
+  B1: [
+    "ส่วนวิธีดำเนินงานมีขั้นตอนตามลำดับ",
+    "ขั้นตอนสอดคล้องกับวัตถุประสงค์",
+    "ขั้นตอนสามารถทำได้จริงภายในช่วงเวลาโครงงาน"
+  ],
+  B2: [
+    "ระบุเครื่องมือ แนวคิด ทฤษฎี วิธีทางคณิตศาสตร์ สถิติ คอมพิวเตอร์ หรือเทคนิคที่จะใช้",
+    "อธิบายว่าเครื่องมือหรือวิธีเหล่านั้นเหมาะกับปัญหาอย่างไร",
+    "เครื่องมือหรือวิธีที่เสนอไม่ขัดกับขอบเขตของโครงงาน"
+  ],
+  B3: ["แผนครอบคลุมช่วงเวลาโครงงานทั้งหมด", "งานในแผนมีลำดับและระยะเวลาที่สมเหตุสมผล"],
+  B4: [
+    "กล่าวถึงทฤษฎี งานเดิม เครื่องมือ ระบบ หรือวรรณกรรมที่เกี่ยวข้อง",
+    "แหล่งข้อมูลพื้นฐานเกี่ยวข้องกับหัวข้อโครงงาน",
+    "แสดงให้เห็นว่าพื้นฐานดังกล่าวสนับสนุนงานที่เสนออย่างไร"
+  ],
+  C2: ["วัตถุประสงค์สอดคล้องกับวิธีดำเนินงาน", "วิธีดำเนินงานสอดคล้องกับผลลัพธ์ที่คาดหวัง", "แผนเวลาสอดคล้องกับ workflow ที่เสนอ"],
+  D1: ["ผู้นำเสนออธิบายปัญหา/บริบท", "ผู้นำเสนออธิบายวัตถุประสงค์", "ผู้นำเสนออธิบายวิธีดำเนินงาน", "ผู้นำเสนออธิบายผลลัพธ์ที่คาดหวัง"],
+  D2: ["คำตอบตอบตรงคำถาม", "คำตอบสอดคล้องกับโครงร่างที่ส่ง", "คำตอบมีเหตุผล ตัวอย่าง หลักฐาน หรือคำอธิบายประกอบ"]
+};
+
+const proposalRequiredSectionsTh = ["บทคัดย่อ", "ความเป็นมา", "วัตถุประสงค์", "วิธีดำเนินงาน", "ผลลัพธ์ที่คาดหวัง", "แผนเวลา"];
+
+function bilingual(th: string | undefined, en: string) {
+  return th ? `${th} / ${en}` : en;
+}
+
+function bilingualList(thItems: string[] | undefined, enItems: string[]) {
+  return enItems.map((item, index) => bilingual(thItems?.[index], item));
+}
+
+const proposalQaRubricBase: ProposalQaRubricSection[] = [
   {
     code: "A",
     title: "Problem and Objective Definition",
@@ -229,6 +293,17 @@ export const proposalQaRubric: ProposalQaRubricSection[] = [
     ]
   }
 ];
+
+export const proposalQaRubric: ProposalQaRubricSection[] = proposalQaRubricBase.map((section) => ({
+  ...section,
+  title: bilingual(proposalSectionTitleTh[section.code], section.title),
+  criteria: section.criteria.map((criterion) => ({
+    ...criterion,
+    title: bilingual(proposalCriterionTitleTh[criterion.code], criterion.title),
+    conditions: bilingualList(proposalConditionTh[criterion.code], criterion.conditions),
+    requiredSections: criterion.requiredSections ? bilingualList(proposalRequiredSectionsTh, criterion.requiredSections) : undefined
+  }))
+}));
 
 function sortedMappings(criterion: ProposalQaCriterion) {
   return [...criterion.scoreMappings].sort((a, b) => b.conditionCount - a.conditionCount);

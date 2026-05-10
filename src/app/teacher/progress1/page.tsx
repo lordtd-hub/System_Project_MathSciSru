@@ -10,7 +10,7 @@ import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpo
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
-import { findProgressQaCriterion, progressQaRubric } from "@/lib/rubrics/progressQaRubric";
+import { findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
 import { submitProgress1Score } from "../actions";
 
 function legacyFieldName(itemKey: string) {
@@ -34,6 +34,7 @@ export default async function TeacherProgress1Page({
 
   const params = (await searchParams) ?? {};
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
+  const progressRubricItemLabels = new Map(progressQaRubricItems().map((item) => [item.itemKey, item]));
   const [rubric, projects] = await Promise.all([
     prisma.rubric.findFirst({
       where: { roundType: "PROGRESS_1", active: true },
@@ -114,6 +115,7 @@ export default async function TeacherProgress1Page({
                   <div className="space-y-3">
                     {rubric.items.map((item) => {
                       const progressCriterion = findProgressQaCriterion(item.itemKey);
+                      const displayItem = progressRubricItemLabels.get(item.itemKey) ?? item;
                       const previousPoints = previousItems.get(item.itemKey) ?? 0;
                       const previousConditionCount = progressCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
 
@@ -123,8 +125,8 @@ export default async function TeacherProgress1Page({
                           <div key={item.id} className="rounded-md border border-line p-3">
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
-                                <div className="font-medium">{item.itemLabelTh} ({item.points} คะแนน)</div>
-                                {item.evidenceHint ? <div className="mt-1 text-xs text-muted">{item.evidenceHint}</div> : null}
+                                <div className="font-medium">{displayItem.itemLabelTh} ({item.points} คะแนน)</div>
+                                {displayItem.evidenceHint ? <div className="mt-1 text-xs text-muted">{displayItem.evidenceHint}</div> : null}
                               </div>
                               <label className="min-w-44 text-sm font-medium">
                                 เงื่อนไขที่ผ่าน
@@ -141,7 +143,7 @@ export default async function TeacherProgress1Page({
 
                       return (
                         <div key={item.id}>
-                          <label>{item.itemLabelTh} ({item.points})</label>
+                          <label>{displayItem.itemLabelTh} ({item.points})</label>
                           <input name={legacyFieldName(item.itemKey)} type="number" min="0" max={item.points} step="1" defaultValue={previousPoints} required />
                         </div>
                       );

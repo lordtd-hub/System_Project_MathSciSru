@@ -27,7 +27,67 @@ export type FinalQaRubricItem = {
   evidenceHint: string;
 };
 
-export const finalQaRubric: FinalQaRubricSection[] = [
+const finalSectionTitleTh: Record<string, string> = {
+  A: "การบรรลุวัตถุประสงค์ที่อนุมัติ",
+  B: "คุณภาพของวิธีดำเนินงานและผลลัพธ์",
+  C: "การดำเนินโครงงานและการปรับตัว",
+  D: "คุณภาพรายงานและบทความ",
+  E: "การนำเสนอและการตอบคำถาม"
+};
+
+const finalCriterionTitleTh: Record<string, string> = {
+  A1: "ผลงานสุดท้ายตอบวัตถุประสงค์ที่อนุมัติ",
+  A2: "ผลลัพธ์สุดท้ายครบถ้วนและตรวจสอบได้",
+  B1: "ใช้วิธีดำเนินงานอย่างสอดคล้องและถูกต้อง",
+  B2: "ผลลัพธ์มีหลักฐาน การพิสูจน์ การวิเคราะห์ หรือการพัฒนารองรับ",
+  B3: "ผลลัพธ์แสดงการทำงานสำเร็จอย่างมีนัยสำคัญ",
+  C1: "การดำเนินงานเป็นไปตามแผนที่อนุมัติหรือมีการปรับที่อธิบายได้",
+  C2: "บันทึกปัญหาและการปรับตัว",
+  D1: "ความครบถ้วนของโครงสร้างรายงาน",
+  D2: "ความสอดคล้องและรูปแบบของรายงาน/บทความ",
+  E1: "การนำเสนอครอบคลุมสถานะโครงงานที่จำเป็น",
+  E2: "การตอบคำถามของกรรมการมีหลักฐานรองรับ"
+};
+
+const finalConditionTh: Record<string, string[]> = {
+  A1: [
+    "ผลลัพธ์สุดท้ายตอบวัตถุประสงค์ที่อนุมัติ",
+    "แต่ละวัตถุประสงค์มีหลักฐาน ชิ้นงาน หรือผลลัพธ์รองรับ",
+    "ไม่มีการเบี่ยงขอบเขตใหญ่โดยควบคุมไม่ได้"
+  ],
+  A2: ["มีชิ้นงานหรือผลลัพธ์สุดท้าย", "ผลลัพธ์สามารถตรวจสอบหรือพิจารณาได้", "ผลลัพธ์สอดคล้องกับประวัติ Proposal และ Progress"],
+  B1: [
+    "วิธีดำเนินงานเป็นไปตาม Proposal หรือฉบับแก้ไขที่อนุมัติ",
+    "วิธีดำเนินงานแสดงผ่านหลักฐานหรือชิ้นงาน",
+    "วิธีดำเนินงานสอดคล้องกับผลลัพธ์ที่นำเสนอ"
+  ],
+  B2: [
+    "ข้อกล่าวอ้างมีหลักฐานรองรับ",
+    "หลักฐานสนับสนุนข้อสรุปหรือผลลัพธ์",
+    "มีการแสดงการวิเคราะห์ การพิสูจน์ หรือการพัฒนา"
+  ],
+  B3: ["งานพัฒนาต่อจากขั้น Proposal/Progress", "ผลลัพธ์สุดท้ายใช้งาน ตรวจสอบ หรือพิจารณาได้", "สถานะสุดท้ายแสดงการทำงานสำเร็จอย่างมีนัยสำคัญ"],
+  C1: ["งานหลักสำเร็จตามแผนเวลา", "มีการบันทึกความล่าช้าหรือการปรับแผน", "สถานะสุดท้ายสอดคล้องกับประวัติความก้าวหน้า"],
+  C2: ["นักศึกษาระบุปัญหาหรืออุปสรรคของโครงงาน", "นักศึกษาอธิบายการปรับตัวหรือการแก้ปัญหา", "การปรับตัวยังคงรักษาวัตถุประสงค์หรืออธิบายการปรับแก้"],
+  D1: ["บทคัดย่อ", "ความเป็นมา", "วัตถุประสงค์", "วิธีดำเนินงาน", "ผลลัพธ์", "สรุปผล", "เอกสารอ้างอิง"],
+  D2: ["วัตถุประสงค์ วิธีดำเนินงาน และผลลัพธ์สอดคล้องกัน", "รูปแบบเอกสารอ้างอิงสอดคล้องกัน", "สมการ รูปภาพ และตารางมีป้ายกำกับเหมาะสม"],
+  E1: ["วัตถุประสงค์", "วิธีดำเนินงาน", "ผลลัพธ์", "ข้อสรุป", "ข้อจำกัดหรืองานต่อยอด"],
+  E2: ["คำตอบตอบตรงคำถาม", "คำตอบอ้างอิงหลักฐาน งาน หรือผลลัพธ์ของโครงงาน", "คำตอบมีเหตุผลหรือคำอธิบายประกอบ"]
+};
+
+const finalNoteTh: Record<string, string> = {
+  D1: "ใช้จำนวนหัวข้อรายงานที่มีอยู่จริง หากขาดมากกว่าสองหัวข้อให้ 0 คะแนน"
+};
+
+function bilingual(th: string | undefined, en: string) {
+  return th ? `${th} / ${en}` : en;
+}
+
+function bilingualList(thItems: string[] | undefined, enItems: string[]) {
+  return enItems.map((item, index) => bilingual(thItems?.[index], item));
+}
+
+const finalQaRubricBase: FinalQaRubricSection[] = [
   {
     code: "A",
     title: "Achievement of Approved Objectives",
@@ -234,6 +294,17 @@ export const finalQaRubric: FinalQaRubricSection[] = [
     ]
   }
 ];
+
+export const finalQaRubric: FinalQaRubricSection[] = finalQaRubricBase.map((section) => ({
+  ...section,
+  title: bilingual(finalSectionTitleTh[section.code], section.title),
+  criteria: section.criteria.map((criterion) => ({
+    ...criterion,
+    title: bilingual(finalCriterionTitleTh[criterion.code], criterion.title),
+    conditions: bilingualList(finalConditionTh[criterion.code], criterion.conditions),
+    note: criterion.note ? bilingual(finalNoteTh[criterion.code], criterion.note) : undefined
+  }))
+}));
 
 function sortedMappings(criterion: FinalQaCriterion) {
   return [...criterion.scoreMappings].sort((a, b) => b.conditionCount - a.conditionCount);
