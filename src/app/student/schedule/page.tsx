@@ -359,7 +359,7 @@ export default async function StudentSchedulePage({
                         <MarkdownLatexEditor name="progress_plan_tasks" label="งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้ *" defaultValue={String(content.progressPlanTasks ?? "")} placeholder="ระบุ task จากแผน Proposal ที่เกี่ยวข้องกับรอบนี้ เช่น สัปดาห์ 1-8 งานใดเสร็จแล้ว งานใดกำลังทำ" required rows={4} />
                       </div>
                       <div className="md:col-span-3">
-                        <MarkdownLatexEditor name="progress_evidence" label="หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า *" defaultValue={String(content.progressEvidence ?? "")} placeholder="ระบุไฟล์ หน้าเอกสาร รูป ตาราง proof draft code dataset result หรือ screenshot ที่พิสูจน์ว่างานเกิดขึ้นจริง" required rows={4} />
+                        <MarkdownLatexEditor name="progress_evidence" label="หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า *" defaultValue={String(content.progressEvidence ?? "")} placeholder="ระบุ proof draft, code, dataset, result table, experiment log, screenshot, report section หรือชิ้นงานที่ตรวจได้จริง ควรทำเสร็จก่อนขอสอบ สไลด์นำเสนอ/เลขหน้าสไลด์ใช้ประกอบได้แต่ถือเป็นหลักฐานอย่างอ่อน" required rows={4} />
                       </div>
                       <div className="md:col-span-3">
                         <MarkdownLatexEditor name="progress_status" label="สถานะงาน: เสร็จแล้ว / กำลังทำ / ล่าช้า *" defaultValue={String(content.progressStatus ?? "")} placeholder="แยกให้ชัดว่างานใดเสร็จ งานใดยังทำอยู่ งานใดล่าช้า และถ้าล่าช้ามีเหตุผลหรือแผนปรับอย่างไร" required rows={4} />
