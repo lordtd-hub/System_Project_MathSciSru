@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AssessmentStatus, CommitteeRole } from "@prisma/client";
+import type { AssessmentRoundType, AssessmentStatus, CommitteeRole, ScoreStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
@@ -11,22 +11,47 @@ import { TaskListCard } from "@/components/ui/TaskListCard";
 import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
+import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
+function assessmentKindLabel(kind?: string | null) {
+  if (kind === "PROGRESS_1") return "Progress 1";
+  if (kind === "PROGRESS_2") return "Progress 2";
+  if (kind === "FINAL_PRESENT") return "Final Presentation";
+  return "รอบสอบ";
+}
+
 function getTeacherWorkloadCounts(teacherId: string) {
   const openScoringRoundStatuses: AssessmentStatus[] = ["SUBMISSION_OPEN", "SCORING_OPEN"];
   const scoringCommitteeRoles: CommitteeRole[] = ["HEAD", "MEMBER"];
-  const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") => ({
+  const submittedScoreStatus: ScoreStatus = "SUBMITTED";
+  const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") => {
+    const roundType: AssessmentRoundType = assessmentKind === "FINAL_PRESENT" ? "FINAL_PRESENTATION" : assessmentKind;
+    return ({
     status: "CONFIRMED" as const,
     assessmentKind,
     assessmentRound: { status: { in: openScoringRoundStatuses } },
     project: {
       status: "IN_PROGRESS" as const,
-      committeeAssignments: { some: { teacherId, active: true, role: { in: scoringCommitteeRoles } } }
+      committeeAssignments: { some: { teacherId, active: true, role: { in: scoringCommitteeRoles } } },
+      NOT: {
+        attempts: {
+          some: {
+            assessmentRound: { roundType },
+            evaluatorAssignments: {
+              some: {
+                teacherId,
+                scoreSubmission: { is: { status: submittedScoreStatus } }
+              }
+            }
+          }
+        }
+      }
     }
-  });
+    });
+  };
 
   return Promise.all([
     prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
@@ -54,7 +79,8 @@ function getTeacherWorkloadCounts(teacherId: string) {
     }),
     prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_1") }),
     prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_2") }),
-    prisma.examScheduleProposal.count({ where: readyScoreWhere("FINAL_PRESENT") })
+    prisma.examScheduleProposal.count({ where: readyScoreWhere("FINAL_PRESENT") }),
+    prisma.examScheduleProposal.count({ where: { status: "CONFIRMED" } })
   ]);
 }
 
@@ -134,11 +160,55 @@ export default async function TeacherDashboardPage() {
     advisorScoreProjectCount,
     progress1ScoreReadyCount,
     progress2ScoreReadyCount,
-    finalScoreReadyCount
+    finalScoreReadyCount,
+    confirmedScheduleCalendarCount
   ] = await (
     sessionTeacherWorkloadQuery ?? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(teacher.id))
   );
   const presentationScoreReadyCount = progress1ScoreReadyCount + progress2ScoreReadyCount + finalScoreReadyCount;
+  const submittedScoreStatus: ScoreStatus = "SUBMITTED";
+  const nextConfirmedScoringSchedule = presentationScoreReadyCount
+    ? await prisma.examScheduleProposal.findFirst({
+        where: {
+          status: "CONFIRMED",
+          assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } },
+          OR: [
+            {
+              assessmentKind: "PROGRESS_1",
+              project: {
+                status: "IN_PROGRESS",
+                committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
+                NOT: { attempts: { some: { assessmentRound: { roundType: "PROGRESS_1" }, evaluatorAssignments: { some: { teacherId: teacher.id, scoreSubmission: { is: { status: submittedScoreStatus } } } } } } }
+              }
+            },
+            {
+              assessmentKind: "PROGRESS_2",
+              project: {
+                status: "IN_PROGRESS",
+                committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
+                NOT: { attempts: { some: { assessmentRound: { roundType: "PROGRESS_2" }, evaluatorAssignments: { some: { teacherId: teacher.id, scoreSubmission: { is: { status: submittedScoreStatus } } } } } } }
+              }
+            },
+            {
+              assessmentKind: "FINAL_PRESENT",
+              project: {
+                status: "IN_PROGRESS",
+                committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
+                NOT: { attempts: { some: { assessmentRound: { roundType: "FINAL_PRESENTATION" }, evaluatorAssignments: { some: { teacherId: teacher.id, scoreSubmission: { is: { status: submittedScoreStatus } } } } } } }
+              }
+            }
+          ]
+        },
+        select: {
+          assessmentKind: true,
+          proposedStartAt: true,
+          proposedEndAt: true,
+          room: true,
+          project: { select: { student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } } }
+        },
+        orderBy: { proposedStartAt: "asc" }
+      })
+    : null;
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequestCount,
@@ -150,6 +220,12 @@ export default async function TeacherDashboardPage() {
     finalScoreReady: finalScoreReadyCount,
     advisorScoreUnlocked: advisorScoreProjectCount > 0
   });
+  const teacherNextAction = nextConfirmedScoringSchedule
+    ? {
+        ...nextAction,
+        description: `${assessmentKindLabel(nextConfirmedScoringSchedule.assessmentKind)} · ${formatThaiScheduleRange(nextConfirmedScoringSchedule.proposedStartAt, nextConfirmedScoringSchedule.proposedEndAt)}${nextConfirmedScoringSchedule.room ? ` · ห้อง ${nextConfirmedScoringSchedule.room}` : ""} · ${nextConfirmedScoringSchedule.project.student.studentCode} ${nextConfirmedScoringSchedule.project.student.firstNameTh} ${nextConfirmedScoringSchedule.project.student.lastNameTh}`
+      }
+    : nextAction;
   const workloadCards = [
     { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
     { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "ready" as const : "quiet" as const },
@@ -159,6 +235,14 @@ export default async function TeacherDashboardPage() {
     { label: "Advisor score", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const }
   ];
   const teacherActionQueue = [
+    {
+      title: "ตารางสอบที่ยืนยันแล้ว",
+      description: confirmedScheduleCalendarCount ? "ดูวัน เวลา ห้องสอบ และรายชื่อนักศึกษาที่มีกำหนดสอบยืนยันแล้ว" : "ยังไม่มีตารางสอบที่กรรมการยืนยันครบ",
+      href: "/teacher/schedules",
+      count: confirmedScheduleCalendarCount,
+      tone: confirmedScheduleCalendarCount ? "complete" as const : "quiet" as const,
+      statusLabel: confirmedScheduleCalendarCount ? "ดูตาราง" : "ยังไม่มี"
+    },
     {
       title: "คำขอที่ปรึกษา",
       description: advisorRequestCount ? "นักศึกษารออาจารย์พิจารณารับเป็นที่ปรึกษา" : "ยังไม่มีคำขอที่ปรึกษาที่รอดำเนินการ",
@@ -241,7 +325,7 @@ export default async function TeacherDashboardPage() {
           mobileSummaryLabel="workspace และงานติดตามอื่น"
         />
         <div className="space-y-3">
-          <NextActionCard action={nextAction} />
+          <NextActionCard action={teacherNextAction} />
           <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยัง workspace ของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือ flow เดิม" />
             <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>

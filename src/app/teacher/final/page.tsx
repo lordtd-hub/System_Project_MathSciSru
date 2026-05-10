@@ -41,7 +41,20 @@ export default async function TeacherFinalPage({
           status: "IN_PROGRESS",
           courseOfferingId: finalRound.courseOfferingId,
           scheduleProposals: { some: { assessmentKind: "FINAL_PRESENT", status: "CONFIRMED" } },
-          committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } }
+          committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
+          NOT: {
+            attempts: {
+              some: {
+                assessmentRound: { roundType: "FINAL_PRESENTATION" },
+                evaluatorAssignments: {
+                  some: {
+                    teacherId: teacher.id,
+                    scoreSubmission: { is: { status: "SUBMITTED" } }
+                  }
+                }
+              }
+            }
+          }
         },
         include: {
           student: true,

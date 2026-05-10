@@ -61,6 +61,25 @@ async function assertConfirmedSchedule(projectId: string, assessmentKind: "PROGR
   }
 }
 
+async function assertScoreNotAlreadySubmitted(projectId: string, assessmentRoundId: string, teacherId: string, label: string) {
+  const existingSubmission = await prisma.scoreSubmission.findFirst({
+    where: {
+      status: "SUBMITTED",
+      evaluatorAssignment: {
+        teacherId,
+        assessmentAttempt: {
+          projectId,
+          assessmentRoundId
+        }
+      }
+    },
+    select: { id: true }
+  });
+  if (existingSubmission) {
+    throw new Error(`${label} บันทึกคะแนนของอาจารย์ท่านนี้แล้ว ไม่สามารถส่งซ้ำได้`);
+  }
+}
+
 export async function claimTeacherProfile(formData: FormData) {
   const user = await requirePendingTeacherClaimUser();
   assertRateLimit(`teacher:${user.id}:claimTeacherProfile`, pilotRateLimits.workflowMutation);
@@ -645,6 +664,7 @@ export async function submitProgress1Score(formData: FormData) {
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
   }));
+  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Progress 1");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
@@ -722,6 +742,8 @@ export async function submitProgress1Score(formData: FormData) {
   }));
 
   revalidatePath("/teacher/progress1");
+  revalidatePath("/teacher");
+  revalidatePath("/student");
   timer.end("redirect");
   redirect("/teacher/progress1?success=progress_1_score_saved");
 }
@@ -760,6 +782,7 @@ export async function submitProgress2Score(formData: FormData) {
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
   }));
+  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Progress 2");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
@@ -837,6 +860,8 @@ export async function submitProgress2Score(formData: FormData) {
   }));
 
   revalidatePath("/teacher/progress2");
+  revalidatePath("/teacher");
+  revalidatePath("/student");
   timer.end("redirect");
   redirect("/teacher/progress2?success=progress_2_score_saved");
 }
@@ -870,6 +895,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
   }));
   if (!round) throw new Error("ยังไม่มีรอบ Final Presentation ระดับรายวิชา");
 
+  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Final Presentation");
   const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
   const scoredItems = rubric.items.map((item) => {
     const qaCriterion = findFinalQaCriterion(item.itemKey);
@@ -952,6 +978,8 @@ export async function submitFinalPresentationScore(formData: FormData) {
   }));
 
   revalidatePath("/teacher/final");
+  revalidatePath("/teacher");
+  revalidatePath("/student");
   timer.end("redirect");
   redirect("/teacher/final?success=final_score_saved");
 }

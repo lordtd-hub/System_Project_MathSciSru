@@ -53,7 +53,20 @@ export default async function TeacherProgress2Page({
           status: "IN_PROGRESS",
           courseOfferingId: progress2Round.courseOfferingId,
           scheduleProposals: { some: { assessmentKind: "PROGRESS_2", status: "CONFIRMED" } },
-          committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } }
+          committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
+          NOT: {
+            attempts: {
+              some: {
+                assessmentRound: { roundType: "PROGRESS_2" },
+                evaluatorAssignments: {
+                  some: {
+                    teacherId: teacher.id,
+                    scoreSubmission: { is: { status: "SUBMITTED" } }
+                  }
+                }
+              }
+            }
+          }
         },
         include: {
           student: true,

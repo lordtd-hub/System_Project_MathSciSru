@@ -12,6 +12,7 @@ import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
+import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
@@ -143,7 +144,7 @@ export default async function StudentDashboardPage() {
             orderBy: { appointedAt: "asc" }
           },
           scheduleProposals: {
-            select: { assessmentKind: true, status: true, approvals: { select: { decision: true } } },
+            select: { assessmentKind: true, status: true, proposedStartAt: true, proposedEndAt: true, room: true, approvals: { select: { decision: true } } },
             orderBy: { createdAt: "desc" },
             take: 1
           },
@@ -198,6 +199,9 @@ export default async function StudentDashboardPage() {
   const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
   const latestSchedulePendingCount = Math.max(latestScheduleTotalCount - latestScheduleApprovedCount - latestScheduleRejectedCount, 0);
   const latestScheduleRoundLabel = assessmentKindLabel(latestSchedule?.assessmentKind);
+  const latestScheduleDateText = latestSchedule
+    ? `${formatThaiScheduleRange(latestSchedule.proposedStartAt, latestSchedule.proposedEndAt)}${latestSchedule.room ? ` · ห้อง ${latestSchedule.room}` : ""}`
+    : "";
   const studentNextAction = latestSchedule?.status === "REJECTED"
     ? {
         title: `${latestScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
@@ -223,6 +227,9 @@ export default async function StudentDashboardPage() {
             tone: "success" as const
           }
         : nextAction;
+  const scheduleAwareStudentNextAction = latestSchedule && ["PROPOSED", "CONFIRMED"].includes(latestSchedule.status)
+    ? { ...studentNextAction, description: `${latestScheduleDateText} · ${studentNextAction.description}` }
+    : studentNextAction;
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   timer.end();
@@ -235,7 +242,7 @@ export default async function StudentDashboardPage() {
         actions={<StatusBadge status={project.status} />}
       />
 
-      <NextActionCard action={studentNextAction} />
+      <NextActionCard action={scheduleAwareStudentNextAction} />
 
       {latestSchedule?.status === "REJECTED" ? (
         <WarningAlert title="มีอาจารย์ไม่สะดวกตามวันสอบที่เสนอ">
