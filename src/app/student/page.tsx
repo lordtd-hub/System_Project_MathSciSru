@@ -157,7 +157,7 @@ export default async function StudentDashboardPage() {
           scheduleProposals: {
             select: { assessmentKind: true, status: true, proposedStartAt: true, proposedEndAt: true, room: true, approvals: { select: { decision: true } } },
             orderBy: { createdAt: "desc" },
-            take: 1
+            take: 6
           },
           reportVersions: { select: { versionNo: true }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
@@ -235,10 +235,30 @@ export default async function StudentDashboardPage() {
 
   const advisorRequest = project.advisorRequests[0];
   const waitingDays = daysWaiting(advisorRequest?.requestedAt);
+  const requiredCommitteeScores = project.committeeAssignments.filter((assignment) => assignment.role === "HEAD" || assignment.role === "MEMBER").length;
+  const hasCompletedScores = (attemptType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
+    if (requiredCommitteeScores <= 0) return false;
+    for (const attempt of project.attempts.filter((item) => item.attemptType === attemptType)) {
+      const roundClosed = attempt.assessmentRound.status === "SCORING_CLOSED";
+      const submittedCount = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED").length;
+      if (roundClosed || submittedCount >= requiredCommitteeScores) return true;
+    }
+    return false;
+  };
+  const assessmentStates = {
+    PROGRESS_1: hasCompletedScores("PROGRESS_1") ? "COMPLETED" as const : "NOT_STARTED" as const,
+    PROGRESS_2: hasCompletedScores("PROGRESS_2") ? "COMPLETED" as const : "NOT_STARTED" as const,
+    FINAL_PRESENT: hasCompletedScores("FINAL_PRESENTATION") ? "COMPLETED" as const : "NOT_STARTED" as const
+  };
   const nextAction = getNextActionForStudent(project.status);
-  const workflowActions = getStudentAvailableActions(project.status);
+  const workflowActions = getStudentAvailableActions(project.status, assessmentStates);
   const proposal = project.presentationSubmissions[0];
-  const latestSchedule = project.scheduleProposals[0];
+  const latestSchedule = project.scheduleProposals.find((schedule) => {
+    if (schedule.assessmentKind === "PROGRESS_1") return assessmentStates.PROGRESS_1 !== "COMPLETED";
+    if (schedule.assessmentKind === "PROGRESS_2") return assessmentStates.PROGRESS_2 !== "COMPLETED";
+    if (schedule.assessmentKind === "FINAL_PRESENT") return assessmentStates.FINAL_PRESENT !== "COMPLETED";
+    return true;
+  });
   const latestScheduleApprovedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "APPROVE").length ?? 0;
   const latestScheduleRejectedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "REJECT").length ?? 0;
   const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
@@ -247,6 +267,30 @@ export default async function StudentDashboardPage() {
   const latestScheduleDateText = latestSchedule
     ? `${formatThaiScheduleRange(latestSchedule.proposedStartAt, latestSchedule.proposedEndAt)}${latestSchedule.room ? ` · ห้อง ${latestSchedule.room}` : ""}`
     : "";
+  const nextAssessmentAction = project.status === "IN_PROGRESS"
+    ? assessmentStates.PROGRESS_1 !== "COMPLETED"
+      ? {
+          title: "ดำเนินการ Progress 1",
+          description: "บันทึกเอกสาร/หลักฐาน Progress 1 แล้วเสนอวันสอบให้กรรมการยืนยัน",
+          actionLabel: "เปิด Progress 1",
+          href: "/student/schedule"
+        }
+      : assessmentStates.PROGRESS_2 !== "COMPLETED"
+        ? {
+            title: "ดำเนินการ Progress 2",
+            description: "Progress 1 เสร็จแล้ว ขั้นตอนถัดไปคือบันทึกเอกสาร Progress 2 และเสนอวันสอบ",
+            actionLabel: "เปิด Progress 2",
+            href: "/student/schedule"
+          }
+        : assessmentStates.FINAL_PRESENT !== "COMPLETED"
+          ? {
+              title: "ดำเนินการ Final Presentation",
+              description: "Progress 1 และ Progress 2 เสร็จแล้ว ขั้นตอนถัดไปคือบันทึกเอกสาร Final และเสนอวันสอบ",
+              actionLabel: "เปิด Final Presentation",
+              href: "/student/schedule"
+            }
+          : nextAction
+    : nextAction;
   const studentNextAction = latestSchedule?.status === "REJECTED"
     ? {
         title: `${latestScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
@@ -271,10 +315,39 @@ export default async function StudentDashboardPage() {
             href: "/student/schedule",
             tone: "success" as const
           }
-        : nextAction;
+        : nextAssessmentAction;
   const scheduleAwareStudentNextAction = latestSchedule && ["PROPOSED", "CONFIRMED"].includes(latestSchedule.status)
     ? { ...studentNextAction, description: `${latestScheduleDateText} · ${studentNextAction.description}` }
     : studentNextAction;
+  const studentTrackingTasks: TaskListItem[] = project.status === "IN_PROGRESS"
+    ? latestSchedule?.status === "REJECTED"
+      ? [{
+          title: `${latestScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
+          description: `มีผู้ไม่สะดวก ${latestScheduleRejectedCount} คน กรุณาเสนอวันสอบใหม่เพื่อให้กรรมการทุกคนพิจารณาอีกครั้ง`,
+          href: "/student/schedule",
+          urgency: "สูง"
+        }]
+      : latestSchedule?.status === "PROPOSED"
+        ? [{
+            title: `รอกรรมการยืนยันวันสอบ ${latestScheduleRoundLabel}`,
+            description: `อนุมัติแล้ว ${latestScheduleApprovedCount}/${latestScheduleTotalCount} คน ยังรอ ${latestSchedulePendingCount} คน`,
+            href: "/student/schedule",
+            urgency: "รอคนอื่น"
+          }]
+        : latestSchedule?.status === "CONFIRMED"
+          ? [{
+              title: `${latestScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
+              description: `${latestScheduleDateText} หลังสอบแล้วรอกรรมการบันทึกคะแนน`,
+              href: "/student/schedule"
+            }]
+          : assessmentStates.PROGRESS_1 !== "COMPLETED"
+            ? [{ title: "เตรียม Progress 1", description: "บันทึกเอกสาร/หลักฐาน Progress 1 แล้วเสนอวันสอบ", href: "/student/schedule", urgency: "สูง" }]
+            : assessmentStates.PROGRESS_2 !== "COMPLETED"
+              ? [{ title: "เตรียม Progress 2", description: "Progress 1 เสร็จแล้ว ขั้นตอนถัดไปคือ Progress 2", href: "/student/schedule", urgency: "สูง" }]
+              : assessmentStates.FINAL_PRESENT !== "COMPLETED"
+                ? [{ title: "เตรียม Final Presentation", description: "Progress 1 และ Progress 2 เสร็จแล้ว ขั้นตอนถัดไปคือ Final Presentation", href: "/student/schedule", urgency: "สูง" }]
+                : [{ title: "ติดตามผลหลังสอบ", description: "รอการปิดรอบหรือขั้นตอนถัดไปจากผู้ดูแลระบบ", urgency: "รอคนอื่น" }]
+    : buildStudentTasks(project.status);
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
@@ -492,7 +565,7 @@ export default async function StudentDashboardPage() {
           </div>
         </section>
 
-        <TaskListCard title="รายการที่ต้องติดตาม" tasks={buildStudentTasks(project.status)} />
+        <TaskListCard title="รายการที่ต้องติดตาม" tasks={studentTrackingTasks} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

@@ -5,14 +5,14 @@ describe("dashboard clarity phase 2", () => {
   it("keeps student dashboard task-first without changing lifecycle helpers", () => {
     const page = readFileSync("src/app/student/page.tsx", "utf8");
 
-    expect(page).toContain("getStudentAvailableActions(project.status)");
+    expect(page).toContain("getStudentAvailableActions(project.status, assessmentStates)");
     expect(page).toContain("StudentWorkflowGroup");
     expect(page).toContain("visibleAssessmentResults");
     expect(page).toContain("showScoreToStudent");
-    expect(page).toContain("ผลการประเมินรอบสอบ");
-    expect(page).toContain("ทำได้ตอนนี้");
-    expect(page).toContain("รอผู้อื่นดำเนินการ");
-    expect(page).toContain("ขั้นตอนในอนาคต");
+    expect(page).toContain("Assessment results");
+    expect(page).toContain("workflowActions.available_now");
+    expect(page).toContain("workflowActions.blocked_waiting_for");
+    expect(page).toContain("workflowActions.locked_future");
   });
 
   it("surfaces teacher workload counts from existing query results", () => {
