@@ -55,6 +55,10 @@ errorMessages.progress_2_must_close_first = "ต้องเปิดและ�
 errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มี submission/attempt/schedule/exception แล้ว";
 errorMessages.round_reset_not_needed = "รอบนี้ยังไม่ได้เปิด จึงไม่ต้องรีเซต";
 errorMessages.test_tools_disabled = "โหมดทดสอบระบบยังไม่ได้เปิดใช้งาน";
+errorMessages.proposal_not_available = "ยังไม่สามารถส่ง Proposal ในสถานะปัจจุบันได้";
+errorMessages.proposal_origin_missing = "กรุณาส่งข้อมูลเสนอหัวข้อก่อนส่ง Proposal";
+errorMessages.proposal_round_not_open = "ยังส่ง Proposal ไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบ Proposal หรือรอบถูกปิดแล้ว";
+errorMessages.proposal_deadline_passed = "พ้นกำหนดส่ง Proposal แล้ว กรุณาติดต่อผู้ดูแลระบบ";
 
 export function ActionFeedback({
   success,

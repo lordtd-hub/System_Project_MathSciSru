@@ -14,6 +14,7 @@ import { getReportSubmissionGate, reportSubmissionReasonLabel } from "@/lib/repo
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 import { parseSelectableSourceType } from "@/lib/projects/sourceType";
+import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 
 async function requireStudentContext() {
   const session = await auth();
@@ -188,15 +189,15 @@ export async function saveProjectOrigin(formData: FormData) {
 export async function saveProposalSubmission(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
   assertRateLimit(`student:${userId}:saveProposalSubmission`, pilotRateLimits.workflowMutation);
-  if (project.status !== "PROPOSAL_PENDING") throw new Error("ยังไม่สามารถส่ง Proposal ในสถานะปัจจุบันได้");
+  if (project.status !== "PROPOSAL_PENDING") redirectWithQuery("/student/proposal", { error: "proposal_not_available" });
   const origin = await prisma.projectOrigin.findUnique({ where: { projectId: project.id } });
-  if (!origin || origin.status !== "SUBMITTED") throw new Error("กรุณาส่งข้อมูลเสนอหัวข้อก่อนส่ง Proposal");
+  if (!origin || origin.status !== "SUBMITTED") redirectWithQuery("/student/proposal", { error: "proposal_origin_missing" });
 
   const round = await prisma.assessmentRound.findFirstOrThrow({
     where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" }
   });
-  if (!isRoundOpen(round.status)) throw new Error("รอบ Proposal ยังไม่เปิดหรือปิดแล้ว");
-  if (!canEditUntilDeadline(new Date(), round.submissionDeadline)) throw new Error("พ้นกำหนดส่งแล้ว");
+  if (!isRoundOpen(round.status)) redirectWithQuery("/student/proposal", { error: "proposal_round_not_open" });
+  if (!canEditUntilDeadline(new Date(), round.submissionDeadline)) redirectWithQuery("/student/proposal", { error: "proposal_deadline_passed" });
 
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
   const linkResult = validateMaterialLink(materialLink);
