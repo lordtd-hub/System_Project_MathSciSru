@@ -95,6 +95,7 @@ export default async function ProposalScoringPage({
   const previousScoreItems = new Map(assignment.scoreSubmission?.scoreItems.map((item) => [item.rubricItemId, item]) ?? []);
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
   const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
+  const isScoreLocked = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || Boolean(assignment.scoreSubmission?.lockedAt);
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
@@ -114,6 +115,11 @@ export default async function ProposalScoringPage({
         actions={<span className="sticky-score rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
       />
       <ActionFeedback success={query.success} error={query.error} />
+      {isScoreLocked ? (
+        <InfoAlert title="ส่งคะแนน Proposal แล้ว">
+          คะแนนและ comment ถูกบันทึกเป็นหลักฐานแล้ว จึงไม่สามารถแก้ไขหรือส่งประเมินซ้ำจากหน้านี้ได้ หากจำเป็นต้องแก้ไขให้ดำเนินการผ่านขั้นตอนปลดล็อก/แก้ไขโดยผู้ดูแลระบบ
+        </InfoAlert>
+      ) : null}
       <GuidancePanel
         title="แนวทางก่อนส่งคะแนน"
         current="อ่าน abstract และเอกสารแนบ จากนั้นเลือก checklist ตามหลักฐานที่พบ"
@@ -170,10 +176,64 @@ export default async function ProposalScoringPage({
           </section>
         </aside>
       </div>
-      <form action={submitProposalScore} className="space-y-4">
-        <input type="hidden" name="assignment_id" value={assignment.id} />
-        {Object.entries(groupedRubric).map(([groupLabel, items]) => (
-          <details key={groupLabel} className="panel space-y-3" open>
+      {isScoreLocked ? (
+        <section className="panel space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">ผลการประเมินที่ส่งแล้ว</h2>
+              <p className="mt-1 text-sm text-muted">อ่านย้อนหลังได้เท่านั้น ระบบล็อกการแก้ไขหลังส่งคะแนนจริง</p>
+            </div>
+            <span className="rounded-full border border-line bg-surface px-3 py-1 text-sm font-semibold">{currentTotal}/100 คะแนน</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-md border border-line bg-paper p-3 text-sm">
+              <div className="text-muted">ผลการประเมิน</div>
+              <div className="mt-1 font-semibold">{assignment.scoreSubmission?.proposalDecision?.decision ?? "-"}</div>
+            </div>
+            <div className="rounded-md border border-line bg-paper p-3 text-sm">
+              <div className="text-muted">สถานะ</div>
+              <div className="mt-1 font-semibold">{assignment.scoreSubmission?.status ?? assignment.status}</div>
+            </div>
+          </div>
+          {assignment.scoreSubmission?.proposalDecision?.reason ? (
+            <div>
+              <div className="mb-2 text-sm font-semibold">เหตุผล</div>
+              <MarkdownLatexViewer value={assignment.scoreSubmission.proposalDecision.reason} />
+            </div>
+          ) : null}
+          {assignment.scoreSubmission?.overallComment ? (
+            <div>
+              <div className="mb-2 text-sm font-semibold">Comment ถึงนักศึกษา</div>
+              <MarkdownLatexViewer value={assignment.scoreSubmission.overallComment} />
+            </div>
+          ) : null}
+          <div className="space-y-3">
+            {Object.entries(groupedRubric).map(([groupLabel, items]) => (
+              <details key={groupLabel} className="rounded-md border border-line p-3" open>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                  <h3 className="font-semibold">{groupLabel}</h3>
+                  <span className="text-xs text-muted">{items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? 0), 0)} / {items.reduce((sum, item) => sum + item.points, 0)}</span>
+                </summary>
+                <div className="mt-3 space-y-2">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-3 rounded-md bg-paper p-3 text-sm">
+                      <div>
+                        <div className="font-medium">{item.itemLabelTh}</div>
+                        {item.evidenceHint ? <div className="mt-1 text-xs text-muted">{item.evidenceHint}</div> : null}
+                      </div>
+                      <span className="shrink-0 font-semibold">{previousScoreItems.get(item.id)?.pointsAwarded ?? 0}/{item.points}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <form action={submitProposalScore} className="space-y-4">
+          <input type="hidden" name="assignment_id" value={assignment.id} />
+          {Object.entries(groupedRubric).map(([groupLabel, items]) => (
+            <details key={groupLabel} className="panel space-y-3" open>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">{groupLabel}</h2>
               <span className="rounded-full border border-line px-3 py-1 text-xs">
@@ -225,9 +285,9 @@ export default async function ProposalScoringPage({
                 </label>
               );
             })}
-          </details>
-        ))}
-        <section className="panel grid gap-3 md:grid-cols-2">
+            </details>
+          ))}
+          <section className="panel grid gap-3 md:grid-cols-2">
           <div>
             <label>ผลการประเมิน</label>
             <select name="decision" defaultValue={assignment.scoreSubmission?.proposalDecision?.decision ?? "PASS"}>
@@ -249,8 +309,9 @@ export default async function ProposalScoringPage({
               ส่งคะแนน Proposal
             </SubmitButton>
           </div>
-        </section>
-      </form>
+          </section>
+        </form>
+      )}
     </div>
   );
 }

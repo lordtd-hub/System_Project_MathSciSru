@@ -177,10 +177,16 @@ export async function submitProposalScore(formData: FormData) {
 
   const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
     where: { id: assignmentId },
-    include: { assessmentAttempt: true }
+    include: {
+      assessmentAttempt: true,
+      scoreSubmission: { select: { status: true, lockedAt: true } }
+    }
   }));
   if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
+  if (assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.lockedAt) {
+    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_score_locked" });
+  }
 
   const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));
   if (!rubric || rubric.items.length === 0) {
