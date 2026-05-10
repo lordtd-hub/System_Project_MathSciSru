@@ -25,6 +25,15 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(read("src/app/teacher/schedules/page.tsx")).toContain("hasApprovedTeacherCapability(session?.user)");
   });
 
+  it("keeps student schedule rubric guidance separated by round", () => {
+    const page = read("src/app/student/schedule/page.tsx");
+    expect(page).toContain("ProgressQaRubricPanel");
+    expect(page).toContain("FinalQaRubricPanel");
+    expect(page).toContain("visibleGuidanceRounds.map");
+    expect(page).toContain('roundType === "PROGRESS_1" || roundType === "PROGRESS_2"');
+    expect(page).toContain('roundType === "FINAL_PRESENTATION"');
+  });
+
   it("keeps Progress 1 scoring assigned-teacher only and duplicate-safe", () => {
     const actions = read("src/app/teacher/actions.ts");
     expect(actions).toContain("submitProgress1Score");

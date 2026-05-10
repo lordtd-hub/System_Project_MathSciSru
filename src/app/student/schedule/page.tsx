@@ -10,6 +10,7 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
+import { ProgressQaRubricPanel } from "@/components/ui/ProgressQaRubricPanel";
 import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -21,6 +22,12 @@ import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { assessmentKindToRoundType } from "@/lib/scheduling/scheduleRules";
 
 const scheduleRoundTypes = ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const;
+
+function scheduleRoundLabel(roundType: (typeof scheduleRoundTypes)[number]) {
+  if (roundType === "PROGRESS_1") return "Progress 1";
+  if (roundType === "PROGRESS_2") return "Progress 2";
+  return "Final Presentation";
+}
 
 export default async function StudentSchedulePage({
   searchParams
@@ -83,6 +90,12 @@ export default async function StudentSchedulePage({
     FINAL_PRESENT: project.assessmentSubmissions.some((item) => item.kind === "FINAL_PRESENT")
   };
   const anyOpenRound = rounds.some((round) => isRoundOpen(round.status));
+  const visibleGuidanceRounds = scheduleRoundTypes.filter((roundType) => {
+    const round = roundMap.get(roundType);
+    if (!round || !isRoundOpen(round.status)) return false;
+    if (roundType === "PROGRESS_1") return progress1Readiness.eligible;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -98,26 +111,56 @@ export default async function StudentSchedulePage({
         next="เมื่อส่งแล้ว กรรมการที่ได้รับแต่งตั้งจะเห็นรายการนี้ในหน้าตารางสอบ"
         actor="นักศึกษาส่งคำขอ กรรมการ HEAD/MEMBER เป็นผู้พิจารณาตาม workflow ปัจจุบัน"
       />
-      {showQaProgressPlanCheck ? (
-        <div className="space-y-4">
-          <ProgressPlanCheckpointPanel roundType="PROGRESS_1" timelineItems={proposalContent?.timelineItems} audience="student" />
-          <ProgressPlanCheckpointPanel roundType="PROGRESS_2" timelineItems={proposalContent?.timelineItems} audience="student" />
+      <section className="panel">
+        <h2 className="text-lg font-semibold">เกณฑ์และหลักฐานแยกตามรอบสอบ</h2>
+        <p className="mt-1 text-sm text-muted">
+          เลือกรอบสอบในแบบฟอร์มด้านล่างให้ตรงกับงานปัจจุบัน ระบบจะแยก rubric ของ Progress 1, Progress 2 และ Final Presentation ไม่ใช้เกณฑ์เดียวกันปนกัน
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {scheduleRoundTypes.map((roundType) => {
+            const round = roundMap.get(roundType);
+            const open = Boolean(round && isRoundOpen(round.status));
+            const disabledReason = roundType === "PROGRESS_1" && open && !progress1Readiness.eligible ? "ยังไม่พร้อม" : "ยังไม่เปิด";
+            return (
+              <a
+                key={roundType}
+                className={open ? "button-secondary" : "workflow-chip text-muted"}
+                href={`#${roundType.toLowerCase().replaceAll("_", "-")}-rubric`}
+              >
+                {scheduleRoundLabel(roundType)} {open ? "" : `(${disabledReason})`}
+              </a>
+            );
+          })}
         </div>
-      ) : null}
-      {(
-        <div className="space-y-4">
-          <section className="panel">
-            <h2 className="text-lg font-semibold">Final assessment guidance</h2>
-            <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
-              <p>Final จะตรวจว่างานที่เสร็จแล้วสอดคล้องกับวัตถุประสงค์ที่อนุมัติใน Proposal หรือไม่</p>
-              <p>หลักฐานควรเป็นผลลัพธ์ที่ตรวจสอบได้ เช่น proof draft, dataset, implementation, screenshots, experiment results, logs หรือ report sections</p>
-              <p>วิธีดำเนินงานและผลลัพธ์ควรเชื่อมกับแผน 16 สัปดาห์ และ Progress history ที่เคยส่งไว้</p>
-              <p>ถ้ามีการเลื่อน/ปรับแผน ให้เตรียมเหตุผลและหลักฐานประกอบการอธิบายต่อกรรมการ</p>
-            </div>
-          </section>
-          <FinalQaRubricPanel audience="student" />
-        </div>
-      )}
+      </section>
+
+      <div className="space-y-4">
+        {visibleGuidanceRounds.map((roundType) => (
+          <div key={roundType} id={`${roundType.toLowerCase().replaceAll("_", "-")}-rubric`} className="scroll-mt-24 space-y-4">
+            {roundType === "PROGRESS_1" || roundType === "PROGRESS_2" ? (
+              <>
+                {showQaProgressPlanCheck ? (
+                  <ProgressPlanCheckpointPanel roundType={roundType} timelineItems={proposalContent?.timelineItems} audience="student" />
+                ) : null}
+                <ProgressQaRubricPanel roundLabel={roundType === "PROGRESS_1" ? "Progress 1" : "Progress 2"} />
+              </>
+            ) : (
+              <>
+                <section className="panel">
+                  <h2 className="text-lg font-semibold">Final assessment guidance</h2>
+                  <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
+                    <p>Final จะตรวจว่างานที่เสร็จแล้วสอดคล้องกับวัตถุประสงค์ที่อนุมัติใน Proposal หรือไม่</p>
+                    <p>หลักฐานควรเป็นผลลัพธ์ที่ตรวจสอบได้ เช่น proof draft, dataset, implementation, screenshots, experiment results, logs หรือ report sections</p>
+                    <p>วิธีดำเนินงานและผลลัพธ์ควรเชื่อมกับแผน 16 สัปดาห์ และ Progress history ที่เคยส่งไว้</p>
+                    <p>ถ้ามีการเลื่อน/ปรับแผน ให้เตรียมเหตุผลและหลักฐานประกอบการอธิบายต่อกรรมการ</p>
+                  </div>
+                </section>
+                <FinalQaRubricPanel audience="student" />
+              </>
+            )}
+          </div>
+        ))}
+      </div>
       <section className="grid gap-3 md:grid-cols-3">
         {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
           const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
