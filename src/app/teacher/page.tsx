@@ -340,6 +340,16 @@ export default async function TeacherDashboardPage() {
       statusLabel: finalScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบยืนยัน"
     }
   ];
+  const activeTeacherActionQueue = teacherActionQueue.filter((item) =>
+    !["/teacher/progress1", "/teacher/progress2", "/teacher/final"].includes(item.href) || (item.count ?? 0) > 0
+  );
+  const teacherWorkspaceTasks = [
+    { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
+    ...(progress1ScoreReadyCount ? [{ title: "คะแนน Progress 1", description: `${progress1ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress1", urgency: "พร้อมให้คะแนน" }] : []),
+    ...(progress2ScoreReadyCount ? [{ title: "คะแนน Progress 2", description: `${progress2ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress2", urgency: "พร้อมให้คะแนน" }] : []),
+    ...(finalScoreReadyCount ? [{ title: "คะแนน Final", description: `${finalScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/final", urgency: "พร้อมให้คะแนน" }] : []),
+    { title: "ตารางสอบ", description: `${confirmedScheduleCalendarCount} รายการยืนยันแล้ว`, href: "/teacher/schedules", urgency: confirmedScheduleCalendarCount ? "ดูตาราง" : "ปกติ" }
+  ];
   timer.end();
 
   return (
@@ -352,7 +362,7 @@ export default async function TeacherDashboardPage() {
         <DashboardActionQueue
           title="งานที่ต้องดำเนินการ"
           description="รวมงานที่อาจารย์ต้องตอบรับ ประเมิน ตรวจ หรือยืนยันตามบทบาทที่มีอยู่ในระบบ"
-          items={teacherActionQueue}
+          items={activeTeacherActionQueue}
           mobilePrimaryCount={4}
           mobileSummaryLabel="workspace และงานติดตามอื่น"
         />
@@ -453,12 +463,7 @@ export default async function TeacherDashboardPage() {
         <TaskListCard
           title="ทางลัด workspace"
           compact
-          tasks={[
-            { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
-            { title: "คะแนน Progress 1", description: `${progress1ScoreReadyCount} รายการพร้อมให้คะแนนหลังยืนยันวันสอบ`, href: "/teacher/progress1", urgency: progress1ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบ" },
-            { title: "คะแนน Progress 2", description: `${progress2ScoreReadyCount} รายการพร้อมให้คะแนนหลังยืนยันวันสอบ`, href: "/teacher/progress2", urgency: progress2ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบ" },
-            { title: "คะแนน Final", description: `${finalScoreReadyCount} รายการพร้อมให้คะแนนหลังยืนยันวันสอบ`, href: "/teacher/final", urgency: finalScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบ" }
-          ]}
+          tasks={teacherWorkspaceTasks}
         />
       </div>
       <section className="panel dashboard-console-panel">

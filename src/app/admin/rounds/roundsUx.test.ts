@@ -10,7 +10,7 @@ describe("admin course round management UX", () => {
   it("adds a course-level round management page with Progress 1 actions", () => {
     expect(pageSource).toContain("รอบสอบของรายวิชา");
     expect(pageSource).toContain("เปิดรอบ");
-    expect(pageSource).toContain("ดูโปรเจคที่ยังไม่พร้อม");
+    expect(pageSource).toContain("ดูความพร้อมของรอบปัจจุบัน");
     expect(pageSource).toContain("getRoundEligibility(offering.id, \"PROGRESS_1\")");
   });
 

@@ -13,8 +13,9 @@ import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert } from "@/components/ui/Alert";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { ProjectStatus } from "@prisma/client";
-import { courseLevelRoundTypes, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
+import { courseLevelRoundTypes, isRoundClosed, isRoundOpen, roundStatusLabelTh, roundTypeLabelTh, type CourseLevelRoundType } from "@/lib/assessments/courseRounds";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
+import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { findDuplicateActiveProjectGroups, getCurrentDashboardProjects } from "@/lib/admin/dashboardProjects";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { prisma } from "@/lib/db";
@@ -415,10 +416,16 @@ async function AdminRoundGateSection({
     : Promise.resolve({ eligible: [], notReady: [] });
 
   const [rounds, progress1Eligibility] = await Promise.all([roundsQuery, progress1EligibilityQuery]);
-  const progress1Round = rounds.find((round) => round.courseOfferingId === activeOfferingId && round.roundType === "PROGRESS_1");
-  const proposalRound = rounds.find((round) => round.courseOfferingId === activeOfferingId && round.roundType === "PROPOSAL");
-  const progress1CanOpen = progress1Eligibility.eligible.length > 0 && !["SUBMISSION_OPEN", "SCORING_OPEN"].includes(progress1Round?.status ?? "DRAFT");
-  const progress1BlockedReason = progress1Eligibility.notReady.flatMap((item) => item.reasons)[0];
+  const activeRounds = rounds.filter((round) => round.courseOfferingId === activeOfferingId);
+  const activeRoundMap = new Map(activeRounds.map((round) => [round.roundType, round]));
+  const roundStatuses = Object.fromEntries(courseLevelRoundTypes.map((roundType) => [roundType, activeRoundMap.get(roundType)?.status ?? "DRAFT"]));
+  const currentOpenRound = activeRounds.find((round) => isRoundOpen(round.status));
+  const nextOpenRoundType = courseLevelRoundTypes.find((roundType) =>
+    getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length }).canOpen
+  );
+  const focusRoundType: CourseLevelRoundType = (currentOpenRound?.roundType as CourseLevelRoundType | undefined) ?? nextOpenRoundType ?? courseLevelRoundTypes.find((roundType) => !isRoundClosed(activeRoundMap.get(roundType)?.status ?? "DRAFT")) ?? "FINAL_PRESENTATION";
+  const focusGate = getRoundOpenGate(focusRoundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
+  const progress1BlockedReason = focusRoundType === "PROGRESS_1" ? progress1Eligibility.notReady.flatMap((item) => item.reasons)[0] : null;
   timer.end("round_gate_ready");
 
   return (
@@ -428,23 +435,27 @@ async function AdminRoundGateSection({
           <div>
             <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
             <p className="mt-1 text-sm text-muted">
-              Proposal: {roundStatusLabelTh(proposalRound?.status ?? "DRAFT")} · Progress 1: {roundStatusLabelTh(progress1Round?.status ?? "DRAFT")} · Progress 2 / Final ตามลำดับถัดไป
+              {courseLevelRoundTypes.map((roundType) => `${roundTypeLabelTh(roundType)}: ${roundStatusLabelTh(activeRoundMap.get(roundType)?.status ?? "DRAFT")}`).join(" · ")}
             </p>
             <p className="mt-2 text-sm">
-              ขั้นตอนถัดไป: ตัดสินผล Proposal / แต่งตั้งกรรมการ / เปิดรอบ Progress 1
+              {currentOpenRound
+                ? `รอบที่กำลังเปิดอยู่: ${roundTypeLabelTh(currentOpenRound.roundType)}`
+                : focusGate.canOpen
+                  ? `ขั้นตอนถัดไป: เปิดรอบ ${roundTypeLabelTh(focusRoundType)}`
+                  : `สถานะถัดไป: ${roundSequenceReasonLabelTh(focusGate.reasonKey)}`}
             </p>
-            {!progress1CanOpen && progress1BlockedReason ? (
+            {!focusGate.canOpen && progress1BlockedReason ? (
               <p className="mt-1 text-sm text-amber-700">{reasonLabelTh(progress1BlockedReason)}</p>
-            ) : !progress1CanOpen && !progress1Eligibility.eligible.length ? (
+            ) : focusRoundType === "PROGRESS_1" && !focusGate.canOpen && !progress1Eligibility.eligible.length ? (
               <p className="mt-1 text-sm text-amber-700">ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1</p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            {progress1CanOpen && activeOfferingId ? (
+            {focusGate.canOpen && activeOfferingId ? (
               <form action={openCourseRound}>
                 <input type="hidden" name="course_offering_id" value={activeOfferingId} />
-                <input type="hidden" name="round_type" value="PROGRESS_1" />
-                <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ Progress 1</SubmitButton>
+                <input type="hidden" name="round_type" value={focusRoundType} />
+                <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ {roundTypeLabelTh(focusRoundType)}</SubmitButton>
               </form>
             ) : null}
             <Link className="button-secondary" href="/admin/rounds">จัดการรอบสอบ</Link>

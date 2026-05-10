@@ -79,6 +79,11 @@ export default async function TeacherSchedulesPage({
       take: 100
     })
   ]);
+  const pendingReviewSchedules = schedules.filter((schedule) =>
+    schedule.status === "PROPOSED" &&
+    (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) &&
+    schedule.approvals.some((approval) => approval.teacherId === teacher.id && approval.decision === "PENDING")
+  );
 
   return (
     <div className="space-y-6">
@@ -124,12 +129,15 @@ export default async function TeacherSchedulesPage({
           )}
         </div>
       </section>
+      <section className="panel">
+        <h2 className="text-lg font-semibold">รายการรออนุมัติวันสอบของท่าน</h2>
+        <p className="mt-1 text-sm text-muted">
+          แสดงเฉพาะคำขอที่ยังรอให้ท่านอนุมัติหรือไม่อนุมัติ ตารางที่ยืนยันแล้วอยู่ในส่วนด้านบน
+        </p>
+      </section>
       <div className="space-y-3">
-        {schedules.length ? schedules.map((schedule) => {
+        {pendingReviewSchedules.length ? pendingReviewSchedules.map((schedule) => {
           const submission = schedule.project.assessmentSubmissions.find((item) => item.kind === schedule.assessmentKind);
-          const summary = typeof submission?.contentJson === "object" && submission?.contentJson && "summary" in submission.contentJson
-            ? String((submission.contentJson as { summary?: unknown }).summary ?? "")
-            : "";
           const requiredApproverIds = uniqueIds([
             ...schedule.project.committeeAssignments
               .filter((assignment) => ["ADVISOR", "HEAD", "MEMBER"].includes(assignment.role))
@@ -180,7 +188,6 @@ export default async function TeacherSchedulesPage({
                   <a className="inline-flex text-brand hover:underline" href={submission.materialLink} target="_blank" rel="noreferrer">
                     เปิดเอกสาร/หลักฐาน
                   </a>
-                  {summary ? <MarkdownLatexViewer className="border-0 bg-transparent p-0" value={summary} /> : null}
                 </div>
               ) : (
                 <div className="mt-2 text-muted">ยังไม่พบเอกสารของรอบนี้</div>
@@ -227,7 +234,7 @@ export default async function TeacherSchedulesPage({
           </section>
           );
         }) : (
-          <EmptyState title="ยังไม่มีตารางสอบที่เกี่ยวข้อง" description="เมื่อมีนักศึกษาส่งข้อเสนอวันสอบ รายการจะปรากฏที่นี่" />
+          <EmptyState title="ยังไม่มีรายการรออนุมัติวันสอบ" description="รายการที่อนุมัติแล้วหรือรอบที่ปิดแล้วจะไม่แสดงในส่วนอนุมัติ" />
         )}
       </div>
     </div>

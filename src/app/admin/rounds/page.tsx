@@ -62,6 +62,9 @@ export default async function AdminRoundsPage({
     const rubric = rubricMap.get(definition.roundType);
     return !rubric?.active || rubric.items.length === 0;
   }).length;
+  const currentOpenRoundType = courseLevelRoundTypes.find((roundType) => isRoundOpen(roundStatuses[roundType] ?? "DRAFT"));
+  const nextNotClosedRoundType = courseLevelRoundTypes.find((roundType) => !isRoundClosed(roundStatuses[roundType] ?? "DRAFT"));
+  const readinessFocusRoundType = currentOpenRoundType ?? nextNotClosedRoundType ?? "FINAL_PRESENTATION";
 
   return (
     <div className="space-y-6">
@@ -187,7 +190,7 @@ export default async function AdminRoundsPage({
                     </SubmitButton>
                   </form>
                 ) : null}
-                <a className="button-secondary" href="#not-ready">ดูโปรเจคที่ยังไม่พร้อม</a>
+                <a className="button-secondary" href="#not-ready">ดูความพร้อมของรอบปัจจุบัน</a>
               </div>
             </section>
           );
@@ -195,9 +198,13 @@ export default async function AdminRoundsPage({
       </div>
 
       <section id="not-ready" className="panel">
-        <h2 className="text-lg font-semibold">โปรเจคที่ยังไม่พร้อมสำหรับ Progress 1</h2>
+        <h2 className="text-lg font-semibold">ความพร้อมสำหรับรอบ {roundTypeLabelTh(readinessFocusRoundType)}</h2>
         <div className="mt-4 space-y-2">
-          {progress1Eligibility.notReady.length ? progress1Eligibility.notReady.map((item) => (
+          {readinessFocusRoundType !== "PROGRESS_1" ? (
+            <InfoAlert title={`กำลังอยู่ในรอบ ${roundTypeLabelTh(readinessFocusRoundType)}`}>
+              Progress 1 ปิดหรือผ่านไปแล้ว รายการความพร้อม Progress 1 จึงไม่ใช่ action หลักของรอบปัจจุบัน
+            </InfoAlert>
+          ) : progress1Eligibility.notReady.length ? progress1Eligibility.notReady.map((item) => (
             <div key={item.project.id} className="rounded-md border border-line p-3 text-sm">
               <div className="font-medium">
                 {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}

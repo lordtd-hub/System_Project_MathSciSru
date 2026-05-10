@@ -142,26 +142,38 @@ export default async function TeacherFinalPage({
               <div className="mt-4">
                 <FinalQaRubricPanel audience="evaluator" />
               </div>
-              <form action={submitFinalPresentationScore} className="mt-4 grid gap-4 md:grid-cols-4">
+              <form action={submitFinalPresentationScore} className="mt-4 space-y-4">
                 <input type="hidden" name="project_id" value={project.id} />
                 {finalQaRubric.flatMap((section) =>
                   section.criteria.map((criterion) => (
-                    <div key={criterion.code}>
-                      <label>{criterion.code}. {criterion.title} ({criterion.maxScore})</label>
-                      <select name={`condition_count:${criterion.code}`} defaultValue={conditionCountForSavedScore(criterion, previousItems.get(criterion.code))} required>
-                        {Array.from({ length: criterion.conditions.length + 1 }, (_, count) => (
-                          <option key={count} value={count}>
-                            {count} condition(s) = {criterion.scoreMappings.find((mapping) => mapping.conditionCount === count)?.score ?? 0}
-                          </option>
-                        ))}
-                      </select>
+                    <div key={criterion.code} className="rounded-md border border-line bg-surface p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium">{criterion.code}. {criterion.title} ({criterion.maxScore} คะแนน)</div>
+                          <ul className="mt-2 space-y-1 text-xs text-muted">
+                            {criterion.conditions.map((condition) => (
+                              <li key={condition}>- {condition}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <label className="min-w-44 text-sm font-medium">
+                          เงื่อนไขที่ผ่าน
+                          <select name={`condition_count:${criterion.code}`} defaultValue={conditionCountForSavedScore(criterion, previousItems.get(criterion.code))} required className="mt-1">
+                            {Array.from({ length: criterion.conditions.length + 1 }, (_, count) => (
+                              <option key={count} value={count}>
+                                {count} เงื่อนไข = {criterion.scoreMappings.find((mapping) => mapping.conditionCount === count)?.score ?? 0} คะแนน
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
                     </div>
                   ))
                 )}
-                <div className="md:col-span-4">
+                <div>
                   <MarkdownLatexEditor name="comment" label="Comment / feedback" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
                 </div>
-                <div className="md:col-span-4">
+                <div>
                   <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนน Final Presentation หรือไม่?">
                     บันทึกคะแนน Final Presentation
                   </SubmitButton>

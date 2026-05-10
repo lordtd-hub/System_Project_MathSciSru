@@ -215,9 +215,9 @@ export default async function StudentSchedulePage({
   const visibleGuidanceRounds = scheduleRoundTypes.filter((roundType) => {
     const round = roundMap.get(roundType);
     if (!round || !isRoundOpen(round.status)) return false;
-    if (roundType === "PROGRESS_1") return progress1Readiness.eligible;
-    if (roundType === "PROGRESS_2") return completed.PROGRESS_1;
-    if (roundType === "FINAL_PRESENTATION") return completed.PROGRESS_1 && completed.PROGRESS_2;
+    if (roundType === "PROGRESS_1") return progress1Readiness.eligible && !completed.PROGRESS_1;
+    if (roundType === "PROGRESS_2") return completed.PROGRESS_1 && !completed.PROGRESS_2;
+    if (roundType === "FINAL_PRESENTATION") return completed.PROGRESS_1 && completed.PROGRESS_2 && !completed.FINAL_PRESENT;
     return true;
   });
   const lockedScheduleRounds = visibleGuidanceRounds.filter((roundType) => activeScheduleByKind.has(roundTypeToScheduleKind(roundType)));
@@ -226,7 +226,7 @@ export default async function StudentSchedulePage({
     const kind = roundTypeToScheduleKind(roundType);
     return latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind);
   });
-  const defaultScheduleRoundType = schedulableRoundsWithEvidence[0] ?? "PROGRESS_1";
+  const defaultScheduleRoundType = schedulableRoundsWithEvidence[0] ?? visibleGuidanceRounds[0] ?? "PROGRESS_1";
 
   return (
     <div className="space-y-6">
@@ -471,7 +471,7 @@ export default async function StudentSchedulePage({
           </WarningAlert>
         ) : null}
         {schedulableRoundsWithEvidence.length ? (
-        <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
+        <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
             <select name="round_type" defaultValue={defaultScheduleRoundType}>
