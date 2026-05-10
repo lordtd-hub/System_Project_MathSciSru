@@ -35,13 +35,61 @@ export default async function ProposalScoringPage({
         scoreSubmission: { include: { scoreItems: true, proposalDecision: true } }
       }
     }),
-    prisma.rubric.findFirstOrThrow({
+    prisma.rubric.findFirst({
       where: { roundType: "PROPOSAL", active: true },
       include: { items: { orderBy: { displayOrder: "asc" } } }
     })
   ]);
 
   if (assignment.evaluatorUserId !== session.user.id) return <div className="panel">ไม่สามารถประเมินงานของผู้อื่นได้</div>;
+
+  const submission = assignment.assessmentAttempt.presentationSubmission;
+  const content = submission?.contentJson as Record<string, string> | undefined;
+  const student = assignment.assessmentAttempt.project.student;
+
+  if (!rubric || rubric.items.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="ประเมิน Proposal"
+          description={`${student.studentCode} ${student.firstNameTh} ${student.lastNameTh}`}
+        />
+        <ActionFeedback success={query.success} error={query.error ?? "proposal_rubric_missing"} />
+        <WarningAlert title="ยังไม่มี Rubric สำหรับ Proposal">
+          ผู้ดูแลระบบต้องตั้งค่า rubric baseline สำหรับ Proposal ก่อน อาจารย์จึงจะประเมินได้
+          หน้านี้แสดงข้อมูลที่นักศึกษาส่งไว้เพื่ออ่านตรวจเท่านั้น และยังไม่บันทึกคะแนนหรือเปลี่ยนสถานะงาน
+        </WarningAlert>
+        <section className="panel">
+          <h2 className="text-lg font-semibold">{submission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
+          {submission?.titleEn ? <p className="mt-1 text-sm text-muted">{submission.titleEn}</p> : null}
+          {submission?.materialLink ? (
+            <a className="mt-3 inline-block text-sm font-medium text-brand" href={submission.materialLink} target="_blank" rel="noreferrer">
+              เปิดเอกสารแนบ
+            </a>
+          ) : null}
+          <div className="mt-4">
+            <div className="mb-2 text-sm font-semibold">Abstract</div>
+            <MarkdownLatexViewer value={submission?.abstractText} emptyText="ยังไม่มี abstract" />
+          </div>
+          <div className="mt-4 grid gap-3">
+            {[
+              { label: "ที่มาและความสำคัญ", value: content?.motivationBackground },
+              { label: "วัตถุประสงค์", value: content?.objectives },
+              { label: "วิธีดำเนินงาน", value: content?.proposedMethods },
+              { label: "ผลที่คาดว่าจะได้รับ", value: content?.expectedOutcomes },
+              { label: "แผนดำเนินงาน", value: content?.timeline },
+              { label: "คำถามถึงอาจารย์", value: content?.questionsForTeachers }
+            ].map((section) => (
+              <details key={section.label} className="rounded-md border border-line p-3" open={section.label === "ที่มาและความสำคัญ"}>
+                <summary className="cursor-pointer text-sm font-semibold">{section.label}</summary>
+                <MarkdownLatexViewer className="mt-2" value={section.value} emptyText="ยังไม่มีข้อมูล" />
+              </details>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
   const currentTotal = rubric.items.reduce((sum, item) => sum + (checked.has(item.id) ? item.points : 0), 0);
@@ -51,9 +99,6 @@ export default async function ProposalScoringPage({
     groups[key].push(item);
     return groups;
   }, {});
-  const submission = assignment.assessmentAttempt.presentationSubmission;
-  const content = submission?.contentJson as Record<string, string> | undefined;
-  const student = assignment.assessmentAttempt.project.student;
 
   return (
     <div className="space-y-6">

@@ -183,10 +183,13 @@ export async function submitProposalScore(formData: FormData) {
   if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
 
-  const rubric = await timer.measure("load_rubric", () => prisma.rubric.findFirstOrThrow({
+  const rubric = await timer.measure("load_rubric", () => prisma.rubric.findFirst({
     where: { roundType: "PROPOSAL", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
   }));
+  if (!rubric || rubric.items.length === 0) {
+    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_rubric_missing" });
+  }
 
   const checkedIds = new Set(formData.getAll("checked_item").map(String));
   const scoreResult = calculateChecklistScore(

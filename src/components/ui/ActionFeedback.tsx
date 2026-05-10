@@ -66,6 +66,8 @@ errorMessages.schedule_round_not_open = "ยังเสนอวันสอบ
 errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับ Progress 1 กรุณาตรวจสอบผล Proposal และกรรมการก่อน";
 errorMessages.report_not_available = "ยังส่งเล่มรายงานไม่ได้ในสถานะปัจจุบัน กรุณาตรวจสอบขั้นตอนของโครงงาน";
 
+errorMessages.proposal_rubric_missing = "ยังไม่มี Rubric สำหรับ Proposal กรุณาให้ผู้ดูแลระบบตั้งค่า rubric baseline ก่อนประเมิน";
+
 export function ActionFeedback({
   success,
   error,
