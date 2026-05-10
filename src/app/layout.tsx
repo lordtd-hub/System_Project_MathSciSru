@@ -118,6 +118,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             </div>
           </header>
           <PageShell>{children}</PageShell>
+          <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-2 text-center text-xs leading-6 text-muted sm:px-6 lg:px-8">
+            <div>ออกแบบแนวคิดระบบและกระบวนการประเมินโดย สิทธิโชค ทรงสอาด</div>
+            <div>สาขาวิชาคณิตศาสตร์ คณะวิทยาศาสตร์และเทคโนโลยี มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</div>
+            <a className="font-medium text-brand hover:underline" href="mailto:sittichoke.son@sru.ac.th">
+              sittichoke.son@sru.ac.th
+            </a>
+          </footer>
         </div>
       </body>
     </html>
