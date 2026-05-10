@@ -28,6 +28,15 @@ describe("next action helpers", () => {
     expect(progress2.available_now.map((item) => item.key)).toContain("progress_2");
     expect(progress2.read_only_history.map((item) => item.key)).toContain("progress_1");
     expect(progress2.available_now.map((item) => item.key)).not.toContain("progress_1");
+
+    const afterFinal = getStudentAvailableActions("IN_PROGRESS", {
+      PROGRESS_1: "COMPLETED",
+      PROGRESS_2: "COMPLETED",
+      FINAL_PRESENT: "COMPLETED"
+    });
+    expect(afterFinal.available_now).toHaveLength(0);
+    expect(afterFinal.read_only_history.map((item) => item.key)).toEqual(["proposal", "progress_1", "progress_2", "final_present"]);
+    expect(afterFinal.blocked_waiting_for.map((item) => item.key)).toContain("waiting_after_final");
   });
 
   it("makes completed assessment cards read-only and future cards locked", () => {

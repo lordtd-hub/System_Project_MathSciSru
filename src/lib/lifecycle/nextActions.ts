@@ -112,6 +112,13 @@ export function getStudentAvailableActions(
       } else if (final !== "COMPLETED") {
         result.read_only_history.push(action("progress_1", "Progress 1", "ดูย้อนหลัง", "history", "/student/schedule"), action("progress_2", "Progress 2", "ดูย้อนหลัง", "history", "/student/schedule"));
         result.available_now.push(action("final_present", "Final Presentation", "ดำเนินการ Final Presentation ได้ตอนนี้", "available", "/student/schedule"));
+      } else {
+        result.read_only_history.push(
+          action("progress_1", "Progress 1", "ดูย้อนหลัง", "history", "/student/schedule"),
+          action("progress_2", "Progress 2", "ดูย้อนหลัง", "history", "/student/schedule"),
+          action("final_present", "Final Presentation", "ดูย้อนหลัง", "history", "/student/schedule")
+        );
+        result.blocked_waiting_for.push(action("waiting_after_final", "รอเข้าสู่ขั้นส่งรายงาน", "Final Presentation เสร็จแล้ว รอระบบหรือผู้ดูแลระบบพาไปขั้นรายงาน", "blocked"));
       }
       break;
     }

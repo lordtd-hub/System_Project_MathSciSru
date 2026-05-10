@@ -305,7 +305,13 @@ export default async function StudentDashboardPage() {
               actionLabel: "เปิด Final Presentation",
               href: "/student/schedule"
             }
-          : nextAction
+          : {
+              title: "Final Presentation เสร็จแล้ว",
+              description: "รอบสอบ Final ปิดแล้ว ขั้นตอนถัดไปคือรอเข้าสู่ขั้นส่งรายงานหรือรอผู้ดูแลระบบดำเนินการต่อ",
+              actionLabel: "ดูผลและ feedback",
+              href: "/student/schedule",
+              tone: "success" as const
+            }
     : nextAction;
   const studentNextAction = latestSchedule?.status === "REJECTED"
     ? {
@@ -362,14 +368,14 @@ export default async function StudentDashboardPage() {
               ? [{ title: "เตรียม Progress 2", description: "Progress 1 เสร็จแล้ว ขั้นตอนถัดไปคือ Progress 2", href: "/student/schedule", urgency: "สูง" }]
               : assessmentStates.FINAL_PRESENT !== "COMPLETED"
                 ? [{ title: "เตรียม Final Presentation", description: "Progress 1 และ Progress 2 เสร็จแล้ว ขั้นตอนถัดไปคือ Final Presentation", href: "/student/schedule", urgency: "สูง" }]
-                : [{ title: "ติดตามผลหลังสอบ", description: "รอการปิดรอบหรือขั้นตอนถัดไปจากผู้ดูแลระบบ", urgency: "รอคนอื่น" }]
+                : [{ title: "Final Presentation เสร็จแล้ว", description: "รอเข้าสู่ขั้นส่งรายงานหรือรอผู้ดูแลระบบดำเนินการต่อ", href: "/student/schedule", urgency: "รอคนอื่น" }]
     : buildStudentTasks(project.status);
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
     .map((attempt) => {
       const round = attempt.assessmentRound;
-      const roundClosed = round.status === "SCORING_CLOSED";
+      const roundClosed = ["SCORING_CLOSED", "RELEASED"].includes(round.status);
       const showScore = roundClosed || round.showScoreToStudent;
       const showFeedback = roundClosed || round.showFeedbackToStudent;
       const submittedScores = attempt.evaluatorAssignments
