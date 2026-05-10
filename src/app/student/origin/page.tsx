@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
+import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { prisma } from "@/lib/db";
 import { saveProjectOrigin } from "../actions";
 
@@ -21,7 +22,7 @@ export default async function ProjectOriginPage() {
   const teachers = await prisma.teacher.findMany({ where: { active: true }, orderBy: { firstNameTh: "asc" } });
 
   return (
-    <form action={saveProjectOrigin} className="space-y-4">
+    <DraftPreservingForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
       <h1 className="text-2xl font-semibold">ส่งข้อมูลเสนอหัวข้อ</h1>
       <section className="panel grid gap-4 md:grid-cols-2">
         <div>
@@ -76,8 +77,9 @@ export default async function ProjectOriginPage() {
           <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={origin?.declarationAccepted ?? false} />
           <span>ข้าพเจ้ารับรองว่าข้อมูลนี้เป็นข้อมูลการเสนอหัวข้อของตนเอง</span>
         </label>
+        <button type="button" data-draft-save className="button-secondary">บันทึกไว้ก่อน</button>
         <button type="submit">บันทึกและส่งข้อมูลเสนอหัวข้อ</button>
       </section>
-    </form>
+    </DraftPreservingForm>
   );
 }

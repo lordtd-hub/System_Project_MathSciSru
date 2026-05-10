@@ -8,6 +8,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -118,7 +119,7 @@ export default async function StudentSchedulePage({
         ) : !progress1Readiness.eligible ? (
           <WarningAlert title={progress1Readiness.reasons.map(reasonLabelTh)[0] ?? "ยังไม่พร้อมสำหรับ Progress 1"} />
         ) : null}
-        <form action={submitExamSchedule} className="mt-4 grid gap-4 md:grid-cols-3">
+        <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
             <select name="round_type" defaultValue="PROGRESS_1">
@@ -153,11 +154,16 @@ export default async function StudentSchedulePage({
             <MarkdownLatexEditor name="schedule_note" label="หมายเหตุถึงกรรมการ" placeholder="เช่น เนื้อหาที่จะนำเสนอ ปัญหาที่ต้องการ feedback หรือข้อจำกัดเวลา ใช้ $...$ ได้" required={false} rows={4} />
           </div>
           <div className="md:col-span-3">
-            <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound} pendingText="กำลังบันทึกวันสอบ...">
-              ส่ง/แก้ไขข้อเสนอวันสอบ
-            </SubmitButton>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
+                บันทึกไว้ก่อน
+              </button>
+              <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound} pendingText="กำลังบันทึกวันสอบ..." className="w-full sm:w-auto">
+                ส่ง/แก้ไขข้อเสนอวันสอบ
+              </SubmitButton>
+            </div>
           </div>
-        </form>
+        </DraftPreservingForm>
       </FormSection>
       <section className="panel">
         <h2 className="text-lg font-semibold">ข้อเสนอวันสอบล่าสุด</h2>

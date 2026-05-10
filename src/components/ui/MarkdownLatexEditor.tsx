@@ -43,8 +43,12 @@ export function MarkdownLatexEditor({
       if (typeof restored === "string") setDraft(restored);
     }
 
+    window.addEventListener("draft-form-restore", restoreDraft);
     window.addEventListener("proposal-draft-restore", restoreDraft);
-    return () => window.removeEventListener("proposal-draft-restore", restoreDraft);
+    return () => {
+      window.removeEventListener("draft-form-restore", restoreDraft);
+      window.removeEventListener("proposal-draft-restore", restoreDraft);
+    };
   }, [name]);
 
   const helper = helpText ?? "ใช้ `$...$` สำหรับสมการในบรรทัด และใช้ `$$...$$` สำหรับสมการแยกบรรทัด ไม่อนุญาต raw HTML";

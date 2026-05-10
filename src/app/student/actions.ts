@@ -10,7 +10,7 @@ import { isSchedulableRoundType, parseScheduleDateTime, roundTypeToAssessmentKin
 import { buildSubmissionSnapshot, canEditUntilDeadline, nextVersionNo } from "@/lib/submissions/versioning";
 import { validateMaterialLink } from "@/lib/validators/materialLink";
 import { validateMarkdownInput } from "@/lib/validators/submissionContent";
-import { getReportSubmissionGate, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
+import { getReportSubmissionGate } from "@/lib/reports/reportWorkflow";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 import { parseSelectableSourceType } from "@/lib/projects/sourceType";
@@ -193,9 +193,10 @@ export async function saveProposalSubmission(formData: FormData) {
   const origin = await prisma.projectOrigin.findUnique({ where: { projectId: project.id } });
   if (!origin || origin.status !== "SUBMITTED") redirectWithQuery("/student/proposal", { error: "proposal_origin_missing" });
 
-  const round = await prisma.assessmentRound.findFirstOrThrow({
+  const round = await prisma.assessmentRound.findFirst({
     where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" }
   });
+  if (!round) redirectWithQuery("/student/proposal", { error: "proposal_round_not_open" });
   if (!isRoundOpen(round.status)) redirectWithQuery("/student/proposal", { error: "proposal_round_not_open" });
   if (!canEditUntilDeadline(new Date(), round.submissionDeadline)) redirectWithQuery("/student/proposal", { error: "proposal_deadline_passed" });
 
@@ -323,10 +324,10 @@ export async function submitExamSchedule(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
   assertRateLimit(`student:${userId}:submitExamSchedule`, pilotRateLimits.workflowMutation);
   const roundType = String(formData.get("round_type") ?? "");
-  if (!isSchedulableRoundType(roundType)) throw new Error("รอบสอบไม่ถูกต้อง");
-  if (project.status !== "IN_PROGRESS") throw new Error("เสนอวันสอบได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
+  if (!isSchedulableRoundType(roundType)) redirectWithQuery("/student/schedule", { error: "schedule_round_invalid" });
+  if (project.status !== "IN_PROGRESS") redirectWithQuery("/student/schedule", { error: "schedule_not_available" });
 
-  const round = await prisma.assessmentRound.findUniqueOrThrow({
+  const round = await prisma.assessmentRound.findUnique({
     where: {
       courseOfferingId_roundType: {
         courseOfferingId: project.courseOfferingId,
@@ -334,7 +335,8 @@ export async function submitExamSchedule(formData: FormData) {
       }
     }
   });
-  if (!isRoundOpen(round.status)) throw new Error(`รอบ ${roundType} ยังไม่เปิดหรือปิดแล้ว`);
+  if (!round) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  if (!isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
 
   if (roundType === "PROGRESS_1") {
     const fullProject = await prisma.project.findUniqueOrThrow({
@@ -346,7 +348,7 @@ export async function submitExamSchedule(formData: FormData) {
       }
     });
     const readiness = getProgress1Readiness(fullProject);
-    if (!readiness.eligible) throw new Error(readiness.reasons[0] ?? "โครงงานนี้ยังไม่พร้อมสำหรับ Progress 1");
+    if (!readiness.eligible) redirectWithQuery("/student/schedule", { error: "progress_1_project_not_ready" });
   }
 
   const { start, end } = parseScheduleDateTime(
@@ -426,7 +428,7 @@ export async function submitReportVersion(formData: FormData) {
     projectStatus: project.status,
     latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"))
   });
-  if (!gate.allowed) throw new Error(reportSubmissionReasonLabel(gate.reason));
+  if (!gate.allowed) redirectWithQuery("/student/report", { error: "report_not_available" });
 
   const reportLink = requiredText(formData, "report_drive_link", "ลิงก์เล่มรายงาน");
   const linkResult = validateMaterialLink(reportLink);

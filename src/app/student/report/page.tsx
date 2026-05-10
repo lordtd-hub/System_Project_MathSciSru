@@ -9,6 +9,7 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -82,7 +83,7 @@ export default async function StudentReportPage({
       <InfoAlert title="รูปแบบลิงก์">ใช้ลิงก์ Google Drive, Google Docs หรือ Google Classroom เท่านั้น และ comment รองรับ Markdown/LaTeX</InfoAlert>
 
       <FormSection title="ส่งเล่มรายงาน version ใหม่" description={reportSubmissionReasonLabel(gate.reason)}>
-        <form action={submitReportVersion} className="space-y-4">
+        <DraftPreservingForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} clearOnSuccess={params.success === "report_submitted"} className="space-y-4">
           <MaterialLinkField name="report_drive_link" />
           <MarkdownLatexEditor
             name="report_note"
@@ -91,10 +92,15 @@ export default async function StudentReportPage({
             rows={4}
             disabled={!gate.allowed}
           />
-          <SubmitButton disabled={!gate.allowed} pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งเล่มรายงาน version นี้หรือไม่?">
-            ส่งเล่มรายงาน version ใหม่
-          </SubmitButton>
-        </form>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
+              บันทึกไว้ก่อน
+            </button>
+            <SubmitButton disabled={!gate.allowed} pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งเล่มรายงาน version นี้หรือไม่?" className="w-full sm:w-auto">
+              ส่งเล่มรายงาน version ใหม่
+            </SubmitButton>
+          </div>
+        </DraftPreservingForm>
       </FormSection>
 
       <section className="panel">

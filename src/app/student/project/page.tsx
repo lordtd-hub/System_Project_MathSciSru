@@ -7,6 +7,7 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -45,7 +46,7 @@ export default async function StudentProjectPage({
   if (!student || !project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   return (
-    <form action={saveProjectOrigin} className="space-y-6">
+    <DraftPreservingForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} clearOnSuccess={params.success === "project_submitted"} className="space-y-6">
       <PageHeader
         title="สร้าง/แก้ไขโปรเจค"
         description="ระบุที่มาของหัวข้อ เลือกอาจารย์ที่ปรึกษา และส่งคำขออนุมัติ"
@@ -142,10 +143,15 @@ export default async function StudentProjectPage({
             </span>
           </label>
         </div>
-        <SubmitButton disabled={!canEditProject} pendingText="กำลังส่งคำขอ..." className="mt-4">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
+            บันทึกไว้ก่อน
+          </button>
+          <SubmitButton disabled={!canEditProject} pendingText="กำลังส่งคำขอ..." className="w-full sm:w-auto">
           {canEditProject ? (latestAdvisorRejected ? "ส่งคำขอใหม่หลังแก้ไข" : "ส่งคำขอให้อาจารย์ที่ปรึกษา") : "ขั้นตอนนี้ถูกล็อก"}
-        </SubmitButton>
+          </SubmitButton>
+        </div>
       </FormSection>
-    </form>
+    </DraftPreservingForm>
   );
 }

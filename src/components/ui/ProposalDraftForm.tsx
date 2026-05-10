@@ -37,18 +37,21 @@ function restoreForm(form: HTMLFormElement, values: DraftMap) {
     }
   }
 
+  window.dispatchEvent(new CustomEvent("draft-form-restore", { detail: values }));
   window.dispatchEvent(new CustomEvent("proposal-draft-restore", { detail: values }));
 }
 
-export function ProposalDraftForm({
+export function DraftPreservingForm({
   action,
   storageKey,
   clearOnSuccess,
+  className,
   children
 }: {
   action: FormAction;
   storageKey: string;
   clearOnSuccess?: boolean;
+  className?: string;
   children: React.ReactNode;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -94,19 +97,24 @@ export function ProposalDraftForm({
 
   useEffect(() => {
     const listener = () => scheduleSave();
+    window.addEventListener("draft-form-field-change", listener);
     window.addEventListener("proposal-draft-field-change", listener);
-    return () => window.removeEventListener("proposal-draft-field-change", listener);
+    return () => {
+      window.removeEventListener("draft-form-field-change", listener);
+      window.removeEventListener("proposal-draft-field-change", listener);
+    };
   }, [scheduleSave]);
 
   return (
     <form
       ref={formRef}
       action={action}
+      className={className}
       onInput={scheduleSave}
       onChange={scheduleSave}
       onClickCapture={(event) => {
         const target = event.target;
-        if (target instanceof HTMLElement && target.closest("[data-proposal-draft-save]")) {
+        if (target instanceof HTMLElement && target.closest("[data-draft-save],[data-proposal-draft-save]")) {
           event.preventDefault();
           saveDraft("saved");
         }
@@ -122,3 +130,5 @@ export function ProposalDraftForm({
     </form>
   );
 }
+
+export const ProposalDraftForm = DraftPreservingForm;

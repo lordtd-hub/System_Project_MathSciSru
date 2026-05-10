@@ -67,11 +67,16 @@ export function ProposalTimelineBuilder({
       if (typeof restored === "string") setRows(parseTimeline(restored));
     }
 
+    window.addEventListener("draft-form-restore", restoreDraft);
     window.addEventListener("proposal-draft-restore", restoreDraft);
-    return () => window.removeEventListener("proposal-draft-restore", restoreDraft);
+    return () => {
+      window.removeEventListener("draft-form-restore", restoreDraft);
+      window.removeEventListener("proposal-draft-restore", restoreDraft);
+    };
   }, []);
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("draft-form-field-change"));
     window.dispatchEvent(new CustomEvent("proposal-draft-field-change"));
   }, [timelineMarkdown]);
 

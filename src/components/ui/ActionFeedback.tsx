@@ -60,6 +60,12 @@ errorMessages.proposal_origin_missing = "กรุณาส่งข้อมู
 errorMessages.proposal_round_not_open = "ยังส่ง Proposal ไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบ Proposal หรือรอบถูกปิดแล้ว";
 errorMessages.proposal_deadline_passed = "พ้นกำหนดส่ง Proposal แล้ว กรุณาติดต่อผู้ดูแลระบบ";
 
+errorMessages.schedule_round_invalid = "รอบสอบไม่ถูกต้อง กรุณาเลือก Progress 1, Progress 2 หรือ Final Presentation";
+errorMessages.schedule_not_available = "ยังเสนอวันสอบไม่ได้ในสถานะปัจจุบัน";
+errorMessages.schedule_round_not_open = "ยังเสนอวันสอบไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบสอบนี้ หรือรอบถูกปิดแล้ว";
+errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับ Progress 1 กรุณาตรวจสอบผล Proposal และกรรมการก่อน";
+errorMessages.report_not_available = "ยังส่งเล่มรายงานไม่ได้ในสถานะปัจจุบัน กรุณาตรวจสอบขั้นตอนของโครงงาน";
+
 export function ActionFeedback({
   success,
   error,
