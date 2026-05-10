@@ -250,13 +250,9 @@ export default async function StudentDashboardPage() {
   const waitingDays = daysWaiting(advisorRequest?.requestedAt);
   const requiredCommitteeScores = project.committeeAssignments.filter((assignment) => assignment.role === "HEAD" || assignment.role === "MEMBER").length;
   const roundStatusByType = new Map(project.courseOffering.assessmentRounds.map((round) => [round.roundType, round.status]));
-  const hasScheduleForRound = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
-    const scheduleKind = roundType === "FINAL_PRESENTATION" ? "FINAL_PRESENT" : roundType;
-    return project.scheduleProposals.some((schedule) => schedule.assessmentKind === scheduleKind);
-  };
   const hasCompletedScores = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
     const courseRoundClosed = ["SCORING_CLOSED", "RELEASED"].includes(roundStatusByType.get(roundType) ?? "");
-    if (courseRoundClosed && hasScheduleForRound(roundType)) return true;
+    if (courseRoundClosed) return true;
     if (requiredCommitteeScores <= 0) return false;
     for (const attempt of project.attempts.filter((item) => item.assessmentRound.roundType === roundType || item.attemptType === roundType)) {
       const roundClosed = ["SCORING_CLOSED", "RELEASED"].includes(attempt.assessmentRound.status);
