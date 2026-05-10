@@ -86,6 +86,13 @@ export async function openProposalScoring(formData: FormData) {
   const attemptId = String(formData.get("attempt_id"));
 
   const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
+  const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({
+    where: { id: attemptId },
+    select: { assessmentRound: { select: { roundType: true, status: true } } }
+  });
+  if (attempt.assessmentRound.roundType !== "PROPOSAL" || attempt.assessmentRound.status !== "SCORING_OPEN") {
+    redirectWithQuery("/teacher/proposals", { error: "proposal_round_not_open" });
+  }
   await prisma.evaluatorAssignment.upsert({
     where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId: attemptId, evaluatorUserId: user.id } },
     update: { status: "IN_PROGRESS" },
@@ -240,6 +247,29 @@ export async function reviewExamSchedule(formData: FormData) {
       : requiredApproverIds.every((teacherId) => decisionByTeacher.get(teacherId) === "APPROVE")
         ? "CONFIRMED"
         : "PROPOSED";
+    if (decision === "REJECT") {
+      const approvedTeacherIds = approvals
+        .filter((approval) => approval.decision === "APPROVE" && approval.teacherId !== teacher.id)
+        .map((approval) => approval.teacherId);
+      const approvedTeachers = approvedTeacherIds.length
+        ? await tx.teacher.findMany({
+          where: { id: { in: approvedTeacherIds }, userId: { not: null } },
+          select: { id: true, userId: true }
+        })
+        : [];
+      if (approvedTeachers.length) {
+        await tx.notification.createMany({
+          data: approvedTeachers.map((item) => ({
+            projectId: schedule.projectId,
+            userId: item.userId,
+            teacherId: item.id,
+            kind: "EXAM_SCHEDULE_REJECTED",
+            title: "มีกรรมการไม่สะดวกตามวันสอบที่เสนอ",
+            body: "รายการวันสอบนี้ถูกปฏิเสธแล้ว กรุณารอนักศึกษาเสนอวันสอบใหม่อีกครั้ง"
+          }))
+        });
+      }
+    }
 
     await tx.examScheduleProposal.update({
       where: { id: schedule.id },
@@ -284,7 +314,7 @@ export async function submitProposalScore(formData: FormData) {
   const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
     where: { id: assignmentId },
     include: {
-      assessmentAttempt: true,
+      assessmentAttempt: { include: { assessmentRound: true } },
       scoreSubmission: { select: { status: true, lockedAt: true } }
     }
   }));
@@ -292,6 +322,9 @@ export async function submitProposalScore(formData: FormData) {
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
   if (assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.lockedAt) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_score_locked" });
+  }
+  if (assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN") {
+    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_round_not_open" });
   }
 
   const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));

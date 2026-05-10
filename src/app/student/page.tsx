@@ -186,6 +186,10 @@ export default async function StudentDashboardPage() {
   const workflowActions = getStudentAvailableActions(project.status);
   const proposal = project.presentationSubmissions[0];
   const latestSchedule = project.scheduleProposals[0];
+  const latestScheduleApprovedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "APPROVE").length ?? 0;
+  const latestScheduleRejectedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "REJECT").length ?? 0;
+  const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
+  const latestSchedulePendingCount = Math.max(latestScheduleTotalCount - latestScheduleApprovedCount - latestScheduleRejectedCount, 0);
   const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   timer.end();
@@ -199,6 +203,26 @@ export default async function StudentDashboardPage() {
       />
 
       <NextActionCard action={nextAction} />
+
+      {latestSchedule?.status === "REJECTED" ? (
+        <WarningAlert title="มีอาจารย์ไม่สะดวกตามวันสอบที่เสนอ">
+          <div className="space-y-2">
+            <p>
+              สถานะล่าสุด: อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount} · ไม่สะดวก {latestScheduleRejectedCount} · รอ {latestSchedulePendingCount}
+              {" "}กรุณาเข้าไปเสนอวันสอบใหม่อีกครั้ง
+            </p>
+            <Link className="button-secondary inline-flex" href="/student/schedule">เสนอวันสอบใหม่</Link>
+          </div>
+        </WarningAlert>
+      ) : latestSchedule?.status === "PROPOSED" ? (
+        <InfoAlert title="รอกรรมการยืนยันวันสอบ">
+          สถานะล่าสุด: อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount} · ไม่สะดวก {latestScheduleRejectedCount} · รอ {latestSchedulePendingCount}
+        </InfoAlert>
+      ) : latestSchedule?.status === "CONFIRMED" ? (
+        <SuccessAlert title="วันสอบได้รับการยืนยันแล้ว">
+          กรรมการอนุมัติครบ {latestScheduleApprovedCount}/{latestScheduleTotalCount}
+        </SuccessAlert>
+      ) : null}
 
       {latestAdvisorRejected ? (
         <WarningAlert title="คำขอที่ปรึกษาถูกปฏิเสธ">

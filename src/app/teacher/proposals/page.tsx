@@ -13,7 +13,7 @@ export default async function TeacherProposalsPage() {
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
 
   const attempts = await prisma.assessmentAttempt.findMany({
-    where: { assessmentRound: { roundType: "PROPOSAL" }, presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } } },
+    where: { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" }, presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } } },
     include: {
       presentationSubmission: true,
       project: { include: { student: true } },

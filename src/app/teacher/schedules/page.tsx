@@ -81,6 +81,8 @@ export default async function TeacherSchedulesPage({
             approvalForTeacher?.decision !== "APPROVE" &&
             approvalForTeacher?.decision !== "REJECT";
           const approvedCount = schedule.approvals.filter((approval) => approval.decision === "APPROVE").length;
+          const rejectedCount = schedule.approvals.filter((approval) => approval.decision === "REJECT").length;
+          const pendingCount = Math.max(requiredApproverIds.length - approvedCount - rejectedCount, 0);
           return (
           <section key={schedule.id} className="panel">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -93,6 +95,11 @@ export default async function TeacherSchedulesPage({
               </div>
               <span className="rounded-full border border-line px-3 py-1 text-xs">{schedule.status}</span>
             </div>
+            {schedule.status === "REJECTED" ? (
+              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                มีอาจารย์ไม่สะดวกตามเวลานี้แล้ว รายการนี้ปิดการอนุมัติและต้องรอนักศึกษาเสนอวันสอบใหม่อีกครั้ง
+              </div>
+            ) : null}
             <dl className="mt-4 grid gap-2 text-sm md:grid-cols-2">
               <div><dt className="font-semibold">รายวิชา</dt><dd className="text-muted">{schedule.courseOffering?.term.displayName ?? "-"}</dd></div>
               <div><dt className="font-semibold">รอบ</dt><dd className="text-muted">{schedule.assessmentRound?.name ?? schedule.roundType ?? schedule.assessmentKind}</dd></div>
@@ -100,6 +107,7 @@ export default async function TeacherSchedulesPage({
               <div><dt className="font-semibold">ห้อง</dt><dd className="text-muted">{schedule.room ?? "-"}</dd></div>
               <div><dt className="font-semibold">สถานะของท่าน</dt><dd className="text-muted">{approvalForTeacher?.decision ?? (requiredApproverIds.includes(teacher.id) ? "PENDING" : "อ่านได้เท่านั้น")}</dd></div>
               <div><dt className="font-semibold">อนุมัติแล้ว</dt><dd className="text-muted">{approvedCount}/{requiredApproverIds.length}</dd></div>
+              <div><dt className="font-semibold">สถานะกรรมการรวม</dt><dd className="text-muted">อนุมัติ {approvedCount}/{requiredApproverIds.length} · ไม่สะดวก {rejectedCount} · รอ {pendingCount}</dd></div>
             </dl>
             <div className="mt-4 rounded-md border border-line bg-surface p-3 text-sm">
               <div className="font-semibold">เอกสารที่นักศึกษาส่งสำหรับรอบนี้</div>
@@ -117,19 +125,23 @@ export default async function TeacherSchedulesPage({
             </div>
             {schedule.note ? <MarkdownLatexViewer className="mt-3" value={schedule.note} /> : null}
             {canReviewSchedule ? (
-              <form action={reviewExamSchedule} className="mt-4 rounded-md border border-line bg-paperSoft p-3">
-                <input type="hidden" name="schedule_id" value={schedule.id} />
-                <label htmlFor={`schedule-comment-${schedule.id}`}>หมายเหตุถึงนักศึกษา/กรรมการ</label>
-                <textarea id={`schedule-comment-${schedule.id}`} name="comment" rows={3} placeholder="ถ้าไม่อนุมัติ กรุณาระบุเหตุผลหรือเวลาที่สะดวกกว่า" />
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <SubmitButton name="decision" value="APPROVE" pendingText="กำลังอนุมัติ...">
-                    อนุมัติวันสอบ
-                  </SubmitButton>
-                  <SubmitButton name="decision" value="REJECT" className="button-danger" pendingText="กำลังบันทึก...">
-                    ไม่อนุมัติ / ขอเปลี่ยนเวลา
-                  </SubmitButton>
+              <div className="mt-4 rounded-md border border-line bg-paperSoft p-3">
+                <div className="text-sm font-semibold">พิจารณาวันสอบ</div>
+                <div className="mt-3 grid gap-3 md:grid-cols-[auto_minmax(0,1fr)]">
+                  <form action={reviewExamSchedule} className="flex items-end">
+                    <input type="hidden" name="schedule_id" value={schedule.id} />
+                    <input type="hidden" name="decision" value="APPROVE" />
+                    <SubmitButton pendingText="กำลังอนุมัติ...">อนุมัติวันสอบ</SubmitButton>
+                  </form>
+                  <form action={reviewExamSchedule} className="space-y-2">
+                    <input type="hidden" name="schedule_id" value={schedule.id} />
+                    <input type="hidden" name="decision" value="REJECT" />
+                    <label htmlFor={`schedule-comment-${schedule.id}`}>เหตุผลกรณีไม่อนุมัติ / เวลาที่สะดวกกว่า</label>
+                    <textarea id={`schedule-comment-${schedule.id}`} name="comment" rows={3} required placeholder="กรุณาระบุเหตุผลเพื่อให้นักศึกษาเสนอวันสอบใหม่ได้ถูกต้อง" />
+                    <SubmitButton className="button-danger" pendingText="กำลังบันทึก...">ไม่อนุมัติ / ขอเปลี่ยนเวลา</SubmitButton>
+                  </form>
                 </div>
-              </form>
+              </div>
             ) : requiredApproverIds.includes(teacher.id) ? (
               <div className="mt-4 rounded-md border border-line bg-paperSoft p-3 text-sm text-muted">
                 {schedule.status !== "PROPOSED"

@@ -31,6 +31,7 @@ export default async function ProposalScoringPage({
       include: {
         assessmentAttempt: {
           include: {
+            assessmentRound: true,
             presentationSubmission: true,
             project: { include: { student: true } }
           }
@@ -96,6 +97,7 @@ export default async function ProposalScoringPage({
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
   const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
   const isScoreLocked = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || Boolean(assignment.scoreSubmission?.lockedAt);
+  const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN";
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
@@ -115,9 +117,16 @@ export default async function ProposalScoringPage({
         actions={<span className="sticky-score rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
       />
       <ActionFeedback success={query.success} error={query.error} />
-      {isScoreLocked ? (
-        <InfoAlert title="ส่งคะแนน Proposal แล้ว">
-          คะแนนและ comment ถูกบันทึกเป็นหลักฐานแล้ว จึงไม่สามารถแก้ไขหรือส่งประเมินซ้ำจากหน้านี้ได้ หากจำเป็นต้องแก้ไขให้ดำเนินการผ่านขั้นตอนปลดล็อก/แก้ไขโดยผู้ดูแลระบบ
+      {isProposalRoundClosed ? (
+        <WarningAlert title="รอบ Proposal ปิดแล้ว">
+          หน้านี้เปิดให้อ่านหลักฐานและคะแนนเดิมเท่านั้น ไม่สามารถเริ่มหรือส่งคะแนน Proposal เพิ่มหลังปิดรอบได้
+        </WarningAlert>
+      ) : null}
+      {isScoreLocked || isProposalRoundClosed ? (
+        <InfoAlert title={isScoreLocked ? "ส่งคะแนน Proposal แล้ว" : "รอบ Proposal ปิดแล้ว"}>
+          {isScoreLocked
+            ? "คะแนนและ comment ถูกบันทึกเป็นหลักฐานแล้ว จึงไม่สามารถแก้ไขหรือส่งประเมินซ้ำจากหน้านี้ได้ หากจำเป็นต้องแก้ไขให้ดำเนินการผ่านขั้นตอนปลดล็อก/แก้ไขโดยผู้ดูแลระบบ"
+            : "รอบประเมินปิดแล้ว จึงไม่สามารถเริ่มหรือส่งคะแนน Proposal เพิ่มจากหน้านี้ได้"}
         </InfoAlert>
       ) : null}
       <GuidancePanel

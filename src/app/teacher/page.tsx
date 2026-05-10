@@ -79,7 +79,7 @@ export default async function TeacherDashboardPage() {
   const independentTeacherQueries = timer.measure("teacher_independent_queries", () => Promise.all([
     prisma.assessmentAttempt.findMany({
       where: {
-        assessmentRound: { roundType: "PROPOSAL" },
+        assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" },
         presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } }
       },
       select: {
