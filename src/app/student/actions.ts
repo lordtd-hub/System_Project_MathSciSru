@@ -1,5 +1,6 @@
 "use server";
 
+import type { AttemptType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -35,6 +36,40 @@ function requiredText(formData: FormData, key: string, label: string): string {
   const value = String(formData.get(key) ?? "").trim();
   if (!value) throw new Error(`กรุณากรอก${label}`);
   return value;
+}
+
+async function hasCompletedPresentationScores(projectId: string, attemptType: Extract<AttemptType, "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION">) {
+  const requiredCommitteeScores = await prisma.committeeAssignment.count({
+    where: { projectId, role: { in: ["HEAD", "MEMBER"] } }
+  });
+  if (requiredCommitteeScores === 0) return false;
+
+  const attempts = await prisma.assessmentAttempt.findMany({
+    where: { projectId, attemptType },
+    select: {
+      evaluatorAssignments: {
+        where: { scoreSubmission: { is: { status: "SUBMITTED" } } },
+        select: { evaluatorUserId: true }
+      }
+    }
+  });
+  const submittedEvaluators = new Set(attempts.flatMap((attempt) => attempt.evaluatorAssignments.map((assignment) => assignment.evaluatorUserId)));
+  return submittedEvaluators.size >= requiredCommitteeScores;
+}
+
+async function assertPreviousPresentationRoundComplete(projectId: string, roundType: string) {
+  if (roundType === "PROGRESS_2" && !(await hasCompletedPresentationScores(projectId, "PROGRESS_1"))) {
+    redirectWithQuery("/student/schedule", { error: "schedule_previous_round_incomplete" });
+  }
+  if (roundType === "FINAL_PRESENTATION") {
+    const [progress1Complete, progress2Complete] = await Promise.all([
+      hasCompletedPresentationScores(projectId, "PROGRESS_1"),
+      hasCompletedPresentationScores(projectId, "PROGRESS_2")
+    ]);
+    if (!progress1Complete || !progress2Complete) {
+      redirectWithQuery("/student/schedule", { error: "schedule_previous_round_incomplete" });
+    }
+  }
 }
 
 type ProposalTimelineItem = {
@@ -369,6 +404,7 @@ export async function saveAssessmentEvidence(formData: FormData) {
     }
   });
   if (!round || !isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  await assertPreviousPresentationRoundComplete(project.id, roundType);
 
   if (roundType === "PROGRESS_1") {
     const fullProject = await prisma.project.findUniqueOrThrow({
@@ -382,6 +418,16 @@ export async function saveAssessmentEvidence(formData: FormData) {
     const readiness = getProgress1Readiness(fullProject);
     if (!readiness.eligible) redirectWithQuery("/student/schedule", { error: "progress_1_project_not_ready" });
   }
+
+  const lockedSchedule = await prisma.examScheduleProposal.findFirst({
+    where: {
+      projectId: project.id,
+      assessmentRoundId: round.id,
+      status: { in: ["PROPOSED", "CONFIRMED"] }
+    },
+    select: { id: true }
+  });
+  if (lockedSchedule) redirectWithQuery("/student/schedule", { error: "assessment_evidence_locked" });
 
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบการสอบ");
   const linkResult = validateMaterialLink(materialLink);
@@ -461,6 +507,7 @@ export async function submitExamSchedule(formData: FormData) {
   });
   if (!round) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
   if (!isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  await assertPreviousPresentationRoundComplete(project.id, roundType);
   const assessmentKind = roundTypeToAssessmentKind(roundType);
   const evidence = await prisma.assessmentSubmission.findFirst({
     where: { projectId: project.id, kind: assessmentKind },

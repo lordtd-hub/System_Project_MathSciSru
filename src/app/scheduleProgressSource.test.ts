@@ -44,6 +44,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("ProposalPlanMiniReference");
     expect(page).toContain("normalizeProgressPlanTasks");
     expect(page).toContain("doesTaskOverlapWeekWindow");
+    expect(page).toContain("hasCompletedScores");
+    expect(page).toContain("ยังแก้ไขเอกสารได้จนกว่าจะส่งเสนอวันสอบ");
+    expect(page).toContain("ส่งเสนอวันสอบแล้ว จึงล็อกชุดหลักฐานรอบนี้ไว้ให้กรรมการตรวจ");
     expect(page).toContain('name="final_objectives_evidence"');
     expect(page).toContain('name="final_methods_results"');
     expect(page).toContain('name="final_timeline_adaptation"');
@@ -58,6 +61,10 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("finalMethodsResults");
     expect(actions).toContain("finalTimelineAdaptation");
     expect(actions).toContain("finalReportReadiness");
+    expect(actions).toContain("hasCompletedPresentationScores");
+    expect(actions).toContain("assertPreviousPresentationRoundComplete");
+    expect(actions).toContain("assessment_evidence_locked");
+    expect(actions).toContain("schedule_previous_round_incomplete");
   });
 
   it("shows assessment evidence to committee teachers before scoring", () => {

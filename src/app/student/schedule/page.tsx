@@ -131,6 +131,17 @@ export default async function StudentSchedulePage({
             orderBy: { createdAt: "desc" }
           },
           assessmentSubmissions: { orderBy: { submittedAt: "desc" } },
+          attempts: {
+            where: { attemptType: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
+            include: {
+              evaluatorAssignments: {
+                select: {
+                  evaluatorUserId: true,
+                  scoreSubmission: { select: { status: true } }
+                }
+              }
+            }
+          },
           presentationSubmissions: {
             orderBy: { submittedAt: "desc" },
             take: 1,
@@ -165,10 +176,20 @@ export default async function StudentSchedulePage({
   const progress1BlockedText = !progress1Open
     ? "รอบ Progress 1 ยังไม่เปิด"
     : progress1Readiness.reasons.map(reasonLabelTh)[0] ?? "ยังไม่พร้อมสำหรับ Progress 1";
+  const requiredCommitteeScores = project.committeeAssignments.filter((assignment) => assignment.role === "HEAD" || assignment.role === "MEMBER").length;
+  const hasCompletedScores = (attemptType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
+    const submittedEvaluators = new Set<string>();
+    for (const attempt of project.attempts.filter((item) => item.attemptType === attemptType)) {
+      for (const assignment of attempt.evaluatorAssignments) {
+        if (assignment.scoreSubmission?.status === "SUBMITTED") submittedEvaluators.add(assignment.evaluatorUserId);
+      }
+    }
+    return requiredCommitteeScores > 0 && submittedEvaluators.size >= requiredCommitteeScores;
+  };
   const completed = {
-    PROGRESS_1: project.assessmentSubmissions.some((item) => item.kind === "PROGRESS_1"),
-    PROGRESS_2: project.assessmentSubmissions.some((item) => item.kind === "PROGRESS_2"),
-    FINAL_PRESENT: project.assessmentSubmissions.some((item) => item.kind === "FINAL_PRESENT")
+    PROGRESS_1: hasCompletedScores("PROGRESS_1"),
+    PROGRESS_2: hasCompletedScores("PROGRESS_2"),
+    FINAL_PRESENT: hasCompletedScores("FINAL_PRESENTATION")
   };
   const latestSubmissionByKind = new Map<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", (typeof project.assessmentSubmissions)[number]>();
   for (const submission of project.assessmentSubmissions) {
@@ -181,6 +202,8 @@ export default async function StudentSchedulePage({
     const round = roundMap.get(roundType);
     if (!round || !isRoundOpen(round.status)) return false;
     if (roundType === "PROGRESS_1") return progress1Readiness.eligible;
+    if (roundType === "PROGRESS_2") return completed.PROGRESS_1;
+    if (roundType === "FINAL_PRESENTATION") return completed.PROGRESS_1 && completed.PROGRESS_2;
     return true;
   });
   const schedulableRoundsWithEvidence = visibleGuidanceRounds.filter((roundType) => latestSubmissionByKind.has(roundTypeToScheduleKind(roundType)));
@@ -208,14 +231,26 @@ export default async function StudentSchedulePage({
           {scheduleRoundTypes.map((roundType) => {
             const round = roundMap.get(roundType);
             const open = Boolean(round && isRoundOpen(round.status));
-            const disabledReason = roundType === "PROGRESS_1" && open && !progress1Readiness.eligible ? "ยังไม่พร้อม" : "ยังไม่เปิด";
+            const sequenceReady =
+              roundType === "PROGRESS_1"
+                ? progress1Readiness.eligible
+                : roundType === "PROGRESS_2"
+                  ? completed.PROGRESS_1
+                  : completed.PROGRESS_1 && completed.PROGRESS_2;
+            const disabledReason = open && !sequenceReady
+              ? roundType === "PROGRESS_2"
+                ? "รอ Progress 1 เสร็จ"
+                : roundType === "FINAL_PRESENTATION"
+                  ? "รอ Progress 2 เสร็จ"
+                  : "ยังไม่พร้อม"
+              : "ยังไม่เปิด";
             return (
               <a
                 key={roundType}
-                className={open ? "button-secondary" : "workflow-chip text-muted"}
+                className={open && sequenceReady ? "button-secondary" : "workflow-chip text-muted"}
                 href={`#${roundType.toLowerCase().replaceAll("_", "-")}-rubric`}
               >
-                {scheduleRoundLabel(roundType)} {open ? "" : `(${disabledReason})`}
+                {scheduleRoundLabel(roundType)} {open && sequenceReady ? "" : `(${disabledReason})`}
               </a>
             );
           })}
@@ -250,21 +285,25 @@ export default async function StudentSchedulePage({
         ))}
       </div>
       <section className="grid gap-3 md:grid-cols-3">
-        {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
-          const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
-          const rawState = getAssessmentCardState(
-            kind,
-            project.status,
-            completed,
-            latest?.status === "CONFIRMED" ? "CONFIRMED" : latest?.status === "PROPOSED" ? "PROPOSED" : latest?.status === "REJECTED" ? "REJECTED" : "NONE",
-            project.assessmentSubmissions.some((item) => item.kind === kind)
-          );
+          {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
+            const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
+            const hasEvidence = project.assessmentSubmissions.some((item) => item.kind === kind);
+            const rawState = getAssessmentCardState(
+              kind,
+              project.status,
+              completed,
+              latest?.status === "CONFIRMED" ? "CONFIRMED" : latest?.status === "PROPOSED" ? "PROPOSED" : latest?.status === "REJECTED" ? "REJECTED" : "NONE",
+              false
+            );
+          const evidenceReadyState = hasEvidence && rawState.editable
+            ? { label: "มีเอกสารแล้ว", buttonLabel: "แก้เอกสาร/เสนอวันสอบ", editable: true }
+            : rawState;
           const state = kind === "PROGRESS_1" && (!progress1Open || !progress1Readiness.eligible)
             ? { label: progress1BlockedText, buttonLabel: "ยังไม่พร้อม", editable: false }
-            : rawState;
+            : evidenceReadyState;
           return (
             <div key={kind} className="panel">
-              <div className="text-sm text-muted">{kind}</div>
+              <div className="text-sm text-muted">{scheduleKindLabel(kind)}</div>
               <h2 className="mt-1 text-lg font-semibold">{state.label}</h2>
               <p className="mt-2 text-sm text-muted">
                 {state.editable ? "ดำเนินการได้จากแบบฟอร์มด้านล่างเมื่อรอบสอบเปิดอยู่" : "ขั้นตอนนี้ยังไม่ใช่ action หลักที่แก้ไขได้ตอนนี้"}
@@ -281,9 +320,8 @@ export default async function StudentSchedulePage({
         <div className="grid gap-3 md:grid-cols-3">
           {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
             const submission = latestSubmissionByKind.get(kind);
-            const summary = typeof submission?.contentJson === "object" && submission?.contentJson && "summary" in submission.contentJson
-              ? String((submission.contentJson as { summary?: unknown }).summary ?? "")
-              : "";
+            const latestSchedule = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
+            const lockedBySchedule = latestSchedule?.status === "PROPOSED" || latestSchedule?.status === "CONFIRMED";
             return (
               <div key={kind} className="rounded-md border border-line bg-surface p-3 text-sm">
                 <div className="flex items-start justify-between gap-2">
@@ -295,10 +333,20 @@ export default async function StudentSchedulePage({
                 {submission ? (
                   <div className="mt-2 space-y-1 text-muted">
                     <div>{submission.title ?? "เอกสารประกอบรอบสอบ"}</div>
+                    <div>บันทึกล่าสุด {submission.submittedAt.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}</div>
                     <a className="text-brand hover:underline" href={submission.materialLink} target="_blank" rel="noreferrer">
                       เปิดเอกสาร
                     </a>
-                    {summary ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={summary} /> : null}
+                    <div>
+                      {lockedBySchedule
+                        ? "ส่งเสนอวันสอบแล้ว จึงล็อกชุดหลักฐานรอบนี้ไว้ให้กรรมการตรวจ"
+                        : "ยังแก้ไขเอกสารได้จนกว่าจะส่งเสนอวันสอบ"}
+                    </div>
+                    {!lockedBySchedule ? (
+                      <a className="mt-2 inline-flex text-brand hover:underline" href={`#evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`}>
+                        แก้ไขเอกสาร
+                      </a>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="mt-2 text-muted">บันทึกเอกสารก่อนเสนอวันสอบ เพื่อให้กรรมการเห็นหลักฐานพร้อมกับคำขอนัดสอบ</p>
@@ -315,7 +363,7 @@ export default async function StudentSchedulePage({
             const submission = latestSubmissionByKind.get(kind);
             const content = (typeof submission?.contentJson === "object" && submission?.contentJson ? submission.contentJson : {}) as Record<string, unknown>;
             return (
-              <form key={kind} action={saveAssessmentEvidence} className="rounded-md border border-line bg-surface p-4">
+              <form key={kind} id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`} action={saveAssessmentEvidence} className="scroll-mt-24 rounded-md border border-line bg-surface p-4">
                 <input type="hidden" name="assessment_kind" value={kind} />
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>

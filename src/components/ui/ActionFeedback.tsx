@@ -66,6 +66,8 @@ errorMessages.schedule_not_available = "ยังเสนอวันสอบ�
 errorMessages.schedule_round_not_open = "ยังเสนอวันสอบไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบสอบนี้ หรือรอบถูกปิดแล้ว";
 errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับ Progress 1 กรุณาตรวจสอบผล Proposal และกรรมการก่อน";
 errorMessages.assessment_evidence_required = "กรุณาบันทึกเอกสาร/หลักฐานของรอบสอบนี้ก่อนเสนอวันสอบ";
+errorMessages.assessment_evidence_locked = "ส่งเสนอวันสอบแล้ว จึงแก้ไขเอกสาร/หลักฐานของรอบนี้ไม่ได้ หากต้องเปลี่ยนหลักฐานให้ประสานกรรมการหรือผู้ดูแลระบบก่อน";
+errorMessages.schedule_previous_round_incomplete = "ยังดำเนินการรอบก่อนหน้าไม่ครบ จึงยังบันทึกเอกสารหรือเสนอวันสอบรอบนี้ไม่ได้";
 errorMessages.report_not_available = "ยังส่งเล่มรายงานไม่ได้ในสถานะปัจจุบัน กรุณาตรวจสอบขั้นตอนของโครงงาน";
 
 errorMessages.proposal_rubric_missing = "ยังไม่มี Rubric สำหรับ Proposal กรุณาให้ผู้ดูแลระบบตั้งค่า rubric baseline ก่อนประเมิน";
