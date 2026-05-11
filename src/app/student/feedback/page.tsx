@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
-import { isRoundClosed } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 
@@ -55,7 +54,6 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
           attempts: {
             include: {
               assessmentRound: true,
-              scoreRelease: true,
               evaluatorAssignments: {
                 include: {
                   scoreSubmission: {
@@ -86,15 +84,10 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
       const submittedScores = item.evaluatorAssignments
         .map((assignment) => assignment.scoreSubmission)
         .filter((score) => score?.status === "SUBMITTED" || score?.status === "LOCKED");
+      const hasSubmittedScore = submittedScores.length > 0;
       const hasSubmittedFeedback = submittedScores.some((score) => Boolean(score?.overallComment?.trim()));
-      const allAssignedScoresSubmitted = item.evaluatorAssignments.length > 0 && submittedScores.length >= item.evaluatorAssignments.length;
-      const roundClosed = item.assessmentRound ? isRoundClosed(item.assessmentRound.status) : false;
-      const showScore = roundClosed || allAssignedScoresSubmitted || item.assessmentRound?.showScoreToStudent || item.scoreRelease?.showScore;
-      const showFeedback =
-        roundClosed ||
-        item.assessmentRound?.showFeedbackToStudent ||
-        item.scoreRelease?.showFeedback ||
-        item.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.overallComment);
+      const showScore = hasSubmittedScore;
+      const showFeedback = hasSubmittedFeedback || hasSubmittedScore;
       const scores = submittedScores.map((score) => Number(score?.totalScore ?? 0));
       return {
         attempt: item,
@@ -143,7 +136,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
                     <p className="mt-1 text-sm text-muted">กรรมการบันทึกคะแนน {result.submittedCount}/{result.evaluatorCount} คน</p>
                   </div>
                   <div className="rounded-md border border-line bg-paper px-3 py-2 text-sm font-semibold">
-                    {result.showScore ? `${formatScore(result.averageScore)} / 100` : "ยังไม่เปิดคะแนน"}
+                    {result.showScore ? `${formatScore(result.averageScore)} / 100` : "ยังไม่มีคะแนนที่บันทึก"}
                   </div>
                 </div>
                 {result.showScore || result.showFeedback || result.submittedCount > 0 ? (
@@ -153,11 +146,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
                     .map((assignment) => (
                       <div key={assignment.id} className="rounded-md border border-line bg-paper p-3 text-sm">
                         <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="font-medium">
-                            {result.attempt.assessmentRound?.showEvaluatorNameToStudent || (result.attempt.assessmentRound && isRoundClosed(result.attempt.assessmentRound.status))
-                              ? assignment.evaluatorDisplayNameSnapshot
-                              : "กรรมการ"}
-                          </div>
+                          <div className="font-medium">{assignment.evaluatorDisplayNameSnapshot}</div>
                           {result.showScore && assignment.scoreSubmission ? (
                             <div className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold">
                               {formatScore(Number(assignment.scoreSubmission.totalScore))} / 100
@@ -194,7 +183,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 rounded-md border border-line bg-surface p-3 text-sm text-muted">รอบนี้ยังไม่มีผลหรือ feedback ที่เปิดเผยให้นักศึกษาเห็น</p>
+                  <p className="mt-3 rounded-md border border-line bg-surface p-3 text-sm text-muted">รอบนี้ยังไม่มีคะแนนหรือ feedback ที่กรรมการบันทึกไว้</p>
                 )}
               </div>
             ))}

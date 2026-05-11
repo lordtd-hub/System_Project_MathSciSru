@@ -82,7 +82,7 @@ describe("Markdown + LaTeX workflow wiring", () => {
     expect(source).toContain('MarkdownLatexEditor name="reason"');
   });
 
-  it("renders Progress/Final feedback with gated detailed score wiring", () => {
+  it("renders Progress/Final feedback with detailed submitted score wiring", () => {
     const source = readFileSync(join(process.cwd(), "src/app/student/feedback/page.tsx"), "utf8");
 
     expect(source).toContain("MarkdownLatexViewer");
@@ -90,6 +90,8 @@ describe("Markdown + LaTeX workflow wiring", () => {
     expect(source).toContain("totalScore");
     expect(source).toContain("scoreItems");
     expect(source).toContain("เกณฑ์ประเมิน");
-    expect(source).toContain("ยังไม่เปิดคะแนน");
+    expect(source).toContain("ยังไม่มีคะแนนที่บันทึก");
+    expect(source).not.toContain("showScoreToStudent");
+    expect(source).not.toContain("scoreRelease?.showScore");
   });
 });

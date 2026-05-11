@@ -403,14 +403,12 @@ export default async function StudentDashboardPage() {
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
     .map((attempt) => {
-      const round = attempt.assessmentRound;
-      const roundClosed = ["SCORING_CLOSED", "RELEASED"].includes(round.status);
       const submittedScores = attempt.evaluatorAssignments
         .map((assignment) => assignment.scoreSubmission)
         .filter((score): score is NonNullable<typeof score> => score?.status === "SUBMITTED" || score?.status === "LOCKED");
       const hasSubmittedFeedback = submittedScores.some((score) => Boolean(score.overallComment?.trim()));
-      const showScore = roundClosed || round.showScoreToStudent;
-      const showFeedback = roundClosed || round.showFeedbackToStudent || hasSubmittedFeedback;
+      const showScore = submittedScores.length > 0;
+      const showFeedback = hasSubmittedFeedback || submittedScores.length > 0;
       const scores = submittedScores.map((score) => Number(score.totalScore));
       return {
         attempt,
@@ -537,16 +535,16 @@ export default async function StudentDashboardPage() {
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{item.label}</span>
                     <span className="text-xs text-muted">
-                      {item.result ? `${item.result.submittedCount}/${item.result.evaluatorCount} คน` : "ยังไม่เปิดผล"}
+                      {item.result ? `${item.result.submittedCount}/${item.result.evaluatorCount} คน` : "ยังไม่มีคะแนน"}
                     </span>
                   </div>
                   {item.result ? (
                     <div className="flex items-center justify-between gap-3">
-                      {item.result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(item.result.averageScore)} / 100</p> : <p className="mt-1 text-muted">ดู comment ได้ คะแนนยังไม่เปิด</p>}
+                      {item.result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(item.result.averageScore)} / 100</p> : <p className="mt-1 text-muted">มี feedback แต่ยังไม่มีคะแนนที่บันทึก</p>}
                       <span className="text-xs font-semibold text-brand">ดูรายละเอียด</span>
                     </div>
                   ) : (
-                    <p className="mt-1 text-muted">จะแสดง comment/คะแนนเมื่อระบบเปิดผลหรือกรรมการบันทึกตามเงื่อนไข</p>
+                    <p className="mt-1 text-muted">จะแสดงเมื่อกรรมการบันทึกคะแนนหรือ feedback</p>
                   )}
                 </Link>
               ))}
