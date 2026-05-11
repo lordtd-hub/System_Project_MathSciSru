@@ -9,7 +9,9 @@ describe("dashboard clarity phase 2", () => {
     expect(page).toContain("StudentWorkflowGroup");
     expect(page).toContain("visibleAssessmentResults");
     expect(page).toContain("showScoreToStudent");
-    expect(page).toContain("Assessment results");
+    expect(page).toContain("สถานะกรรมการ วันสอบ และผลประเมิน");
+    expect(page).not.toContain("Assessment results");
+    expect(page).not.toContain("Assessment & Committee Status");
     expect(page).toContain("workflowActions.available_now");
     expect(page).toContain("workflowActions.blocked_waiting_for");
     expect(page).toContain("workflowActions.locked_future");

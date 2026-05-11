@@ -480,9 +480,7 @@ export default async function StudentDashboardPage() {
       <section className="panel">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand">Assessment & Committee Status</p>
             <h2 className="mt-1 text-lg font-semibold">สถานะกรรมการ วันสอบ และผลประเมิน</h2>
-            <p className="mt-1 text-sm text-muted">รวมข้อมูลกรรมการ การอนุมัติวันสอบ และผลประเมินที่เปิดเผยแล้วไว้ในโมดูลเดียว</p>
           </div>
           <Link className="button-secondary" href="/student/schedule">ดูรายละเอียดรอบสอบ</Link>
         </div>
@@ -544,62 +542,6 @@ export default async function StudentDashboardPage() {
           </div>
         </div>
       </section>
-
-      {visibleAssessmentResults.length ? (
-        <section className="panel">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-brand">Assessment results</p>
-              <h2 className="mt-1 text-lg font-semibold">ผลการประเมินรอบสอบ</h2>
-              <p className="mt-1 text-sm text-muted">
-                แสดงหลังผู้ดูแลระบบปิดรอบสอบแล้ว คะแนน Proposal ยังถูกซ่อนตามนโยบายรายวิชา
-              </p>
-            </div>
-            <Link className="button-secondary" href="/student/feedback">ดู feedback Proposal</Link>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {visibleAssessmentResults.map((result) => (
-              <div key={result.attempt.id} className="rounded-md border border-line bg-surface p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold">{assessmentKindLabel(result.attempt.attemptType)}</h3>
-                    <p className="mt-1 text-xs text-muted">
-                      กรรมการบันทึกคะแนน {result.submittedCount}/{result.evaluatorCount} คน
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs text-muted">
-                    ปิดรอบแล้ว
-                  </span>
-                </div>
-                {result.showScore ? (
-                  <div className="mt-3 rounded-md border border-line bg-paper p-3">
-                    <div className="text-xs text-muted">คะแนนเฉลี่ย</div>
-                    <div className="mt-1 text-2xl font-semibold text-ink">{formatScore(result.averageScore)} / 100</div>
-                  </div>
-                ) : null}
-                {result.showFeedback ? (
-                  <div className="mt-3 space-y-2">
-                    {result.attempt.evaluatorAssignments
-                      .filter((assignment) => assignment.scoreSubmission?.overallComment)
-                      .map((assignment) => (
-                        <div key={assignment.id} className="rounded-md border border-line bg-paper p-3 text-sm">
-                          <div className="font-medium">
-                            {result.attempt.assessmentRound.showEvaluatorNameToStudent || result.attempt.assessmentRound.status === "SCORING_CLOSED"
-                              ? assignment.evaluatorDisplayNameSnapshot
-                              : "กรรมการ"}
-                          </div>
-                          {assignment.scoreSubmission?.overallComment ? (
-                            <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-sm" value={assignment.scoreSubmission.overallComment} />
-                          ) : null}
-                        </div>
-                      ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <div className="grid gap-3 md:grid-cols-4">
         <div className="dashboard-metric dashboard-metric-current">
@@ -680,35 +622,12 @@ export default async function StudentDashboardPage() {
         <TaskListCard title="รายการที่ต้องติดตาม" tasks={studentTrackingTasks} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="panel">
-          <h2 className="text-lg font-semibold">กรรมการและการนัดสอบ</h2>
-          <div className="mt-3 space-y-2 text-sm">
-            {project.committeeAssignments.length ? (
-              project.committeeAssignments.map((assignment) => (
-                <div key={assignment.id} className="flex items-center justify-between rounded-md border border-line p-3">
-                  <span>{teacherDisplayName(assignment.teacher)}</span>
-                  <span className="rounded-full border border-line px-2 py-0.5 text-xs">{assignment.role}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted">ยังไม่มีการแต่งตั้ง HEAD และ MEMBER</p>
-            )}
-          </div>
-          <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm text-muted">
-            {latestSchedule
-              ? `${latestSchedule.assessmentKind}: ${latestSchedule.status} (${latestSchedule.approvals.filter((approval) => approval.decision === "APPROVE").length}/${latestSchedule.approvals.length} อนุมัติ)`
-              : "ยังไม่มีการเสนอวันสอบ Progress/Final"}
-          </div>
-        </section>
-
-        <GuidancePanel
-          title="คำแนะนำสำหรับนักศึกษา"
-          current="ดูสถานะปัจจุบันและทำรายการที่ระบบแนะนำก่อน"
-          next="ระบบจะบันทึกประวัติทุกครั้งเพื่อใช้เป็นหลักฐาน และแจ้งเตือนเมื่อมีผู้เกี่ยวข้องต้องดำเนินการ"
-          actor="ขึ้นอยู่กับสถานะ อาจเป็นนักศึกษา อาจารย์ที่ปรึกษา กรรมการ หรือผู้ดูแลระบบ"
-        />
-      </div>
+      <GuidancePanel
+        title="คำแนะนำสำหรับนักศึกษา"
+        current="ดูสถานะปัจจุบันและทำรายการที่ระบบแนะนำก่อน"
+        next="ระบบจะบันทึกประวัติทุกครั้งเพื่อใช้เป็นหลักฐาน และแจ้งเตือนเมื่อมีผู้เกี่ยวข้องต้องดำเนินการ"
+        actor="ขึ้นอยู่กับสถานะ อาจเป็นนักศึกษา อาจารย์ที่ปรึกษา กรรมการ หรือผู้ดูแลระบบ"
+      />
 
       {project.status === "PROPOSAL_REVIEW" ? (
         <InfoAlert title="การแสดงผล Proposal">
