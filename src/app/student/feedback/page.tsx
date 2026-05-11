@@ -22,7 +22,6 @@ function assessmentAnchor(roundType?: string | null) {
 }
 
 const feedbackTabs = [
-  { label: "Proposal", href: "/student/feedback#proposal", round: "proposal" },
   { label: "Progress 1", href: "/student/feedback?round=progress-1#progress-1", round: "progress-1" },
   { label: "Progress 2", href: "/student/feedback?round=progress-2#progress-2", round: "progress-2" },
   { label: "Final Presentation", href: "/student/feedback?round=final#final", round: "final" },
@@ -56,9 +55,18 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
             include: {
               assessmentRound: true,
               scoreRelease: true,
-              proposalResult: true,
-              proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "asc" } },
-              evaluatorAssignments: { include: { scoreSubmission: { include: { proposalDecision: true } } } }
+              evaluatorAssignments: {
+                include: {
+                  scoreSubmission: {
+                    include: {
+                      scoreItems: {
+                        include: { rubricItem: true },
+                        orderBy: { rubricItem: { displayOrder: "asc" } }
+                      }
+                    }
+                  }
+                }
+              }
             },
             orderBy: { createdAt: "asc" }
           }
@@ -71,7 +79,6 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
   }
 
   const project = student.projects[0];
-  const proposalAttempt = project?.attempts.find((item) => item.attemptType === "MAIN_PROPOSAL");
   const allPresentationResults = (project?.attempts ?? [])
     .filter((item) => ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"].includes(item.assessmentRound?.roundType ?? item.attemptType))
     .map((item) => {
@@ -100,7 +107,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
     ? allPresentationResults.filter((item) => item.anchor === requestedRound)
     : presentationAttempts;
 
-  if (!proposalAttempt && !allPresentationResults.length) {
+  if (!allPresentationResults.length) {
     return <div className="panel">ยังไม่มี feedback หรือผลประเมินที่เปิดเผย</div>;
   }
 
@@ -120,50 +127,6 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
           </Link>
         ))}
       </nav>
-      {proposalAttempt && !requestedRound ? (
-        <>
-          <section id="proposal" className="panel scroll-mt-24">
-            <h2 className="font-semibold">ผลตัดสิน Proposal</h2>
-            <p className="mt-2">{proposalAttempt.proposalResult?.finalDecision ?? "รอ Admin ตัดสินผล"}</p>
-            {proposalAttempt.proposalResult?.finalDecisionReason ? (
-              <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-sm text-muted" value={proposalAttempt.proposalResult.finalDecisionReason} />
-            ) : null}
-            <p className="mt-2 text-sm text-muted">Lifecycle v2: นักศึกษาเห็น comment ทันที แต่ไม่เห็นคะแนน Proposal</p>
-          </section>
-          <section className="panel">
-            <h2 className="font-semibold">ข้อเสนอแนะจากกรรมการ Proposal</h2>
-            <div className="mt-3 space-y-3">
-              {proposalAttempt.proposalVotes.length ? (
-                proposalAttempt.proposalVotes.map((vote) => (
-                  <div key={vote.id} className="rounded-md border border-line p-3 text-sm">
-                    <div className="font-medium">
-                      {vote.teacher.academicPrefix}
-                      {vote.teacher.firstNameTh} {vote.teacher.lastNameTh}
-                    </div>
-                    <div className="text-muted">Vote: {vote.vote}</div>
-                    {vote.comment ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={vote.comment} /> : null}
-                  </div>
-                ))
-              ) : (
-                proposalAttempt.evaluatorAssignments
-                  .filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
-                  .map((assignment) => (
-                    <div key={assignment.id} className="rounded-md border border-line p-3 text-sm">
-                      <div className="font-medium">{assignment.evaluatorDisplayNameSnapshot}</div>
-                      <div className="text-muted">ผล: {assignment.scoreSubmission?.proposalDecision?.decision}</div>
-                      {assignment.scoreSubmission?.proposalDecision?.reason ? (
-                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.proposalDecision.reason} />
-                      ) : null}
-                      {assignment.scoreSubmission?.overallComment ? (
-                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.overallComment} />
-                      ) : null}
-                    </div>
-                  ))
-              )}
-            </div>
-          </section>
-        </>
-      ) : null}
       {displayedPresentationResults.length ? (
         <section className="panel">
           <h2 className="font-semibold">{requestedRound ? `ผลการประเมิน ${assessmentLabel(displayedPresentationResults[0]?.attempt.assessmentRound?.roundType)}` : "ผลการประเมิน Progress/Final"}</h2>
@@ -185,11 +148,39 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
                     .filter((assignment) => assignment.scoreSubmission?.overallComment || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
                     .map((assignment) => (
                       <div key={assignment.id} className="rounded-md border border-line bg-paper p-3 text-sm">
-                        <div className="font-medium">
-                          {result.attempt.assessmentRound?.showEvaluatorNameToStudent || result.attempt.assessmentRound?.status === "SCORING_CLOSED"
-                            ? assignment.evaluatorDisplayNameSnapshot
-                            : "กรรมการ"}
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="font-medium">
+                            {result.attempt.assessmentRound?.showEvaluatorNameToStudent || result.attempt.assessmentRound?.status === "SCORING_CLOSED"
+                              ? assignment.evaluatorDisplayNameSnapshot
+                              : "กรรมการ"}
+                          </div>
+                          {result.showScore && assignment.scoreSubmission ? (
+                            <div className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold">
+                              {formatScore(Number(assignment.scoreSubmission.totalScore))} / 100
+                            </div>
+                          ) : null}
                         </div>
+                        {result.showScore && assignment.scoreSubmission?.scoreItems.length ? (
+                          <div className="mt-3 overflow-hidden rounded-md border border-line">
+                            <div className="grid grid-cols-[minmax(0,1fr)_96px] bg-surface px-3 py-2 text-xs font-semibold text-muted">
+                              <span>เกณฑ์ประเมิน</span>
+                              <span className="text-right">คะแนน</span>
+                            </div>
+                            {assignment.scoreSubmission.scoreItems.map((scoreItem) => (
+                              <div key={scoreItem.id} className="grid grid-cols-[minmax(0,1fr)_96px] gap-3 border-t border-line px-3 py-2">
+                                <div>
+                                  <div className="font-medium">{scoreItem.rubricItem.itemLabelTh}</div>
+                                  {scoreItem.rubricItem.evidenceHint ? <div className="mt-1 text-xs text-muted">{scoreItem.rubricItem.evidenceHint}</div> : null}
+                                </div>
+                                <div className="text-right font-semibold">
+                                  {formatScore(Number(scoreItem.pointsAwarded))} / {formatScore(Number(scoreItem.rubricItem.points))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : result.showScore ? (
+                          <p className="mt-2 text-muted">ยังไม่มีรายละเอียดรายการคะแนน</p>
+                        ) : null}
                         {assignment.scoreSubmission?.overallComment ? (
                           <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.overallComment} />
                         ) : (

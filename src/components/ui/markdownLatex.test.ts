@@ -82,13 +82,14 @@ describe("Markdown + LaTeX workflow wiring", () => {
     expect(source).toContain('MarkdownLatexEditor name="reason"');
   });
 
-  it("keeps Proposal scores hidden while allowing released assessment score wiring", () => {
+  it("renders Progress/Final feedback with gated detailed score wiring", () => {
     const source = readFileSync(join(process.cwd(), "src/app/student/feedback/page.tsx"), "utf8");
 
     expect(source).toContain("MarkdownLatexViewer");
-    expect(source).toContain("Lifecycle v2: นักศึกษาเห็น comment ทันที แต่ไม่เห็นคะแนน Proposal");
     expect(source).toContain("showScore");
     expect(source).toContain("totalScore");
+    expect(source).toContain("scoreItems");
+    expect(source).toContain("เกณฑ์ประเมิน");
     expect(source).toContain("ยังไม่เปิดคะแนน");
   });
 });
