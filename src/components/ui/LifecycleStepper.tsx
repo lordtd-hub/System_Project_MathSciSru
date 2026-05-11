@@ -20,13 +20,11 @@ function currentStepIndex(status: ProjectStatus): number {
 
 export function CompactLifecycleBadge({ status }: { status: ProjectStatus }) {
   const current = currentStepIndex(status);
-  const step = steps[current];
 
   return (
     <span className="inline-flex min-h-8 max-w-full items-center gap-2 rounded-full border border-brand/20 bg-red-50 px-3 py-1 text-xs font-semibold text-brandDark shadow-sm">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] text-white">{current + 1}</span>
-      <span className="truncate">{step.label}</span>
-      <span className="hidden text-muted sm:inline">/ {steps.length}</span>
+      <span className="text-muted">/ {steps.length}</span>
     </span>
   );
 }
