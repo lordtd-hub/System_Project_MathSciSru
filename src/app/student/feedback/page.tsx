@@ -83,11 +83,12 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
       const submittedScores = item.evaluatorAssignments
         .map((assignment) => assignment.scoreSubmission)
         .filter((score) => score?.status === "SUBMITTED" || score?.status === "LOCKED");
+      const hasSubmittedFeedback = submittedScores.some((score) => Boolean(score?.overallComment?.trim()));
       const scores = submittedScores.map((score) => Number(score?.totalScore ?? 0));
       return {
         attempt: item,
         showScore,
-        showFeedback,
+        showFeedback: showFeedback || hasSubmittedFeedback,
         submittedCount: submittedScores.length,
         evaluatorCount: item.evaluatorAssignments.length,
         averageScore: item.officialScore != null ? Number(item.officialScore) : scoreAverage(scores),

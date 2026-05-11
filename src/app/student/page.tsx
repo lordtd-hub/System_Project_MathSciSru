@@ -294,14 +294,23 @@ export default async function StudentDashboardPage() {
     return true;
   });
   const latestSchedule = activeSchedule ?? project.scheduleProposals[0];
+  const actionableSchedule = activeSchedule;
   const latestScheduleApprovedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "APPROVE").length ?? 0;
   const latestScheduleRejectedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "REJECT").length ?? 0;
   const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
   const latestSchedulePendingCount = Math.max(latestScheduleTotalCount - latestScheduleApprovedCount - latestScheduleRejectedCount, 0);
   const latestScheduleRoundLabel = assessmentKindLabel(latestSchedule?.assessmentKind);
+  const actionableScheduleApprovedCount = actionableSchedule?.approvals.filter((approval) => approval.decision === "APPROVE").length ?? 0;
+  const actionableScheduleRejectedCount = actionableSchedule?.approvals.filter((approval) => approval.decision === "REJECT").length ?? 0;
+  const actionableScheduleTotalCount = actionableSchedule?.approvals.length ?? 0;
+  const actionableSchedulePendingCount = Math.max(actionableScheduleTotalCount - actionableScheduleApprovedCount - actionableScheduleRejectedCount, 0);
+  const actionableScheduleRoundLabel = assessmentKindLabel(actionableSchedule?.assessmentKind);
   const todayText = new Date().toLocaleDateString("th-TH", { dateStyle: "full", timeZone: "Asia/Bangkok" });
   const latestScheduleDateText = latestSchedule
     ? `${formatThaiScheduleRange(latestSchedule.proposedStartAt, latestSchedule.proposedEndAt)}${latestSchedule.room ? ` · ห้อง ${latestSchedule.room}` : ""}`
+    : "";
+  const actionableScheduleDateText = actionableSchedule
+    ? `${formatThaiScheduleRange(actionableSchedule.proposedStartAt, actionableSchedule.proposedEndAt)}${actionableSchedule.room ? ` · ห้อง ${actionableSchedule.room}` : ""}`
     : "";
   const nextAssessmentAction = project.status === "IN_PROGRESS"
     ? assessmentStates.PROGRESS_1 !== "COMPLETED"
@@ -333,53 +342,53 @@ export default async function StudentDashboardPage() {
               tone: "success" as const
             }
     : nextAction;
-  const studentNextAction = latestSchedule?.status === "REJECTED"
+  const studentNextAction = actionableSchedule?.status === "REJECTED"
     ? {
-        title: `${latestScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
+        title: `${actionableScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
         description: "กรุณาเสนอวันสอบใหม่ ระบบจะแจ้งกรรมการทุกคนให้พิจารณารอบใหม่อีกครั้ง",
         actionLabel: "เสนอวันสอบใหม่",
         href: "/student/schedule",
         tone: "warning" as const
       }
-    : latestSchedule?.status === "PROPOSED"
+    : actionableSchedule?.status === "PROPOSED"
       ? {
-          title: `รอกรรมการยืนยันวันสอบ ${latestScheduleRoundLabel}`,
-          description: `อนุมัติแล้ว ${latestScheduleApprovedCount}/${latestScheduleTotalCount} คน ยังรอ ${latestSchedulePendingCount} คน เมื่อครบแล้วจึงเข้าสอบและรอกรรมการบันทึกคะแนน`,
+          title: `รอกรรมการยืนยันวันสอบ ${actionableScheduleRoundLabel}`,
+          description: `อนุมัติแล้ว ${actionableScheduleApprovedCount}/${actionableScheduleTotalCount} คน ยังรอ ${actionableSchedulePendingCount} คน เมื่อครบแล้วจึงเข้าสอบและรอกรรมการบันทึกคะแนน`,
           actionLabel: "ดูสถานะวันสอบ",
           href: "/student/schedule",
           tone: "warning" as const
         }
-      : latestSchedule?.status === "CONFIRMED"
+      : actionableSchedule?.status === "CONFIRMED"
         ? {
-            title: `${latestScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
+            title: `${actionableScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
             description: "ขั้นตอนถัดไปคือเข้าสอบตามวันเวลาที่เสนอไว้ หลังสอบแล้วรอกรรมการบันทึกคะแนนในระบบ",
             actionLabel: "ดูรายละเอียดวันสอบ",
             href: "/student/schedule",
             tone: "success" as const
           }
         : nextAssessmentAction;
-  const scheduleAwareStudentNextAction = latestSchedule && ["PROPOSED", "CONFIRMED"].includes(latestSchedule.status)
-    ? { ...studentNextAction, description: `${latestScheduleDateText} · ${studentNextAction.description}` }
+  const scheduleAwareStudentNextAction = actionableSchedule && ["PROPOSED", "CONFIRMED"].includes(actionableSchedule.status)
+    ? { ...studentNextAction, description: `${actionableScheduleDateText} · ${studentNextAction.description}` }
     : studentNextAction;
   const studentTrackingTasks: TaskListItem[] = project.status === "IN_PROGRESS"
-    ? latestSchedule?.status === "REJECTED"
+    ? actionableSchedule?.status === "REJECTED"
       ? [{
-          title: `${latestScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
-          description: `มีผู้ไม่สะดวก ${latestScheduleRejectedCount} คน กรุณาเสนอวันสอบใหม่เพื่อให้กรรมการทุกคนพิจารณาอีกครั้ง`,
+          title: `${actionableScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
+          description: `มีผู้ไม่สะดวก ${actionableScheduleRejectedCount} คน กรุณาเสนอวันสอบใหม่เพื่อให้กรรมการทุกคนพิจารณาอีกครั้ง`,
           href: "/student/schedule",
           urgency: "สูง"
         }]
-      : latestSchedule?.status === "PROPOSED"
+      : actionableSchedule?.status === "PROPOSED"
         ? [{
-            title: `รอกรรมการยืนยันวันสอบ ${latestScheduleRoundLabel}`,
-            description: `อนุมัติแล้ว ${latestScheduleApprovedCount}/${latestScheduleTotalCount} คน ยังรอ ${latestSchedulePendingCount} คน`,
+            title: `รอกรรมการยืนยันวันสอบ ${actionableScheduleRoundLabel}`,
+            description: `อนุมัติแล้ว ${actionableScheduleApprovedCount}/${actionableScheduleTotalCount} คน ยังรอ ${actionableSchedulePendingCount} คน`,
             href: "/student/schedule",
             urgency: "รอคนอื่น"
           }]
-        : latestSchedule?.status === "CONFIRMED"
+        : actionableSchedule?.status === "CONFIRMED"
           ? [{
-              title: `${latestScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
-              description: `${latestScheduleDateText} หลังสอบแล้วรอกรรมการบันทึกคะแนน`,
+              title: `${actionableScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
+              description: `${actionableScheduleDateText} หลังสอบแล้วรอกรรมการบันทึกคะแนน`,
               href: "/student/schedule"
             }]
           : assessmentStates.PROGRESS_1 !== "COMPLETED"
@@ -396,11 +405,12 @@ export default async function StudentDashboardPage() {
     .map((attempt) => {
       const round = attempt.assessmentRound;
       const roundClosed = ["SCORING_CLOSED", "RELEASED"].includes(round.status);
-      const showScore = roundClosed || round.showScoreToStudent;
-      const showFeedback = roundClosed || round.showFeedbackToStudent;
       const submittedScores = attempt.evaluatorAssignments
         .map((assignment) => assignment.scoreSubmission)
         .filter((score): score is NonNullable<typeof score> => score?.status === "SUBMITTED" || score?.status === "LOCKED");
+      const hasSubmittedFeedback = submittedScores.some((score) => Boolean(score.overallComment?.trim()));
+      const showScore = roundClosed || round.showScoreToStudent;
+      const showFeedback = roundClosed || round.showFeedbackToStudent || hasSubmittedFeedback;
       const scores = submittedScores.map((score) => Number(score.totalScore));
       return {
         attempt,
@@ -437,23 +447,23 @@ export default async function StudentDashboardPage() {
       </div>
       <NextActionCard action={scheduleAwareStudentNextAction} />
 
-      {latestSchedule?.status === "REJECTED" ? (
+      {actionableSchedule?.status === "REJECTED" ? (
         <WarningAlert title="มีอาจารย์ไม่สะดวกตามวันสอบที่เสนอ">
           <div className="space-y-2">
             <p>
-              สถานะล่าสุด: อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount} · ไม่สะดวก {latestScheduleRejectedCount} · รอ {latestSchedulePendingCount}
+              สถานะล่าสุด: อนุมัติ {actionableScheduleApprovedCount}/{actionableScheduleTotalCount} · ไม่สะดวก {actionableScheduleRejectedCount} · รอ {actionableSchedulePendingCount}
               {" "}กรุณาเข้าไปเสนอวันสอบใหม่อีกครั้ง
             </p>
             <Link className="button-secondary inline-flex" href="/student/schedule">เสนอวันสอบใหม่</Link>
           </div>
         </WarningAlert>
-      ) : latestSchedule?.status === "PROPOSED" ? (
+      ) : actionableSchedule?.status === "PROPOSED" ? (
         <InfoAlert title="รอกรรมการยืนยันวันสอบ">
-          สถานะล่าสุด: อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount} · ไม่สะดวก {latestScheduleRejectedCount} · รอ {latestSchedulePendingCount}
+          สถานะล่าสุด: อนุมัติ {actionableScheduleApprovedCount}/{actionableScheduleTotalCount} · ไม่สะดวก {actionableScheduleRejectedCount} · รอ {actionableSchedulePendingCount}
         </InfoAlert>
-      ) : latestSchedule?.status === "CONFIRMED" ? (
+      ) : actionableSchedule?.status === "CONFIRMED" ? (
         <SuccessAlert title="วันสอบได้รับการยืนยันแล้ว">
-          กรรมการอนุมัติครบ {latestScheduleApprovedCount}/{latestScheduleTotalCount} คน สำหรับ {latestScheduleRoundLabel} แล้ว ขั้นตอนถัดไปคือเข้าสอบตามวันเวลา และรอกรรมการบันทึกคะแนนหลังสอบ
+          กรรมการอนุมัติครบ {actionableScheduleApprovedCount}/{actionableScheduleTotalCount} คน สำหรับ {actionableScheduleRoundLabel} แล้ว ขั้นตอนถัดไปคือเข้าสอบตามวันเวลา และรอกรรมการบันทึกคะแนนหลังสอบ
         </SuccessAlert>
       ) : null}
 
