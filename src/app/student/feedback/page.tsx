@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
+import { isRoundClosed } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 
@@ -82,15 +83,18 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
   const allPresentationResults = (project?.attempts ?? [])
     .filter((item) => ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"].includes(item.assessmentRound?.roundType ?? item.attemptType))
     .map((item) => {
-      const showScore = item.assessmentRound?.showScoreToStudent || item.scoreRelease?.showScore;
-      const showFeedback =
-        item.assessmentRound?.showFeedbackToStudent ||
-        item.scoreRelease?.showFeedback ||
-        item.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.overallComment);
       const submittedScores = item.evaluatorAssignments
         .map((assignment) => assignment.scoreSubmission)
         .filter((score) => score?.status === "SUBMITTED" || score?.status === "LOCKED");
       const hasSubmittedFeedback = submittedScores.some((score) => Boolean(score?.overallComment?.trim()));
+      const allAssignedScoresSubmitted = item.evaluatorAssignments.length > 0 && submittedScores.length >= item.evaluatorAssignments.length;
+      const roundClosed = item.assessmentRound ? isRoundClosed(item.assessmentRound.status) : false;
+      const showScore = roundClosed || allAssignedScoresSubmitted || item.assessmentRound?.showScoreToStudent || item.scoreRelease?.showScore;
+      const showFeedback =
+        roundClosed ||
+        item.assessmentRound?.showFeedbackToStudent ||
+        item.scoreRelease?.showFeedback ||
+        item.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.overallComment);
       const scores = submittedScores.map((score) => Number(score?.totalScore ?? 0));
       return {
         attempt: item,
@@ -150,7 +154,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
                       <div key={assignment.id} className="rounded-md border border-line bg-paper p-3 text-sm">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="font-medium">
-                            {result.attempt.assessmentRound?.showEvaluatorNameToStudent || result.attempt.assessmentRound?.status === "SCORING_CLOSED"
+                            {result.attempt.assessmentRound?.showEvaluatorNameToStudent || (result.attempt.assessmentRound && isRoundClosed(result.attempt.assessmentRound.status))
                               ? assignment.evaluatorDisplayNameSnapshot
                               : "กรรมการ"}
                           </div>
