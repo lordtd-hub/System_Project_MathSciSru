@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isRoundClosed, isRoundOpen } from "@/lib/assessments/courseRounds";
+import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { getProgress1Readiness } from "@/lib/assessments/roundEligibility";
 import { isSchedulableRoundType, parseScheduleDateTime, roundTypeToAssessmentKind } from "@/lib/scheduling/scheduleRules";
 import { buildSubmissionSnapshot, canEditUntilDeadline, nextVersionNo } from "@/lib/submissions/versioning";
@@ -41,32 +42,38 @@ function requiredText(formData: FormData, key: string, label: string): string {
 async function hasCompletedPresentationScores(projectId: string, attemptType: Extract<AttemptType, "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION">) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { courseOfferingId: true }
-  });
-  const round = project
-    ? await prisma.assessmentRound.findUnique({
-        where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: attemptType } },
-        select: { status: true }
-      })
-    : null;
-  if (round && isRoundClosed(round.status)) return true;
-
-  const requiredCommitteeScores = await prisma.committeeAssignment.count({
-    where: { projectId, role: { in: ["HEAD", "MEMBER"] } }
-  });
-  if (requiredCommitteeScores === 0) return false;
-
-  const attempts = await prisma.assessmentAttempt.findMany({
-    where: { projectId, attemptType },
     select: {
-      evaluatorAssignments: {
-        where: { scoreSubmission: { is: { status: "SUBMITTED" } } },
-        select: { evaluatorUserId: true }
+      courseOffering: {
+        select: {
+          assessmentRounds: { where: { roundType: attemptType }, select: { status: true }, take: 1 }
+        }
+      },
+      committeeAssignments: { select: { teacherId: true, role: true, active: true } },
+      attempts: {
+        where: { attemptType },
+        select: {
+          evaluatorAssignments: {
+            select: {
+              teacherId: true,
+              scoreSubmission: { select: { status: true } }
+            }
+          }
+        }
       }
     }
   });
-  const submittedEvaluators = new Set(attempts.flatMap((attempt) => attempt.evaluatorAssignments.map((assignment) => assignment.evaluatorUserId)));
-  return submittedEvaluators.size >= requiredCommitteeScores;
+  if (!project) return false;
+
+  return isPresentationAssessmentComplete({
+    roundStatus: project.courseOffering.assessmentRounds[0]?.status,
+    committeeAssignments: project.committeeAssignments,
+    scoreSubmissions: project.attempts.flatMap((attempt) =>
+      attempt.evaluatorAssignments.map((assignment) => ({
+        teacherId: assignment.teacherId,
+        status: assignment.scoreSubmission?.status ?? null
+      }))
+    )
+  });
 }
 
 async function assertPreviousPresentationRoundComplete(projectId: string, roundType: string) {

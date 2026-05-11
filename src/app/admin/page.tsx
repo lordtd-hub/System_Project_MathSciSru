@@ -34,6 +34,50 @@ function formatDate(value: Date | null | undefined) {
   return value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
 }
 
+function deriveAdminCurrentRoundFocus({
+  currentOpenRoundType,
+  focusRoundType,
+  canOpenNextRound,
+  progress1EligibleCount
+}: {
+  currentOpenRoundType?: CourseLevelRoundType | null;
+  focusRoundType: CourseLevelRoundType;
+  canOpenNextRound: boolean;
+  progress1EligibleCount: number;
+}) {
+  const activeRoundType = currentOpenRoundType ?? focusRoundType;
+  const activeRoundLabel = roundTypeLabelTh(activeRoundType);
+  const openNextLabel = roundTypeLabelTh(focusRoundType);
+  const focusItems = {
+    PROPOSAL: [
+      { title: "ตรวจ Proposal และผลประชุม", description: "ดูคะแนน ความเห็น และบันทึก final decision ของ Proposal", href: "/admin/proposals" },
+      { title: "เตรียมแต่งตั้งกรรมการ", description: "หัวข้อที่ผ่านแล้วต้องมีกรรมการครบก่อนเข้าสู่ Progress", href: "/admin/committee" }
+    ],
+    PROGRESS_1: [
+      { title: "ติดตามตารางสอบ Progress 1", description: "ดูการเสนอวันสอบ การตอบรับของกรรมการ และงานที่รอคะแนน", href: "/admin/schedules" },
+      { title: "ดูความพร้อม Progress 1", description: `${progress1EligibleCount} project พร้อมเข้าสู่ Progress 1 ตามเงื่อนไขปัจจุบัน`, href: "/admin/rounds" }
+    ],
+    PROGRESS_2: [
+      { title: "ติดตามตารางสอบ Progress 2", description: "ดูการเสนอวันสอบ การตอบรับของกรรมการ และงานที่รอคะแนน", href: "/admin/schedules" },
+      { title: "เตรียมรอบ Final", description: "หลังปิด Progress 2 ให้เปิด Final Presentation ตามลำดับรายวิชา", href: "/admin/rounds" }
+    ],
+    FINAL_PRESENTATION: [
+      { title: "ติดตามตารางสอบ Final", description: "ดูวันสอบที่ยืนยันแล้วและงานให้คะแนน Final Presentation", href: "/admin/schedules" },
+      { title: "เตรียมเล่มรายงานและ closeout", description: "หลัง Final complete ให้ติดตาม report review, advisor score และ closeout", href: "/admin/closeout" }
+    ]
+  } satisfies Record<CourseLevelRoundType, Array<{ title: string; description: string; href: string }>>;
+
+  return {
+    title: currentOpenRoundType ? `กำลังอยู่ในรอบ ${activeRoundLabel}` : `โฟกัสถัดไป: ${openNextLabel}`,
+    description: currentOpenRoundType
+      ? "แดชบอร์ดควรให้ความสำคัญกับงานของรอบที่กำลังเปิดอยู่ก่อนงาน monitoring อื่น"
+      : canOpenNextRound
+        ? `ยังไม่มีรอบที่เปิดอยู่ ขั้นตอนถัดไปคือเปิดรอบ ${openNextLabel}`
+        : `ยังไม่มีรอบที่เปิดอยู่ และ ${openNextLabel} ยังไม่พร้อมเปิดตามลำดับ workflow`,
+    items: focusItems[activeRoundType]
+  };
+}
+
 function getAdminStatusGroups() {
   return prisma.project.groupBy({
     by: ["status"],
@@ -426,10 +470,34 @@ async function AdminRoundGateSection({
   const focusRoundType: CourseLevelRoundType = (currentOpenRound?.roundType as CourseLevelRoundType | undefined) ?? nextOpenRoundType ?? courseLevelRoundTypes.find((roundType) => !isRoundClosed(activeRoundMap.get(roundType)?.status ?? "DRAFT")) ?? "FINAL_PRESENTATION";
   const focusGate = getRoundOpenGate(focusRoundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
   const progress1BlockedReason = focusRoundType === "PROGRESS_1" ? progress1Eligibility.notReady.flatMap((item) => item.reasons)[0] : null;
+  const roundFocus = deriveAdminCurrentRoundFocus({
+    currentOpenRoundType: currentOpenRound?.roundType as CourseLevelRoundType | undefined,
+    focusRoundType,
+    canOpenNextRound: focusGate.canOpen,
+    progress1EligibleCount: progress1Eligibility.eligible.length
+  });
   timer.end("round_gate_ready");
 
   return (
     <>
+      <section className="panel dashboard-console-panel border-l-4 border-l-brand">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand">Current round focus</p>
+            <h2 className="mt-1 text-lg font-semibold">{roundFocus.title}</h2>
+            <p className="mt-1 text-sm text-muted">{roundFocus.description}</p>
+          </div>
+          <Link className="button-secondary" href="/admin/rounds">ดูสถานะรอบสอบ</Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {roundFocus.items.map((item) => (
+            <Link key={item.href} className="rounded-md border border-line bg-surface p-3 text-sm hover:border-brand" href={item.href}>
+              <div className="font-semibold text-ink">{item.title}</div>
+              <p className="mt-1 text-muted">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
       <section className="panel dashboard-console-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

@@ -23,10 +23,22 @@ function assessmentKindLabel(kind?: string | null) {
   return "รอบสอบ";
 }
 
-function getTeacherWorkloadCounts(teacherId: string) {
+async function getTeacherWorkloadCounts(teacherId: string) {
   const openScoringRoundStatuses: AssessmentStatus[] = ["SUBMISSION_OPEN", "SCORING_OPEN"];
   const scoringCommitteeRoles: CommitteeRole[] = ["HEAD", "MEMBER"];
   const submittedScoreStatus: ScoreStatus = "SUBMITTED";
+  const teacherProjectInvolvementWhere = {
+    OR: [
+      { project: { committeeAssignments: { some: { teacherId, active: true } } } },
+      { project: { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" as const } } } }
+    ]
+  };
+  const teacherReportProjectWhere = {
+    OR: [
+      { committeeAssignments: { some: { teacherId, active: true, role: { in: scoringCommitteeRoles } } } },
+      { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" as const } } }
+    ]
+  };
   const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") => {
     const roundType: AssessmentRoundType = assessmentKind === "FINAL_PRESENT" ? "FINAL_PRESENTATION" : assessmentKind;
     return ({
@@ -53,7 +65,16 @@ function getTeacherWorkloadCounts(teacherId: string) {
     });
   };
 
-  return Promise.all([
+  const [
+    advisorRequestCount,
+    scheduleApprovalCount,
+    reportReviewProjects,
+    advisorScoreProjectCount,
+    progress1ScoreReadyCount,
+    progress2ScoreReadyCount,
+    finalScoreReadyCount,
+    confirmedScheduleCalendarCount
+  ] = await Promise.all([
     prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
     prisma.examScheduleProposal.count({
       where: {
@@ -67,7 +88,25 @@ function getTeacherWorkloadCounts(teacherId: string) {
         NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }
       }
     }),
-    prisma.reportReview.count({ where: { reviewerTeacherId: teacherId, decision: "FAIL" } }),
+    prisma.project.findMany({
+      where: {
+        status: "REPORT_REVIEW",
+        ...teacherReportProjectWhere
+      },
+      select: {
+        reportVersions: {
+          orderBy: { versionNo: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            reviews: {
+              where: { reviewerTeacherId: teacherId },
+              select: { id: true }
+            }
+          }
+        }
+      }
+    }),
     prisma.project.count({
       where: {
         status: "REPORT_APPROVED",
@@ -80,8 +119,28 @@ function getTeacherWorkloadCounts(teacherId: string) {
     prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_1") }),
     prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_2") }),
     prisma.examScheduleProposal.count({ where: readyScoreWhere("FINAL_PRESENT") }),
-    prisma.examScheduleProposal.count({ where: { status: "CONFIRMED" } })
+    prisma.examScheduleProposal.count({
+      where: {
+        status: "CONFIRMED",
+        ...teacherProjectInvolvementWhere
+      }
+    })
   ]);
+  const reportReviewCount = reportReviewProjects.filter((project) => {
+    const latestReport = project.reportVersions[0];
+    return latestReport ? latestReport.reviews.length === 0 : false;
+  }).length;
+
+  return [
+    advisorRequestCount,
+    scheduleApprovalCount,
+    reportReviewCount,
+    advisorScoreProjectCount,
+    progress1ScoreReadyCount,
+    progress2ScoreReadyCount,
+    finalScoreReadyCount,
+    confirmedScheduleCalendarCount
+  ] as const;
 }
 
 export default async function TeacherDashboardPage() {

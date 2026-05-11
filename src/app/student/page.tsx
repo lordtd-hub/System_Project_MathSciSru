@@ -11,6 +11,7 @@ import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
@@ -163,12 +164,26 @@ export default async function StudentDashboardPage() {
             select: {
               id: true,
               role: true,
+              active: true,
+              teacherId: true,
               teacher: { select: { academicPrefix: true, firstNameTh: true, lastNameTh: true } }
             },
             orderBy: { appointedAt: "asc" }
           },
           scheduleProposals: {
-            select: { assessmentKind: true, status: true, proposedStartAt: true, proposedEndAt: true, room: true, approvals: { select: { decision: true } } },
+            select: {
+              assessmentKind: true,
+              status: true,
+              proposedStartAt: true,
+              proposedEndAt: true,
+              room: true,
+              approvals: {
+                select: {
+                  decision: true,
+                  teacher: { select: { academicPrefix: true, firstNameTh: true, lastNameTh: true } }
+                }
+              }
+            },
             orderBy: { createdAt: "desc" },
             take: 6
           },
@@ -193,6 +208,7 @@ export default async function StudentDashboardPage() {
               evaluatorAssignments: {
                 select: {
                   id: true,
+                  teacherId: true,
                   evaluatorDisplayNameSnapshot: true,
                   scoreSubmission: {
                     select: {
@@ -248,18 +264,20 @@ export default async function StudentDashboardPage() {
 
   const advisorRequest = project.advisorRequests[0];
   const waitingDays = daysWaiting(advisorRequest?.requestedAt);
-  const requiredCommitteeScores = project.committeeAssignments.filter((assignment) => assignment.role === "HEAD" || assignment.role === "MEMBER").length;
   const roundStatusByType = new Map(project.courseOffering.assessmentRounds.map((round) => [round.roundType, round.status]));
   const hasCompletedScores = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
-    const courseRoundClosed = ["SCORING_CLOSED", "RELEASED"].includes(roundStatusByType.get(roundType) ?? "");
-    if (courseRoundClosed) return true;
-    if (requiredCommitteeScores <= 0) return false;
-    for (const attempt of project.attempts.filter((item) => item.assessmentRound.roundType === roundType || item.attemptType === roundType)) {
-      const roundClosed = ["SCORING_CLOSED", "RELEASED"].includes(attempt.assessmentRound.status);
-      const submittedCount = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED").length;
-      if (roundClosed || submittedCount >= requiredCommitteeScores) return true;
-    }
-    return false;
+    return isPresentationAssessmentComplete({
+      roundStatus: roundStatusByType.get(roundType),
+      committeeAssignments: project.committeeAssignments,
+      scoreSubmissions: project.attempts
+        .filter((item) => item.assessmentRound.roundType === roundType || item.attemptType === roundType)
+        .flatMap((attempt) =>
+          attempt.evaluatorAssignments.map((assignment) => ({
+            teacherId: assignment.teacherId,
+            status: assignment.scoreSubmission?.status ?? null
+          }))
+        )
+    });
   };
   const assessmentStates = {
     PROGRESS_1: hasCompletedScores("PROGRESS_1") ? "COMPLETED" as const : "NOT_STARTED" as const,
@@ -280,6 +298,7 @@ export default async function StudentDashboardPage() {
   const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
   const latestSchedulePendingCount = Math.max(latestScheduleTotalCount - latestScheduleApprovedCount - latestScheduleRejectedCount, 0);
   const latestScheduleRoundLabel = assessmentKindLabel(latestSchedule?.assessmentKind);
+  const todayText = new Date().toLocaleDateString("th-TH", { dateStyle: "full", timeZone: "Asia/Bangkok" });
   const latestScheduleDateText = latestSchedule
     ? `${formatThaiScheduleRange(latestSchedule.proposedStartAt, latestSchedule.proposedEndAt)}${latestSchedule.room ? ` · ห้อง ${latestSchedule.room}` : ""}`
     : "";
@@ -406,6 +425,9 @@ export default async function StudentDashboardPage() {
         actions={<StatusBadge status={project.status} />}
       />
 
+      <div className="rounded-md border border-line bg-surface px-4 py-2 text-sm text-muted">
+        วันนี้ {todayText}
+      </div>
       <NextActionCard action={scheduleAwareStudentNextAction} />
 
       {latestSchedule?.status === "REJECTED" ? (
@@ -454,6 +476,74 @@ export default async function StudentDashboardPage() {
       ) : null}
 
       <LifecycleStepper status={project.status} />
+
+      <section className="panel">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand">Assessment & Committee Status</p>
+            <h2 className="mt-1 text-lg font-semibold">สถานะกรรมการ วันสอบ และผลประเมิน</h2>
+            <p className="mt-1 text-sm text-muted">รวมข้อมูลกรรมการ การอนุมัติวันสอบ และผลประเมินที่เปิดเผยแล้วไว้ในโมดูลเดียว</p>
+          </div>
+          <Link className="button-secondary" href="/student/schedule">ดูรายละเอียดรอบสอบ</Link>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-md border border-line bg-paper p-3">
+            <h3 className="text-sm font-semibold">กรรมการและที่ปรึกษา</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              {project.committeeAssignments.length ? (
+                project.committeeAssignments.map((assignment) => (
+                  <div key={assignment.id} className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface p-2">
+                    <span>{teacherDisplayName(assignment.teacher)}</span>
+                    <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs">{assignment.role}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted">ยังไม่มีการแต่งตั้งกรรมการสอบ</p>
+              )}
+            </div>
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <h3 className="text-sm font-semibold">สถานะการขอวันสอบ</h3>
+            {latestSchedule ? (
+              <div className="mt-3 space-y-3 text-sm">
+                <div>
+                  <div className="font-medium">{latestScheduleRoundLabel}</div>
+                  <p className="mt-1 text-muted">{latestScheduleDateText || "ยังไม่ระบุวันเวลา"} {latestSchedule.room ? `ห้อง ${latestSchedule.room}` : ""}</p>
+                  <p className="mt-1 text-muted">สถานะ: {latestSchedule.status} · อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount} · ไม่สะดวก {latestScheduleRejectedCount} · รอ {latestSchedulePendingCount}</p>
+                </div>
+                <div className="space-y-2">
+                  {latestSchedule.approvals.map((approval, index) => (
+                    <div key={index} className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface p-2">
+                      <span>{teacherDisplayName(approval.teacher)}</span>
+                      <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs">{approval.decision}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">ยังไม่มีการเสนอวันสอบ Progress/Final</p>
+            )}
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <h3 className="text-sm font-semibold">ผลการประเมินรอบสอบ</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              {visibleAssessmentResults.length ? (
+                visibleAssessmentResults.map((result) => (
+                  <div key={result.attempt.id} className="rounded-md border border-line bg-surface p-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{assessmentKindLabel(result.attempt.attemptType)}</span>
+                      <span className="text-xs text-muted">{result.submittedCount}/{result.evaluatorCount} คน</span>
+                    </div>
+                    {result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(result.averageScore)} / 100</p> : <p className="mt-1 text-muted">เปิด feedback แล้ว แต่ยังไม่เปิดคะแนน</p>}
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted">ยังไม่มีผลประเมินที่เปิดเผย</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {visibleAssessmentResults.length ? (
         <section className="panel">

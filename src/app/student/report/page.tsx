@@ -3,7 +3,6 @@ import { submitReportVersion } from "@/app/student/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, SuccessAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { FormSection } from "@/components/ui/FormSection";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
@@ -14,6 +13,7 @@ import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { getReportSubmissionGate, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
@@ -34,6 +34,23 @@ export default async function StudentReportPage({
       projects: {
         orderBy: { createdAt: "desc" },
         include: {
+          courseOffering: {
+            select: {
+              assessmentRounds: { where: { roundType: "FINAL_PRESENTATION" }, select: { status: true }, take: 1 }
+            }
+          },
+          committeeAssignments: { select: { teacherId: true, role: true, active: true } },
+          attempts: {
+            where: { attemptType: "FINAL_PRESENTATION" },
+            select: {
+              evaluatorAssignments: {
+                select: {
+                  teacherId: true,
+                  scoreSubmission: { select: { status: true } }
+                }
+              }
+            }
+          },
           reportVersions: {
             include: { reviews: { include: { reviewerTeacher: true }, orderBy: { reviewedAt: "desc" } } },
             orderBy: { versionNo: "desc" }
@@ -57,17 +74,16 @@ export default async function StudentReportPage({
 
   const latestReport = project.reportVersions[0];
   const finalPresentationCompleted = project.status === "IN_PROGRESS"
-    ? Boolean(await prisma.assessmentAttempt.findFirst({
-        where: {
-          projectId: project.id,
-          assessmentRound: { roundType: "FINAL_PRESENTATION" },
-          OR: [
-            { assessmentRound: { status: { in: ["SCORING_CLOSED", "RELEASED"] } } },
-            { evaluatorAssignments: { some: { scoreSubmission: { is: { status: "SUBMITTED" } } } } }
-          ]
-        },
-        select: { id: true }
-      }))
+    ? isPresentationAssessmentComplete({
+        roundStatus: project.courseOffering.assessmentRounds[0]?.status,
+        committeeAssignments: project.committeeAssignments,
+        scoreSubmissions: project.attempts.flatMap((attempt) =>
+          attempt.evaluatorAssignments.map((assignment) => ({
+            teacherId: assignment.teacherId,
+            status: assignment.scoreSubmission?.status ?? null
+          }))
+        )
+      })
     : false;
   const gate = getReportSubmissionGate({
     projectStatus: project.status,
@@ -107,7 +123,6 @@ export default async function StudentReportPage({
               <p>สมการ รูปภาพ ตาราง และเอกสารอ้างอิงควรมีรูปแบบสม่ำเสมอเพื่อใช้เป็นหลักฐาน QA/AUN-QA</p>
             </div>
           </section>
-          <FinalQaRubricPanel audience="student" />
         </div>
       )}
 
@@ -119,6 +134,17 @@ export default async function StudentReportPage({
             label="สรุปการแก้ไข / ตอบกลับ comment ผู้ตรวจ"
             required={false}
             rows={4}
+            placeholder={`ตัวอย่างการตอบกลับ comment ผู้ตรวจ
+
+ข้อเสนอแนะที่ 1: ระบุข้อเสนอแนะของผู้ตรวจ
+การแก้ไขที่ดำเนินการ: แก้ไขตามข้อเสนอแนะโดยปรับนิยาม/คำอธิบายในหัวข้อ ...
+ตำแหน่งที่แก้ไขในเล่ม: บทที่ ... หน้า ... หัวข้อ ...
+หลักฐานหรือเหตุผลประกอบ: เพิ่มตาราง/รูป/การพิสูจน์/ผลการทดลอง ... แล้ว
+
+ข้อเสนอแนะที่ 2: ...
+การแก้ไขที่ดำเนินการ: ...
+ตำแหน่งที่แก้ไขในเล่ม: ...
+หมายเหตุ: หากไม่ได้แก้ตามข้อเสนอแนะ ให้ระบุเหตุผลเชิงวิชาการอย่างชัดเจน`}
             disabled={!gate.allowed}
           />
           <div className="flex flex-col gap-2 sm:flex-row">

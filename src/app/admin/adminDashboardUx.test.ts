@@ -17,6 +17,14 @@ describe("admin dashboard duplicate and batch round UX", () => {
     expect(pageSource).toContain("openCourseRound");
   });
 
+  it("surfaces a current-round focus panel for admin workflow priority", () => {
+    expect(pageSource).toContain("deriveAdminCurrentRoundFocus");
+    expect(pageSource).toContain("Current round focus");
+    expect(pageSource).toContain("roundFocus.items.map");
+    expect(pageSource).toContain('href: "/admin/schedules"');
+    expect(pageSource).toContain('href: "/admin/closeout"');
+  });
+
   it("shows a compact development duplicate warning with the reset command", () => {
     expect(pageSource).toContain("พบข้อมูล demo ซ้ำ");
     expect(pageSource).toContain("cmd /c npm.cmd run dev:reset-demo");
