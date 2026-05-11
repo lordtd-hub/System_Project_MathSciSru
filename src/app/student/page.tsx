@@ -418,9 +418,9 @@ export default async function StudentDashboardPage() {
     });
   const visibleResultByRound = new Map(visibleAssessmentResults.map((result) => [result.attempt.assessmentRound.roundType, result]));
   const assessmentResultCards = [
-    { roundType: "PROGRESS_1" as const, label: "Progress 1", href: "/student/feedback#progress-1" },
-    { roundType: "PROGRESS_2" as const, label: "Progress 2", href: "/student/feedback#progress-2" },
-    { roundType: "FINAL_PRESENTATION" as const, label: "Final Presentation", href: "/student/feedback#final" }
+    { roundType: "PROGRESS_1" as const, label: "Progress 1", href: "/student/feedback?round=progress-1#progress-1" },
+    { roundType: "PROGRESS_2" as const, label: "Progress 2", href: "/student/feedback?round=progress-2#progress-2" },
+    { roundType: "FINAL_PRESENTATION" as const, label: "Final Presentation", href: "/student/feedback?round=final#final" }
   ].map((round) => ({ ...round, result: visibleResultByRound.get(round.roundType) }));
   timer.end();
 

@@ -17,8 +17,8 @@ describe("student dashboard source", () => {
     expect(page).toContain("วันสอบล่าสุด:");
     expect(page).toContain("ผลการประเมินรอบสอบ");
     expect(page).toContain("assessmentResultCards");
-    expect(page).toContain("/student/feedback#progress-1");
-    expect(page).toContain("/student/feedback#progress-2");
-    expect(page).toContain("/student/feedback#final");
+    expect(page).toContain("/student/feedback?round=progress-1#progress-1");
+    expect(page).toContain("/student/feedback?round=progress-2#progress-2");
+    expect(page).toContain("/student/feedback?round=final#final");
   });
 });
