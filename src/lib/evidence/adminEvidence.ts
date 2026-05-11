@@ -1,7 +1,7 @@
 import type { AssessmentRoundType, ProjectStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { roundTypeLabelTh } from "@/lib/assessments/courseRounds";
-import { evidenceEventLabel } from "@/lib/evidence/eventLabels";
+import { evidenceEventLabel, evidenceTimelineTitle } from "@/lib/evidence/eventLabels";
 import { projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import type { CsvValue } from "./csv";
 
@@ -409,7 +409,7 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
     recentTimelineEvents: recentTimelineEvents.map((event) => ({
       id: event.id,
       projectId: event.projectId,
-      eventTitle: event.eventTitle,
+      eventTitle: evidenceTimelineTitle(event.eventTitle),
       eventType: evidenceEventLabel(event.eventType),
       occurredAt: event.occurredAt,
       actorName: event.actor?.name ?? event.actor?.email ?? "ระบบ",

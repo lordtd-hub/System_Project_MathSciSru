@@ -16,6 +16,7 @@ describe("advisor score workflow source guards", () => {
   it("shows advisor score as read-only after the advisor has submitted", () => {
     const page = read("src/app/teacher/advisor-score/page.tsx");
     expect(page).toContain("const submitted = previous?.status === \"SUBMITTED\" && previous.score != null");
+    expect(page).toContain('"COMPLETED"');
     expect(page).toContain("บันทึกคะแนนสรุปแล้ว");
     expect(page).toContain("advisorScoreSummary(previous)");
   });

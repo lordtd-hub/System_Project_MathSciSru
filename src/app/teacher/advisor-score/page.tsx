@@ -72,7 +72,7 @@ export default async function TeacherAdvisorScorePage({
         { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } },
         { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: "ADVISOR" } } }
       ],
-      status: { in: ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING"] }
+      status: { in: ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] }
     },
     include: {
       student: true,

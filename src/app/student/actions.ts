@@ -690,7 +690,7 @@ export async function submitReportVersion(formData: FormData) {
       data: {
         projectId: project.id,
         eventType: "REPORT_VERSION_SUBMITTED",
-        eventTitle: `ส่งเล่มรายงาน version ${versionNo}`,
+        eventTitle: `ส่งเล่มรายงานฉบับที่ ${versionNo}`,
         eventDescription: note || null,
         actorUserId: userId,
         relatedEntityType: "ReportVersion",
