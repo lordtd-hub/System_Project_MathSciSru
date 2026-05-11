@@ -185,7 +185,7 @@ export default async function StudentDashboardPage() {
               }
             },
             orderBy: { createdAt: "desc" },
-            take: 6
+            take: 12
           },
           reportVersions: { select: { versionNo: true }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
@@ -287,12 +287,13 @@ export default async function StudentDashboardPage() {
   const nextAction = getNextActionForStudent(project.status);
   const workflowActions = getStudentAvailableActions(project.status, assessmentStates);
   const proposal = project.presentationSubmissions[0];
-  const latestSchedule = project.scheduleProposals.find((schedule) => {
+  const activeSchedule = project.scheduleProposals.find((schedule) => {
     if (schedule.assessmentKind === "PROGRESS_1") return assessmentStates.PROGRESS_1 !== "COMPLETED";
     if (schedule.assessmentKind === "PROGRESS_2") return assessmentStates.PROGRESS_2 !== "COMPLETED";
     if (schedule.assessmentKind === "FINAL_PRESENT") return assessmentStates.FINAL_PRESENT !== "COMPLETED";
     return true;
   });
+  const latestSchedule = activeSchedule ?? project.scheduleProposals[0];
   const latestScheduleApprovedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "APPROVE").length ?? 0;
   const latestScheduleRejectedCount = latestSchedule?.approvals.filter((approval) => approval.decision === "REJECT").length ?? 0;
   const latestScheduleTotalCount = latestSchedule?.approvals.length ?? 0;
@@ -415,6 +416,12 @@ export default async function StudentDashboardPage() {
       const order = { PROGRESS_1: 1, PROGRESS_2: 2, FINAL_PRESENTATION: 3 } as const;
       return (order[a.attempt.assessmentRound.roundType as keyof typeof order] ?? 99) - (order[b.attempt.assessmentRound.roundType as keyof typeof order] ?? 99);
     });
+  const visibleResultByRound = new Map(visibleAssessmentResults.map((result) => [result.attempt.assessmentRound.roundType, result]));
+  const assessmentResultCards = [
+    { roundType: "PROGRESS_1" as const, label: "Progress 1", href: "/student/feedback#progress-1" },
+    { roundType: "PROGRESS_2" as const, label: "Progress 2", href: "/student/feedback#progress-2" },
+    { roundType: "FINAL_PRESENTATION" as const, label: "Final Presentation", href: "/student/feedback#final" }
+  ].map((round) => ({ ...round, result: visibleResultByRound.get(round.roundType) }));
   timer.end();
 
   return (
@@ -484,7 +491,7 @@ export default async function StudentDashboardPage() {
           </div>
           <Link className="button-secondary" href="/student/schedule">ดูรายละเอียดรอบสอบ</Link>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <div className="rounded-md border border-line bg-paper p-3">
             <h3 className="text-sm font-semibold">กรรมการและที่ปรึกษา</h3>
             <div className="mt-3 space-y-2 text-sm">
@@ -499,45 +506,40 @@ export default async function StudentDashboardPage() {
                 <p className="text-muted">ยังไม่มีการแต่งตั้งกรรมการสอบ</p>
               )}
             </div>
-          </div>
-          <div className="rounded-md border border-line bg-paper p-3">
-            <h3 className="text-sm font-semibold">สถานะการขอวันสอบ</h3>
-            {latestSchedule ? (
-              <div className="mt-3 space-y-3 text-sm">
-                <div>
-                  <div className="font-medium">{latestScheduleRoundLabel}</div>
-                  <p className="mt-1 text-muted">{latestScheduleDateText || "ยังไม่ระบุวันเวลา"} {latestSchedule.room ? `ห้อง ${latestSchedule.room}` : ""}</p>
-                  <p className="mt-1 text-muted">สถานะ: {latestSchedule.status} · อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount} · ไม่สะดวก {latestScheduleRejectedCount} · รอ {latestSchedulePendingCount}</p>
-                </div>
-                <div className="space-y-2">
-                  {latestSchedule.approvals.map((approval, index) => (
-                    <div key={index} className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface p-2">
-                      <span>{teacherDisplayName(approval.teacher)}</span>
-                      <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs">{approval.decision}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted">ยังไม่มีการเสนอวันสอบ Progress/Final</p>
-            )}
+            <div className="mt-3 border-t border-line pt-3 text-xs leading-5 text-muted">
+              {latestSchedule ? (
+                <p>
+                  <span className="font-semibold text-ink">วันสอบล่าสุด:</span> {latestScheduleRoundLabel} · {latestScheduleDateText || "ยังไม่ระบุวันเวลา"} · {latestSchedule.status}
+                  {" "}· อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount}
+                  {latestScheduleRejectedCount ? ` · ไม่สะดวก ${latestScheduleRejectedCount}` : ""}
+                  {latestSchedulePendingCount ? ` · รอ ${latestSchedulePendingCount}` : ""}
+                </p>
+              ) : (
+                <p>ยังไม่มีการเสนอวันสอบ Progress/Final</p>
+              )}
+            </div>
           </div>
           <div className="rounded-md border border-line bg-paper p-3">
             <h3 className="text-sm font-semibold">ผลการประเมินรอบสอบ</h3>
             <div className="mt-3 space-y-2 text-sm">
-              {visibleAssessmentResults.length ? (
-                visibleAssessmentResults.map((result) => (
-                  <div key={result.attempt.id} className="rounded-md border border-line bg-surface p-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">{assessmentKindLabel(result.attempt.attemptType)}</span>
-                      <span className="text-xs text-muted">{result.submittedCount}/{result.evaluatorCount} คน</span>
-                    </div>
-                    {result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(result.averageScore)} / 100</p> : <p className="mt-1 text-muted">เปิด feedback แล้ว แต่ยังไม่เปิดคะแนน</p>}
+              {assessmentResultCards.map((item) => (
+                <Link key={item.roundType} className="block rounded-md border border-line bg-surface p-2 hover:border-brand" href={item.href}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{item.label}</span>
+                    <span className="text-xs text-muted">
+                      {item.result ? `${item.result.submittedCount}/${item.result.evaluatorCount} คน` : "ยังไม่เปิดผล"}
+                    </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-muted">ยังไม่มีผลประเมินที่เปิดเผย</p>
-              )}
+                  {item.result ? (
+                    <div className="flex items-center justify-between gap-3">
+                      {item.result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(item.result.averageScore)} / 100</p> : <p className="mt-1 text-muted">ดู comment ได้ คะแนนยังไม่เปิด</p>}
+                      <span className="text-xs font-semibold text-brand">ดูรายละเอียด</span>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-muted">จะแสดง comment/คะแนนเมื่อระบบเปิดผลหรือกรรมการบันทึกตามเงื่อนไข</p>
+                  )}
+                </Link>
+              ))}
             </div>
           </div>
         </div>

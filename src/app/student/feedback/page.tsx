@@ -2,9 +2,35 @@ import { auth } from "@/auth";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { prisma } from "@/lib/db";
 
+function assessmentLabel(roundType?: string | null) {
+  if (roundType === "PROGRESS_1") return "Progress 1";
+  if (roundType === "PROGRESS_2") return "Progress 2";
+  if (roundType === "FINAL_PRESENTATION") return "Final Presentation";
+  return "รอบสอบ";
+}
+
+function assessmentAnchor(roundType?: string | null) {
+  if (roundType === "PROGRESS_1") return "progress-1";
+  if (roundType === "PROGRESS_2") return "progress-2";
+  if (roundType === "FINAL_PRESENTATION") return "final";
+  return undefined;
+}
+
+function scoreAverage(scores: number[]) {
+  if (!scores.length) return null;
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+}
+
+function formatScore(score: number | null) {
+  if (score === null) return "-";
+  return Number.isInteger(score) ? String(score) : score.toFixed(2);
+}
+
 export default async function StudentFeedbackPage() {
   const session = await auth();
-  if (session?.user.role !== "STUDENT" || !session.user.email) return <div className="panel">หน้านี้สำหรับนักศึกษาเท่านั้น</div>;
+  if (session?.user.role !== "STUDENT" || !session.user.email) {
+    return <div className="panel">หน้านี้สำหรับนักศึกษาเท่านั้น</div>;
+  }
 
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
@@ -13,11 +39,13 @@ export default async function StudentFeedbackPage() {
         include: {
           attempts: {
             include: {
+              assessmentRound: true,
               scoreRelease: true,
               proposalResult: true,
               proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "asc" } },
               evaluatorAssignments: { include: { scoreSubmission: { include: { proposalDecision: true } } } }
-            }
+            },
+            orderBy: { createdAt: "asc" }
           }
         }
       }
@@ -27,55 +55,120 @@ export default async function StudentFeedbackPage() {
     return <div className="panel">ยังไม่พบข้อมูลนักศึกษาใน roster ที่นำเข้า</div>;
   }
 
-  const attempt = student?.projects[0]?.attempts.find((item) => item.attemptType === "MAIN_PROPOSAL");
+  const project = student.projects[0];
+  const proposalAttempt = project?.attempts.find((item) => item.attemptType === "MAIN_PROPOSAL");
+  const presentationAttempts = (project?.attempts ?? [])
+    .filter((item) => ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"].includes(item.assessmentRound?.roundType ?? item.attemptType))
+    .map((item) => {
+      const showScore = item.assessmentRound?.showScoreToStudent || item.scoreRelease?.showScore;
+      const showFeedback =
+        item.assessmentRound?.showFeedbackToStudent ||
+        item.scoreRelease?.showFeedback ||
+        item.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.overallComment);
+      const submittedScores = item.evaluatorAssignments
+        .map((assignment) => assignment.scoreSubmission)
+        .filter((score) => score?.status === "SUBMITTED" || score?.status === "LOCKED");
+      const scores = submittedScores.map((score) => Number(score?.totalScore ?? 0));
+      return {
+        attempt: item,
+        showScore,
+        showFeedback,
+        submittedCount: submittedScores.length,
+        evaluatorCount: item.evaluatorAssignments.length,
+        averageScore: item.officialScore != null ? Number(item.officialScore) : scoreAverage(scores)
+      };
+    })
+    .filter((item) => item.showScore || item.showFeedback || item.submittedCount > 0);
 
-  if (!attempt) {
-    return <div className="panel">ยังไม่มี feedback Proposal</div>;
+  if (!proposalAttempt && !presentationAttempts.length) {
+    return <div className="panel">ยังไม่มี feedback หรือผลประเมินที่เปิดเผย</div>;
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">ผลและ feedback Proposal</h1>
-      <section className="panel">
-        <h2 className="font-semibold">ผลตัดสินสุดท้าย</h2>
-        <p className="mt-2">{attempt.proposalResult?.finalDecision ?? "รอ Admin ตัดสินผล"}</p>
-        {attempt.proposalResult?.finalDecisionReason ? (
-          <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-sm text-muted" value={attempt.proposalResult.finalDecisionReason} />
-        ) : null}
-        <p className="mt-2 text-sm text-muted">Lifecycle v2: นักศึกษาเห็น comment ทันที แต่ไม่เห็นคะแนน Proposal</p>
-      </section>
-      <section className="panel">
-        <h2 className="font-semibold">ข้อเสนอแนะจากกรรมการ Proposal</h2>
-        <div className="mt-3 space-y-3">
-          {attempt.proposalVotes.length ? (
-            attempt.proposalVotes.map((vote) => (
-              <div key={vote.id} className="rounded-md border border-line p-3 text-sm">
-                <div className="font-medium">
-                  {vote.teacher.academicPrefix}
-                  {vote.teacher.firstNameTh} {vote.teacher.lastNameTh}
+      <h1 className="text-2xl font-semibold">ผลและ feedback การประเมิน</h1>
+      {proposalAttempt ? (
+        <>
+          <section id="proposal" className="panel scroll-mt-24">
+            <h2 className="font-semibold">ผลตัดสิน Proposal</h2>
+            <p className="mt-2">{proposalAttempt.proposalResult?.finalDecision ?? "รอ Admin ตัดสินผล"}</p>
+            {proposalAttempt.proposalResult?.finalDecisionReason ? (
+              <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-sm text-muted" value={proposalAttempt.proposalResult.finalDecisionReason} />
+            ) : null}
+            <p className="mt-2 text-sm text-muted">Lifecycle v2: นักศึกษาเห็น comment ทันที แต่ไม่เห็นคะแนน Proposal</p>
+          </section>
+          <section className="panel">
+            <h2 className="font-semibold">ข้อเสนอแนะจากกรรมการ Proposal</h2>
+            <div className="mt-3 space-y-3">
+              {proposalAttempt.proposalVotes.length ? (
+                proposalAttempt.proposalVotes.map((vote) => (
+                  <div key={vote.id} className="rounded-md border border-line p-3 text-sm">
+                    <div className="font-medium">
+                      {vote.teacher.academicPrefix}
+                      {vote.teacher.firstNameTh} {vote.teacher.lastNameTh}
+                    </div>
+                    <div className="text-muted">Vote: {vote.vote}</div>
+                    {vote.comment ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={vote.comment} /> : null}
+                  </div>
+                ))
+              ) : (
+                proposalAttempt.evaluatorAssignments
+                  .filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
+                  .map((assignment) => (
+                    <div key={assignment.id} className="rounded-md border border-line p-3 text-sm">
+                      <div className="font-medium">{assignment.evaluatorDisplayNameSnapshot}</div>
+                      <div className="text-muted">ผล: {assignment.scoreSubmission?.proposalDecision?.decision}</div>
+                      {assignment.scoreSubmission?.proposalDecision?.reason ? (
+                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.proposalDecision.reason} />
+                      ) : null}
+                      {assignment.scoreSubmission?.overallComment ? (
+                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.overallComment} />
+                      ) : null}
+                    </div>
+                  ))
+              )}
+            </div>
+          </section>
+        </>
+      ) : null}
+      {presentationAttempts.length ? (
+        <section className="panel">
+          <h2 className="font-semibold">ผลการประเมิน Progress/Final</h2>
+          <div className="mt-3 space-y-4">
+            {presentationAttempts.map((result) => (
+              <div key={result.attempt.id} id={assessmentAnchor(result.attempt.assessmentRound?.roundType)} className="scroll-mt-24 rounded-md border border-line p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">{assessmentLabel(result.attempt.assessmentRound?.roundType)}</h3>
+                    <p className="mt-1 text-sm text-muted">กรรมการบันทึกคะแนน {result.submittedCount}/{result.evaluatorCount} คน</p>
+                  </div>
+                  <div className="rounded-md border border-line bg-paper px-3 py-2 text-sm font-semibold">
+                    {result.showScore ? `${formatScore(result.averageScore)} / 100` : "ยังไม่เปิดคะแนน"}
+                  </div>
                 </div>
-                <div className="text-muted">Vote: {vote.vote}</div>
-                {vote.comment ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={vote.comment} /> : null}
+                <div className="mt-3 space-y-2">
+                  {result.attempt.evaluatorAssignments
+                    .filter((assignment) => assignment.scoreSubmission?.overallComment || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
+                    .map((assignment) => (
+                      <div key={assignment.id} className="rounded-md border border-line bg-paper p-3 text-sm">
+                        <div className="font-medium">
+                          {result.attempt.assessmentRound?.showEvaluatorNameToStudent || result.attempt.assessmentRound?.status === "SCORING_CLOSED"
+                            ? assignment.evaluatorDisplayNameSnapshot
+                            : "กรรมการ"}
+                        </div>
+                        {assignment.scoreSubmission?.overallComment ? (
+                          <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.overallComment} />
+                        ) : (
+                          <p className="mt-1 text-muted">ยังไม่มี comment ที่เปิดเผย</p>
+                        )}
+                      </div>
+                    ))}
+                </div>
               </div>
-            ))
-          ) : (
-            attempt.evaluatorAssignments
-              .filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
-              .map((assignment) => (
-                <div key={assignment.id} className="rounded-md border border-line p-3 text-sm">
-                  <div className="font-medium">{assignment.evaluatorDisplayNameSnapshot}</div>
-                  <div className="text-muted">ผล: {assignment.scoreSubmission?.proposalDecision?.decision}</div>
-                  {assignment.scoreSubmission?.proposalDecision?.reason ? (
-                    <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.proposalDecision.reason} />
-                  ) : null}
-                  {assignment.scoreSubmission?.overallComment ? (
-                    <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.overallComment} />
-                  ) : null}
-                </div>
-              ))
-          )}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
