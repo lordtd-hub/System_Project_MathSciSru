@@ -72,6 +72,7 @@ export default async function TeacherReportsPage({
           projects.map((project) => {
             const latestReport = project.reportVersions[0];
             const previousReview = latestReport?.reviews.find((review) => review.reviewerTeacherId === teacher.id);
+            const hasSubmittedCurrentReview = Boolean(previousReview);
             const requiredReviewerIds = requiredReportReviewerIds(project.committeeAssignments, project.advisorRequests);
             const allPassed = allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReport?.reviews ?? [] });
             const latestReportHasRevisionRequest = latestReport?.reviews.some((review) => review.decision === "FAIL") ?? false;
@@ -147,7 +148,19 @@ export default async function TeacherReportsPage({
                       </div>
                     ) : null}
 
-                    {project.status === "REPORT_REVIEW" && !latestReportHasRevisionRequest ? (
+                    {project.status === "REPORT_REVIEW" && hasSubmittedCurrentReview ? (
+                      <div className="rounded-md border border-line bg-paper p-3 text-sm">
+                        <div className="font-semibold text-ink">บันทึกผลตรวจของท่านแล้ว</div>
+                        <p className="mt-1 text-muted">
+                          {previousReview?.decision === "PASS"
+                            ? "ท่านอนุมัติรายงานฉบับล่าสุดแล้ว กรุณารอผู้ตรวจท่านอื่นดำเนินการให้ครบ"
+                            : "ท่านขอให้นักศึกษาแก้ไขรายงานฉบับล่าสุดแล้ว กรุณารอรายงานฉบับแก้ไขก่อนตรวจอีกครั้ง"}
+                        </p>
+                        {previousReview?.comment ? (
+                          <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={previousReview.comment} />
+                        ) : null}
+                      </div>
+                    ) : project.status === "REPORT_REVIEW" && !latestReportHasRevisionRequest ? (
                       <form action={reviewReportVersion} className="space-y-4">
                         <input type="hidden" name="report_version_id" value={latestReport.id} />
                         <MarkdownLatexEditor

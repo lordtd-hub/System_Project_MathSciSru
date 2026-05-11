@@ -62,6 +62,9 @@ function buildStudentTasks(status: string): TaskListItem[] {
   if (status === "REPORT_REVIEW") {
     return [{ title: "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข", description: "ส่งได้เมื่อผู้ตรวจขอให้แก้ไขเล่มรายงาน", href: "/student/report" }];
   }
+  if (status === "COMPLETED") {
+    return [];
+  }
   return [{ title: "ติดตามสถานะ", description: "ขั้นตอนนี้กำลังรอบุคคลที่เกี่ยวข้องดำเนินการ", urgency: "รอคนอื่น" }];
 }
 

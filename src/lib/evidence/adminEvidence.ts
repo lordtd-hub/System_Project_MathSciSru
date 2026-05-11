@@ -1,6 +1,7 @@
 import type { AssessmentRoundType, ProjectStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { roundTypeLabelTh } from "@/lib/assessments/courseRounds";
+import { evidenceEventLabel } from "@/lib/evidence/eventLabels";
 import { projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import type { CsvValue } from "./csv";
 
@@ -189,17 +190,18 @@ export function buildRubricEvidenceRows(rubrics: EvidenceRubric[], scoreSubmissi
     scoreByRound.set(roundType, [...(scoreByRound.get(roundType) ?? []), score]);
   }
 
-  return rubrics.map((rubric) => {
+  return rubrics.flatMap((rubric) => {
     const roundScores = scoreByRound.get(rubric.roundType) ?? [];
     const scores = roundScores.filter((score) => score.scoreItems.some((item) => item.rubricItem.rubricId === rubric.id));
     const submittedScores = scores.filter((score) => score.status === "SUBMITTED");
+    if (!submittedScores.length && !scores.length) return [];
     const totalScore = submittedScores.reduce((sum, score) => sum + Number(score.totalScore), 0);
     const scoreItemCount = scores.reduce(
       (sum, score) => sum + score.scoreItems.filter((item) => item.rubricItem.rubricId === rubric.id).length,
       0
     );
 
-    return {
+    return [{
       roundType: rubric.roundType,
       roundLabel: roundTypeLabelTh(rubric.roundType),
       rubricName: `${rubric.name} v${rubric.version}`,
@@ -208,7 +210,7 @@ export function buildRubricEvidenceRows(rubrics: EvidenceRubric[], scoreSubmissi
       scoreItemCount,
       evaluatorCount: new Set(scores.map((score) => score.evaluatorAssignment.evaluatorUserId)).size,
       averageScore: submittedScores.length ? Math.round((totalScore / submittedScores.length) * 100) / 100 : null
-    };
+    }];
   });
 }
 
@@ -408,7 +410,7 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
       id: event.id,
       projectId: event.projectId,
       eventTitle: event.eventTitle,
-      eventType: event.eventType,
+      eventType: evidenceEventLabel(event.eventType),
       occurredAt: event.occurredAt,
       actorName: event.actor?.name ?? event.actor?.email ?? "ระบบ",
       projectTitle: event.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
@@ -416,7 +418,7 @@ export async function getEvidenceDashboardData(courseOfferingId?: string): Promi
     })),
     recentAuditLogs: recentAuditLogs.map((log) => ({
       id: log.id,
-      action: log.action,
+      action: evidenceEventLabel(log.action),
       entityType: log.entityType,
       entityId: log.entityId,
       occurredAt: log.occurredAt,

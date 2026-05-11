@@ -13,7 +13,7 @@ export const projectStatusLabelsTh: Record<ProjectStatus, string> = {
   FINAL_DONE: "การสอบนำเสนอขั้นสุดท้ายเสร็จสิ้น",
   REPORT_REVIEW: "อยู่ระหว่างตรวจรายงานฉบับสมบูรณ์",
   REPORT_APPROVED: "รายงานฉบับสมบูรณ์ผ่านการตรวจ",
-  ADVISOR_SCORING: "รออาจารย์ที่ปรึกษาบันทึกคะแนนสรุป",
+  ADVISOR_SCORING: "ช่วงคะแนนที่ปรึกษา/ยืนยันจบโครงงาน",
   COMPLETED: "โครงงานเสร็จสมบูรณ์",
   ORIGIN_SUBMITTED: "ส่งข้อมูลที่มาหัวข้อแล้ว (สถานะเดิม)",
   PROPOSAL_SUBMITTED: "ส่งเอกสารเสนอหัวข้อแล้ว (สถานะเดิม)",

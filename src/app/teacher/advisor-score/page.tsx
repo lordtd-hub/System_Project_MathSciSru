@@ -5,6 +5,7 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
+import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -31,6 +32,22 @@ function previousValue(score: {
   if (key === "communication") return score.communicationScore ?? 0;
   if (key === "professionalism") return score.professionalismScore ?? 0;
   return 0;
+}
+
+function advisorScoreSummary(score: {
+  responsibilityScore: number | null;
+  researchProcessScore: number | null;
+  problemSolvingScore: number | null;
+  communicationScore: number | null;
+  professionalismScore: number | null;
+}) {
+  return [
+    { label: "ความรับผิดชอบและตรงต่อเวลา", value: score.responsibilityScore, max: 25 },
+    { label: "กระบวนการทำงานวิจัยและความเป็นอิสระ", value: score.researchProcessScore, max: 25 },
+    { label: "การแก้ปัญหาและการปรับปรุงงาน", value: score.problemSolvingScore, max: 25 },
+    { label: "การสื่อสารกับอาจารย์ที่ปรึกษา", value: score.communicationScore, max: 15 },
+    { label: "ความเป็นมืออาชีพโดยรวม", value: score.professionalismScore, max: 10 }
+  ];
 }
 
 export default async function TeacherAdvisorScorePage({
@@ -82,8 +99,9 @@ export default async function TeacherAdvisorScorePage({
       <div className="space-y-4">
         {projects.length ? (
           projects.map((project) => {
-            const editable = project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING";
             const previous = project.advisorScore;
+            const submitted = previous?.status === "SUBMITTED" && previous.score != null;
+            const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
             const latestReport = project.reportVersions[0];
             return (
               <section key={project.id} className="panel">
@@ -102,7 +120,31 @@ export default async function TeacherAdvisorScorePage({
                   {previous?.status === "SUBMITTED" ? `บันทึกแล้ว ${Number(previous.score ?? 0)}/100` : editable ? "พร้อมบันทึก" : "ยังล็อก"}
                 </div>
 
-                {!editable ? (
+                {submitted ? (
+                  <div className="mt-4 space-y-4 rounded-md border border-line bg-paper p-3 text-sm">
+                    <div>
+                      <div className="font-semibold text-ink">บันทึกคะแนนสรุปแล้ว</div>
+                      <p className="mt-1 text-muted">
+                        คะแนนรวม {Number(previous.score ?? 0)}/100
+                        {previous.submittedAt ? ` · ${previous.submittedAt.toLocaleString("th-TH")}` : ""}
+                      </p>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {advisorScoreSummary(previous).map((item) => (
+                        <div key={item.label} className="rounded-md border border-line bg-surface p-2">
+                          <div className="font-medium">{item.label}</div>
+                          <div className="mt-1 text-muted">{item.value ?? 0}/{item.max}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {previous.comment ? (
+                      <div className="rounded-md border border-line bg-surface p-3">
+                        <div className="font-semibold text-ink">ข้อเสนอแนะสำหรับนักศึกษา</div>
+                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={previous.comment} />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : !editable ? (
                   <div className="mt-4 rounded-md border border-line p-3 text-sm text-muted">
                     ยังไม่สามารถบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาได้ ต้องรอให้เล่มรายงานผ่านการตรวจก่อน
                   </div>
@@ -114,7 +156,8 @@ export default async function TeacherAdvisorScorePage({
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         {advisorCriteria.map((criterion) => (
                           <label key={criterion.key} className="rounded-md border border-line bg-surface p-3 text-sm">
-                            <span className="font-medium">{criterion.label}</span>
+                            <span className="font-medium">{criterion.labelTh}</span>
+                            <span className="ml-2 text-xs text-muted">{criterion.labelEn}</span>
                             <span className="ml-2 text-muted">เต็ม {criterion.max}</span>
                             <input
                               className="mt-2"

@@ -13,9 +13,9 @@ function percent(value: number, total: number) {
 
 const exportItems = [
   { kind: "projects", label: "หลักฐานรายโครงงาน" },
-  { kind: "timeline", label: "Timeline events" },
-  { kind: "scores", label: "Rubric score evidence" },
-  { kind: "reports", label: "Report reviews" },
+  { kind: "timeline", label: "เหตุการณ์หลักฐาน" },
+  { kind: "scores", label: "หลักฐานคะแนนตามเกณฑ์" },
+  { kind: "reports", label: "ผลตรวจรายงาน" },
   { kind: "audit", label: "ประวัติการดำเนินการทั้งระบบ" }
 ] as const;
 

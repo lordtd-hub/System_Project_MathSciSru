@@ -31,6 +31,8 @@ function ChecklistRow({ label, done }: { label: string; done: boolean }) {
 
 function CloseoutCard({ project, eligibility }: { project: CloseoutProject; eligibility: CompletionEligibility }) {
   const completed = project.status === "COMPLETED";
+  const displayStatus =
+    completed ? "โครงงานเสร็จสมบูรณ์" : eligibility.hasAdvisorScore ? "พร้อมให้ผู้ดูแลระบบยืนยันจบโครงงาน" : undefined;
   return (
     <article className="panel space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -40,7 +42,7 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
           </div>
           <h2 className="mt-1 text-lg font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
         </div>
-        <StatusBadge status={project.status} />
+        <StatusBadge status={project.status} label={displayStatus} />
       </div>
 
       <div className="grid gap-2 md:grid-cols-2">

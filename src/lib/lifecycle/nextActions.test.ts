@@ -39,6 +39,14 @@ describe("next action helpers", () => {
     expect(afterFinal.blocked_waiting_for.map((item) => item.key)).not.toContain("waiting_after_final");
   });
 
+  it("keeps completed projects out of pending student action groups", () => {
+    const completed = getStudentAvailableActions("COMPLETED");
+    expect(completed.available_now).toEqual([]);
+    expect(completed.blocked_waiting_for).toEqual([]);
+    expect(completed.locked_future).toEqual([]);
+    expect(completed.read_only_history.map((item) => item.key)).toEqual(["all_history"]);
+  });
+
   it("makes completed assessment cards read-only and future cards locked", () => {
     expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).editable).toBe(false);
     expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).buttonLabel).toBe("ดูข้อเสนอแนะ");

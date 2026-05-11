@@ -52,7 +52,7 @@ describe("admin evidence summaries", () => {
       ]
     );
 
-    expect(rows.find((row) => row.rubricName === "Progress 1 v1")?.scoreSubmissionCount).toBe(0);
+    expect(rows.find((row) => row.rubricName === "Progress 1 v1")).toBeUndefined();
     expect(rows.find((row) => row.rubricName === "Progress 1 v2")?.scoreSubmissionCount).toBe(1);
     expect(rows.find((row) => row.rubricName === "Progress 1 v2")?.scoreItemCount).toBe(1);
   });

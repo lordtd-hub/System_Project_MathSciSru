@@ -20,11 +20,13 @@ function currentStepIndex(status: ProjectStatus): number {
 
 export function CompactLifecycleBadge({ status }: { status: ProjectStatus }) {
   const current = currentStepIndex(status);
+  const completed = status === "COMPLETED";
 
   return (
     <span className="inline-flex min-h-8 max-w-full items-center gap-2 rounded-full border border-brand/20 bg-red-50 px-3 py-1 text-xs font-semibold text-brandDark shadow-sm">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] text-white">{current + 1}</span>
       <span className="text-muted">/ {steps.length}</span>
+      {completed ? <span className="text-[11px] text-[var(--ok-700)]">เสร็จสมบูรณ์</span> : null}
     </span>
   );
 }
@@ -44,8 +46,8 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
       <div className="mt-4 overflow-x-auto pb-1">
         <div className="grid min-w-[760px] grid-cols-10 gap-2">
           {steps.map((step, index) => {
-            const isDone = index < current;
-            const isCurrent = index === current;
+            const isDone = status === "COMPLETED" ? index <= current : index < current;
+            const isCurrent = status === "COMPLETED" ? false : index === current;
             const state = isDone ? "เสร็จแล้ว" : isCurrent ? "ตอนนี้" : "ล็อก";
             const className = isDone
               ? "border-[rgba(31,111,58,0.2)] bg-[var(--ok-100)] text-[var(--ok-700)]"
