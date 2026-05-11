@@ -41,7 +41,7 @@ describe("next action helpers", () => {
 
   it("makes completed assessment cards read-only and future cards locked", () => {
     expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).editable).toBe(false);
-    expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).buttonLabel).toBe("ดู feedback");
+    expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).buttonLabel).toBe("ดูข้อเสนอแนะ");
     expect(getAssessmentCardState("PROGRESS_2", "IN_PROGRESS", { PROGRESS_1: false }).label).toBe("ยังไม่ถึงขั้นตอน");
   });
 
@@ -78,7 +78,7 @@ describe("next action helpers", () => {
     const action = getNextActionForAdmin([{ status: "PROPOSAL_ADMIN_DECISION" }]);
 
     expect(action.href).toBe("/admin/proposals");
-    expect(action.title).toContain("Proposal");
+    expect(action.title).toContain("การเสนอหัวข้อ");
   });
 
   it("routes admin closeout states to the closeout page", () => {

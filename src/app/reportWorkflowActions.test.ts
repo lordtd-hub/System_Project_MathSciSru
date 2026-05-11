@@ -26,6 +26,17 @@ describe("report workflow actions", () => {
     expect(source).toContain('toStatus: "REPORT_APPROVED"');
   });
 
+  it("teacher report approval uses only reviews from the latest report version", () => {
+    const source = read("src/app/teacher/actions.ts");
+    const reviewStart = source.indexOf("export async function reviewReportVersion");
+    const advisorStart = source.indexOf("export async function submitAdvisorScore");
+    const reportReviewAction = source.slice(reviewStart, advisorStart);
+
+    expect(reportReviewAction).toContain("where: { reportVersionId: reportVersion.id }");
+    expect(reportReviewAction).toContain("allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReviews })");
+    expect(reportReviewAction).not.toContain("reportVersion: { projectId: reportVersion.projectId }");
+  });
+
   it("report loop stops before advisor scoring and completion", () => {
     const studentActions = read("src/app/student/actions.ts");
     const teacherActions = read("src/app/teacher/actions.ts");

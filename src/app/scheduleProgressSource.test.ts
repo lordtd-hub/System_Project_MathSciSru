@@ -116,8 +116,8 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("hasApprovedTeacherCapability(user)");
     expect(actions).toContain('project.status !== "IN_PROGRESS"');
     expect(actions).toContain('["HEAD", "MEMBER"].includes(assignment.role)');
-    expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_1", "Progress 1")');
-    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Progress 1")');
+    expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_1", "การสอบความก้าวหน้าครั้งที่ 1")');
+    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 1")');
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
@@ -129,14 +129,14 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("submitProgress2Score");
     expect(actions).toContain('roundType: "PROGRESS_2"');
     expect(actions).toContain('attemptType: "PROGRESS_2"');
-    expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_2", "Progress 2")');
-    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Progress 2")');
+    expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_2", "การสอบความก้าวหน้าครั้งที่ 2")');
+    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 2")');
     expect(actions).toContain("validateProgress2Score");
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
     expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
-    expect(page).toContain("Progress 2");
+    expect(page).toContain("การสอบความก้าวหน้าครั้งที่ 2");
     expect(page).toContain("submitProgress2Score");
   });
 
@@ -146,15 +146,15 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("submitFinalPresentationScore");
     expect(actions).toContain('roundType: "FINAL_PRESENTATION"');
     expect(actions).toContain('attemptType: "FINAL_PRESENTATION"');
-    expect(actions).toContain('assertConfirmedSchedule(project.id, "FINAL_PRESENT", "Final Presentation")');
-    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Final Presentation")');
+    expect(actions).toContain('assertConfirmedSchedule(project.id, "FINAL_PRESENT", "การสอบนำเสนอขั้นสุดท้าย")');
+    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบนำเสนอขั้นสุดท้าย")');
     expect(actions).toContain("finalQaRubricItems");
     expect(actions).toContain("calculateFinalQaCriterionScore");
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
     expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
-    expect(page).toContain("Final Presentation");
+    expect(page).toContain("การสอบนำเสนอขั้นสุดท้าย");
     expect(page).toContain("submitFinalPresentationScore");
   });
 
@@ -178,7 +178,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(studentPage).toContain("latestScheduleDateText");
     expect(studentPage).toContain("scheduleAwareStudentNextAction");
     expect(studentPage).toContain("assessmentStates");
-    expect(studentPage).toContain("getStudentAvailableActions(project.status, assessmentStates)");
+    expect(studentPage).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus)");
     expect(studentPage).toContain("nextAssessmentAction");
     expect(studentPage).toContain("studentTrackingTasks");
   });

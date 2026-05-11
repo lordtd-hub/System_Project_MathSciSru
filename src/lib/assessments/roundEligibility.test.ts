@@ -28,7 +28,7 @@ describe("round eligibility", () => {
   it("does not let failed or revise proposal enter Progress 1", () => {
     const readiness = getProgress1Readiness({ ...baseProject, proposalResults: [{ finalDecision: "NOT_PASS" }] });
     expect(readiness.eligible).toBe(false);
-    expect(reasonLabelTh(readiness.reasons[0])).toBe("ยังไม่ผ่าน Proposal");
+    expect(reasonLabelTh(readiness.reasons[0])).toBe("ยังไม่ผ่านการเสนอหัวข้อ");
   });
 
   it("shows exact waiting reason before admin confirmation", () => {

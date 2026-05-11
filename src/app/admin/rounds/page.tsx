@@ -75,21 +75,21 @@ export default async function AdminRoundsPage({
       <ActionFeedback success={params.success} error={params.error} />
 
       <InfoAlert title="การเปิดรอบเป็นระดับรายวิชา">
-        การปิด Proposal ไม่ได้เปิด Progress 1 อัตโนมัติ ผู้ดูแลระบบต้องตัดสินผล Proposal แต่งตั้งกรรมการ แล้วเปิดรอบ Progress 1 เอง
+        การปิดรอบการเสนอหัวข้อไม่ได้เปิดรอบสอบความก้าวหน้าครั้งที่ 1 อัตโนมัติ ผู้ดูแลระบบต้องตัดสินผลการเสนอหัวข้อ แต่งตั้งกรรมการ แล้วเปิดรอบสอบความก้าวหน้าครั้งที่ 1 เอง
       </InfoAlert>
 
       <section className="panel">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-brand">Rubric baseline</p>
+            <p className="text-sm font-semibold text-brand">เกณฑ์ประเมินมาตรฐาน</p>
             <h2 className="mt-1 text-lg font-semibold">เกณฑ์ประเมินสำหรับรอบสอบ</h2>
             <p className="mt-1 text-sm text-muted">
-              ใช้ตั้งค่า rubric มาตรฐานสำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation เพื่อให้ pilot เดิน workflow ประเมินต่อได้
+              ใช้ตั้งค่าเกณฑ์ประเมินมาตรฐานสำหรับการเสนอหัวข้อ การสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้าย เพื่อให้ดำเนินการประเมินตามรอบรายวิชาได้ต่อเนื่อง
             </p>
           </div>
           <form action={seedRubricBaselineFromAdmin}>
-            <SubmitButton className="button-secondary" pendingText="กำลังตั้งค่า Rubric...">
-              ตั้งค่า Rubric baseline
+            <SubmitButton className="button-secondary" pendingText="กำลังตั้งค่าเกณฑ์ประเมิน...">
+              ตั้งค่าเกณฑ์ประเมินมาตรฐาน
             </SubmitButton>
           </form>
         </div>
@@ -109,9 +109,9 @@ export default async function AdminRoundsPage({
           })}
         </div>
         {missingRubricCount ? (
-          <p className="mt-3 text-sm text-red-700">มี rubric ที่ยังไม่พร้อม {missingRubricCount} รอบ กดปุ่มด้านบนเพื่อเติม baseline ที่ขาด</p>
+          <p className="mt-3 text-sm text-red-700">มีเกณฑ์ประเมินที่ยังไม่พร้อม {missingRubricCount} รอบ กดปุ่มด้านบนเพื่อเติมเกณฑ์มาตรฐานที่ขาด</p>
         ) : (
-          <p className="mt-3 text-sm text-muted">Rubric baseline พร้อมสำหรับการทดสอบทุก presentation round แล้ว</p>
+          <p className="mt-3 text-sm text-muted">เกณฑ์ประเมินมาตรฐานพร้อมสำหรับทุกรอบสอบแล้ว</p>
         )}
       </section>
 
@@ -142,12 +142,12 @@ export default async function AdminRoundsPage({
                 <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold">{roundStatusLabelTh(round?.status ?? "DRAFT")}</span>
               </div>
               <dl className="mt-4 space-y-1 text-sm text-muted">
-                <div className="flex justify-between gap-3"><dt>openedAt</dt><dd>{formatDate(round?.submissionOpenAt)}</dd></div>
-                <div className="flex justify-between gap-3"><dt>closedAt</dt><dd>{formatDate(round?.closedAt)}</dd></div>
-                <div className="flex justify-between gap-3"><dt>eligible</dt><dd>{roundType === "PROGRESS_1" ? eligibility.eligible.length : "-"}</dd></div>
-                <div className="flex justify-between gap-3"><dt>submitted</dt><dd>{submittedCount}</dd></div>
-                <div className="flex justify-between gap-3"><dt>completed</dt><dd>{completedCount}</dd></div>
-                <div className="flex justify-between gap-3"><dt>not-ready/exception</dt><dd>{roundType === "PROGRESS_1" ? eligibility.notReady.length + exceptionCount : exceptionCount}</dd></div>
+                <div className="flex justify-between gap-3"><dt>เปิดเมื่อ</dt><dd>{formatDate(round?.submissionOpenAt)}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ปิดเมื่อ</dt><dd>{formatDate(round?.closedAt)}</dd></div>
+                <div className="flex justify-between gap-3"><dt>พร้อมเข้าสู่รอบ</dt><dd>{roundType === "PROGRESS_1" ? eligibility.eligible.length : "-"}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ส่งแล้ว</dt><dd>{submittedCount}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ดำเนินการครบ</dt><dd>{completedCount}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ยังไม่พร้อม/ข้อยกเว้น</dt><dd>{roundType === "PROGRESS_1" ? eligibility.notReady.length + exceptionCount : exceptionCount}</dd></div>
               </dl>
 
               <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm">
@@ -156,7 +156,7 @@ export default async function AdminRoundsPage({
                 ) : roundType === "PROGRESS_1" && openGate.reasonKey === "progress_1_not_ready" && firstNotReadyReason ? (
                   reasonLabelTh(firstNotReadyReason)
                 ) : roundType === "PROPOSAL" && round && isRoundClosed(round.status) ? (
-                  "ขั้นตอนถัดไป: ตัดสินผล Proposal / แต่งตั้งกรรมการ / เปิดรอบ Progress 1"
+                  "ขั้นตอนถัดไป: ตัดสินผลการเสนอหัวข้อ / แต่งตั้งกรรมการ / เปิดรอบสอบความก้าวหน้าครั้งที่ 1"
                 ) : (
                   roundSequenceReasonLabelTh(openGate.reasonKey)
                 )}
@@ -184,7 +184,7 @@ export default async function AdminRoundsPage({
                     <SubmitButton
                       className="button-secondary"
                       pendingText="กำลังรีเซต..."
-                      confirmMessage={`ยืนยันรีเซตรอบ ${roundTypeLabelTh(roundType)} หรือไม่? ใช้ได้เฉพาะรอบที่ยังไม่มี submission/attempt/schedule/exception`}
+                      confirmMessage={`ยืนยันรีเซตรอบ ${roundTypeLabelTh(roundType)} หรือไม่? ใช้ได้เฉพาะรอบที่ยังไม่มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้น`}
                     >
                       รีเซตรอบ
                     </SubmitButton>
@@ -202,7 +202,7 @@ export default async function AdminRoundsPage({
         <div className="mt-4 space-y-2">
           {readinessFocusRoundType !== "PROGRESS_1" ? (
             <InfoAlert title={`กำลังอยู่ในรอบ ${roundTypeLabelTh(readinessFocusRoundType)}`}>
-              Progress 1 ปิดหรือผ่านไปแล้ว รายการความพร้อม Progress 1 จึงไม่ใช่ action หลักของรอบปัจจุบัน
+              รอบสอบความก้าวหน้าครั้งที่ 1 ปิดหรือผ่านไปแล้ว รายการความพร้อมของรอบนี้จึงไม่ใช่งานหลักของรอบปัจจุบัน
             </InfoAlert>
           ) : progress1Eligibility.notReady.length ? progress1Eligibility.notReady.map((item) => (
             <div key={item.project.id} className="rounded-md border border-line p-3 text-sm">
@@ -213,7 +213,7 @@ export default async function AdminRoundsPage({
               <div className="mt-2 text-muted">{item.reasons.map(reasonLabelTh).join(" · ")}</div>
             </div>
           )) : (
-            <InfoAlert title="ทุก project ที่เกี่ยวข้องพร้อมเข้าสู่ Progress 1" />
+            <InfoAlert title="ทุกโครงงานที่เกี่ยวข้องพร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1" />
           )}
         </div>
       </section>

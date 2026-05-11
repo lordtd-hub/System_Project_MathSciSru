@@ -29,10 +29,10 @@ export default async function AdminSchedulesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="ตารางสอบของรายวิชา" description="รายการวันที่นักศึกษาส่งสำหรับ Progress 1, Progress 2 และ Final Presentation" />
+      <PageHeader title="ตารางสอบของรายวิชา" description="รายการวันที่นักศึกษาส่งสำหรับการสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้าย" />
       <GuidancePanel
         title="ภาพรวมตารางสอบ"
-        current="ผู้ดูแลระบบเห็นรายการของทุกโปรเจคในรายวิชา"
+        current="ผู้ดูแลระบบเห็นรายการของทุกโครงงานในรายวิชา"
         next="ใช้หน้านี้เพื่อติดตามรายการที่ส่งแล้วและสถานะการพิจารณา"
         actor="ผู้ดูแลระบบ"
       />

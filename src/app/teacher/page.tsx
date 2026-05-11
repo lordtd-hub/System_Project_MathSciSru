@@ -17,9 +17,9 @@ import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
 function assessmentKindLabel(kind?: string | null) {
-  if (kind === "PROGRESS_1") return "Progress 1";
-  if (kind === "PROGRESS_2") return "Progress 2";
-  if (kind === "FINAL_PRESENT") return "Final Presentation";
+  if (kind === "PROGRESS_1") return "การสอบความก้าวหน้าครั้งที่ 1";
+  if (kind === "PROGRESS_2") return "การสอบความก้าวหน้าครั้งที่ 2";
+  if (kind === "FINAL_PRESENT") return "การสอบนำเสนอขั้นสุดท้าย";
   return "รอบสอบ";
 }
 
@@ -100,8 +100,7 @@ async function getTeacherWorkloadCounts(teacherId: string) {
           select: {
             id: true,
             reviews: {
-              where: { reviewerTeacherId: teacherId },
-              select: { id: true }
+              select: { id: true, reviewerTeacherId: true, decision: true }
             }
           }
         }
@@ -128,7 +127,9 @@ async function getTeacherWorkloadCounts(teacherId: string) {
   ]);
   const reportReviewCount = reportReviewProjects.filter((project) => {
     const latestReport = project.reportVersions[0];
-    return latestReport ? latestReport.reviews.length === 0 : false;
+    if (!latestReport) return false;
+    if (latestReport.reviews.some((review) => review.decision === "FAIL")) return false;
+    return !latestReport.reviews.some((review) => review.reviewerTeacherId === teacherId);
   }).length;
 
   return [
@@ -209,7 +210,7 @@ export default async function TeacherDashboardPage() {
 
   if (!teacher) {
     timer.end("missing_teacher_profile");
-    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์อาจารย์ก่อนใช้งาน" actionLabel="Claim โปรไฟล์" href="/teacher/claim" />;
+    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" actionLabel="ผูกบัญชีอาจารย์" href="/teacher/claim" />;
   }
 
   const [
@@ -319,11 +320,11 @@ export default async function TeacherDashboardPage() {
     : nextAction;
   const workloadCards = [
     { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
-    { label: "Proposal รอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "ready" as const : "quiet" as const },
+    { label: "เสนอหัวข้อรอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "ready" as const : "quiet" as const },
     { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const },
     { label: "พร้อมให้คะแนน", value: presentationScoreReadyCount, href: progress1ScoreReadyCount ? "/teacher/progress1" : progress2ScoreReadyCount ? "/teacher/progress2" : "/teacher/final", tone: presentationScoreReadyCount ? "ready" as const : "quiet" as const },
-    { label: "งานตรวจเล่ม/แก้ไข", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" as const : "quiet" as const },
-    { label: "Advisor score", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const }
+    { label: "งานตรวจรายงาน", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" as const : "quiet" as const },
+    { label: "คะแนนที่ปรึกษา", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const }
   ];
   const teacherActionQueue = [
     {
@@ -343,8 +344,8 @@ export default async function TeacherDashboardPage() {
       statusLabel: advisorRequestCount ? "ต้องตอบรับ" : "ปกติ"
     },
     {
-      title: "Proposal รอประเมิน",
-      description: pendingProposalScores.length ? "มี Proposal ที่ได้รับมอบหมายและยังไม่ได้ส่งคะแนน" : "ยังไม่มี Proposal ที่ต้องประเมินตอนนี้",
+      title: "เอกสารเสนอหัวข้อรอประเมิน",
+      description: pendingProposalScores.length ? "มีเอกสารเสนอหัวข้อที่ได้รับมอบหมายและยังไม่ได้บันทึกคะแนน" : "ยังไม่มีเอกสารเสนอหัวข้อที่ต้องประเมินตอนนี้",
       href: "/teacher/proposals",
       count: pendingProposalScores.length,
       tone: pendingProposalScores.length ? "ready" as const : "quiet" as const,
@@ -359,40 +360,40 @@ export default async function TeacherDashboardPage() {
       statusLabel: "รออนุมัติ"
     },
     {
-      title: "ตรวจเล่ม / รายงานแก้ไข",
-      description: reportReviewCount ? "มีรายการตรวจเล่มหรือ revision ที่ต้องติดตาม" : "ยังไม่มีงานตรวจเล่มที่ต้องดำเนินการตอนนี้",
+      title: "ตรวจรายงานฉบับสมบูรณ์",
+      description: reportReviewCount ? "มีรายงานที่ต้องตรวจหรือรอการแก้ไขตามข้อเสนอแนะ" : "ยังไม่มีงานตรวจรายงานที่ต้องดำเนินการตอนนี้",
       href: "/teacher/reports",
       count: reportReviewCount,
       tone: reportReviewCount ? "waiting" as const : "quiet" as const,
       statusLabel: "ติดตาม"
     },
     {
-      title: "Advisor score 25%",
-      description: advisorScoreProjectCount ? "มีโครงงานที่ปลดล็อกให้บันทึกคะแนนที่ปรึกษา" : "ยังไม่มีโครงงานที่พร้อมบันทึก Advisor score",
+      title: "คะแนนสรุปของอาจารย์ที่ปรึกษา 25%",
+      description: advisorScoreProjectCount ? "มีโครงงานที่พร้อมให้บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา" : "ยังไม่มีโครงงานที่พร้อมบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา",
       href: "/teacher/advisor-score",
       count: advisorScoreProjectCount,
       tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const,
-      statusLabel: "advisor score"
+      statusLabel: "คะแนนที่ปรึกษา"
     },
     {
-      title: "คะแนน Progress 1",
-      description: progress1ScoreReadyCount ? "วันสอบ Progress 1 ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบ Progress 1 ครบ",
+      title: "คะแนนการสอบความก้าวหน้าครั้งที่ 1",
+      description: progress1ScoreReadyCount ? "วันสอบความก้าวหน้าครั้งที่ 1 ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบความก้าวหน้าครั้งที่ 1 ครบ",
       href: "/teacher/progress1",
       count: progress1ScoreReadyCount,
       tone: progress1ScoreReadyCount ? "ready" as const : "quiet" as const,
       statusLabel: progress1ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบยืนยัน"
     },
     {
-      title: "คะแนน Progress 2",
-      description: progress2ScoreReadyCount ? "วันสอบ Progress 2 ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบ Progress 2 ครบ",
+      title: "คะแนนการสอบความก้าวหน้าครั้งที่ 2",
+      description: progress2ScoreReadyCount ? "วันสอบความก้าวหน้าครั้งที่ 2 ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบความก้าวหน้าครั้งที่ 2 ครบ",
       href: "/teacher/progress2",
       count: progress2ScoreReadyCount,
       tone: progress2ScoreReadyCount ? "ready" as const : "quiet" as const,
       statusLabel: progress2ScoreReadyCount ? "พร้อมให้คะแนน" : "รอวันสอบยืนยัน"
     },
     {
-      title: "คะแนน Final Presentation",
-      description: finalScoreReadyCount ? "วันสอบ Final Presentation ได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบ Final ครบ",
+      title: "คะแนนการสอบนำเสนอขั้นสุดท้าย",
+      description: finalScoreReadyCount ? "วันสอบนำเสนอขั้นสุดท้ายได้รับการยืนยันครบแล้ว พร้อมให้กรรมการบันทึกคะแนนหลังสอบ" : "จะแสดงเป็นงานเร่งด่วนเมื่อกรรมการอนุมัติวันสอบนำเสนอขั้นสุดท้ายครบ",
       href: "/teacher/final",
       count: finalScoreReadyCount,
       tone: finalScoreReadyCount ? "ready" as const : "quiet" as const,
@@ -404,9 +405,9 @@ export default async function TeacherDashboardPage() {
   );
   const teacherWorkspaceTasks = [
     { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
-    ...(progress1ScoreReadyCount ? [{ title: "คะแนน Progress 1", description: `${progress1ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress1", urgency: "พร้อมให้คะแนน" }] : []),
-    ...(progress2ScoreReadyCount ? [{ title: "คะแนน Progress 2", description: `${progress2ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress2", urgency: "พร้อมให้คะแนน" }] : []),
-    ...(finalScoreReadyCount ? [{ title: "คะแนน Final", description: `${finalScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/final", urgency: "พร้อมให้คะแนน" }] : []),
+    ...(progress1ScoreReadyCount ? [{ title: "คะแนนความก้าวหน้าครั้งที่ 1", description: `${progress1ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress1", urgency: "พร้อมให้คะแนน" }] : []),
+    ...(progress2ScoreReadyCount ? [{ title: "คะแนนความก้าวหน้าครั้งที่ 2", description: `${progress2ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress2", urgency: "พร้อมให้คะแนน" }] : []),
+    ...(finalScoreReadyCount ? [{ title: "คะแนนสอบนำเสนอขั้นสุดท้าย", description: `${finalScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/final", urgency: "พร้อมให้คะแนน" }] : []),
     { title: "ตารางสอบ", description: `${confirmedScheduleCalendarCount} รายการยืนยันแล้ว`, href: "/teacher/schedules", urgency: confirmedScheduleCalendarCount ? "ดูตาราง" : "ปกติ" }
   ];
   timer.end();
@@ -415,7 +416,7 @@ export default async function TeacherDashboardPage() {
     <div className="space-y-4">
       <PageHeader
         title="แดชบอร์ดอาจารย์"
-        description="รวมคำขอที่ปรึกษา งานประเมิน Proposal ตารางสอบ และงานตรวจเล่มที่เกี่ยวข้อง"
+        description="รวมคำขอที่ปรึกษา งานประเมินการเสนอหัวข้อ ตารางสอบ และงานตรวจรายงานที่เกี่ยวข้อง"
       />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
         <DashboardActionQueue
@@ -423,14 +424,14 @@ export default async function TeacherDashboardPage() {
           description="รวมงานที่อาจารย์ต้องตอบรับ ประเมิน ตรวจ หรือยืนยันตามบทบาทที่มีอยู่ในระบบ"
           items={activeTeacherActionQueue}
           mobilePrimaryCount={4}
-          mobileSummaryLabel="workspace และงานติดตามอื่น"
+          mobileSummaryLabel="งานติดตามอื่น"
         />
         <div className="space-y-3">
           <NextActionCard action={teacherNextAction} />
           <section className="panel dashboard-console-panel">
             <DashboardSectionHeader
               title="ตารางสอบของท่าน"
-              description="เรียงตามวันเวลา สำหรับโครงงานที่ท่านเป็นที่ปรึกษา HEAD หรือ MEMBER"
+              description="เรียงตามวันเวลา สำหรับโครงงานที่ท่านเป็นที่ปรึกษา ประธานกรรมการ หรือกรรมการ"
             />
             <div className="mt-3 space-y-2">
               {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
@@ -467,12 +468,12 @@ export default async function TeacherDashboardPage() {
             <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบทั้งหมด</Link>
           </section>
           <section className="panel dashboard-console-panel">
-            <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยัง workspace ของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือ flow เดิม" />
+            <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยังหน้าการทำงานของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือขั้นตอนเดิม" />
             <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
             <div className="mt-3 grid gap-2 text-sm">
-              <Link className="button-secondary justify-start" href="/teacher/proposals">ประเมิน Proposal</Link>
+              <Link className="button-secondary justify-start" href="/teacher/proposals">ประเมินการเสนอหัวข้อ</Link>
               <Link className="button-secondary justify-start" href="/teacher/reports">ตรวจเล่ม</Link>
-              <Link className="button-secondary justify-start" href="/teacher/advisor-score">Advisor score 25%</Link>
+              <Link className="button-secondary justify-start" href="/teacher/advisor-score">คะแนนสรุปของอาจารย์ที่ปรึกษา 25%</Link>
             </div>
           </section>
         </div>
@@ -480,17 +481,17 @@ export default async function TeacherDashboardPage() {
       <GuidancePanel
         title="คำแนะนำสำหรับอาจารย์"
         current="ตรวจงานที่ต้องดำเนินการและอ่านเอกสารแนบก่อนตัดสินใจ"
-        next="ระบบจะแสดง comment ให้นักศึกษาทันที แต่ซ่อนคะแนน Proposal จากนักศึกษา"
-        actor="อาจารย์ที่ปรึกษา HEAD MEMBER หรือผู้ตรวจเล่มตามบทบาทของท่าน"
+        next="ระบบจะแสดงข้อเสนอแนะให้นักศึกษาทันที แต่ซ่อนคะแนนการเสนอหัวข้อจากนักศึกษา"
+        actor="อาจารย์ที่ปรึกษา ประธานกรรมการ กรรมการ หรือผู้ตรวจรายงานตามบทบาทของท่าน"
       />
       <CompactMetricRow
         title="ภาพรวมสถานะ"
-        description={`รวม ${workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการจากข้อมูลเดิมของอาจารย์ ใช้เป็นสัญญาณรองจาก queue หลัก`}
+        description={`รวม ${workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการจากข้อมูลของอาจารย์ ใช้เป็นสัญญาณประกอบจากงานหลักด้านบน`}
         metrics={workloadCards}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
         <section className="panel dashboard-console-panel">
-          <h2 className="text-lg font-semibold">Proposal ที่เกี่ยวข้อง</h2>
+          <h2 className="text-lg font-semibold">เอกสารเสนอหัวข้อที่เกี่ยวข้อง</h2>
           <div className="mt-3 space-y-3">
             {attempts.length ? (
               attempts.map((attempt) => {
@@ -504,7 +505,7 @@ export default async function TeacherDashboardPage() {
                       </div>
                     </div>
                     {assignment ? (
-                      <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมิน Proposal</Link>
+                      <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
                     ) : (
                       <form action={openProposalScoring}>
                         <input type="hidden" name="attempt_id" value={attempt.id} />
@@ -515,12 +516,12 @@ export default async function TeacherDashboardPage() {
                 );
               })
             ) : (
-              <EmptyState title="ยังไม่มี Proposal ที่ส่งแล้ว" description="เมื่อมีนักศึกษาส่ง Proposal รายการจะแสดงที่นี่" />
+              <EmptyState title="ยังไม่มีเอกสารเสนอหัวข้อที่ส่งแล้ว" description="เมื่อมีนักศึกษาส่งเอกสารเสนอหัวข้อ รายการจะแสดงที่นี่" />
             )}
           </div>
         </section>
         <TaskListCard
-          title="ทางลัด workspace"
+          title="ทางลัดการทำงาน"
           compact
           tasks={teacherWorkspaceTasks}
         />

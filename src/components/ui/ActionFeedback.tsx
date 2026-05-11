@@ -2,31 +2,31 @@ import { InfoAlert, SuccessAlert, WarningAlert } from "./Alert";
 
 const successMessages: Record<string, string> = {
   final_decision_saved: "บันทึกผลเรียบร้อยแล้ว",
-  proposal_round_closed: "ปิดรอบ Proposal แล้ว",
-  progress_1_opened: "เปิดรอบ Progress 1 แล้ว",
-  progress_1_closed: "ปิดรอบ Progress 1 แล้ว",
+  proposal_round_closed: "ปิดรอบการเสนอหัวข้อแล้ว",
+  progress_1_opened: "เปิดรอบสอบความก้าวหน้าครั้งที่ 1 แล้ว",
+  progress_1_closed: "ปิดรอบสอบความก้าวหน้าครั้งที่ 1 แล้ว",
   round_opened: "เปิดรอบแล้ว",
   round_closed: "ปิดรอบแล้ว",
   round_reset: "รีเซตรอบสอบเรียบร้อยแล้ว",
-  project_advisor_confirmed: "ยืนยันโปรเจคและอาจารย์ที่ปรึกษาแล้ว",
-  committee_saved: "บันทึกการแต่งตั้ง HEAD และ MEMBER แล้ว",
-  feedback_released: "เปิด feedback ให้นักศึกษาเห็นแล้ว",
+  project_advisor_confirmed: "ยืนยันโครงงานและอาจารย์ที่ปรึกษาแล้ว",
+  committee_saved: "บันทึกการแต่งตั้งประธานและกรรมการแล้ว",
+  feedback_released: "เปิดข้อเสนอแนะให้นักศึกษาเห็นแล้ว",
   student_profile_saved: "บันทึกข้อมูลนักศึกษาเรียบร้อยแล้ว",
   project_submitted: "ส่งคำขอให้อาจารย์ที่ปรึกษาแล้ว",
-  proposal_submitted: "ส่ง Proposal แล้ว",
+  proposal_submitted: "ส่งเอกสารเสนอหัวข้อแล้ว",
   advisor_request_reviewed: "บันทึกผลคำขอที่ปรึกษาแล้ว",
-  proposal_score_saved: "บันทึก comment แล้ว",
+  proposal_score_saved: "บันทึกข้อเสนอแนะแล้ว",
   assessment_evidence_saved: "บันทึกเอกสารรอบสอบเรียบร้อยแล้ว",
   schedule_saved: "บันทึกข้อเสนอวันสอบเรียบร้อยแล้ว",
-  progress_1_score_saved: "บันทึกคะแนน Progress 1 เรียบร้อยแล้ว",
-  progress_2_score_saved: "บันทึกคะแนน Progress 2 เรียบร้อยแล้ว",
-  final_score_saved: "บันทึกคะแนน Final Presentation เรียบร้อยแล้ว",
+  progress_1_score_saved: "บันทึกคะแนนสอบความก้าวหน้าครั้งที่ 1 เรียบร้อยแล้ว",
+  progress_2_score_saved: "บันทึกคะแนนสอบความก้าวหน้าครั้งที่ 2 เรียบร้อยแล้ว",
+  final_score_saved: "บันทึกคะแนนสอบนำเสนอขั้นสุดท้ายเรียบร้อยแล้ว",
   report_submitted: "ส่งเล่มรายงานเรียบร้อยแล้ว",
   report_review_saved: "บันทึกผลตรวจเล่มเรียบร้อยแล้ว",
-  report_revision_requested: "บันทึกผลขอแก้ไขเล่มแล้ว",
+  report_revision_requested: "บันทึกผลขอแก้ไขรายงานแล้ว",
   report_approved: "อนุมัติเล่มรายงานแล้ว",
-  advisor_score_saved: "บันทึก Advisor score 25% เรียบร้อยแล้ว",
-  project_completed: "ปิดงานโครงงานเรียบร้อยแล้ว",
+  advisor_score_saved: "บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25% เรียบร้อยแล้ว",
+  project_completed: "ยืนยันจบโครงงานเรียบร้อยแล้ว",
   teacher_claim_reviewed: "บันทึกผลคำขอผูกบัญชีอาจารย์แล้ว"
 };
 
@@ -38,7 +38,7 @@ const errorMessages: Record<string, string> = {
 successMessages.course_offering_opened = "เปิดรายวิชาเรียบร้อยแล้ว";
 successMessages.students_imported = "นำเข้านักศึกษาในรายวิชานี้เรียบร้อยแล้ว";
 successMessages.teacher_baseline_seeded = "เพิ่มข้อมูลอาจารย์พื้นฐานเรียบร้อยแล้ว";
-successMessages.teacher_email_updated = "บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อ refresh สิทธิ์";
+successMessages.teacher_email_updated = "บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อปรับปรุงสิทธิ์การใช้งาน";
 successMessages.test_course_reset = "ล้างข้อมูลทดสอบของรายวิชาเรียบร้อยแล้ว";
 successMessages.qa_login = "เข้าสู่ QA session แล้ว";
 successMessages.signed_out = "ออกจาก QA session แล้ว";
@@ -48,34 +48,34 @@ errorMessages.invalid_year = "ปีการศึกษาไม่ถูก�
 errorMessages.invalid_term = "ภาคเรียนไม่ถูกต้อง กรุณาเลือก 1, 2 หรือ summer";
 errorMessages.invalid_course_title = "ชื่อรายวิชายาวเกินไป";
 errorMessages.course_offering_duplicate = "มีรายวิชานี้ในปีการศึกษาและภาคเรียนที่เลือกแล้ว";
-errorMessages.course_offering_missing = "ไม่พบ Course Offering ที่เลือก กรุณาเปิดรายวิชาก่อนนำเข้านักศึกษา";
+errorMessages.course_offering_missing = "ไม่พบรายวิชาที่เลือก กรุณาเปิดรายวิชาก่อนนำเข้านักศึกษา";
 errorMessages.student_import_empty = "ไม่พบข้อมูลนักศึกษาใน CSV";
 errorMessages.round_already_open = "รอบนี้เปิดอยู่แล้ว";
 errorMessages.round_already_closed = "รอบนี้ปิดแล้ว หากต้องเปิดใหม่ควรจัดการเป็นกรณีพิเศษ";
-errorMessages.proposal_must_close_first = "ต้องเปิดและปิดรอบ Proposal ก่อน แล้วจึงเปิด Progress 1";
-errorMessages.progress_1_not_ready = "ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1";
-errorMessages.progress_1_must_close_first = "ต้องเปิดและปิดรอบ Progress 1 ก่อน แล้วจึงเปิด Progress 2";
-errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบ Progress 2 ก่อน แล้วจึงเปิด Final Presentation";
-errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มี submission/attempt/schedule/exception แล้ว";
+errorMessages.proposal_must_close_first = "ต้องเปิดและปิดรอบการเสนอหัวข้อก่อน แล้วจึงเปิดรอบสอบความก้าวหน้าครั้งที่ 1";
+errorMessages.progress_1_not_ready = "ยังไม่มีโครงงานที่พร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1";
+errorMessages.progress_1_must_close_first = "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 1 ก่อน แล้วจึงเปิดรอบสอบความก้าวหน้าครั้งที่ 2";
+errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 2 ก่อน แล้วจึงเปิดรอบสอบนำเสนอขั้นสุดท้าย";
+errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้นแล้ว";
 errorMessages.round_reset_not_needed = "รอบนี้ยังไม่ได้เปิด จึงไม่ต้องรีเซต";
 errorMessages.test_tools_disabled = "โหมดทดสอบระบบยังไม่ได้เปิดใช้งาน";
-errorMessages.proposal_not_available = "ยังไม่สามารถส่ง Proposal ในสถานะปัจจุบันได้";
-errorMessages.proposal_origin_missing = "กรุณาส่งข้อมูลเสนอหัวข้อก่อนส่ง Proposal";
-errorMessages.proposal_round_not_open = "ยังส่ง Proposal ไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบ Proposal หรือรอบถูกปิดแล้ว";
-errorMessages.proposal_deadline_passed = "พ้นกำหนดส่ง Proposal แล้ว กรุณาติดต่อผู้ดูแลระบบ";
+errorMessages.proposal_not_available = "ยังไม่สามารถส่งเอกสารเสนอหัวข้อในสถานะปัจจุบันได้";
+errorMessages.proposal_origin_missing = "กรุณาส่งข้อมูลเสนอหัวข้อก่อนส่งเอกสารเสนอหัวข้อ";
+errorMessages.proposal_round_not_open = "ยังส่งเอกสารเสนอหัวข้อไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบการเสนอหัวข้อ หรือรอบถูกปิดแล้ว";
+errorMessages.proposal_deadline_passed = "พ้นกำหนดส่งเอกสารเสนอหัวข้อแล้ว กรุณาติดต่อผู้ดูแลระบบ";
 
-errorMessages.schedule_round_invalid = "รอบสอบไม่ถูกต้อง กรุณาเลือก Progress 1, Progress 2 หรือ Final Presentation";
+errorMessages.schedule_round_invalid = "รอบสอบไม่ถูกต้อง กรุณาเลือกสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 หรือสอบนำเสนอขั้นสุดท้าย";
 errorMessages.schedule_not_available = "ยังเสนอวันสอบไม่ได้ในสถานะปัจจุบัน";
 errorMessages.schedule_round_not_open = "ยังเสนอวันสอบไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบสอบนี้ หรือรอบถูกปิดแล้ว";
 errorMessages.schedule_already_reviewed = "รายการวันสอบนี้ถูกพิจารณาแล้ว หรือไม่อยู่ในสถานะรออนุมัติ";
-errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับ Progress 1 กรุณาตรวจสอบผล Proposal และกรรมการก่อน";
+errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับการสอบความก้าวหน้าครั้งที่ 1 กรุณาตรวจสอบผลการเสนอหัวข้อและกรรมการก่อน";
 errorMessages.assessment_evidence_required = "กรุณาบันทึกเอกสาร/หลักฐานของรอบสอบนี้ก่อนเสนอวันสอบ";
 errorMessages.assessment_evidence_locked = "ส่งเสนอวันสอบแล้ว จึงแก้ไขเอกสาร/หลักฐานของรอบนี้ไม่ได้ หากต้องเปลี่ยนหลักฐานให้ประสานกรรมการหรือผู้ดูแลระบบก่อน";
 errorMessages.schedule_previous_round_incomplete = "ยังดำเนินการรอบก่อนหน้าไม่ครบ จึงยังบันทึกเอกสารหรือเสนอวันสอบรอบนี้ไม่ได้";
 errorMessages.report_not_available = "ยังส่งเล่มรายงานไม่ได้ในสถานะปัจจุบัน กรุณาตรวจสอบขั้นตอนของโครงงาน";
 
-errorMessages.proposal_rubric_missing = "ยังไม่มี Rubric สำหรับ Proposal กรุณาให้ผู้ดูแลระบบตั้งค่า rubric baseline ก่อนประเมิน";
-successMessages.rubric_baseline_seeded = "ตั้งค่า Rubric baseline สำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation เรียบร้อยแล้ว";
+errorMessages.proposal_rubric_missing = "ยังไม่มีเกณฑ์ประเมินสำหรับการเสนอหัวข้อ กรุณาให้ผู้ดูแลระบบตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนประเมิน";
+successMessages.rubric_baseline_seeded = "ตั้งค่าเกณฑ์ประเมินมาตรฐานสำหรับการเสนอหัวข้อ การสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้ายเรียบร้อยแล้ว";
 successMessages.qa_teachers_prepared = "เตรียม Teacher profiles สำหรับ QA เรียบร้อยแล้ว";
 
 export function ActionFeedback({

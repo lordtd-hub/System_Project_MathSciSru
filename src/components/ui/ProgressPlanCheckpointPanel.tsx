@@ -44,15 +44,15 @@ export function ProgressPlanCheckpointPanel({
     relevant: doesTaskOverlapWeekWindow(task, weekWindow)
   }));
   const relevantTasks = classifiedTasks.filter((item) => item.relevant);
-  const roundName = roundType === "PROGRESS_1" ? "Progress 1" : "Progress 2";
+  const roundName = roundType === "PROGRESS_1" ? "การสอบความก้าวหน้าครั้งที่ 1" : "การสอบความก้าวหน้าครั้งที่ 2";
 
   return (
     <section className="panel">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">QA plan checkpoint: {roundName}</h2>
+          <h2 className="text-lg font-semibold">ตรวจแผนดำเนินงานสำหรับ{roundName}</h2>
           <p className="mt-1 text-sm text-muted">
-            ตรวจเทียบงาน Progress กับแผน 16 สัปดาห์ใน Proposal ช่วงสัปดาห์ที่ {weekWindow.startWeek}-{weekWindow.endWeek}
+            ตรวจเทียบงานความก้าวหน้ากับแผน 16 สัปดาห์ในเอกสารเสนอหัวข้อ ช่วงสัปดาห์ที่ {weekWindow.startWeek}-{weekWindow.endWeek}
           </p>
         </div>
         <span className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold">
@@ -62,17 +62,17 @@ export function ProgressPlanCheckpointPanel({
 
       {audience === "student" ? (
         <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
-          Your Progress update will be checked against the work plan submitted in your Proposal. For each relevant task, state what has been completed, what evidence supports it, and whether there is any delay or adjustment.
+          รายงานความก้าวหน้าจะถูกตรวจเทียบกับแผนงานที่ส่งไว้ในเอกสารเสนอหัวข้อ สำหรับงานที่เกี่ยวข้องแต่ละรายการ ให้ระบุว่างานใดเสร็จแล้ว มีหลักฐานใดรองรับ และมีความล่าช้าหรือการปรับแผนหรือไม่
         </div>
       ) : (
         <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
-          ใช้ panel นี้เป็นตัวช่วยอ่านตรวจเท่านั้น ยังไม่เปลี่ยนสูตรคะแนน Progress หรือการบันทึกคะแนนเดิม
+          ใช้ส่วนนี้เป็นตัวช่วยอ่านตรวจเท่านั้น ยังไม่เปลี่ยนสูตรคะแนนหรือการบันทึกคะแนนเดิม
         </div>
       )}
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <div>
-          <h3 className="text-sm font-semibold">Approved Proposal Work Plan</h3>
+          <h3 className="text-sm font-semibold">แผนดำเนินงานจากเอกสารเสนอหัวข้อที่ได้รับอนุมัติ</h3>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead>
@@ -96,7 +96,7 @@ export function ProgressPlanCheckpointPanel({
                 ) : (
                   <tr>
                     <td className="py-3 text-muted" colSpan={3}>
-                      ยังไม่มีแผนงาน structured timeline จาก Proposal
+                      ยังไม่มีแผนดำเนินงานแบบเป็นรายการจากเอกสารเสนอหัวข้อ
                     </td>
                   </tr>
                 )}
@@ -106,7 +106,7 @@ export function ProgressPlanCheckpointPanel({
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold">Current Progress Round Check</h3>
+          <h3 className="text-sm font-semibold">รายการตรวจสำหรับรอบสอบความก้าวหน้าปัจจุบัน</h3>
           <div className="mt-2 space-y-2">
             {relevantTasks.length ? (
               relevantTasks.map(({ task, classification }, index) => (

@@ -16,7 +16,7 @@ export default async function ProjectOriginPage() {
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
 
   const project = student?.projects[0];
-  if (!project) return <EmptyState title="ยังไม่มีโปรเจค" description="บัญชีนี้ยังไม่มีโปรเจคในรายวิชา กรุณาติดต่อผู้ดูแลระบบ" />;
+  if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="บัญชีนี้ยังไม่มีโครงงานในรายวิชา กรุณาติดต่อผู้ดูแลระบบ" />;
 
   const origin = project?.origin;
   const teachers = await prisma.teacher.findMany({ where: { active: true }, orderBy: { firstNameTh: "asc" } });

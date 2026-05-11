@@ -45,7 +45,7 @@ export default async function TeacherAdvisorScorePage({
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) {
-    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์และรอผู้ดูแลระบบอนุมัติก่อนใช้งาน" />;
+    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีกับโปรไฟล์อาจารย์และรอผู้ดูแลระบบอนุมัติก่อนใช้งาน" />;
   }
 
   const params = (await searchParams) ?? {};
@@ -68,14 +68,14 @@ export default async function TeacherAdvisorScorePage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Advisor score 25%"
-        description="บันทึกคะแนนอาจารย์ที่ปรึกษาหลังเล่มรายงานผ่านแล้ว ระบบยังไม่ปิดงานเป็น COMPLETED ในขั้นตอนนี้"
+        title="คะแนนสรุปของอาจารย์ที่ปรึกษา 25%"
+        description="บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาหลังเล่มรายงานผ่านการตรวจแล้ว ระบบยังไม่ยืนยันจบโครงงานในขั้นตอนนี้"
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
-        title="Advisor score"
-        current="เปิดให้บันทึกเมื่อ project อยู่ที่ REPORT_APPROVED"
-        next="เมื่อบันทึกแล้ว project จะอยู่ที่ ADVISOR_SCORING เพื่อรอ final closeout โดย Admin"
+        title="คะแนนสรุปของอาจารย์ที่ปรึกษา"
+        current="เปิดให้บันทึกเมื่อรายงานฉบับสมบูรณ์ผ่านการตรวจแล้ว"
+        next="เมื่อบันทึกแล้ว โครงงานจะรอผู้ดูแลระบบตรวจเงื่อนไขและยืนยันจบโครงงาน"
         actor="อาจารย์ที่ปรึกษาของโครงงานเท่านั้น"
       />
 
@@ -98,39 +98,42 @@ export default async function TeacherAdvisorScorePage({
                 </div>
 
                 <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
-                  Report: {latestReport ? `version ${latestReport.versionNo}` : "ยังไม่มีเล่มรายงาน"} · Advisor score:{" "}
+                  รายงาน: {latestReport ? `ฉบับที่ ${latestReport.versionNo}` : "ยังไม่มีเล่มรายงาน"} · คะแนนที่ปรึกษา:{" "}
                   {previous?.status === "SUBMITTED" ? `บันทึกแล้ว ${Number(previous.score ?? 0)}/100` : editable ? "พร้อมบันทึก" : "ยังล็อก"}
                 </div>
 
                 {!editable ? (
                   <div className="mt-4 rounded-md border border-line p-3 text-sm text-muted">
-                    ยังไม่สามารถให้คะแนน Advisor ได้ ต้องรอให้เล่มรายงานผ่านเป็น REPORT_APPROVED ก่อน
+                    ยังไม่สามารถบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาได้ ต้องรอให้เล่มรายงานผ่านการตรวจก่อน
                   </div>
                 ) : (
-                  <form action={submitAdvisorScore} className="mt-4 grid gap-4 md:grid-cols-5">
+                  <form action={submitAdvisorScore} className="mt-4 space-y-4">
                     <input type="hidden" name="project_id" value={project.id} />
-                    {advisorCriteria.map((criterion) => (
-                      <div key={criterion.key}>
-                        <label>
-                          {criterion.label} ({criterion.max})
-                        </label>
-                        <input
-                          name={fieldName(criterion.key)}
-                          type="number"
-                          min="0"
-                          max={criterion.max}
-                          step="1"
-                          defaultValue={previousValue(previous, criterion.key)}
-                          required
-                        />
+                    <div className="rounded-md border border-line bg-paper p-3">
+                      <h3 className="text-sm font-semibold">เกณฑ์คะแนนสรุปของอาจารย์ที่ปรึกษา</h3>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        {advisorCriteria.map((criterion) => (
+                          <label key={criterion.key} className="rounded-md border border-line bg-surface p-3 text-sm">
+                            <span className="font-medium">{criterion.label}</span>
+                            <span className="ml-2 text-muted">เต็ม {criterion.max}</span>
+                            <input
+                              className="mt-2"
+                              name={fieldName(criterion.key)}
+                              type="number"
+                              min="0"
+                              max={criterion.max}
+                              step="1"
+                              defaultValue={previousValue(previous, criterion.key)}
+                              required
+                            />
+                          </label>
+                        ))}
                       </div>
-                    ))}
-                    <div className="md:col-span-5">
-                      <MarkdownLatexEditor name="comment" label="Comment / feedback" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
                     </div>
-                    <div className="md:col-span-5">
-                      <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึก Advisor score 25% หรือไม่?">
-                        บันทึก Advisor score 25%
+                    <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
+                    <div>
+                      <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?">
+                        บันทึกคะแนนสรุป 25%
                       </SubmitButton>
                     </div>
                   </form>
@@ -141,7 +144,7 @@ export default async function TeacherAdvisorScorePage({
         ) : (
           <EmptyState
             title="ยังไม่มีโครงงานที่เป็นที่ปรึกษา"
-            description="รายการจะแสดงเมื่อท่านเป็น advisor ของโครงงานที่เข้าสู่ช่วง report / advisor scoring"
+            description="รายการจะแสดงเมื่อท่านเป็นอาจารย์ที่ปรึกษาของโครงงานที่เข้าสู่ช่วงตรวจรายงานหรือบันทึกคะแนนสรุป"
           />
         )}
       </div>

@@ -20,7 +20,7 @@ export default async function DevLoginPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader title="โหมดทดสอบสำหรับนักพัฒนา" description="เลือกผู้ใช้สำหรับทดสอบ Lifecycle v2 ในเครื่อง local" />
+      <PageHeader title="โหมดทดสอบสำหรับนักพัฒนา" description="เลือกผู้ใช้สำหรับทดสอบขั้นตอนโครงงานในเครื่อง local" />
       <div className="rounded-lg border-2 border-red-300 bg-red-50 p-4 text-red-900">
         <div className="font-semibold">Development login only</div>
         <p className="mt-1 text-sm">ใช้สำหรับทดสอบใน NODE_ENV=development เท่านั้น และไม่กระทบ Google authentication ใน production</p>
@@ -66,12 +66,12 @@ export default async function DevLoginPage() {
         <input type="hidden" name="mode" value="student" />
         <div>
           <h2 className="text-lg font-semibold">Student</h2>
-          <p className="mt-1 text-sm text-muted">เลือกนักศึกษาที่นำเข้า/seed demo แล้วเพื่อดู lifecycle dashboard</p>
+          <p className="mt-1 text-sm text-muted">เลือกนักศึกษาที่นำเข้า/seed demo แล้วเพื่อดูแดชบอร์ดขั้นตอนโครงงาน</p>
         </div>
         <select name="student_id" required>
           {students.map((student) => (
             <option key={student.id} value={student.id}>
-              {student.studentCode} {student.firstNameTh} {student.lastNameTh} · {student.projects[0]?.status ?? "ยังไม่มีโปรเจค"}
+              {student.studentCode} {student.firstNameTh} {student.lastNameTh} · {student.projects[0]?.status ?? "ยังไม่มีโครงงาน"}
             </option>
           ))}
         </select>

@@ -28,8 +28,8 @@ describe("admin evidence summaries", () => {
 
     expect(rows[0].reportApproval).toBe(true);
     expect(rows[0].completed).toBe(false);
-    expect(rows[0].missingEvidence).toContain("Progress 1 score evidence");
-    expect(rows[0].missingEvidence).toContain("Advisor score evidence");
+    expect(rows[0].missingEvidence).toContain("หลักฐานคะแนนสอบความก้าวหน้าครั้งที่ 1");
+    expect(rows[0].missingEvidence).toContain("หลักฐานคะแนนอาจารย์ที่ปรึกษา");
     expect(rows[0].lastEvidenceUpdate?.toISOString()).toBe("2026-05-04T00:00:00.000Z");
   });
 

@@ -23,22 +23,22 @@ type BaselineRubricDefinition = {
 export const baselineRubricDefinitions: BaselineRubricDefinition[] = [
   {
     roundType: AssessmentRoundType.PROPOSAL,
-    name: "Proposal Presentation Condition Rubric",
+    name: "เกณฑ์ประเมินการเสนอหัวข้อแบบตรวจเงื่อนไข",
     items: proposalQaRubricItems()
   },
   {
     roundType: AssessmentRoundType.PROGRESS_1,
-    name: "Progress 1 Plan-Based Condition Rubric",
+    name: "เกณฑ์ประเมินความก้าวหน้าครั้งที่ 1 ตามแผนงาน",
     items: progressQaRubricItems()
   },
   {
     roundType: AssessmentRoundType.PROGRESS_2,
-    name: "Progress 2 Plan-Based Condition Rubric",
+    name: "เกณฑ์ประเมินความก้าวหน้าครั้งที่ 2 ตามแผนงาน",
     items: progressQaRubricItems()
   },
   {
     roundType: AssessmentRoundType.FINAL_PRESENTATION,
-    name: "Final Evidence-Driven Condition Rubric",
+    name: "เกณฑ์ประเมินการสอบนำเสนอขั้นสุดท้ายตามหลักฐาน",
     items: finalQaRubricItems()
   }
 ];

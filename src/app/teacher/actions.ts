@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
@@ -46,7 +47,7 @@ async function requireTeacherUser() {
 async function requirePendingTeacherClaimUser() {
   const session = await auth();
   if (!session?.user.id || session.user.role !== "PENDING_TEACHER") {
-    throw new Error("Teacher claim is available only before admin approval");
+    throw new Error("ส่งคำขอผูกบัญชีอาจารย์ได้เฉพาะบัญชีที่ยังรอผู้ดูแลระบบอนุมัติ");
   }
   return session.user;
 }
@@ -145,7 +146,7 @@ export async function reviewAdvisorRequest(formData: FormData) {
   const requestId = String(formData.get("request_id"));
   const decision = String(formData.get("decision"));
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "advisor request comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะต่อคำขอที่ปรึกษา");
   if (!["APPROVE", "REJECT"].includes(decision)) throw new Error("ผลการพิจารณาไม่ถูกต้อง");
   if (decision === "REJECT" && !comment) throw new Error("กรุณาระบุเหตุผลเมื่อปฏิเสธคำขอที่ปรึกษา");
 
@@ -210,11 +211,11 @@ export async function reviewExamSchedule(formData: FormData) {
   const scheduleId = String(formData.get("schedule_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "schedule approval comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ความเห็นต่อคำขอวันสอบ");
   if (decision !== "APPROVE" && decision !== "REJECT") throw new Error("ผลการพิจารณาวันสอบไม่ถูกต้อง");
   if (decision === "REJECT" && !comment) throw new Error("กรุณาระบุเหตุผลเมื่อไม่อนุมัติวันสอบ");
   if (comment) {
-    const commentErrors = validateMarkdownInput(comment, "schedule approval comment");
+    const commentErrors = validateMarkdownInput(comment, "ความเห็นต่อคำขอวันสอบ");
     if (commentErrors.length) throw new Error(commentErrors.join("\n"));
   }
 
@@ -246,7 +247,7 @@ export async function reviewExamSchedule(formData: FormData) {
     ...schedule.project.advisorRequests.map((request) => request.advisorTeacherId)
   ]);
   if (!requiredApproverIds.includes(teacher.id)) {
-    throw new Error("เฉพาะอาจารย์ที่ปรึกษา HEAD หรือ MEMBER ของโครงงานนี้เท่านั้นที่อนุมัติวันสอบได้");
+    throw new Error("เฉพาะอาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการของโครงงานนี้เท่านั้นที่อนุมัติวันสอบได้");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -337,7 +338,7 @@ export async function submitProposalScore(formData: FormData) {
   const reason = String(formData.get("reason") ?? "").trim();
   const overallComment = String(formData.get("overall_comment") ?? "").trim();
   assertTextSize(reason, requestSizeLimits.shortReasonBytes, "proposal decision reason");
-  assertTextSize(overallComment, requestSizeLimits.commentTextBytes, "proposal overall comment");
+  assertTextSize(overallComment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะภาพรวมการเสนอหัวข้อ");
   const submitMode = String(formData.get("submit_mode"));
 
   const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
@@ -381,7 +382,7 @@ export async function submitProposalScore(formData: FormData) {
   };
   const decisionErrors = submitMode === "submit" ? validateProposalDecision(decision, reason) : [];
   if (submitMode === "submit" && !overallComment) {
-    decisionErrors.push("กรุณาระบุ comment เพื่อให้นักศึกษาเห็น feedback");
+    decisionErrors.push("กรุณาระบุข้อเสนอแนะเพื่อให้นักศึกษาใช้ปรับปรุงงาน");
   }
   if (decisionErrors.length) throw new Error(decisionErrors.join("\n"));
 
@@ -481,7 +482,7 @@ export async function submitProposalScore(formData: FormData) {
       data: {
         projectId: assignment.assessmentAttempt.projectId,
         eventType: "TEACHER_SCORE_SUBMITTED",
-        eventTitle: "อาจารย์ส่งคะแนน Proposal",
+        eventTitle: "อาจารย์ส่งคะแนนการเสนอหัวข้อ",
         actorUserId: user.id,
         relatedEntityType: "ScoreSubmission",
         relatedEntityId: scoreSubmission.id,
@@ -520,7 +521,7 @@ async function ensureProgress1Rubric() {
   return prisma.rubric.create({
     data: {
       roundType: "PROGRESS_1",
-      name: "Progress 1 Plan-Based Condition Rubric",
+      name: "เกณฑ์ประเมินความก้าวหน้าครั้งที่ 1 ตามแผนงาน",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {
@@ -565,7 +566,7 @@ async function ensureProgress2Rubric() {
   return prisma.rubric.create({
     data: {
       roundType: "PROGRESS_2",
-      name: "Progress 2 Plan-Based Condition Rubric",
+      name: "เกณฑ์ประเมินความก้าวหน้าครั้งที่ 2 ตามแผนงาน",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {
@@ -610,7 +611,7 @@ async function ensureFinalRubric() {
   return prisma.rubric.create({
     data: {
       roundType: "FINAL_PRESENTATION",
-      name: "Final Evidence-Driven Condition Rubric",
+      name: "เกณฑ์ประเมินการสอบนำเสนอขั้นสุดท้ายตามหลักฐาน",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {
@@ -637,7 +638,7 @@ export async function submitProgress1Score(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Progress 1 comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 1");
   const input: Progress1ScoreInput = {
     progress: Number(formData.get("progress")),
     problemSolving: Number(formData.get("problem_solving")),
@@ -646,7 +647,7 @@ export async function submitProgress1Score(formData: FormData) {
     overall: Number(formData.get("overall"))
   };
   const errors = validateProgress1Score(input);
-  if (comment) errors.push(...validateMarkdownInput(comment, "Progress 1 comment"));
+  if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 1"));
   if (errors.length) throw new Error(errors.join("\n"));
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
@@ -654,17 +655,17 @@ export async function submitProgress1Score(formData: FormData) {
     where: { id: projectId },
     include: { committeeAssignments: true }
   }));
-  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนน Progress 1 ได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
+  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนนความก้าวหน้าครั้งที่ 1 ได้เฉพาะโครงงานที่อยู่ระหว่างดำเนินงาน");
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
-  if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Progress 1 ได้");
-  await assertConfirmedSchedule(project.id, "PROGRESS_1", "Progress 1");
+  if (!assigned) throw new Error("เฉพาะประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนนความก้าวหน้าครั้งที่ 1 ได้");
+  await assertConfirmedSchedule(project.id, "PROGRESS_1", "การสอบความก้าวหน้าครั้งที่ 1");
 
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
   }));
-  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Progress 1");
+  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 1");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
@@ -732,7 +733,7 @@ export async function submitProgress1Score(formData: FormData) {
     data: {
       projectId: project.id,
       eventType: "PROGRESS_1_SCORE_SUBMITTED",
-      eventTitle: "บันทึกคะแนน Progress 1",
+      eventTitle: "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1",
       eventDescription: comment || null,
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
@@ -755,7 +756,7 @@ export async function submitProgress2Score(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Progress 2 comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 2");
   const input: Progress2ScoreInput = {
     progress: Number(formData.get("progress")),
     problemSolving: Number(formData.get("problem_solving")),
@@ -764,7 +765,7 @@ export async function submitProgress2Score(formData: FormData) {
     overall: Number(formData.get("overall"))
   };
   const errors = validateProgress2Score(input);
-  if (comment) errors.push(...validateMarkdownInput(comment, "Progress 2 comment"));
+  if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 2"));
   if (errors.length) throw new Error(errors.join("\n"));
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
@@ -772,17 +773,17 @@ export async function submitProgress2Score(formData: FormData) {
     where: { id: projectId },
     include: { committeeAssignments: true }
   }));
-  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนน Progress 2 ได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
+  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนนความก้าวหน้าครั้งที่ 2 ได้เฉพาะโครงงานที่อยู่ระหว่างดำเนินงาน");
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
-  if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Progress 2 ได้");
-  await assertConfirmedSchedule(project.id, "PROGRESS_2", "Progress 2");
+  if (!assigned) throw new Error("เฉพาะประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนนความก้าวหน้าครั้งที่ 2 ได้");
+  await assertConfirmedSchedule(project.id, "PROGRESS_2", "การสอบความก้าวหน้าครั้งที่ 2");
 
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
   }));
-  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Progress 2");
+  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 2");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
@@ -850,7 +851,7 @@ export async function submitProgress2Score(formData: FormData) {
     data: {
       projectId: project.id,
       eventType: "PROGRESS_2_SCORE_SUBMITTED",
-      eventTitle: "บันทึกคะแนน Progress 2",
+      eventTitle: "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2",
       eventDescription: comment || null,
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
@@ -873,9 +874,9 @@ export async function submitFinalPresentationScore(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Final Presentation comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบนำเสนอขั้นสุดท้าย");
   const errors: string[] = [];
-  if (comment) errors.push(...validateMarkdownInput(comment, "Final Presentation comment"));
+  if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะการสอบนำเสนอขั้นสุดท้าย"));
   if (errors.length) throw new Error(errors.join("\n"));
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
@@ -883,19 +884,19 @@ export async function submitFinalPresentationScore(formData: FormData) {
     where: { id: projectId },
     include: { committeeAssignments: true }
   }));
-  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนน Final Presentation ได้เฉพาะโครงงานที่อยู่ในสถานะ IN_PROGRESS");
+  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนนสอบนำเสนอขั้นสุดท้ายได้เฉพาะโครงงานที่อยู่ระหว่างดำเนินงาน");
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
-  if (!assigned) throw new Error("เฉพาะ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนน Final Presentation ได้");
-  await assertConfirmedSchedule(project.id, "FINAL_PRESENT", "Final Presentation");
+  if (!assigned) throw new Error("เฉพาะประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งเท่านั้นที่บันทึกคะแนนสอบนำเสนอขั้นสุดท้ายได้");
+  await assertConfirmedSchedule(project.id, "FINAL_PRESENT", "การสอบนำเสนอขั้นสุดท้าย");
 
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUnique({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "FINAL_PRESENTATION" } }
   }));
-  if (!round) throw new Error("ยังไม่มีรอบ Final Presentation ระดับรายวิชา");
+  if (!round) throw new Error("ยังไม่มีรอบสอบนำเสนอขั้นสุดท้ายระดับรายวิชา");
 
-  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "Final Presentation");
+  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบนำเสนอขั้นสุดท้าย");
   const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
   const scoredItems = rubric.items.map((item) => {
     const qaCriterion = findFinalQaCriterion(item.itemKey);
@@ -968,7 +969,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     data: {
       projectId: project.id,
       eventType: "FINAL_PRESENTATION_SCORE_SUBMITTED",
-      eventTitle: "บันทึกคะแนน Final Presentation",
+      eventTitle: "บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย",
       eventDescription: comment || null,
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
@@ -977,9 +978,61 @@ export async function submitFinalPresentationScore(formData: FormData) {
     }
   }));
 
+  const completedAttempt = await timer.measure("load_final_completion_evidence", () => prisma.assessmentAttempt.findUnique({
+    where: { id: attempt.id },
+    select: {
+      evaluatorAssignments: {
+        select: {
+          teacherId: true,
+          scoreSubmission: { select: { status: true } }
+        }
+      }
+    }
+  }));
+  const finalCompleteByScores = isPresentationAssessmentComplete({
+    roundStatus: round.status,
+    committeeAssignments: project.committeeAssignments,
+    scoreSubmissions: completedAttempt?.evaluatorAssignments.map((completedAssignment) => ({
+      teacherId: completedAssignment.teacherId,
+      status: completedAssignment.scoreSubmission?.status ?? null
+    })) ?? []
+  });
+  if (finalCompleteByScores) {
+    await timer.measure("mark_final_done", () => prisma.$transaction(async (tx) => {
+      const updated = await tx.project.updateMany({
+        where: { id: project.id, status: "IN_PROGRESS" },
+        data: { status: "FINAL_DONE" }
+      });
+      if (updated.count === 1) {
+        await tx.projectStatusHistory.create({
+          data: {
+            projectId: project.id,
+            fromStatus: "IN_PROGRESS",
+            toStatus: "FINAL_DONE",
+            reason: "FINAL_PRESENTATION_SCORES_COMPLETED",
+            actorUserId: user.id,
+            metadataJson: { assessmentRoundId: round.id, assessmentAttemptId: attempt.id }
+          }
+        });
+        await tx.projectTimelineEvent.create({
+          data: {
+            projectId: project.id,
+            eventType: "FINAL_PRESENTATION_DONE",
+            eventTitle: "การสอบนำเสนอขั้นสุดท้ายเสร็จสิ้น",
+            eventDescription: "กรรมการบันทึกคะแนนสอบนำเสนอขั้นสุดท้ายครบตามคณะกรรมการแล้ว นักศึกษาสามารถส่งรายงานฉบับสมบูรณ์ได้",
+            actorUserId: user.id,
+            relatedEntityType: "AssessmentAttempt",
+            relatedEntityId: attempt.id
+          }
+        });
+      }
+    }));
+  }
+
   revalidatePath("/teacher/final");
   revalidatePath("/teacher");
   revalidatePath("/student");
+  revalidatePath("/student/report");
   timer.end("redirect");
   redirect("/teacher/final?success=final_score_saved");
 }
@@ -992,10 +1045,10 @@ export async function reviewReportVersion(formData: FormData) {
   const reportVersionId = String(formData.get("report_version_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "report review comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการตรวจรายงาน");
   if (decision !== "PASS" && decision !== "FAIL") throw new Error("ผลการตรวจเล่มไม่ถูกต้อง");
-  if (!comment) throw new Error("กรุณาระบุ comment สำหรับผลการตรวจเล่ม");
-  const commentErrors = validateMarkdownInput(comment, "report review comment");
+  if (!comment) throw new Error("กรุณาระบุข้อเสนอแนะสำหรับผลการตรวจรายงาน");
+  const commentErrors = validateMarkdownInput(comment, "ข้อเสนอแนะการตรวจรายงาน");
   if (commentErrors.length) throw new Error(commentErrors.join("\n"));
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
@@ -1013,10 +1066,10 @@ export async function reviewReportVersion(formData: FormData) {
     }
   }));
   if (reportVersion.project.status !== "REPORT_REVIEW") {
-    throw new Error("ตรวจเล่มได้เฉพาะโครงงานที่อยู่ในสถานะ REPORT_REVIEW");
+    throw new Error("ตรวจรายงานได้เฉพาะโครงงานที่อยู่ระหว่างขั้นตอนตรวจรายงาน");
   }
   if (reportVersion.project.reportVersions[0]?.id !== reportVersion.id) {
-    throw new Error("กรุณาตรวจเล่มรายงาน version ล่าสุดเท่านั้น");
+    throw new Error("กรุณาตรวจรายงานฉบับล่าสุดเท่านั้น");
   }
   if (
     !isAssignedReportReviewer({
@@ -1025,7 +1078,7 @@ export async function reviewReportVersion(formData: FormData) {
       advisorRequests: reportVersion.project.advisorRequests
     })
   ) {
-    throw new Error("เฉพาะอาจารย์ที่ปรึกษาหรือ HEAD/MEMBER ที่ได้รับแต่งตั้งเท่านั้นที่ตรวจเล่มได้");
+    throw new Error("เฉพาะอาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการที่ได้รับแต่งตั้งเท่านั้นที่ตรวจรายงานได้");
   }
 
   const review = await timer.measure("upsert_report_review", () => prisma.reportReview.upsert({
@@ -1067,9 +1120,6 @@ export async function reviewReportVersion(formData: FormData) {
     redirect("/teacher/reports?success=report_revision_requested");
   }
 
-  const projectReviews = await prisma.reportReview.findMany({
-    where: { reportVersion: { projectId: reportVersion.projectId } }
-  });
   const requiredReviewerIds = requiredReportReviewerIds(
     reportVersion.project.committeeAssignments,
     reportVersion.project.advisorRequests
@@ -1079,14 +1129,14 @@ export async function reviewReportVersion(formData: FormData) {
   });
   const approved =
     !latestReportVersionHasRevisionRequest(latestReviews) &&
-    allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: projectReviews });
+    allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReviews });
 
   await timer.measure("approval_transaction", () => prisma.$transaction(async (tx) => {
     await tx.projectTimelineEvent.create({
       data: {
         projectId: reportVersion.projectId,
         eventType: "REPORT_REVIEW_PASSED_BY_REVIEWER",
-        eventTitle: "อาจารย์อนุมัติเล่มรายงาน",
+        eventTitle: "อาจารย์อนุมัติรายงานฉบับสมบูรณ์",
         eventDescription: comment,
         actorUserId: user.id,
         relatedEntityType: "ReportReview",
@@ -1114,7 +1164,7 @@ export async function reviewReportVersion(formData: FormData) {
         data: {
           projectId: reportVersion.projectId,
           eventType: "REPORT_APPROVED",
-          eventTitle: "เล่มรายงานผ่านครบตามกรรมการ",
+          eventTitle: "รายงานฉบับสมบูรณ์ผ่านการตรวจครบทุกท่าน",
           actorUserId: user.id,
           relatedEntityType: "ReportVersion",
           relatedEntityId: reportVersion.id,
@@ -1137,7 +1187,7 @@ export async function submitAdvisorScore(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "Advisor score comment");
+  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา");
   const input: AdvisorScoreInput = {
     responsibility: Number(formData.get("responsibility")),
     researchProcess: Number(formData.get("research_process")),
@@ -1146,7 +1196,7 @@ export async function submitAdvisorScore(formData: FormData) {
     professionalism: Number(formData.get("professionalism"))
   };
   const errors = validateAdvisorScore(input);
-  if (comment) errors.push(...validateMarkdownInput(comment, "Advisor score comment"));
+  if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา"));
   if (errors.length) throw new Error(errors.join("\n"));
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
@@ -1161,9 +1211,9 @@ export async function submitAdvisorScore(formData: FormData) {
   const isAdvisor =
     project.advisorRequests.some((request) => request.status === "APPROVED" && request.advisorTeacherId === teacher.id) ||
     project.committeeAssignments.some((assignment) => assignment.active && assignment.role === "ADVISOR" && assignment.teacherId === teacher.id);
-  if (!isAdvisor) throw new Error("เฉพาะอาจารย์ที่ปรึกษาของโครงงานเท่านั้นที่บันทึก Advisor score ได้");
+  if (!isAdvisor) throw new Error("เฉพาะอาจารย์ที่ปรึกษาของโครงงานเท่านั้นที่บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาได้");
   if (project.status !== "REPORT_APPROVED" && project.status !== "ADVISOR_SCORING") {
-    throw new Error("Advisor score เปิดให้บันทึกได้หลังเล่มรายงานผ่านแล้วเท่านั้น");
+    throw new Error("คะแนนสรุปของอาจารย์ที่ปรึกษาจะบันทึกได้หลังรายงานฉบับสมบูรณ์ผ่านการตรวจแล้วเท่านั้น");
   }
 
   const now = new Date();
@@ -1224,7 +1274,7 @@ export async function submitAdvisorScore(formData: FormData) {
       data: {
         projectId: project.id,
         eventType: "ADVISOR_SCORE_SUBMITTED",
-        eventTitle: "บันทึกคะแนน Advisor 25%",
+        eventTitle: "บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25%",
         eventDescription: comment || null,
         actorUserId: user.id,
         relatedEntityType: "AdvisorScore",

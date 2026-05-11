@@ -10,10 +10,10 @@ type RoleDashboardNavProps = {
 const roleConfig = {
   admin: {
     href: "/admin",
-    label: "กลับหน้า Admin",
+    label: "กลับหน้าผู้ดูแลระบบ",
     helper: "กลับไปดูภาพรวมงานของผู้ดูแลระบบ",
     secondaryHref: "/admin/evidence",
-    secondaryLabel: "Evidence & AUN-QA"
+    secondaryLabel: "หลักฐานและ AUN-QA"
   },
   teacher: {
     href: "/teacher",

@@ -43,21 +43,21 @@ export function getProgress1Readiness(project: RoundEligibilityProject): Project
 export function reasonLabelTh(reason: string) {
   switch (reason) {
     case "waiting proposal final decision":
-      return "ยังมี project ที่ยังไม่ได้ตัดสินผล Proposal";
+      return "ยังมีโครงงานที่ยังไม่ได้ตัดสินผลการเสนอหัวข้อ";
     case "proposal failed/revise":
-      return "ยังไม่ผ่าน Proposal";
+      return "ยังไม่ผ่านการเสนอหัวข้อ";
     case "committee not assigned":
       return "ยังไม่ได้แต่งตั้งกรรมการ";
     case "missing HEAD":
-      return "ยังไม่ได้แต่งตั้ง HEAD";
+      return "ยังไม่ได้แต่งตั้งประธานกรรมการ";
     case "missing MEMBER":
-      return "ยังไม่ได้แต่งตั้ง MEMBER";
+      return "ยังไม่ได้แต่งตั้งกรรมการ";
     case "project still PENDING_ADVISOR":
       return "ยังรออาจารย์ที่ปรึกษาอนุมัติ";
     case "project still PENDING_ADMIN":
       return "ยังรอผู้ดูแลระบบยืนยัน";
     case "project in DRAFT":
-      return "โปรเจคยังอยู่ใน DRAFT";
+      return "โครงงานยังอยู่ในขั้นร่างหัวข้อ";
     default:
       return reason;
   }

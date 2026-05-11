@@ -5,6 +5,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { courseOfferingLabel } from "@/lib/admin/courseOffering";
 import { prisma } from "@/lib/db";
+import { projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 
 export default async function AdminStudentsPage() {
   const session = await auth();
@@ -16,7 +17,7 @@ export default async function AdminStudentsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="จัดการนักศึกษา" description="ตรวจรายชื่อนักศึกษาและโปรเจคที่นำเข้าแล้ว การนำเข้าต้องเลือก Course Offering ที่เปิดไว้จริง" />
+      <PageHeader title="จัดการนักศึกษา" description="ตรวจรายชื่อนักศึกษาและโครงงานที่นำเข้าแล้ว การนำเข้าต้องเลือกรายวิชาที่เปิดไว้จริง" />
       <GuidancePanel
         title="การนำเข้านักศึกษา"
         current="ใช้คอลัมน์ student_code, first_name_th, last_name_th เท่านั้น"
@@ -27,7 +28,7 @@ export default async function AdminStudentsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">เปิดรายวิชาและนำเข้านักศึกษา</h2>
-            <p className="mt-1 text-sm text-muted">รายชื่อนักศึกษาจะถูกสร้างเป็น project ใน Course Offering ที่เลือกเท่านั้น</p>
+            <p className="mt-1 text-sm text-muted">รายชื่อนักศึกษาจะถูกสร้างเป็นโครงงานในรายวิชาที่เลือกเท่านั้น</p>
           </div>
           <Link className="button" href="/admin/import-students">เปิดรายวิชา / นำเข้านักศึกษา</Link>
         </div>
@@ -55,7 +56,7 @@ export default async function AdminStudentsPage() {
                         <h3 className="mt-1 text-lg font-semibold">{student.studentCode}</h3>
                       </div>
                       <span className="rounded-full border border-line px-2.5 py-1 text-xs font-semibold text-muted">
-                        {project?.status ?? "ยังไม่มีโปรเจค"}
+                        {project ? projectStatusLabelTh(project.status) : "ยังไม่มีโครงงาน"}
                       </span>
                     </div>
                     <dl className="mt-4 grid gap-3 text-sm">
@@ -79,7 +80,7 @@ export default async function AdminStudentsPage() {
             <div className="mt-3 hidden overflow-x-auto md:block">
             <table className="responsive-table">
               <thead className="border-b border-line text-muted">
-                <tr><th className="py-2">รหัส</th><th>ชื่อ-สกุล</th><th>อีเมล</th><th>รายวิชาล่าสุด</th><th>โปรเจค</th></tr>
+                <tr><th className="py-2">รหัส</th><th>ชื่อ-สกุล</th><th>อีเมล</th><th>รายวิชาล่าสุด</th><th>โครงงาน</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {students.map((student) => {
@@ -90,7 +91,7 @@ export default async function AdminStudentsPage() {
                       <td>{student.firstNameTh} {student.lastNameTh}</td>
                       <td>{student.generatedEmail}</td>
                       <td>{project ? courseOfferingLabel(project.courseOffering) : "-"}</td>
-                      <td>{project?.status ?? "ยังไม่มี"}</td>
+                      <td>{project ? projectStatusLabelTh(project.status) : "ยังไม่มี"}</td>
                     </tr>
                   );
                 })}

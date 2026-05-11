@@ -44,12 +44,12 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
       </div>
 
       <div className="grid gap-2 md:grid-cols-2">
-        <ChecklistRow label="Progress 1 score" done={eligibility.hasProgress1Score} />
-        <ChecklistRow label="Progress 2 score" done={eligibility.hasProgress2Score} />
-        <ChecklistRow label="Final Presentation score" done={eligibility.hasFinalPresentationScore} />
-        <ChecklistRow label="Report approved" done={eligibility.hasReachedReportApproved} />
-        <ChecklistRow label="Advisor score 25%" done={eligibility.hasAdvisorScore} />
-        <ChecklistRow label="ไม่มี report revision ที่ค้างอยู่" done={!eligibility.hasUnresolvedReportRevision} />
+        <ChecklistRow label="คะแนนสอบความก้าวหน้าครั้งที่ 1" done={eligibility.hasProgress1Score} />
+        <ChecklistRow label="คะแนนสอบความก้าวหน้าครั้งที่ 2" done={eligibility.hasProgress2Score} />
+        <ChecklistRow label="คะแนนสอบนำเสนอขั้นสุดท้าย" done={eligibility.hasFinalPresentationScore} />
+        <ChecklistRow label="รายงานฉบับสมบูรณ์ผ่านการตรวจ" done={eligibility.hasReachedReportApproved} />
+        <ChecklistRow label="คะแนนสรุปของอาจารย์ที่ปรึกษา 25%" done={eligibility.hasAdvisorScore} />
+        <ChecklistRow label="ไม่มีคำขอแก้ไขรายงานที่ค้างอยู่" done={!eligibility.hasUnresolvedReportRevision} />
       </div>
 
       {completed ? (
@@ -57,8 +57,8 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
       ) : eligibility.eligible ? (
         <form action={completeProjectCloseout} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <input type="hidden" name="project_id" value={project.id} />
-          <SubmitButton confirmMessage="ยืนยันปิดงานโครงงานเป็น COMPLETED หรือไม่? ระบบจะบันทึก timeline ว่า Admin ตรวจสอบเงื่อนไขครบแล้ว" pendingText="กำลังปิดงาน...">
-            ปิดงานเป็น COMPLETED
+          <SubmitButton confirmMessage="ยืนยันว่าโครงงานเสร็จสมบูรณ์หรือไม่? ระบบจะบันทึกประวัติว่าผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้ว" pendingText="กำลังยืนยัน...">
+            ยืนยันจบโครงงาน
           </SubmitButton>
         </form>
       ) : (
@@ -94,8 +94,8 @@ export default async function AdminCloseoutPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ปิดงานโครงงาน"
-        description="ผู้ดูแลระบบตรวจสอบว่า Progress 1, Progress 2, Final Presentation, เล่มรายงาน และ Advisor score ครบแล้ว ก่อนย้ายสถานะเป็น COMPLETED"
+        title="ยืนยันจบโครงงาน"
+        description="ผู้ดูแลระบบตรวจสอบว่าคะแนนสอบความก้าวหน้า คะแนนสอบขั้นสุดท้าย เล่มรายงาน และคะแนนสรุปของอาจารย์ที่ปรึกษาครบแล้ว ก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์"
         actions={<Link className="button-secondary" href="/admin">กลับแดชบอร์ดผู้ดูแลระบบ</Link>}
       />
       <ActionFeedback success={params.success} error={params.error} />
@@ -103,11 +103,11 @@ export default async function AdminCloseoutPage({
       <section className="grid gap-4 md:grid-cols-3">
         <div className="panel">
           <div className="text-2xl font-semibold">{projects.filter((project) => project.status === "REPORT_APPROVED").length}</div>
-          <div className="mt-1 text-sm text-muted">เล่มผ่านแล้ว รอ Advisor score</div>
+          <div className="mt-1 text-sm text-muted">รายงานผ่านแล้ว รอคะแนนที่ปรึกษา</div>
         </div>
         <div className="panel">
           <div className="text-2xl font-semibold">{projects.filter((project) => project.status === "ADVISOR_SCORING").length}</div>
-          <div className="mt-1 text-sm text-muted">รอปิดงานโดยผู้ดูแลระบบ</div>
+          <div className="mt-1 text-sm text-muted">รอผู้ดูแลระบบยืนยันจบ</div>
         </div>
         <div className="panel">
           <div className="text-2xl font-semibold">{projects.filter((project) => project.status === "COMPLETED").length}</div>
@@ -119,7 +119,7 @@ export default async function AdminCloseoutPage({
         {projectCards.length ? (
           projectCards.map(({ project, eligibility }) => <CloseoutCard key={project.id} project={project as CloseoutProject} eligibility={eligibility} />)
         ) : (
-          <EmptyState title="ยังไม่มีโครงงานที่อยู่ช่วงปิดงาน" description="เมื่อเล่มรายงานผ่านและถึงขั้น Advisor score รายการจะปรากฏที่นี่" />
+          <EmptyState title="ยังไม่มีโครงงานที่อยู่ช่วงยืนยันจบ" description="เมื่อรายงานผ่านและถึงขั้นบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา รายการจะปรากฏที่นี่" />
         )}
       </section>
     </div>

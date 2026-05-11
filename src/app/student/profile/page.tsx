@@ -28,7 +28,7 @@ export default async function StudentProfilePage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="ข้อมูลนักศึกษา" description="ตรวจสอบข้อมูลพื้นฐานและช่องทางติดต่อก่อนเริ่มสร้างโปรเจค" />
+      <PageHeader title="ข้อมูลนักศึกษา" description="ตรวจสอบข้อมูลพื้นฐานและช่องทางติดต่อก่อนเริ่มสร้างโครงงาน" />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
         title="ข้อมูลนี้ใช้ทำอะไร"
@@ -57,7 +57,7 @@ export default async function StudentProfilePage({
         </div>
       </FormSection>
       <form action={saveStudentProfile}>
-      <FormSection title="ช่องทางติดต่อ" description="บันทึกข้อมูลส่วนตัวให้ครบเพื่อปลดล็อกขั้นตอนสร้างโปรเจค">
+      <FormSection title="ช่องทางติดต่อ" description="บันทึกข้อมูลส่วนตัวให้ครบเพื่อปลดล็อกขั้นตอนสร้างโครงงาน">
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <label>ชื่อเล่น/ชื่อที่ต้องการให้เรียก</label>

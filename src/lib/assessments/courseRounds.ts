@@ -7,22 +7,22 @@ export type CourseLevelRoundType = (typeof courseLevelRoundTypes)[number];
 export function roundTypeLabelTh(roundType: AssessmentRoundType) {
   switch (roundType) {
     case "PROPOSAL":
-      return "Proposal";
+      return "การเสนอหัวข้อ";
     case "PROGRESS_1":
-      return "Progress 1";
+      return "การสอบความก้าวหน้าครั้งที่ 1";
     case "PROGRESS_2":
-      return "Progress 2";
+      return "การสอบความก้าวหน้าครั้งที่ 2";
     case "FINAL_PRESENTATION":
-      return "Final Presentation";
+      return "การสอบนำเสนอขั้นสุดท้าย";
     case "REPROPOSAL":
-      return "Re-Proposal";
+      return "การเสนอหัวข้อใหม่";
     default:
       return roundType;
   }
 }
 
 export function defaultCourseRoundName(roundType: AssessmentRoundType) {
-  return `${roundTypeLabelTh(roundType)} Presentation`;
+  return roundTypeLabelTh(roundType);
 }
 
 export function defaultCourseRoundWeight(roundType: AssessmentRoundType) {

@@ -29,7 +29,7 @@ export default async function ImportStudentsPage({
     <div className="space-y-6">
       <PageHeader
         title="เปิดรายวิชาและนำเข้านักศึกษา"
-        description="เริ่มจากเปิด Course Offering ด้วยปีการศึกษาและภาคเรียน จากนั้นนำเข้านักศึกษาให้ผูกกับรายวิชานั้น"
+        description="เริ่มจากเปิดรายวิชาด้วยปีการศึกษาและภาคเรียน จากนั้นนำเข้านักศึกษาให้ผูกกับรายวิชานั้น"
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
@@ -41,7 +41,7 @@ export default async function ImportStudentsPage({
 
       <section className="panel">
         <h2 className="text-lg font-semibold">เปิดรายวิชา</h2>
-        <p className="mt-1 text-sm text-muted">ระบบจะสร้างปีการศึกษา ภาคเรียน Course Offering และรอบสอบระดับรายวิชาแบบ DRAFT ให้พร้อมจัดการต่อ</p>
+        <p className="mt-1 text-sm text-muted">ระบบจะสร้างปีการศึกษา ภาคเรียน รายวิชาที่เปิดสอน และรอบสอบระดับรายวิชาแบบร่าง ให้พร้อมจัดการต่อ</p>
         <form action={openCourseOffering} className="mt-4 grid gap-4 md:grid-cols-4">
           <div>
             <label>ปีการศึกษา</label>
@@ -69,7 +69,7 @@ export default async function ImportStudentsPage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">นำเข้านักศึกษาในรายวิชานี้</h2>
-            <p className="mt-1 text-sm text-muted">เลือก Course Offering ที่เปิดไว้แล้วก่อนนำเข้า CSV นักศึกษา</p>
+            <p className="mt-1 text-sm text-muted">เลือกรายวิชาที่เปิดไว้แล้วก่อนนำเข้า CSV นักศึกษา</p>
           </div>
           <Link className="button-secondary" href="/admin/students">ดูรายชื่อนักศึกษาทั้งหมด</Link>
         </div>
@@ -105,7 +105,7 @@ export default async function ImportStudentsPage({
       </section>
 
       <section className="panel">
-        <h2 className="text-lg font-semibold">Course Offering ที่เปิดแล้ว</h2>
+        <h2 className="text-lg font-semibold">รายวิชาที่เปิดแล้ว</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {offerings.map((offering) => (
             <div key={offering.id} className="rounded-md border border-line p-4">

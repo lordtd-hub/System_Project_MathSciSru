@@ -33,7 +33,7 @@ export async function ensureProposalConditionRubric(prisma: PrismaClient) {
   return prisma.rubric.create({
     data: {
       roundType: "PROPOSAL",
-      name: "Proposal Presentation Condition Rubric",
+      name: "เกณฑ์ประเมินการเสนอหัวข้อแบบตรวจเงื่อนไข",
       version: (latest?.version ?? 0) + 1,
       active: true,
       items: {

@@ -12,7 +12,7 @@ import { isSchedulableRoundType, parseScheduleDateTime, roundTypeToAssessmentKin
 import { buildSubmissionSnapshot, canEditUntilDeadline, nextVersionNo } from "@/lib/submissions/versioning";
 import { validateMaterialLink } from "@/lib/validators/materialLink";
 import { validateMarkdownInput } from "@/lib/validators/submissionContent";
-import { getReportSubmissionGate } from "@/lib/reports/reportWorkflow";
+import { canStudentSubmitFinalReport } from "@/lib/reports/reportWorkflow";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 import { parseSelectableSourceType } from "@/lib/projects/sourceType";
@@ -635,12 +635,12 @@ export async function submitReportVersion(formData: FormData) {
     project.status === "IN_PROGRESS"
       ? await hasCompletedPresentationScores(project.id, "FINAL_PRESENTATION")
       : false;
-  const gate = getReportSubmissionGate({
+  const latestReportHasRevisionRequest = Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"));
+  if (!canStudentSubmitFinalReport({
     projectStatus: project.status,
-    latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL")),
+    latestReportHasRevisionRequest,
     finalPresentationCompleted
-  });
-  if (!gate.allowed) redirectWithQuery("/student/report", { error: "report_not_available" });
+  })) redirectWithQuery("/student/report", { error: "report_not_available" });
 
   const reportLink = requiredText(formData, "report_drive_link", "ลิงก์เล่มรายงาน");
   const linkResult = validateMaterialLink(reportLink);

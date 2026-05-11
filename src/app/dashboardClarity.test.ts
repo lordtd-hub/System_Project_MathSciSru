@@ -5,7 +5,7 @@ describe("dashboard clarity phase 2", () => {
   it("keeps student dashboard task-first without changing lifecycle helpers", () => {
     const page = readFileSync("src/app/student/page.tsx", "utf8");
 
-    expect(page).toContain("getStudentAvailableActions(project.status, assessmentStates)");
+    expect(page).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus)");
     expect(page).toContain("StudentWorkflowGroup");
     expect(page).toContain("visibleAssessmentResults");
     expect(page).toContain("showScoreToStudent");
@@ -42,8 +42,8 @@ describe("dashboard clarity phase 2", () => {
     expect(page).toContain("adminWorkflowCards");
     expect(page).toContain("งานที่ต้องดำเนินการ");
     expect(page).toContain("ภาพรวมสถานะ");
-    expect(page).toContain("รอ Admin ยืนยัน");
+    expect(page).toContain("รอผู้ดูแลระบบยืนยัน");
     expect(page).toContain("รอตั้งกรรมการ");
-    expect(page).toContain("พร้อมตรวจ closeout");
+    expect(page).toContain("เตรียมตรวจรายงานและยืนยันจบโครงงาน");
   });
 });

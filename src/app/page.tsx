@@ -11,7 +11,7 @@ const roleGuides = [
   {
     title: "สำหรับอาจารย์",
     href: "/teacher",
-    description: "ใช้ติดตามงานที่เกี่ยวข้องกับตนเอง เช่น คำขอเป็นที่ปรึกษา การประเมิน Proposal/Progress/Final ตารางสอบ และการตรวจเล่มรายงาน",
+    description: "ใช้ติดตามงานที่เกี่ยวข้องกับตนเอง เช่น คำขอเป็นที่ปรึกษา การประเมินการเสนอหัวข้อ/ความก้าวหน้า/ขั้นสุดท้าย ตารางสอบ และการตรวจเล่มรายงาน",
     steps: [
       "เข้าสู่ระบบด้วยอีเมล @sru.ac.th",
       "ถ้ายังไม่ผูกบัญชี ให้เลือกโปรไฟล์อาจารย์และรอผู้ดูแลระบบอนุมัติ",
@@ -22,13 +22,13 @@ const roleGuides = [
   {
     title: "สำหรับนักศึกษา",
     href: "/student",
-    description: "ใช้ส่งข้อมูลโครงงาน Proposal นัดสอบ ติดตาม feedback และส่งเล่มรายงานตามสถานะของโครงงาน",
+    description: "ใช้ส่งข้อมูลโครงงาน เอกสารเสนอหัวข้อ นัดสอบ ติดตามข้อเสนอแนะ และส่งเล่มรายงานตามสถานะของโครงงาน",
     steps: [
       "เข้าสู่ระบบด้วยอีเมลรูปแบบ student_code@student.sru.ac.th",
       "ต้องมีรายชื่ออยู่ใน roster ที่ผู้ดูแลระบบนำเข้าก่อน จึงจะเข้าหน้านักศึกษาได้",
       "ทำตาม Next Action บน Student dashboard ทีละขั้น ระบบจะล็อกขั้นที่ยังไม่ถึง"
     ],
-    note: "นักศึกษาจะเห็น comment/feedback ที่เปิดให้ดู แต่คะแนนบางส่วนจะถูกซ่อนตามนโยบายของรายวิชา"
+    note: "นักศึกษาจะเห็นข้อเสนอแนะที่เปิดให้ดู แต่คะแนนบางส่วนจะถูกซ่อนตามนโยบายของรายวิชา"
   }
 ];
 
@@ -46,7 +46,7 @@ const quickLinks = [
   {
     href: "/student",
     title: "นักศึกษา",
-    description: "ดูขั้นตอนปัจจุบัน ส่งข้อมูลที่เปิดให้ทำ และติดตาม feedback ของโครงงาน"
+    description: "ดูขั้นตอนปัจจุบัน ส่งข้อมูลที่เปิดให้ทำ และติดตามข้อเสนอแนะของโครงงาน"
   }
 ];
 
@@ -63,7 +63,7 @@ export default async function HomePage() {
     <section className="space-y-6">
       <PageHeader
         title="ระบบประเมินการนำเสนอโครงงาน"
-        description="ระบบติดตามงานนำเสนอ Proposal, Progress 1, Progress 2, Final Presentation, feedback และหลักฐานการดำเนินงานของรายวิชา Mathematical Project Course"
+        description="ระบบติดตามงานเสนอหัวข้อ สอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 สอบนำเสนอขั้นสุดท้าย ข้อเสนอแนะ และหลักฐานการดำเนินงานของรายวิชา Mathematical Project Course"
       />
 
       <section className="app-card overflow-hidden">
@@ -74,10 +74,10 @@ export default async function HomePage() {
               Mathematics & Statistics, SRU
             </div>
             <h2 className="mt-4 max-w-3xl text-2xl font-semibold leading-10 text-ink sm:text-3xl">
-              ระบบกลางสำหรับติดตามโครงงาน การประเมิน และ feedback ของรายวิชา
+              ระบบกลางสำหรับติดตามโครงงาน การประเมิน และข้อเสนอแนะของรายวิชา
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
-              ออกแบบให้ผู้ดูแลระบบ อาจารย์ และนักศึกษาเห็นสถานะงานที่ต้องทำตาม lifecycle เดียวกัน ตั้งแต่ Proposal ไปจนถึง Progress, Final, Report และ closeout
+              ออกแบบให้ผู้ดูแลระบบ อาจารย์ และนักศึกษาเห็นสถานะงานที่ต้องทำตามขั้นตอนเดียวกัน ตั้งแต่การเสนอหัวข้อจนถึงการสอบความก้าวหน้า การสอบขั้นสุดท้าย รายงาน และการยืนยันจบโครงงาน
             </p>
           </div>
           <div className="flex items-center justify-center border-t border-line bg-paperSoft p-6 lg:border-l lg:border-t-0">
@@ -121,11 +121,11 @@ export default async function HomePage() {
           </div>
           <div className="rounded-lg border border-line p-4">
             <h3 className="font-semibold text-ink">จัดการรอบสอบและการประเมิน</h3>
-            <p className="mt-2 text-sm leading-6 text-muted">รองรับ Proposal, Progress 1, Progress 2 และ Final Presentation ตามรอบของรายวิชา</p>
+            <p className="mt-2 text-sm leading-6 text-muted">รองรับการเสนอหัวข้อ การสอบความก้าวหน้าครั้งที่ 1 การสอบความก้าวหน้าครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้ายตามรอบของรายวิชา</p>
           </div>
           <div className="rounded-lg border border-line p-4">
-            <h3 className="font-semibold text-ink">เก็บ feedback และหลักฐาน</h3>
-            <p className="mt-2 text-sm leading-6 text-muted">บันทึก comment, decision, report review และ timeline เพื่อใช้ติดตามย้อนกลับได้</p>
+            <h3 className="font-semibold text-ink">เก็บข้อเสนอแนะและหลักฐาน</h3>
+            <p className="mt-2 text-sm leading-6 text-muted">บันทึกข้อเสนอแนะ ผลการพิจารณา ผลตรวจรายงาน และเหตุการณ์สำคัญเพื่อใช้ติดตามย้อนหลังได้</p>
           </div>
         </div>
       </section>

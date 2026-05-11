@@ -40,15 +40,15 @@ const scheduleTimeOptions = Array.from({ length: ((21 - 6) * 4) + 1 }, (_, index
 });
 
 function scheduleRoundLabel(roundType: (typeof scheduleRoundTypes)[number]) {
-  if (roundType === "PROGRESS_1") return "Progress 1";
-  if (roundType === "PROGRESS_2") return "Progress 2";
-  return "Final Presentation";
+  if (roundType === "PROGRESS_1") return "สอบความก้าวหน้าครั้งที่ 1";
+  if (roundType === "PROGRESS_2") return "สอบความก้าวหน้าครั้งที่ 2";
+  return "สอบนำเสนอขั้นสุดท้าย";
 }
 
 function scheduleKindLabel(kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") {
-  if (kind === "PROGRESS_1") return "Progress 1";
-  if (kind === "PROGRESS_2") return "Progress 2";
-  return "Final Presentation";
+  if (kind === "PROGRESS_1") return "สอบความก้าวหน้าครั้งที่ 1";
+  if (kind === "PROGRESS_2") return "สอบความก้าวหน้าครั้งที่ 2";
+  return "สอบนำเสนอขั้นสุดท้าย";
 }
 
 function roundTypeToScheduleKind(roundType: (typeof scheduleRoundTypes)[number]) {
@@ -84,9 +84,9 @@ function ProposalPlanMiniReference({
     <div className="md:col-span-3 rounded-md border border-line bg-paper p-3 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <div className="font-semibold">แผนจาก Proposal ที่ควรใช้เทียบรอบนี้</div>
+          <div className="font-semibold">แผนจากเอกสารเสนอหัวข้อที่ควรใช้เทียบรอบนี้</div>
           <p className="mt-1 text-muted">
-            {roundType === "PROGRESS_1" ? "Progress 1 ตรวจเทียบช่วงสัปดาห์ 1-8" : "Progress 2 ตรวจเทียบช่วงสัปดาห์ 9-16"}
+            {roundType === "PROGRESS_1" ? "สอบความก้าวหน้าครั้งที่ 1 ตรวจเทียบช่วงสัปดาห์ 1-8" : "สอบความก้าวหน้าครั้งที่ 2 ตรวจเทียบช่วงสัปดาห์ 9-16"}
           </p>
         </div>
         <span className="rounded-full border border-line bg-surface px-2 py-1 text-xs font-semibold">
@@ -110,7 +110,7 @@ function ProposalPlanMiniReference({
           ))
         ) : (
           <p className="text-muted">
-            ยังไม่พบแผน 16 สัปดาห์ที่คาบเกี่ยวกับรอบนี้ ถ้า Proposal มีแผนแล้วให้ตรวจว่าแผนถูกบันทึกจากตาราง timeline หรือไม่
+            ยังไม่พบแผน 16 สัปดาห์ที่คาบเกี่ยวกับรอบนี้ หากเอกสารเสนอหัวข้อมีแผนแล้ว ให้ตรวจว่าแผนถูกบันทึกจากตารางแผนดำเนินงานหรือไม่
           </p>
         )}
       </div>
@@ -163,12 +163,12 @@ export default async function StudentSchedulePage({
     }
   });
   if (!student) {
-    return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
+    return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ในรายชื่อที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   }
 
   const project = student.projects[0];
   if (!project) {
-    return <EmptyState title="ยังไม่มีโปรเจค" description="ยังไม่พบโปรเจคสำหรับเสนอวันสอบ" />;
+    return <EmptyState title="ยังไม่มีโครงงาน" description="ยังไม่พบโครงงานสำหรับเสนอวันสอบ" />;
   }
 
   const params = (await searchParams) ?? {};
@@ -182,8 +182,8 @@ export default async function StudentSchedulePage({
   const progress1Readiness = getProgress1Readiness(project);
   const progress1Open = progress1Round ? isRoundOpen(progress1Round.status) : false;
   const progress1BlockedText = !progress1Open
-    ? "รอบ Progress 1 ยังไม่เปิด"
-    : progress1Readiness.reasons.map(reasonLabelTh)[0] ?? "ยังไม่พร้อมสำหรับ Progress 1";
+    ? "รอบสอบความก้าวหน้าครั้งที่ 1 ยังไม่เปิด"
+    : progress1Readiness.reasons.map(reasonLabelTh)[0] ?? "ยังไม่พร้อมสำหรับการสอบความก้าวหน้าครั้งที่ 1";
   const requiredCommitteeScores = project.committeeAssignments.filter((assignment) => assignment.role === "HEAD" || assignment.role === "MEMBER").length;
   const hasCompletedScores = (attemptType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
     const submittedEvaluators = new Set<string>();
@@ -231,7 +231,7 @@ export default async function StudentSchedulePage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="เสนอวันสอบ Progress / Final"
+        title="เสนอวันสอบความก้าวหน้า/สอบขั้นสุดท้าย"
         description="เสนอหรือแก้ไขวัน เวลา และห้องสอบภายใต้รอบสอบระดับรายวิชาที่เปิดอยู่"
         actions={<StatusBadge status={project.status} />}
       />
@@ -240,12 +240,12 @@ export default async function StudentSchedulePage({
         title="การนัดสอบ"
         current="นักศึกษาเสนอวัน เวลา ห้องสอบ และหมายเหตุให้กรรมการพิจารณา"
         next="เมื่อส่งแล้ว กรรมการที่ได้รับแต่งตั้งจะเห็นรายการนี้ในหน้าตารางสอบ"
-        actor="นักศึกษาส่งคำขอ กรรมการ HEAD/MEMBER เป็นผู้พิจารณาตาม workflow ปัจจุบัน"
+        actor="นักศึกษาส่งคำขอ ประธานและกรรมการเป็นผู้พิจารณาตามขั้นตอนปัจจุบัน"
       />
       <section className="panel">
         <h2 className="text-lg font-semibold">เกณฑ์และหลักฐานแยกตามรอบสอบ</h2>
         <p className="mt-1 text-sm text-muted">
-          เลือกรอบสอบในแบบฟอร์มด้านล่างให้ตรงกับงานปัจจุบัน ระบบจะแยก rubric ของ Progress 1, Progress 2 และ Final Presentation ไม่ใช้เกณฑ์เดียวกันปนกัน
+          เลือกรอบสอบในแบบฟอร์มด้านล่างให้ตรงกับงานปัจจุบัน ระบบจะแยกเกณฑ์ประเมินของการสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้าย ไม่ใช้เกณฑ์เดียวกันปนกัน
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {scheduleRoundTypes.map((roundType) => {
@@ -259,9 +259,9 @@ export default async function StudentSchedulePage({
                   : completed.PROGRESS_1 && completed.PROGRESS_2;
             const disabledReason = open && !sequenceReady
               ? roundType === "PROGRESS_2"
-                ? "รอ Progress 1 เสร็จ"
+                ? "รอสอบความก้าวหน้าครั้งที่ 1 เสร็จ"
                 : roundType === "FINAL_PRESENTATION"
-                  ? "รอ Progress 2 เสร็จ"
+                  ? "รอสอบความก้าวหน้าครั้งที่ 2 เสร็จ"
                   : "ยังไม่พร้อม"
               : "ยังไม่เปิด";
             return (
@@ -285,16 +285,16 @@ export default async function StudentSchedulePage({
                 {showQaProgressPlanCheck ? (
                   <ProgressPlanCheckpointPanel roundType={roundType} timelineItems={proposalContent?.timelineItems} audience="student" />
                 ) : null}
-                <ProgressQaRubricPanel roundLabel={roundType === "PROGRESS_1" ? "Progress 1" : "Progress 2"} />
+                <ProgressQaRubricPanel roundLabel={roundType === "PROGRESS_1" ? "การสอบความก้าวหน้าครั้งที่ 1" : "การสอบความก้าวหน้าครั้งที่ 2"} />
               </>
             ) : (
               <>
                 <section className="panel">
-                  <h2 className="text-lg font-semibold">Final assessment guidance</h2>
+                  <h2 className="text-lg font-semibold">คำแนะนำสำหรับการสอบนำเสนอขั้นสุดท้าย</h2>
                   <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
-                    <p>Final จะตรวจว่างานที่เสร็จแล้วสอดคล้องกับวัตถุประสงค์ที่อนุมัติใน Proposal หรือไม่</p>
+                    <p>การสอบนำเสนอขั้นสุดท้ายจะตรวจว่างานที่เสร็จแล้วสอดคล้องกับวัตถุประสงค์ที่อนุมัติในเอกสารเสนอหัวข้อหรือไม่</p>
                     <p>หลักฐานควรเป็นผลลัพธ์ที่ตรวจสอบได้ เช่น proof draft, dataset, implementation, screenshots, experiment results, logs หรือ report sections</p>
-                    <p>วิธีดำเนินงานและผลลัพธ์ควรเชื่อมกับแผน 16 สัปดาห์ และ Progress history ที่เคยส่งไว้</p>
+                    <p>วิธีดำเนินงานและผลลัพธ์ควรเชื่อมกับแผน 16 สัปดาห์ และประวัติการสอบความก้าวหน้าที่เคยส่งไว้</p>
                     <p>ถ้ามีการเลื่อน/ปรับแผน ให้เตรียมเหตุผลและหลักฐานประกอบการอธิบายต่อกรรมการ</p>
                   </div>
                 </section>
@@ -397,8 +397,8 @@ export default async function StudentSchedulePage({
                     <h3 className="font-semibold">แบบฟอร์มหลักฐาน {scheduleKindLabel(kind)}</h3>
                     <p className="mt-1 text-sm text-muted">
                       {isFinal
-                        ? "กรอกหลักฐานให้ล้อกับ rubric Final: วัตถุประสงค์ วิธีการ ผลลัพธ์ รายงาน และการตอบคำถาม"
-                        : "กรอกหลักฐานให้ล้อกับ rubric Progress: งานตามแผน หลักฐาน ความล่าช้า ปัญหา วิธีแก้ และงานถัดไป"}
+                        ? "กรอกหลักฐานให้สอดคล้องกับเกณฑ์ประเมิน Final: วัตถุประสงค์ วิธีการ ผลลัพธ์ รายงาน และการตอบคำถาม"
+                        : "กรอกหลักฐานให้สอดคล้องกับเกณฑ์ประเมินความก้าวหน้า: งานตามแผน หลักฐาน ความล่าช้า ปัญหา วิธีแก้ และงานถัดไป"}
                     </p>
                   </div>
                   <span className="rounded-full border border-line bg-paper px-2 py-1 text-xs">{submission ? "แก้ไขเอกสารเดิม" : "บันทึกใหม่"}</span>
@@ -415,13 +415,13 @@ export default async function StudentSchedulePage({
                   {isFinal ? (
                     <>
                       <div className="md:col-span-3">
-                        <MarkdownLatexEditor name="final_objectives_evidence" label="วัตถุประสงค์ที่ทำสำเร็จและหลักฐาน *" defaultValue={String(content.finalObjectivesEvidence ?? "")} placeholder="ระบุวัตถุประสงค์จาก Proposal ที่ผลงานสุดท้ายตอบได้ และชี้หลักฐาน/ชิ้นงาน/ผลลัพธ์ที่ตรวจสอบได้" required rows={4} />
+                        <MarkdownLatexEditor name="final_objectives_evidence" label="วัตถุประสงค์ที่ทำสำเร็จและหลักฐาน *" defaultValue={String(content.finalObjectivesEvidence ?? "")} placeholder="ระบุวัตถุประสงค์จากเอกสารเสนอหัวข้อที่ผลงานสุดท้ายตอบได้ และชี้หลักฐาน/ชิ้นงาน/ผลลัพธ์ที่ตรวจสอบได้" required rows={4} />
                       </div>
                       <div className="md:col-span-3">
                         <MarkdownLatexEditor name="final_methods_results" label="วิธีการ ผลลัพธ์ และการวิเคราะห์ *" defaultValue={String(content.finalMethodsResults ?? "")} placeholder="อธิบายวิธีที่ใช้จริง ผลลัพธ์สำคัญ หลักฐานการพิสูจน์/การทดลอง/การพัฒนา และความสอดคล้องกับข้อสรุป" required rows={4} />
                       </div>
                       <div className="md:col-span-3">
-                        <MarkdownLatexEditor name="final_timeline_adaptation" label="การดำเนินงานเทียบแผนและการปรับแผน *" defaultValue={String(content.finalTimelineAdaptation ?? "")} placeholder="สรุปว่างานหลักทำตาม timeline หรือปรับอย่างไร มีปัญหา/การแก้ไขอะไร และยังรักษาวัตถุประสงค์เดิมอย่างไร" required rows={4} />
+                        <MarkdownLatexEditor name="final_timeline_adaptation" label="การดำเนินงานเทียบแผนและการปรับแผน *" defaultValue={String(content.finalTimelineAdaptation ?? "")} placeholder="สรุปว่างานหลักทำตามแผนหรือปรับอย่างไร มีปัญหา/การแก้ไขอะไร และยังรักษาวัตถุประสงค์เดิมอย่างไร" required rows={4} />
                       </div>
                       <div className="md:col-span-3">
                         <MarkdownLatexEditor name="final_report_readiness" label="รายงาน บทความ และประเด็นตอบคำถาม *" defaultValue={String(content.finalReportReadiness ?? "")} placeholder="ระบุส่วนรายงานที่ครบถ้วน รูป/ตาราง/สมการ/อ้างอิง และประเด็นที่คณะกรรมการควรตรวจหรือซักถาม" required rows={4} />
@@ -431,7 +431,7 @@ export default async function StudentSchedulePage({
                     <>
                       <ProposalPlanMiniReference roundType={kind} timelineItems={proposalContent?.timelineItems} />
                       <div className="md:col-span-3">
-                        <MarkdownLatexEditor name="progress_plan_tasks" label="งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้ *" defaultValue={String(content.progressPlanTasks ?? "")} placeholder="ระบุ task จากแผน Proposal ที่เกี่ยวข้องกับรอบนี้ เช่น สัปดาห์ 1-8 งานใดเสร็จแล้ว งานใดกำลังทำ" required rows={4} />
+                        <MarkdownLatexEditor name="progress_plan_tasks" label="งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้ *" defaultValue={String(content.progressPlanTasks ?? "")} placeholder="ระบุงานจากแผนในเอกสารเสนอหัวข้อที่เกี่ยวข้องกับรอบนี้ เช่น สัปดาห์ 1-8 งานใดเสร็จแล้ว งานใดกำลังทำ" required rows={4} />
                       </div>
                       <div className="md:col-span-3">
                         <MarkdownLatexEditor name="progress_evidence" label="หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า *" defaultValue={String(content.progressEvidence ?? "")} placeholder="ระบุ proof draft, code, dataset, result table, experiment log, screenshot, report section หรือชิ้นงานที่ตรวจได้จริง ควรทำเสร็จก่อนขอสอบ สไลด์นำเสนอ/เลขหน้าสไลด์ใช้ประกอบได้แต่ถือเป็นหลักฐานอย่างอ่อน" required rows={4} />
@@ -516,7 +516,7 @@ export default async function StudentSchedulePage({
             </select>
           </div>
           <div className="md:col-span-3">
-            <MarkdownLatexEditor name="schedule_note" label="หมายเหตุถึงกรรมการ" placeholder="เช่น เนื้อหาที่จะนำเสนอ ปัญหาที่ต้องการ feedback หรือข้อจำกัดเวลา ใช้ $...$ ได้" required={false} rows={4} />
+            <MarkdownLatexEditor name="schedule_note" label="หมายเหตุถึงกรรมการ" placeholder="เช่น เนื้อหาที่จะนำเสนอ ปัญหาที่ต้องการข้อเสนอแนะ หรือข้อจำกัดเวลา ใช้ $...$ ได้" required={false} rows={4} />
           </div>
           <div className="md:col-span-3">
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -552,7 +552,7 @@ export default async function StudentSchedulePage({
               );
             })
           ) : (
-            <EmptyState title="ยังไม่มีการเสนอวันสอบ" description="เมื่อรอบสอบเปิดและโปรเจคพร้อม รายการที่ส่งจะปรากฏที่นี่" />
+            <EmptyState title="ยังไม่มีการเสนอวันสอบ" description="เมื่อรอบสอบเปิดและโครงงานพร้อม รายการที่ส่งจะปรากฏที่นี่" />
           )}
         </div>
       </section>

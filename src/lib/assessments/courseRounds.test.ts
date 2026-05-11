@@ -7,8 +7,8 @@ describe("course-level assessment rounds", () => {
   });
 
   it("names rounds without project-specific identifiers", () => {
-    expect(defaultCourseRoundName("PROPOSAL")).toBe("Proposal Presentation");
-    expect(defaultCourseRoundName("PROGRESS_1")).toBe("Progress 1 Presentation");
+    expect(defaultCourseRoundName("PROPOSAL")).toBe("การเสนอหัวข้อ");
+    expect(defaultCourseRoundName("PROGRESS_1")).toBe("การสอบความก้าวหน้าครั้งที่ 1");
   });
 
   it("maps closed statuses to visible Thai closed text", () => {

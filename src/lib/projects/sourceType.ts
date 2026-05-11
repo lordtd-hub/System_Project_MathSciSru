@@ -17,7 +17,7 @@ const sourceTypeLabels: Record<SourceType, string> = {
   COURSEWORK_EXTENSION: "ต่อยอดจากรายวิชา",
   RESEARCH_EXTENSION: "ต่อยอดจากงานวิจัย/โครงงานเดิม",
   COMMUNITY_OR_INDUSTRY_PROBLEM: "ปัญหาจากชุมชน/หน่วยงาน/อุตสาหกรรม",
-  REVISED_FROM_FAILED_PROPOSAL: "ปรับจาก Proposal ที่ไม่ผ่าน",
+  REVISED_FROM_FAILED_PROPOSAL: "ปรับจากเอกสารเสนอหัวข้อที่ไม่ผ่าน",
   OTHER: "อื่น ๆ"
 };
 

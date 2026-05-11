@@ -31,7 +31,7 @@ export default async function TeacherProgress2Page({
   }
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
-  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
+  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" />;
 
   const params = (await searchParams) ?? {};
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
@@ -96,16 +96,16 @@ export default async function TeacherProgress2Page({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="บันทึกคะแนน Progress 2" description="สำหรับ HEAD/MEMBER ที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
+      <PageHeader title="บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2" description="สำหรับประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
-        title="Progress 2 scoring"
-        current="ให้คะแนนจาก rubric แบบเงื่อนไข 100 คะแนน โดยเทียบกับหลักฐานและแผนงานที่นักศึกษาส่งไว้"
-        next="ระบบบันทึกคะแนนและ comment เป็นหลักฐาน แต่ยังไม่เปลี่ยน lifecycle อัตโนมัติ"
-        actor="HEAD หรือ MEMBER ที่ได้รับแต่งตั้ง"
+        title="การประเมินความก้าวหน้าครั้งที่ 2"
+        current="ให้คะแนนจากเกณฑ์แบบตรวจเงื่อนไข 100 คะแนน โดยเทียบกับหลักฐานและแผนงานที่นักศึกษาส่งไว้"
+        next="ระบบบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน โดยไม่เปลี่ยนขั้นตอนโครงงานอัตโนมัติ"
+        actor="ประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้ง"
       />
       {!progress2Round ? (
-        <EmptyState title="ยังไม่มีรอบ Progress 2" description="ผู้ดูแลระบบต้องเปิดรอบ Progress 2 ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
+        <EmptyState title="ยังไม่มีรอบสอบความก้าวหน้าครั้งที่ 2" description="ผู้ดูแลระบบต้องเปิดรอบสอบความก้าวหน้าครั้งที่ 2 ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
       ) : null}
 
       <div className="space-y-4">
@@ -139,23 +139,23 @@ export default async function TeacherProgress2Page({
               ) : null}
 
               <div className="mt-4 rounded-md border border-line bg-surface p-3 text-sm">
-                <div className="font-semibold">เอกสาร/หลักฐานที่นักศึกษาส่งสำหรับ Progress 2</div>
+                <div className="font-semibold">เอกสาร/หลักฐานที่นักศึกษาส่งสำหรับการสอบความก้าวหน้าครั้งที่ 2</div>
                 {evidenceSubmission ? (
                   <div className="mt-2 space-y-2 text-muted">
-                    <div>{evidenceSubmission.title ?? "เอกสาร Progress 2"}</div>
+                    <div>{evidenceSubmission.title ?? "เอกสารการสอบความก้าวหน้าครั้งที่ 2"}</div>
                     <a className="inline-flex text-brand hover:underline" href={evidenceSubmission.materialLink} target="_blank" rel="noreferrer">
                       เปิดเอกสาร/หลักฐาน
                     </a>
                     {evidenceSummary ? <MarkdownLatexViewer className="border-0 bg-transparent p-0" value={evidenceSummary} /> : null}
                   </div>
                 ) : (
-                  <div className="mt-2 text-muted">ยังไม่พบเอกสาร Progress 2 จากนักศึกษา</div>
+                  <div className="mt-2 text-muted">ยังไม่พบเอกสารการสอบความก้าวหน้าครั้งที่ 2 จากนักศึกษา</div>
                 )}
               </div>
 
               <ConditionBasedRubricView
-                title="Progress 2 condition-based rubric"
-                description="ใช้ rubric นี้เป็นเกณฑ์คะแนนจริงของ Progress 2"
+                title="เกณฑ์ประเมินการสอบความก้าวหน้าครั้งที่ 2"
+                description="ใช้เกณฑ์นี้เป็นเกณฑ์คะแนนจริงของการสอบความก้าวหน้าครั้งที่ 2"
                 sections={progressQaRubric}
               />
 
@@ -200,17 +200,17 @@ export default async function TeacherProgress2Page({
                     })}
                   </div>
                 ) : (
-                  <EmptyState title="ยังไม่มี Rubric สำหรับ Progress 2" description="ผู้ดูแลระบบต้องตั้งค่า rubric baseline ก่อนจึงจะบันทึกคะแนนได้" />
+                  <EmptyState title="ยังไม่มีเกณฑ์ประเมินสำหรับการสอบความก้าวหน้าครั้งที่ 2" description="ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนจึงจะบันทึกคะแนนได้" />
                 )}
-                <MarkdownLatexEditor name="comment" label="Comment / feedback" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
-                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนน Progress 2 หรือไม่?">
-                  บันทึกคะแนน Progress 2
+                <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
+                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2 หรือไม่?">
+                  บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2
                 </SubmitButton>
               </form>
             </section>
           );
         }) : progress2Round ? (
-          <EmptyState title="ยังไม่มีโครงงาน Progress 2 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็น HEAD/MEMBER และกรรมการยืนยันวันสอบ Progress 2 ครบแล้ว" />
+          <EmptyState title="ยังไม่มีโครงงานการสอบความก้าวหน้าครั้งที่ 2 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็นประธานกรรมการหรือกรรมการ และกรรมการยืนยันวันสอบความก้าวหน้าครั้งที่ 2 ครบแล้ว" />
         ) : null}
       </div>
     </div>

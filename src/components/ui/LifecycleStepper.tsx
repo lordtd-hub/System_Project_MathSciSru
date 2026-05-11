@@ -5,12 +5,12 @@ const steps: Array<{ label: string; statuses: ProjectStatus[] }> = [
   { label: "ร่างหัวข้อ", statuses: ["DRAFT"] },
   { label: "รอที่ปรึกษา", statuses: ["PENDING_ADVISOR"] },
   { label: "รอผู้ดูแลระบบ", statuses: ["PENDING_ADMIN"] },
-  { label: "รอส่ง Proposal", statuses: ["PROPOSAL_PENDING"] },
+  { label: "รอส่งเอกสารเสนอหัวข้อ", statuses: ["PROPOSAL_PENDING"] },
   { label: "สอบหัวข้อ", statuses: ["PROPOSAL_REVIEW"] },
-  { label: "ตัดสินผล Proposal", statuses: ["PROPOSAL_ADMIN_DECISION"] },
+  { label: "ตัดสินผลเสนอหัวข้อ", statuses: ["PROPOSAL_ADMIN_DECISION"] },
   { label: "หัวข้อผ่านแล้ว", statuses: ["TOPIC_APPROVED"] },
   { label: "ดำเนินโครงงาน", statuses: ["IN_PROGRESS", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING"] },
-  { label: "Final/Closeout", statuses: ["FINAL_DONE", "COMPLETED"] }
+  { label: "สอบขั้นสุดท้าย/ยืนยันจบ", statuses: ["FINAL_DONE", "COMPLETED"] }
 ];
 
 function currentStepIndex(status: ProjectStatus): number {
@@ -36,7 +36,7 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
     <div className="panel lifecycle-panel overflow-hidden">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Lifecycle</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">ขั้นตอนโครงงาน</div>
           <h2 className="text-lg font-semibold text-ink">เส้นทางโครงงาน</h2>
         </div>
         <CompactLifecycleBadge status={status} />

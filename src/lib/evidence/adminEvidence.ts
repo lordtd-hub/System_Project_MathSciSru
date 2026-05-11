@@ -140,12 +140,12 @@ export function buildProjectEvidenceRows(projects: EvidenceProject[]): ProjectEv
     const advisorScore = project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null;
     const completed = project.status === "COMPLETED";
     const missingEvidence = [
-      !progress1Score ? "Progress 1 score evidence" : null,
-      !progress2Score ? "Progress 2 score evidence" : null,
-      !finalScore ? "Final presentation score evidence" : null,
+      !progress1Score ? "หลักฐานคะแนนสอบความก้าวหน้าครั้งที่ 1" : null,
+      !progress2Score ? "หลักฐานคะแนนสอบความก้าวหน้าครั้งที่ 2" : null,
+      !finalScore ? "หลักฐานคะแนนสอบนำเสนอขั้นสุดท้าย" : null,
       !reportApproval ? "Report approval evidence" : null,
-      !advisorScore ? "Advisor score evidence" : null,
-      !completed ? "Admin closeout" : null
+      !advisorScore ? "หลักฐานคะแนนอาจารย์ที่ปรึกษา" : null,
+      !completed ? "หลักฐานการปิดโครงงาน" : null
     ].filter(Boolean) as string[];
 
     return {

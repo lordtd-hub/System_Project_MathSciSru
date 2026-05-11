@@ -11,7 +11,8 @@ describe("teacher dashboard source", () => {
     expect(page).not.toContain('prisma.reportReview.count({ where: { reviewerTeacherId: teacherId, decision: "FAIL" } })');
     expect(page).toContain('status: "REPORT_REVIEW"');
     expect(page).toContain("reportVersions");
-    expect(page).toContain("latestReport.reviews.length === 0");
+    expect(page).toContain('review.decision === "FAIL"');
+    expect(page).toContain("review.reviewerTeacherId === teacherId");
     expect(page).toContain("teacherProjectInvolvementWhere");
     expect(page).toContain('status: "CONFIRMED"');
   });

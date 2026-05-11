@@ -9,7 +9,7 @@ describe("advisor score workflow source guards", () => {
     const page = read("src/app/teacher/advisor-score/page.tsx");
     expect(page).toContain("auth()");
     expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
-    expect(page).toContain("Advisor score 25%");
+    expect(page).toContain("คะแนนสรุปของอาจารย์ที่ปรึกษา 25%");
     expect(page).toContain("submitAdvisorScore");
   });
 

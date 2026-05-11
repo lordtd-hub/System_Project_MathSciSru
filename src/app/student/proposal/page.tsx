@@ -57,43 +57,43 @@ export default async function ProposalSubmissionPage({
     Boolean(canPrepareProposal && proposalRound && isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline));
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
-  if (!project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาสร้างโปรเจคก่อนส่ง Proposal" actionLabel="ไปหน้าโปรเจค" href="/student/project" />;
+  if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาสร้างโครงงานก่อนส่งเอกสารเสนอหัวข้อ" actionLabel="ไปหน้าโครงงาน" href="/student/project" />;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ส่งข้อมูล Proposal"
+        title="ส่งเอกสารเสนอหัวข้อ"
         description="แนบ abstract และลิงก์เอกสารสำหรับสอบหัวข้อ ข้อมูลนี้ใช้ประกอบการสอบและเป็นหลักฐานสำหรับ AUN-QA"
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
-        title="Proposal ใช้อย่างไร"
+        title="การส่งเอกสารเสนอหัวข้อ"
         current="กรอก abstract และแนบลิงก์ Google Drive/Docs/Classroom"
-        next="อาจารย์จะให้ comment ได้ทันที คะแนน Proposal จะไม่แสดงให้นักศึกษาเห็น"
+        next="อาจารย์จะให้ข้อเสนอแนะได้ทันที คะแนนการเสนอหัวข้อจะไม่แสดงให้นักศึกษาเห็น"
         actor="นักศึกษาเป็นผู้ส่งข้อมูล จากนั้นอาจารย์ภายในเป็นผู้ประเมิน"
       />
       <InfoAlert title="การแสดงผลให้นักศึกษา">
-        นักศึกษาจะเห็น comment และชื่ออาจารย์ทันที แต่คะแนน Proposal จะถูกซ่อน
+        นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่คะแนนการเสนอหัวข้อจะถูกซ่อน
       </InfoAlert>
       <ProposalQaRubricPanel audience="student" />
       {!project.origin ? (
         <WarningAlert title="ยังไม่มีข้อมูลเสนอหัวข้อ">
-          กรุณาสร้าง/แก้ไขโปรเจคและส่งคำขอที่ปรึกษาก่อนส่ง Proposal
+          กรุณาสร้างหรือแก้ไขโครงงานและส่งคำขอที่ปรึกษาก่อนส่งเอกสารเสนอหัวข้อ
         </WarningAlert>
       ) : null}
       <ProposalDraftForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`} clearOnSuccess={params.success === "proposal_submitted"}>
-        <FormSection title="แบบฟอร์ม Proposal" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
+        <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <InfoAlert title="คำแนะนำตาม rubric">
             Background: อธิบายปัญหา บริบท/กลุ่มผู้ใช้ และเหตุผลที่ปัญหาสำคัญ · Objectives: ระบุสิ่งที่จะศึกษา/พัฒนา/พิสูจน์/วิเคราะห์/สร้าง/ประเมินให้ตรงหัวข้อและตรวจสอบผลได้ · Methods: เขียนขั้นตอนตามลำดับและเชื่อมกับวัตถุประสงค์ · Expected outcomes: ระบุผลลัพธ์ที่ตรวจสอบได้ · Timeline: ครอบคลุม 16 สัปดาห์ · Supporting documents: ใส่ทฤษฎี งานที่เกี่ยวข้อง เครื่องมือ หรือวรรณกรรมที่เกี่ยวข้อง
           </InfoAlert>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label>ชื่อ Proposal ภาษาไทย</label>
+              <label>ชื่อเอกสารเสนอหัวข้อภาษาไทย</label>
               <input name="project_title_th" required defaultValue={submission?.titleTh ?? project.currentTitleTh ?? ""} />
             </div>
             <div>
-              <label>ชื่อ Proposal ภาษาอังกฤษ</label>
+              <label>ชื่อเอกสารเสนอหัวข้อภาษาอังกฤษ</label>
               <input name="project_title_en" defaultValue={submission?.titleEn ?? project.currentTitleEn ?? ""} />
             </div>
             <div className="md:col-span-2">
@@ -123,7 +123,7 @@ export default async function ProposalSubmissionPage({
                 name="questions_for_teachers"
                 label="คำถามหรือประเด็นที่ต้องการให้อาจารย์ช่วยพิจารณา"
                 defaultValue={typeof content?.questionsForTeachers === "string" ? content.questionsForTeachers : ""}
-                helpText="ระบุข้อสงสัย จุดที่ยังไม่มั่นใจ หรือประเด็นใน Proposal ที่ต้องการให้อาจารย์ช่วยให้คำแนะนำ หากไม่มีให้เว้นว่างได้"
+                helpText="ระบุข้อสงสัย จุดที่ยังไม่มั่นใจ หรือประเด็นในเอกสารเสนอหัวข้อที่ต้องการให้อาจารย์ช่วยให้คำแนะนำ หากไม่มีให้เว้นว่างได้"
                 rows={5}
                 required={false}
               />
@@ -133,37 +133,37 @@ export default async function ProposalSubmissionPage({
             </div>
             <label className="flex items-center gap-2 md:col-span-2">
               <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={submission?.declarationAccepted ?? false} />
-              <span>ข้าพเจ้ารับรองว่า Proposal นี้เป็นงานของตนเองและไม่ใช้ raw HTML</span>
+              <span>ข้าพเจ้ารับรองว่าเอกสารเสนอหัวข้อนี้เป็นงานของตนเองและไม่ใช้ raw HTML</span>
             </label>
           </div>
           {!canSubmitProposal ? (
-            <InfoAlert title="ยังส่ง Proposal ไม่ได้">
-              สามารถกรอกและกด “บันทึกไว้ก่อน” ได้ ข้อมูลจะเก็บไว้ในเครื่องนี้ เมื่อผู้ดูแลระบบเปิดรอบ Proposal แล้วจึงกลับมากดส่ง Proposal
+            <InfoAlert title="ยังส่งเอกสารเสนอหัวข้อไม่ได้">
+              สามารถกรอกและกด “บันทึกไว้ก่อน” ได้ ข้อมูลจะเก็บไว้ในเครื่องนี้ เมื่อผู้ดูแลระบบเปิดรอบเสนอหัวข้อแล้วจึงกลับมากดส่งเอกสารเสนอหัวข้อ
             </InfoAlert>
           ) : null}
           <div className="sticky bottom-0 -mx-4 mt-4 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
             <button type="button" data-proposal-draft-save className="button-secondary w-full sm:w-auto">
               บันทึกไว้ก่อน
             </button>
-            <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่ง Proposal..." className="w-full sm:w-auto">
-              {canSubmitProposal ? "ส่ง Proposal" : "Proposal ยังไม่เปิดให้แก้ไข"}
+            <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่งเอกสารเสนอหัวข้อ..." className="w-full sm:w-auto">
+              {canSubmitProposal ? "ส่งเอกสารเสนอหัวข้อ" : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}
             </SubmitButton>
           </div>
         </FormSection>
       </ProposalDraftForm>
       <section className="panel">
         <h2 className="text-lg font-semibold">Comment จากอาจารย์</h2>
-        <p className="mt-1 text-sm text-muted">ส่วนนี้แสดง comment ทันที พร้อมชื่ออาจารย์ แต่ไม่แสดงคะแนน Proposal</p>
+        <p className="mt-1 text-sm text-muted">ส่วนนี้แสดงข้อเสนอแนะทันที พร้อมชื่ออาจารย์ แต่ไม่แสดงคะแนนการเสนอหัวข้อ</p>
         <div className="mt-3 space-y-3">
           {proposalComments.length ? (
             proposalComments.map((vote) => (
               <div key={vote.id} className="rounded-md border border-line p-3 text-sm">
                 <div className="font-medium">{teacherDisplayName(vote.teacher)} · {vote.vote}</div>
-                <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={vote.comment} emptyText="ไม่มี comment เพิ่มเติม" />
+                <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={vote.comment} emptyText="ไม่มีข้อเสนอแนะเพิ่มเติม" />
               </div>
             ))
           ) : (
-            <EmptyState title="ยังไม่มี comment" description="เมื่ออาจารย์เริ่มประเมิน comment จะแสดงที่นี่ทันที" />
+            <EmptyState title="ยังไม่มีข้อเสนอแนะ" description="เมื่ออาจารย์เริ่มประเมิน ข้อเสนอแนะจะแสดงที่นี่ทันที" />
           )}
         </div>
       </section>

@@ -32,6 +32,23 @@ export function getReportSubmissionGate(input: {
   return { allowed: false, reason: "NOT_FINAL_DONE" as const };
 }
 
+export function canStudentSubmitFinalReport(input: {
+  projectStatus: ProjectStatus;
+  latestReportHasRevisionRequest: boolean;
+  finalPresentationCompleted?: boolean;
+}) {
+  return getReportSubmissionGate(input).allowed;
+}
+
+export function getStudentReportActionLabel(input: {
+  hasReportVersion: boolean;
+  latestReportHasRevisionRequest: boolean;
+}) {
+  if (!input.hasReportVersion) return "ส่งเล่มรายงานฉบับสมบูรณ์";
+  if (input.latestReportHasRevisionRequest) return "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข";
+  return "ส่งรายงานฉบับใหม่";
+}
+
 export function reportSubmissionReasonLabel(reason: ReportSubmissionBlockReason | null) {
   switch (reason) {
     case null:

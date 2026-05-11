@@ -79,7 +79,7 @@ const proposalConditionTh: Record<string, string[]> = {
     "แหล่งข้อมูลพื้นฐานเกี่ยวข้องกับหัวข้อโครงงาน",
     "แสดงให้เห็นว่าพื้นฐานดังกล่าวสนับสนุนงานที่เสนออย่างไร"
   ],
-  C2: ["วัตถุประสงค์สอดคล้องกับวิธีดำเนินงาน", "วิธีดำเนินงานสอดคล้องกับผลลัพธ์ที่คาดหวัง", "แผนเวลาสอดคล้องกับ workflow ที่เสนอ"],
+  C2: ["วัตถุประสงค์สอดคล้องกับวิธีดำเนินงาน", "วิธีดำเนินงานสอดคล้องกับผลลัพธ์ที่คาดหวัง", "แผนเวลาสอดคล้องกับขั้นตอนการดำเนินงานที่เสนอ"],
   D1: ["ผู้นำเสนออธิบายปัญหา/บริบท", "ผู้นำเสนออธิบายวัตถุประสงค์", "ผู้นำเสนออธิบายวิธีดำเนินงาน", "ผู้นำเสนออธิบายผลลัพธ์ที่คาดหวัง"],
   D2: ["คำตอบตอบตรงคำถาม", "คำตอบสอดคล้องกับโครงร่างที่ส่ง", "คำตอบมีเหตุผล ตัวอย่าง หลักฐาน หรือคำอธิบายประกอบ"]
 };
@@ -241,7 +241,7 @@ const proposalQaRubricBase: ProposalQaRubricSection[] = [
         conditions: [
           "Objectives correspond to methods.",
           "Methods correspond to expected outcomes.",
-          "Timeline corresponds to the proposed workflow."
+          "Timeline corresponds to the proposed work process."
         ],
         scoreMappings: [
           { conditionCount: 3, score: 10 },

@@ -29,14 +29,14 @@ export default async function AdminTeachersPage({
       <PageHeader
         title="จัดการอาจารย์"
         description="ดูโปรไฟล์อาจารย์และตั้งค่าอีเมลสำหรับการผูกบัญชี Google"
-        actions={<Link className="button" href="/admin/claims">คำขอ claim {pendingClaims}</Link>}
+        actions={<Link className="button" href="/admin/claims">คำขอผูกบัญชี {pendingClaims}</Link>}
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
         title="อีเมลอาจารย์"
-        current="ผู้ดูแลระบบแก้ได้เฉพาะอีเมลของโปรไฟล์อาจารย์ เพื่อให้ระบบ auto-link กับ Google login ครั้งถัดไป"
-        next="หลังบันทึกอีเมล ให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อ refresh สิทธิ์ ADMIN/TEACHER"
-        actor="การอนุมัติ teacher claim ยังทำที่หน้าคำขอผูกบัญชีอาจารย์เหมือนเดิม"
+        current="ผู้ดูแลระบบแก้ได้เฉพาะอีเมลของโปรไฟล์อาจารย์ เพื่อให้ระบบผูกบัญชีกับ Google login ครั้งถัดไป"
+        next="หลังบันทึกอีเมล ให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อปรับปรุงสิทธิ์ผู้ดูแลระบบ/อาจารย์"
+        actor="การอนุมัติคำขอผูกบัญชีอาจารย์ยังทำที่หน้าคำขอผูกบัญชีอาจารย์เหมือนเดิม"
       />
       <section className="panel">
         <h2 className="text-lg font-semibold">รายชื่ออาจารย์</h2>
@@ -53,7 +53,7 @@ export default async function AdminTeachersPage({
                         <p className="mt-1 text-xs text-muted">{teacher.department}</p>
                       </div>
                       <span className="rounded-full border border-line px-2.5 py-1 text-xs font-semibold text-muted">
-                        {teacher.canEvaluateProposal ? "ประเมิน Proposal ได้" : "ไม่ประเมิน Proposal"}
+                        {teacher.canEvaluateProposal ? "ประเมินการเสนอหัวข้อได้" : "ไม่ประเมินการเสนอหัวข้อ"}
                       </span>
                     </div>
                     <dl className="mt-4 grid gap-3 text-sm">
@@ -62,7 +62,7 @@ export default async function AdminTeachersPage({
                         <dd className="mt-1 break-all">{teacher.email ?? "ยังไม่ผูกอีเมล"}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Claim ล่าสุด</dt>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-muted">คำขอล่าสุด</dt>
                         <dd className="mt-1">{teacher.claims[0]?.status ?? "-"}</dd>
                       </div>
                     </dl>
@@ -93,8 +93,8 @@ export default async function AdminTeachersPage({
                 <tr>
                   <th className="py-2 text-left">ชื่ออาจารย์</th>
                   <th className="text-left">อีเมลที่ผูกบัญชี</th>
-                  <th className="text-left">ประเมิน Proposal</th>
-                  <th className="text-left">Claim ล่าสุด</th>
+                  <th className="text-left">ประเมินการเสนอหัวข้อ</th>
+                  <th className="text-left">คำขอล่าสุด</th>
                   <th className="text-left">แก้ไขอีเมล</th>
                 </tr>
               </thead>
@@ -131,7 +131,7 @@ export default async function AdminTeachersPage({
           </>
         ) : (
           <div className="mt-3 rounded-md border border-dashed border-line p-6 text-center">
-            <EmptyState title="ยังไม่มีข้อมูลอาจารย์" description="เพิ่มข้อมูลอาจารย์พื้นฐานสำหรับเริ่มใช้งานระบบจริง โดยไม่สร้าง demo project หรือนักศึกษา" />
+            <EmptyState title="ยังไม่มีข้อมูลอาจารย์" description="เพิ่มข้อมูลอาจารย์พื้นฐานสำหรับเริ่มใช้งานระบบจริง โดยไม่สร้างข้อมูลโครงงานหรือนักศึกษาทดสอบ" />
             <form action={seedTeacherBaselineFromAdmin} className="mt-4">
               <SubmitButton pendingText="กำลังเพิ่มข้อมูลอาจารย์...">เพิ่มข้อมูลอาจารย์พื้นฐาน</SubmitButton>
             </form>

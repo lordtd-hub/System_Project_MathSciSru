@@ -11,7 +11,7 @@ describe("admin course round management UX", () => {
     expect(pageSource).toContain("รอบสอบของรายวิชา");
     expect(pageSource).toContain("เปิดรอบ");
     expect(pageSource).toContain("ดูความพร้อมของรอบปัจจุบัน");
-    expect(pageSource).toContain("getRoundEligibility(offering.id, \"PROGRESS_1\")");
+    expect(pageSource).toContain('getRoundEligibility(offering.id, "PROGRESS_1")');
   });
 
   it("opens Progress 1 through one course-level upsert", () => {
@@ -51,7 +51,7 @@ describe("admin course round management UX", () => {
   });
 
   it("gates student Progress 1 scheduling on the course-level round", () => {
-    expect(scheduleSource).toContain("รอบ Progress 1 ยังไม่เปิด");
+    expect(scheduleSource).toContain("รอบสอบความก้าวหน้าครั้งที่ 1 ยังไม่เปิด");
     expect(scheduleSource).toContain("isRoundOpen(progress1Round.status)");
     expect(scheduleSource).toContain("getProgress1Readiness(project)");
   });

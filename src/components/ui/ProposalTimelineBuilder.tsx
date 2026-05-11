@@ -210,7 +210,7 @@ export function ProposalTimelineBuilder({
           <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
             <div className="font-semibold text-ink">Assessment alignment hint</div>
             <p className="mt-1">
-              The work plan below will be used during Progress 1 and Progress 2 assessment. Each task should describe observable work and expected evidence, not only a general activity.
+              แผนดำเนินงานด้านล่างจะถูกใช้ประกอบการประเมินการสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 แต่ละงานควรเป็นงานที่สังเกตหรือตรวจสอบได้ พร้อมระบุหลักฐานที่คาดว่าจะส่ง ไม่ใช่เพียงกิจกรรมกว้าง ๆ
             </p>
             <div className="mt-2 grid gap-2 md:grid-cols-2">
               <div>
@@ -227,7 +227,7 @@ export function ProposalTimelineBuilder({
                 <ul className="mt-1 list-disc space-y-1 pl-5">
                   <li>Study more</li>
                   <li>Continue working</li>
-                  <li>Improve project</li>
+                  <li>ปรับปรุงชิ้นงานตามข้อเสนอแนะที่ระบุไว้</li>
                   <li>Prepare presentation</li>
                 </ul>
               </div>

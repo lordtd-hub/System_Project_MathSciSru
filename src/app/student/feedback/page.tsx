@@ -8,9 +8,9 @@ type StudentFeedbackPageProps = {
 };
 
 function assessmentLabel(roundType?: string | null) {
-  if (roundType === "PROGRESS_1") return "Progress 1";
-  if (roundType === "PROGRESS_2") return "Progress 2";
-  if (roundType === "FINAL_PRESENTATION") return "Final Presentation";
+  if (roundType === "PROGRESS_1") return "การสอบความก้าวหน้าครั้งที่ 1";
+  if (roundType === "PROGRESS_2") return "การสอบความก้าวหน้าครั้งที่ 2";
+  if (roundType === "FINAL_PRESENTATION") return "การสอบนำเสนอขั้นสุดท้าย";
   return "รอบสอบ";
 }
 
@@ -22,9 +22,9 @@ function assessmentAnchor(roundType?: string | null) {
 }
 
 const feedbackTabs = [
-  { label: "Progress 1", href: "/student/feedback?round=progress-1#progress-1", round: "progress-1" },
-  { label: "Progress 2", href: "/student/feedback?round=progress-2#progress-2", round: "progress-2" },
-  { label: "Final Presentation", href: "/student/feedback?round=final#final", round: "final" },
+  { label: "ความก้าวหน้าครั้งที่ 1", href: "/student/feedback?round=progress-1#progress-1", round: "progress-1" },
+  { label: "ความก้าวหน้าครั้งที่ 2", href: "/student/feedback?round=progress-2#progress-2", round: "progress-2" },
+  { label: "สอบขั้นสุดท้าย", href: "/student/feedback?round=final#final", round: "final" },
   { label: "ดูทั้งหมด", href: "/student/feedback", round: "all" }
 ];
 
@@ -74,7 +74,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
     }
   });
   if (!student) {
-    return <div className="panel">ยังไม่พบข้อมูลนักศึกษาใน roster ที่นำเข้า</div>;
+    return <div className="panel">ยังไม่พบข้อมูลนักศึกษาในรายชื่อที่นำเข้า</div>;
   }
 
   const project = student.projects[0];
@@ -105,13 +105,13 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
     : presentationAttempts;
 
   if (!allPresentationResults.length) {
-    return <div className="panel">ยังไม่มี feedback หรือผลประเมินที่เปิดเผย</div>;
+    return <div className="panel">ยังไม่มีข้อเสนอแนะหรือผลประเมินที่เปิดเผย</div>;
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">ผลและ feedback การประเมิน</h1>
-      <nav className="panel flex flex-wrap gap-2 text-sm" aria-label="เลือกดู feedback ตามรอบสอบ">
+      <h1 className="text-2xl font-semibold">ผลและข้อเสนอแนะการประเมิน</h1>
+      <nav className="panel flex flex-wrap gap-2 text-sm" aria-label="เลือกดูข้อเสนอแนะตามรอบสอบ">
         {feedbackTabs.map((tab) => (
           <Link
             key={tab.round}
@@ -126,7 +126,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
       </nav>
       {displayedPresentationResults.length ? (
         <section className="panel">
-          <h2 className="font-semibold">{requestedRound ? `ผลการประเมิน ${assessmentLabel(displayedPresentationResults[0]?.attempt.assessmentRound?.roundType)}` : "ผลการประเมิน Progress/Final"}</h2>
+          <h2 className="font-semibold">{requestedRound ? `ผลการประเมิน${assessmentLabel(displayedPresentationResults[0]?.attempt.assessmentRound?.roundType)}` : "ผลการประเมินรอบสอบความก้าวหน้าและสอบขั้นสุดท้าย"}</h2>
           <div className="mt-3 space-y-4">
             {displayedPresentationResults.map((result) => (
               <div key={result.attempt.id} id={result.anchor} className={`scroll-mt-24 rounded-md border p-3 ${requestedRound ? "border-brand bg-paper" : "border-line"}`}>
@@ -177,13 +177,13 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
                         {assignment.scoreSubmission?.overallComment ? (
                           <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={assignment.scoreSubmission.overallComment} />
                         ) : (
-                          <p className="mt-1 text-muted">ยังไม่มี comment ที่เปิดเผย</p>
+                          <p className="mt-1 text-muted">ยังไม่มีข้อเสนอแนะที่เปิดเผย</p>
                         )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 rounded-md border border-line bg-surface p-3 text-sm text-muted">รอบนี้ยังไม่มีคะแนนหรือ feedback ที่กรรมการบันทึกไว้</p>
+                  <p className="mt-3 rounded-md border border-line bg-surface p-3 text-sm text-muted">รอบนี้ยังไม่มีคะแนนหรือข้อเสนอแนะที่กรรมการบันทึกไว้</p>
                 )}
               </div>
             ))}
@@ -192,7 +192,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
       ) : requestedRound ? (
         <section className="panel">
           <h2 className="font-semibold">ยังไม่มีข้อมูลรอบนี้</h2>
-          <p className="mt-2 text-sm text-muted">ระบบยังไม่พบผลหรือ feedback สำหรับรอบที่เลือก</p>
+          <p className="mt-2 text-sm text-muted">ระบบยังไม่พบผลหรือข้อเสนอแนะสำหรับรอบที่เลือก</p>
         </section>
       ) : null}
     </div>

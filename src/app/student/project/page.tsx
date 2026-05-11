@@ -36,19 +36,19 @@ export default async function StudentProjectPage({
   ]);
   const project = student?.projects[0];
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
-  if (!project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
+  if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   const teachers = await prisma.teacher.findMany({ where: { active: true, isInternal: true }, orderBy: [{ firstNameTh: "asc" }] });
   const advisorRequest = project?.advisorRequests[0];
   const canEditProject = project?.status === "DRAFT";
   const latestAdvisorRejected = canEditProject && advisorRequest?.status === "REJECTED";
 
-  if (!student || !project) return <EmptyState title="ยังไม่มีโปรเจค" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
+  if (!student || !project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   return (
     <DraftPreservingForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} clearOnSuccess={params.success === "project_submitted"} className="space-y-6">
       <PageHeader
-        title="สร้าง/แก้ไขโปรเจค"
+        title="สร้าง/แก้ไขข้อมูลโครงงาน"
         description="ระบุที่มาของหัวข้อ เลือกอาจารย์ที่ปรึกษา และส่งคำขออนุมัติ"
         actions={<StatusBadge status={project.status} />}
       />
@@ -93,7 +93,7 @@ export default async function StudentProjectPage({
           ) : null}
         </section>
       ) : null}
-      <FormSection title="ข้อมูลหัวข้อ" description="ใช้เป็นหลักฐานต้นทางของโปรเจคและส่งต่อให้ที่ปรึกษาพิจารณา">
+      <FormSection title="ข้อมูลหัวข้อ" description="ใช้เป็นหลักฐานต้นทางของโครงงานและส่งต่อให้ที่ปรึกษาพิจารณา">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label>ชื่อหัวข้อภาษาไทย<RequiredMark /></label>

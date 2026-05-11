@@ -52,13 +52,13 @@ export default async function ProposalScoringPage({
     return (
       <div className="space-y-6">
         <PageHeader
-          title="ประเมิน Proposal"
+          title="ประเมินการเสนอหัวข้อ"
           description={`${student.studentCode} ${student.firstNameTh} ${student.lastNameTh}`}
         />
         <ActionFeedback success={query.success} error={query.error ?? "proposal_rubric_missing"} />
         <ProposalQaRubricPanel audience="evaluator" />
-        <WarningAlert title="ยังไม่มี Rubric สำหรับ Proposal">
-          ผู้ดูแลระบบต้องตั้งค่า rubric baseline สำหรับ Proposal ก่อน อาจารย์จึงจะประเมินได้
+        <WarningAlert title="ยังไม่มีเกณฑ์ประเมินสำหรับการเสนอหัวข้อ">
+          ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานสำหรับการเสนอหัวข้อก่อน อาจารย์จึงจะประเมินได้
           หน้านี้แสดงข้อมูลที่นักศึกษาส่งไว้เพื่ออ่านตรวจเท่านั้น และยังไม่บันทึกคะแนนหรือเปลี่ยนสถานะงาน
         </WarningAlert>
         <section className="panel">
@@ -112,31 +112,31 @@ export default async function ProposalScoringPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ประเมิน Proposal"
+        title="ประเมินการเสนอหัวข้อ"
         description={`${student.studentCode} ${student.firstNameTh} ${student.lastNameTh}`}
         actions={<span className="sticky-score rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
       />
       <ActionFeedback success={query.success} error={query.error} />
       {isProposalRoundClosed ? (
-        <WarningAlert title="รอบ Proposal ปิดแล้ว">
-          หน้านี้เปิดให้อ่านหลักฐานและคะแนนเดิมเท่านั้น ไม่สามารถเริ่มหรือส่งคะแนน Proposal เพิ่มหลังปิดรอบได้
+        <WarningAlert title="รอบเสนอหัวข้อปิดแล้ว">
+          หน้านี้เปิดให้อ่านหลักฐานและคะแนนเดิมเท่านั้น ไม่สามารถเริ่มหรือส่งคะแนนการเสนอหัวข้อเพิ่มหลังปิดรอบได้
         </WarningAlert>
       ) : null}
       {isScoreLocked || isProposalRoundClosed ? (
-        <InfoAlert title={isScoreLocked ? "ส่งคะแนน Proposal แล้ว" : "รอบ Proposal ปิดแล้ว"}>
+        <InfoAlert title={isScoreLocked ? "ส่งคะแนนการเสนอหัวข้อแล้ว" : "รอบเสนอหัวข้อปิดแล้ว"}>
           {isScoreLocked
-            ? "คะแนนและ comment ถูกบันทึกเป็นหลักฐานแล้ว จึงไม่สามารถแก้ไขหรือส่งประเมินซ้ำจากหน้านี้ได้ หากจำเป็นต้องแก้ไขให้ดำเนินการผ่านขั้นตอนปลดล็อก/แก้ไขโดยผู้ดูแลระบบ"
-            : "รอบประเมินปิดแล้ว จึงไม่สามารถเริ่มหรือส่งคะแนน Proposal เพิ่มจากหน้านี้ได้"}
+            ? "คะแนนและข้อเสนอแนะถูกบันทึกเป็นหลักฐานแล้ว จึงไม่สามารถแก้ไขหรือส่งประเมินซ้ำจากหน้านี้ได้ หากจำเป็นต้องแก้ไขให้ดำเนินการผ่านขั้นตอนปลดล็อกหรือแก้ไขโดยผู้ดูแลระบบ"
+            : "รอบประเมินปิดแล้ว จึงไม่สามารถเริ่มหรือส่งคะแนนการเสนอหัวข้อเพิ่มจากหน้านี้ได้"}
         </InfoAlert>
       ) : null}
       <GuidancePanel
         title="แนวทางก่อนส่งคะแนน"
         current="อ่าน abstract และเอกสารแนบ จากนั้นเลือก checklist ตามหลักฐานที่พบ"
-        next="ระบบจะบันทึกคะแนนและ vote แต่แสดงให้นักศึกษาเห็นเฉพาะ comment พร้อมชื่ออาจารย์"
-        actor="อาจารย์ผู้ประเมิน Proposal"
+        next="ระบบจะบันทึกคะแนนและผลพิจารณา แต่แสดงให้นักศึกษาเห็นเฉพาะข้อเสนอแนะพร้อมชื่ออาจารย์"
+        actor="อาจารย์ผู้ประเมินการเสนอหัวข้อ"
       />
       <InfoAlert title="การมองเห็นของนักศึกษา">
-        นักศึกษาจะเห็น comment และชื่ออาจารย์ทันที แต่จะไม่เห็นคะแนน Proposal
+        นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่จะไม่เห็นคะแนนการเสนอหัวข้อ
       </InfoAlert>
       <ProposalQaRubricPanel audience="evaluator" />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -170,7 +170,7 @@ export default async function ProposalScoringPage({
         </section>
         <aside className="space-y-4">
           <WarningAlert title="Critical item warnings">
-            หากไม่ผ่านรายการ critical ควรอธิบายใน comment ให้ชัดเจน โดยเฉพาะกรณี REVISE หรือ FAIL
+            หากไม่ผ่านรายการสำคัญ ควรอธิบายในข้อเสนอแนะให้ชัดเจน โดยเฉพาะกรณีให้แก้ไขหรือไม่ผ่าน
           </WarningAlert>
           <section className="panel">
             <h2 className="font-semibold">Rubric groups</h2>
@@ -309,13 +309,13 @@ export default async function ProposalScoringPage({
             <MarkdownLatexEditor name="reason" label="เหตุผลเมื่อให้ REVISE หรือ FAIL" defaultValue={assignment.scoreSubmission?.proposalDecision?.reason ?? ""} rows={3} required={false} />
           </div>
           <div className="md:col-span-2">
-            <MarkdownLatexEditor name="overall_comment" label="Comment ถึงนักศึกษา" defaultValue={assignment.scoreSubmission?.overallComment ?? ""} rows={5} />
-            <p className="mt-1 text-xs text-muted">comment นี้จะแสดงให้นักศึกษาเห็นทันทีพร้อมชื่ออาจารย์</p>
+            <MarkdownLatexEditor name="overall_comment" label="ข้อเสนอแนะถึงนักศึกษา" defaultValue={assignment.scoreSubmission?.overallComment ?? ""} rows={5} />
+            <p className="mt-1 text-xs text-muted">ข้อเสนอแนะนี้จะแสดงให้นักศึกษาเห็นทันทีพร้อมชื่ออาจารย์</p>
           </div>
           <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
-            <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึก...">บันทึก comment</SubmitButton>
-            <SubmitButton name="submit_mode" value="submit" pendingText="กำลังส่งคะแนน..." confirmMessage="ยืนยันการส่งคะแนน Proposal หรือไม่? หลังส่งแล้วระบบจะบันทึกคะแนนและ comment เป็นหลักฐาน">
-              ส่งคะแนน Proposal
+            <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึก...">บันทึกข้อเสนอแนะ</SubmitButton>
+            <SubmitButton name="submit_mode" value="submit" pendingText="กำลังส่งคะแนน..." confirmMessage="ยืนยันการส่งคะแนนการเสนอหัวข้อหรือไม่? หลังส่งแล้วระบบจะบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน">
+              ส่งคะแนนการเสนอหัวข้อ
             </SubmitButton>
           </div>
           </section>

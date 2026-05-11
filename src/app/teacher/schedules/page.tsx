@@ -16,6 +16,13 @@ function uniqueIds(ids: string[]) {
   return [...new Set(ids)];
 }
 
+function committeeRoleLabel(role: string) {
+  if (role === "ADVISOR") return "อาจารย์ที่ปรึกษา";
+  if (role === "HEAD") return "ประธานกรรมการ";
+  if (role === "MEMBER") return "กรรมการ";
+  return role;
+}
+
 export default async function TeacherSchedulesPage({
   searchParams
 }: {
@@ -25,7 +32,7 @@ export default async function TeacherSchedulesPage({
   const session = await auth();
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
-  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
+  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" />;
 
   const [schedules, confirmedScheduleCalendar] = await Promise.all([
     prisma.examScheduleProposal.findMany({
@@ -91,9 +98,9 @@ export default async function TeacherSchedulesPage({
       <ActionFeedback success={params?.success} error={params?.error} />
       <GuidancePanel
         title="การดูตารางสอบ"
-        current="อาจารย์เห็นรายการที่ตนเป็นที่ปรึกษา หรือได้รับแต่งตั้งเป็นกรรมการของโปรเจค"
-        next="การอนุมัติ/ปฏิเสธเชิงละเอียดจะทำใน workflow ถัดไป"
-        actor="อาจารย์ที่ปรึกษา HEAD และ MEMBER"
+        current="อาจารย์เห็นรายการที่ตนเป็นที่ปรึกษา หรือได้รับแต่งตั้งเป็นกรรมการของโครงงาน"
+        next="พิจารณาอนุมัติหรือไม่อนุมัติวันสอบจากข้อมูลที่นักศึกษาเสนอ"
+        actor="อาจารย์ที่ปรึกษา ประธานกรรมการ และกรรมการ"
       />
       <section className="panel">
         <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
@@ -119,7 +126,7 @@ export default async function TeacherSchedulesPage({
               <div className="mt-2 flex flex-wrap gap-2">
                 {schedule.project.committeeAssignments.map((assignment) => (
                   <span key={`${schedule.id}-${assignment.role}-${teacherDisplayName(assignment.teacher)}`} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">
-                    {assignment.role}: {teacherDisplayName(assignment.teacher)}
+                    {committeeRoleLabel(assignment.role)}: {teacherDisplayName(assignment.teacher)}
                   </span>
                 ))}
               </div>
@@ -226,7 +233,7 @@ export default async function TeacherSchedulesPage({
               <div className="mt-2 flex flex-wrap gap-2">
                 {schedule.project.committeeAssignments.map((assignment) => (
                   <span key={assignment.id} className="rounded-full border border-line px-3 py-1 text-xs">
-                    {assignment.role}: {teacherDisplayName(assignment.teacher)}
+                    {committeeRoleLabel(assignment.role)}: {teacherDisplayName(assignment.teacher)}
                   </span>
                 ))}
               </div>

@@ -25,7 +25,7 @@ export default async function TeacherReportsPage({
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) {
-    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์และรอผู้ดูแลระบบอนุมัติก่อนใช้งาน" />;
+    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์และรอผู้ดูแลระบบอนุมัติก่อนใช้งาน" />;
   }
 
   const params = (await searchParams) ?? {};
@@ -44,6 +44,10 @@ export default async function TeacherReportsPage({
       reportVersions: {
         include: { reviews: { include: { reviewerTeacher: true }, orderBy: { reviewedAt: "desc" } } },
         orderBy: { versionNo: "desc" }
+      },
+      timelineEvents: {
+        where: { eventType: "REPORT_VERSION_SUBMITTED" },
+        orderBy: { occurredAt: "asc" }
       }
     },
     orderBy: { updatedAt: "desc" }
@@ -53,14 +57,14 @@ export default async function TeacherReportsPage({
     <div className="space-y-6">
       <PageHeader
         title="ตรวจเล่มรายงาน"
-        description="อาจารย์ที่ปรึกษาและ HEAD/MEMBER ที่ได้รับแต่งตั้งสามารถ PASS หรือขอให้นักศึกษาแก้ไขเล่มได้"
+        description="อาจารย์ที่ปรึกษา ประธานกรรมการ และกรรมการที่ได้รับแต่งตั้งสามารถอนุมัติหรือขอให้นักศึกษาแก้ไขรายงานได้"
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
-        title="Report approval loop"
-        current="ตรวจเฉพาะ version ล่าสุดของโครงงานที่อยู่ในสถานะ REPORT_REVIEW"
-        next="ถ้าอาจารย์ที่ปรึกษาและ HEAD/MEMBER ที่กำหนดอนุมัติครบ ระบบจะเปลี่ยนสถานะเป็น REPORT_APPROVED และหยุดก่อน Advisor scoring"
-        actor="อาจารย์ที่ปรึกษา หรือ HEAD/MEMBER ที่ได้รับแต่งตั้ง"
+        title="ขั้นตอนการตรวจรายงาน"
+        current="ตรวจเฉพาะรายงานฉบับล่าสุดของโครงงานที่อยู่ระหว่างการตรวจรายงาน"
+            next="ถ้าอาจารย์ที่ปรึกษาและกรรมการที่กำหนดอนุมัติครบ ระบบจะเปลี่ยนเป็นขั้นตอนบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา"
+        actor="อาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการที่ได้รับแต่งตั้ง"
       />
 
       <div className="space-y-4">
@@ -69,8 +73,12 @@ export default async function TeacherReportsPage({
             const latestReport = project.reportVersions[0];
             const previousReview = latestReport?.reviews.find((review) => review.reviewerTeacherId === teacher.id);
             const requiredReviewerIds = requiredReportReviewerIds(project.committeeAssignments, project.advisorRequests);
-            const projectReviews = project.reportVersions.flatMap((version) => version.reviews);
-            const allPassed = allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: projectReviews });
+            const allPassed = allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReport?.reviews ?? [] });
+            const latestReportHasRevisionRequest = latestReport?.reviews.some((review) => review.decision === "FAIL") ?? false;
+            const reportHistory = [...project.reportVersions].sort((a, b) => a.versionNo - b.versionNo);
+            const latestReportNote = latestReport
+              ? project.timelineEvents.find((event) => event.relatedEntityId === latestReport.id)?.eventDescription
+              : null;
 
             return (
               <section key={project.id} className="panel">
@@ -89,14 +97,41 @@ export default async function TeacherReportsPage({
                 ) : (
                   <div className="mt-4 space-y-4">
                     <div className="rounded-md border border-line bg-paper p-3 text-sm">
-                      <div className="font-medium">Version {latestReport.versionNo}</div>
+                      <div className="font-medium">ฉบับที่ {latestReport.versionNo}</div>
                       <a className="mt-1 inline-block text-brand" href={latestReport.driveLink} target="_blank" rel="noreferrer">
                         เปิดลิงก์รายงาน
                       </a>
                       <p className="mt-2 text-muted">
-                        สถานะตรวจ: {allPassed || project.status === "REPORT_APPROVED" ? "ผ่านครบ" : "รอผลตรวจ / รอแก้ไข"}
+                        สถานะตรวจ: {allPassed || project.status === "REPORT_APPROVED" ? "ผู้ตรวจอนุมัติครบแล้ว" : "รอผลตรวจ / รอแก้ไข"}
                       </p>
                     </div>
+
+                    {latestReportNote ? (
+                      <div className="rounded-md border border-line bg-surface p-3 text-sm">
+                        <h3 className="font-semibold">สรุปการแก้ไข / ตอบกลับข้อเสนอแนะของผู้ตรวจจากนักศึกษา</h3>
+                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={latestReportNote} />
+                      </div>
+                    ) : null}
+
+                    {reportHistory.length > 1 ? (
+                      <div className="rounded-md border border-line bg-paper p-3 text-sm">
+                        <h3 className="font-semibold">ประวัติการส่งรายงาน</h3>
+                        <div className="mt-2 space-y-2">
+                          {reportHistory.map((version) => {
+                            const note = project.timelineEvents.find((event) => event.relatedEntityId === version.id)?.eventDescription;
+                            return (
+                              <div key={version.id} className="rounded-md border border-line bg-surface p-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="font-medium">ฉบับที่ {version.versionNo}</span>
+                                  <a className="text-brand" href={version.driveLink} target="_blank" rel="noreferrer">เปิดเล่ม</a>
+                                </div>
+                                {note ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={note} /> : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
 
                     {latestReport.reviews.length ? (
                       <div className="space-y-2">
@@ -112,7 +147,7 @@ export default async function TeacherReportsPage({
                       </div>
                     ) : null}
 
-                    {project.status === "REPORT_REVIEW" ? (
+                    {project.status === "REPORT_REVIEW" && !latestReportHasRevisionRequest ? (
                       <form action={reviewReportVersion} className="space-y-4">
                         <input type="hidden" name="report_version_id" value={latestReport.id} />
                         <MarkdownLatexEditor
@@ -126,7 +161,7 @@ export default async function TeacherReportsPage({
                             name="decision"
                             value="PASS"
                             pendingText="กำลังบันทึกผล..."
-                            confirmMessage="ยืนยันว่าเล่มรายงาน version นี้ผ่านหรือไม่?"
+                            confirmMessage="ยืนยันว่ารายงานฉบับนี้ผ่านการตรวจหรือไม่?"
                           >
                             อนุมัติเล่มรายงาน
                           </SubmitButton>
@@ -141,6 +176,10 @@ export default async function TeacherReportsPage({
                           </SubmitButton>
                         </div>
                       </form>
+                    ) : latestReportHasRevisionRequest ? (
+                      <p className="rounded-md border border-line bg-paper p-3 text-sm text-muted">
+                        มีผู้ตรวจขอให้นักศึกษาแก้ไขเล่มรายงานแล้ว กรุณารอรายงานฉบับแก้ไขก่อนตรวจอีกครั้ง
+                      </p>
                     ) : (
                       <p className="rounded-md border border-line bg-paper p-3 text-sm text-muted">
                         เล่มรายงานผ่านแล้ว หน้านี้จะแสดงประวัติเท่านั้น
@@ -154,7 +193,7 @@ export default async function TeacherReportsPage({
         ) : (
           <EmptyState
             title="ยังไม่มีเล่มรายงานที่ต้องตรวจ"
-            description="รายการจะแสดงเมื่อมีโครงงาน REPORT_REVIEW หรือ REPORT_APPROVED ที่ท่านเป็นอาจารย์ที่ปรึกษา / HEAD / MEMBER"
+            description="รายการจะแสดงเมื่อมีโครงงานที่อยู่ระหว่างตรวจรายงานหรือรายงานผ่านแล้ว และท่านเป็นอาจารย์ที่ปรึกษาหรือกรรมการ"
           />
         )}
       </div>

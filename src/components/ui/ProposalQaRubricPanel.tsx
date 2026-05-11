@@ -5,20 +5,20 @@ export function ProposalQaRubricPanel({ audience = "student" }: { audience?: "st
     <section className="panel space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-brand">Proposal rubric</p>
-          <h2 className="mt-1 text-lg font-semibold">View proposal evaluation rubric</h2>
+          <p className="text-sm font-semibold text-brand">เกณฑ์การเสนอหัวข้อ</p>
+          <h2 className="mt-1 text-lg font-semibold">เกณฑ์การประเมินเอกสารเสนอหัวข้อ</h2>
           <p className="mt-1 text-sm text-muted">
             {audience === "student"
-              ? "เกณฑ์นี้ช่วยให้นักศึกษาเห็นล่วงหน้าว่า Proposal จะถูกอ่านตรวจจากเงื่อนไขใดบ้างก่อนส่ง"
-              : "เกณฑ์แบบ condition-based สำหรับบันทึกคะแนน Proposal ตามจำนวนเงื่อนไขที่ผ่านในแต่ละหัวข้อ"}
+              ? "เกณฑ์นี้ช่วยให้นักศึกษาเห็นล่วงหน้าว่าเอกสารเสนอหัวข้อจะถูกอ่านตรวจจากเงื่อนไขใดบ้างก่อนส่ง"
+              : "เกณฑ์แบบตรวจเงื่อนไขสำหรับบันทึกคะแนนเอกสารเสนอหัวข้อตามจำนวนเงื่อนไขที่ผ่านในแต่ละหัวข้อ"}
           </p>
         </div>
         <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold">100 คะแนน</span>
       </div>
       {audience === "student" ? (
         <div className="rounded-md border border-line bg-paper p-3 text-sm text-muted">
-          เขียน Proposal ให้ตอบครบ: ปัญหา/บริบท, วัตถุประสงค์ที่ตรวจสอบได้, วิธีดำเนินงานเป็นขั้นตอน,
-          ผลที่คาดว่าจะได้รับ, timeline ครบ 16 สัปดาห์ และเอกสารประกอบ/ทฤษฎี/งานที่เกี่ยวข้องเมื่อจำเป็น
+          เขียนเอกสารเสนอหัวข้อให้ตอบครบ: ปัญหา/บริบท, วัตถุประสงค์ที่ตรวจสอบได้, วิธีดำเนินงานเป็นขั้นตอน,
+          ผลที่คาดว่าจะได้รับ, แผนดำเนินงานครบ 16 สัปดาห์ และเอกสารประกอบ/ทฤษฎี/งานที่เกี่ยวข้องเมื่อจำเป็น
         </div>
       ) : null}
       <div className="space-y-3">
@@ -44,7 +44,7 @@ export function ProposalQaRubricPanel({ audience = "student" }: { audience?: "st
                   </div>
                   {criterion.requiredSections ? (
                     <div className="mt-2 text-sm">
-                      <div className="font-medium">Required sections</div>
+                      <div className="font-medium">หัวข้อที่ต้องมี</div>
                       <ul className="mt-1 list-disc space-y-1 pl-5 text-muted">
                         {criterion.requiredSections.map((item) => <li key={item}>{item}</li>)}
                       </ul>

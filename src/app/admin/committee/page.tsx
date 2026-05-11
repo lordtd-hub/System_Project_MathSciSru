@@ -40,20 +40,20 @@ export default async function AdminCommitteePage({
     <div className="space-y-6">
       <PageHeader
         title="แต่งตั้งกรรมการ"
-        description="สำหรับโปรเจคที่ TOPIC_APPROVED แล้ว ผู้ดูแลระบบแต่งตั้ง HEAD และ MEMBER"
+        description="สำหรับโครงงานที่หัวข้อผ่านแล้ว ผู้ดูแลระบบแต่งตั้งประธานและกรรมการ"
       />
       <ActionFeedback success={params.success} error={params.error} />
       {params.success === "committee_saved" ? (
-        <Link className="button" href="/admin/rounds">ไปหน้าเปิดรอบ Progress 1</Link>
+        <Link className="button" href="/admin/rounds">ไปหน้าเปิดรอบสอบความก้าวหน้าครั้งที่ 1</Link>
       ) : null}
       <GuidancePanel
         title="กติกาการแต่งตั้ง"
-        current="ตรวจ advisor ที่อนุมัติแล้ว และเลือก HEAD กับ MEMBER"
-        next="หลังแต่งตั้งครบ โปรเจคจะเข้าสู่ IN_PROGRESS และนักศึกษาจะเสนอวันสอบ Progress/Final"
+        current="ตรวจอาจารย์ที่ปรึกษาที่อนุมัติแล้ว และเลือกประธานกับกรรมการ"
+        next="หลังแต่งตั้งครบ โครงงานจะเข้าสู่ขั้นดำเนินงาน และนักศึกษาจะเสนอวันสอบความก้าวหน้า/สอบนำเสนอขั้นสุดท้าย"
         actor="ผู้ดูแลระบบเป็นผู้แต่งตั้งกรรมการ"
       />
-      <WarningAlert title="Validation ที่ต้องตรวจ">
-        ต้องมี HEAD อย่างน้อย 1 คน และ MEMBER อย่างน้อย 1 คน โดย advisor จะแสดงเป็น ADVISOR อัตโนมัติ และไม่ควรเลือกซ้ำเป็น HEAD/MEMBER
+      <WarningAlert title="เงื่อนไขที่ต้องตรวจ">
+        ต้องมีประธานอย่างน้อย 1 คน และกรรมการอย่างน้อย 1 คน โดยอาจารย์ที่ปรึกษาจะแสดงเป็นบทบาทที่ปรึกษาอัตโนมัติ และไม่ควรเลือกซ้ำเป็นประธานหรือกรรมการ
       </WarningAlert>
       <div className="space-y-4">
         {projects.length ? (
@@ -76,18 +76,18 @@ export default async function AdminCommitteePage({
                 <form action={assignProjectCommittee} className="mt-4 grid gap-3 md:grid-cols-3">
                   <input type="hidden" name="project_id" value={project.id} />
                   <div>
-                    <label>HEAD</label>
+                    <label>ประธานกรรมการ</label>
                     <select name="head_teacher_id" defaultValue="" required>
-                      <option value="">เลือก HEAD</option>
+                      <option value="">เลือกประธานกรรมการ</option>
                       {teachers.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>{teacherDisplayName(teacher)}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label>MEMBER</label>
+                    <label>กรรมการ</label>
                     <select name="member_teacher_id" defaultValue="" required>
-                      <option value="">เลือก MEMBER</option>
+                      <option value="">เลือกกรรมการ</option>
                       {teachers.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>{teacherDisplayName(teacher)}</option>
                       ))}
@@ -95,7 +95,7 @@ export default async function AdminCommitteePage({
                   </div>
                   <div className="flex items-end">
                     <SubmitButton className="w-full" pendingText="กำลังบันทึก..." confirmMessage="ยืนยันการบันทึกการแต่งตั้งกรรมการหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานไป IN_PROGRESS">
-                      บันทึกการแต่งตั้ง HEAD และ MEMBER
+                      บันทึกการแต่งตั้งประธานและกรรมการ
                     </SubmitButton>
                   </div>
                 </form>
@@ -112,7 +112,7 @@ export default async function AdminCommitteePage({
         ) : (
           <EmptyState
             title="ยังไม่มีหัวข้อที่รอตั้งกรรมการ"
-            description="เมื่อ Admin ตัดสิน Proposal เป็น PASS โปรเจคจะแสดงที่นี่เพื่อแต่งตั้ง HEAD และ MEMBER"
+            description="เมื่อผู้ดูแลระบบตัดสินผลการเสนอหัวข้อเป็นผ่าน โครงงานจะแสดงที่นี่เพื่อแต่งตั้งประธานและกรรมการ"
           />
         )}
       </div>

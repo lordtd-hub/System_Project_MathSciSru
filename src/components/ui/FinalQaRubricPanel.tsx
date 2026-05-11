@@ -3,12 +3,12 @@ import { ConditionBasedRubricView } from "./ConditionBasedRubricView";
 
 export function FinalQaRubricPanel({ audience = "student" }: { audience?: "student" | "evaluator" }) {
   const description = audience === "student"
-    ? "ใช้ rubric นี้เพื่อเตรียมหลักฐาน Final: ผลลัพธ์ต้องโยงกลับไปยังวัตถุประสงค์ แผนงาน Progress และรายงานที่ตรวจสอบได้"
-    : "QA preview: ประเมิน Final จากเงื่อนไขที่ตรวจสอบได้ ลดความเห็นส่วนตัว และเชื่อมโยง Proposal / Progress / Report";
+    ? "ใช้เกณฑ์นี้เพื่อเตรียมหลักฐานการสอบขั้นสุดท้าย: ผลลัพธ์ต้องโยงกลับไปยังวัตถุประสงค์ แผนงานความก้าวหน้า และรายงานที่ตรวจสอบได้"
+    : "ประเมินการสอบนำเสนอขั้นสุดท้ายจากเงื่อนไขที่ตรวจสอบได้ ลดความเห็นส่วนตัว และเชื่อมโยงกับการเสนอหัวข้อ การสอบความก้าวหน้า และรายงานฉบับสมบูรณ์";
 
   return (
     <ConditionBasedRubricView
-      title="Final Evaluation Rubric"
+      title="เกณฑ์การประเมินการสอบนำเสนอขั้นสุดท้าย"
       description={description}
       sections={finalQaRubric}
     />

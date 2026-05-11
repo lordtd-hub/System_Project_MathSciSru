@@ -13,6 +13,7 @@ import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { parseStudentImportCsv } from "@/lib/admin/studentImportCsv";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate } from "@/lib/assessments/roundSequence";
@@ -240,7 +241,7 @@ export async function confirmProjectAdvisor(formData: FormData) {
   const projectId = String(formData.get("project_id"));
   const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
   const transition = adminConfirmProjectTransition(project.status);
-  if (project.status !== "PENDING_ADMIN") throw new Error("โปรเจคนี้ยังไม่พร้อมให้ Admin ยืนยัน");
+  if (project.status !== "PENDING_ADMIN") throw new Error("โครงงานนี้ยังไม่พร้อมให้ผู้ดูแลระบบยืนยัน");
 
   await prisma.$transaction([
     prisma.project.update({ where: { id: projectId }, data: { status: transition.to } }),
@@ -257,7 +258,7 @@ export async function confirmProjectAdvisor(formData: FormData) {
       data: {
         projectId,
         eventType: "ADMIN_CONFIRMED_PROJECT_ADVISOR",
-        eventTitle: "ผู้ดูแลระบบยืนยันโปรเจคและอาจารย์ที่ปรึกษา",
+        eventTitle: "ผู้ดูแลระบบยืนยันโครงงานและอาจารย์ที่ปรึกษา",
         actorUserId: adminUserId,
         relatedEntityType: "Project",
         relatedEntityId: projectId
@@ -274,7 +275,7 @@ export async function reviewTeacherClaim(formData: FormData) {
   const claimId = String(formData.get("claim_id"));
   const decision = String(formData.get("decision"));
   const adminNote = String(formData.get("admin_note") ?? "");
-  assertTextSize(adminNote, requestSizeLimits.commentTextBytes, "admin note");
+  assertTextSize(adminNote, requestSizeLimits.commentTextBytes, "บันทึกของผู้ดูแลระบบ");
 
   const claim = await prisma.teacherAccountClaim.findUniqueOrThrow({
     where: { id: claimId },
@@ -425,7 +426,7 @@ export async function closeProposalRound(formData: FormData) {
   const timer = createActionTimer("admin.closeProposalRound");
   const roundId = String(formData.get("round_id"));
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } }));
-  if (isRoundClosed(round.status)) throw new Error("รอบ Proposal ปิดแล้ว");
+  if (isRoundClosed(round.status)) throw new Error("รอบการเสนอหัวข้อปิดแล้ว");
   const attempts = await timer.measure("load_attempts", () => prisma.assessmentAttempt.findMany({
     where: { assessmentRoundId: roundId },
     select: { id: true, projectId: true }
@@ -457,7 +458,7 @@ export async function closeProposalRound(formData: FormData) {
         data: {
           projectId: attempt.projectId,
           eventType: "PROPOSAL_CLOSED",
-          eventTitle: "ปิดรอบประเมิน Proposal",
+          eventTitle: "ปิดรอบประเมินการเสนอหัวข้อ",
           relatedEntityType: "AssessmentRound",
           relatedEntityId: roundId
         }
@@ -543,13 +544,30 @@ export async function closeCourseRound(formData: FormData) {
           (await prisma.assessmentAttempt.findMany({
             where: {
               assessmentRoundId: roundId,
-              project: { status: "IN_PROGRESS" },
-              evaluatorAssignments: {
-                some: { scoreSubmission: { is: { status: "SUBMITTED" } } }
-              }
+              project: { status: "IN_PROGRESS" }
             },
-            select: { projectId: true }
-          })).map((attempt) => attempt.projectId)
+            select: {
+              projectId: true,
+              project: { select: { committeeAssignments: { select: { teacherId: true, role: true, active: true } } } },
+              evaluatorAssignments: {
+                select: {
+                  teacherId: true,
+                  scoreSubmission: { select: { status: true } }
+                }
+              }
+            }
+          }))
+            .filter((attempt) =>
+              isPresentationAssessmentComplete({
+                roundStatus: round.status,
+                committeeAssignments: attempt.project.committeeAssignments,
+                scoreSubmissions: attempt.evaluatorAssignments.map((assignment) => ({
+                  teacherId: assignment.teacherId,
+                  status: assignment.scoreSubmission?.status ?? null
+                }))
+              })
+            )
+            .map((attempt) => attempt.projectId)
         )
       ]
     : [];
@@ -600,8 +618,8 @@ export async function closeCourseRound(formData: FormData) {
             data: {
               projectId,
               eventType: "FINAL_PRESENTATION_DONE",
-              eventTitle: "Final Presentation เสร็จแล้ว",
-              eventDescription: "ปิดรอบ Final Presentation แล้ว นักศึกษาสามารถส่งเล่มรายงานฉบับสมบูรณ์ให้ที่ปรึกษาและกรรมการตรวจได้",
+              eventTitle: "การสอบนำเสนอขั้นสุดท้ายเสร็จสิ้น",
+              eventDescription: "ปิดรอบสอบนำเสนอขั้นสุดท้ายแล้ว นักศึกษาสามารถส่งรายงานฉบับสมบูรณ์ให้ที่ปรึกษาและกรรมการตรวจได้",
               actorUserId: adminUserId,
               relatedEntityType: "AssessmentRound",
               relatedEntityId: roundId
@@ -688,7 +706,7 @@ export async function saveFinalDecision(formData: FormData) {
   const attemptId = String(formData.get("attempt_id"));
   const finalDecision = String(formData.get("final_decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
   const reason = String(formData.get("final_decision_reason") ?? "");
-  assertTextSize(reason, requestSizeLimits.commentTextBytes, "final decision reason");
+  assertTextSize(reason, requestSizeLimits.commentTextBytes, "เหตุผลประกอบผลตัดสินการเสนอหัวข้อ");
 
   const attempt = await timer.measure("load_attempt_scores", () => prisma.assessmentAttempt.findUniqueOrThrow({
     where: { id: attemptId },
@@ -768,7 +786,7 @@ export async function saveFinalDecision(formData: FormData) {
     data: {
       projectId: attempt.projectId,
       eventType: "ADMIN_FINAL_DECISION",
-      eventTitle: "ผู้ดูแลระบบบันทึกผล Proposal",
+      eventTitle: "ผู้ดูแลระบบบันทึกผลการเสนอหัวข้อ",
       eventDescription: finalDecision,
       actorUserId: adminUserId,
       relatedEntityType: "AssessmentAttempt",
@@ -803,8 +821,8 @@ export async function assignProjectCommittee(formData: FormData) {
   const projectId = String(formData.get("project_id"));
   const headTeacherId = String(formData.get("head_teacher_id") ?? "");
   const memberTeacherIds = formData.getAll("member_teacher_id").map(String).filter(Boolean);
-  if (!headTeacherId) throw new Error("กรุณาเลือก HEAD");
-  if (!memberTeacherIds.length) throw new Error("กรุณาเลือก MEMBER อย่างน้อย 1 คน");
+  if (!headTeacherId) throw new Error("กรุณาเลือกประธานกรรมการ");
+  if (!memberTeacherIds.length) throw new Error("กรุณาเลือกกรรมการอย่างน้อย 1 คน");
 
   const project = await timer.measure("load_project_advisor", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
@@ -816,13 +834,13 @@ export async function assignProjectCommittee(formData: FormData) {
       }
     }
   }));
-  if (project.status !== "TOPIC_APPROVED") throw new Error("แต่งตั้งกรรมการได้เฉพาะโปรเจคที่หัวข้อผ่านแล้ว");
+  if (project.status !== "TOPIC_APPROVED") throw new Error("แต่งตั้งกรรมการได้เฉพาะโครงงานที่หัวข้อผ่านแล้ว");
   const advisorTeacherId = project.advisorRequests[0]?.advisorTeacherId;
   if (!advisorTeacherId) throw new Error("ไม่พบที่ปรึกษาที่อนุมัติแล้ว");
   if (headTeacherId === advisorTeacherId || memberTeacherIds.includes(advisorTeacherId)) {
-    throw new Error("Advisor ไม่ควรเป็น HEAD/MEMBER ในโปรเจคเดียวกัน");
+    throw new Error("อาจารย์ที่ปรึกษาไม่ควรเป็นประธานกรรมการหรือกรรมการในโครงงานเดียวกัน");
   }
-  if (memberTeacherIds.includes(headTeacherId)) throw new Error("HEAD และ MEMBER ต้องไม่ซ้ำกัน");
+  if (memberTeacherIds.includes(headTeacherId)) throw new Error("ประธานกรรมการและกรรมการต้องไม่ซ้ำกัน");
 
   await timer.measure("committee_transaction", () => prisma.$transaction([
     prisma.committeeAssignment.upsert({
@@ -905,7 +923,7 @@ export async function releaseFeedback(formData: FormData) {
       data: {
         projectId: attempt.projectId,
         eventType: "FEEDBACK_RELEASED",
-        eventTitle: "เปิด feedback ให้นักศึกษาเห็น",
+        eventTitle: "เปิดข้อเสนอแนะให้นักศึกษาเห็น",
         actorUserId: adminUserId,
         relatedEntityType: "AssessmentAttempt",
         relatedEntityId: attemptId
@@ -932,7 +950,7 @@ export async function completeProjectCloseout(formData: FormData) {
   assertRateLimit(`admin:${adminUserId}:completeProjectCloseout`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.completeProjectCloseout");
   const projectId = String(formData.get("project_id") ?? "");
-  if (!projectId) throw new Error("ไม่พบ project ที่ต้องการปิดงาน");
+  if (!projectId) throw new Error("ไม่พบโครงงานที่ต้องการยืนยันจบ");
 
   const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({ where: { id: projectId } }));
   if (project.status === "COMPLETED") {
@@ -941,7 +959,7 @@ export async function completeProjectCloseout(formData: FormData) {
 
   const eligibility = await timer.measure("completion_eligibility", () => getCompletionEligibility(projectId));
   if (!eligibility.eligible) {
-    throw new Error(`ยังปิดงานไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
+    throw new Error(`ยังยืนยันจบโครงงานไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
   }
 
   await timer.measure("closeout_transaction", () => prisma.$transaction(async (tx) => {
@@ -949,7 +967,7 @@ export async function completeProjectCloseout(formData: FormData) {
       where: { id: projectId, status: "ADVISOR_SCORING" },
       data: { status: "COMPLETED" }
     });
-    if (updated.count !== 1) throw new Error("โครงงานนี้ถูกปิดงานไปแล้วหรือสถานะเปลี่ยนไป กรุณารีเฟรชหน้า");
+    if (updated.count !== 1) throw new Error("โครงงานนี้ถูกยืนยันจบแล้วหรือสถานะเปลี่ยนไป กรุณารีเฟรชหน้า");
 
     await tx.projectStatusHistory.create({
       data: {
@@ -972,7 +990,7 @@ export async function completeProjectCloseout(formData: FormData) {
         projectId,
         eventType: "PROJECT_COMPLETED",
         eventTitle: "โครงงานเสร็จสมบูรณ์",
-        eventDescription: "ผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้วและปิดงานเป็น COMPLETED",
+        eventDescription: "ผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้วและยืนยันจบโครงงานเสร็จสมบูรณ์",
         actorUserId: adminUserId,
         relatedEntityType: "Project",
         relatedEntityId: projectId

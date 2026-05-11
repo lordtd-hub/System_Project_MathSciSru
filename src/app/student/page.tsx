@@ -23,10 +23,10 @@ function daysWaiting(from?: Date | null) {
 }
 
 function assessmentKindLabel(kind?: string | null) {
-  if (kind === "PROGRESS_1") return "Progress 1";
-  if (kind === "PROGRESS_2") return "Progress 2";
-  if (kind === "FINAL_PRESENTATION") return "Final Presentation";
-  if (kind === "FINAL_PRESENT") return "Final Presentation";
+  if (kind === "PROGRESS_1") return "การสอบความก้าวหน้าครั้งที่ 1";
+  if (kind === "PROGRESS_2") return "การสอบความก้าวหน้าครั้งที่ 2";
+  if (kind === "FINAL_PRESENTATION") return "การสอบนำเสนอขั้นสุดท้าย";
+  if (kind === "FINAL_PRESENT") return "การสอบนำเสนอขั้นสุดท้าย";
   return "รอบสอบ";
 }
 
@@ -42,22 +42,25 @@ function formatScore(score: number | null) {
 
 function buildStudentTasks(status: string): TaskListItem[] {
   if (status === "STUDENT_PROFILE") {
-    return [{ title: "กรอกข้อมูลนักศึกษา", description: "ต้องกรอกข้อมูลนี้ก่อนสร้างโปรเจค", href: "/student/profile", urgency: "สูง" }];
+    return [{ title: "กรอกข้อมูลนักศึกษา", description: "ต้องกรอกข้อมูลนี้ก่อนสร้างโครงงาน", href: "/student/profile", urgency: "สูง" }];
   }
   if (status === "DRAFT") {
     return [
-      { title: "สร้าง/แก้ไขโปรเจค", description: "ระบุหัวข้อ เหตุผล และเลือกอาจารย์ที่ปรึกษา", href: "/student/project", urgency: "สูง" },
+      { title: "สร้าง/แก้ไขร่างโครงงาน", description: "ระบุหัวข้อ เหตุผล และเลือกอาจารย์ที่ปรึกษา", href: "/student/project", urgency: "สูง" },
       { title: "ส่งคำขอให้อาจารย์ที่ปรึกษาอนุมัติ", description: "หลังส่งแล้วจะเข้าสู่สถานะรอที่ปรึกษา", href: "/student/project" }
     ];
   }
   if (status === "PROPOSAL_PENDING") {
-    return [{ title: "ส่งข้อมูล Proposal", description: "แนบ abstract และลิงก์ Google Drive/Classroom", href: "/student/proposal", urgency: "สูง" }];
+    return [{ title: "ส่งเอกสารเสนอหัวข้อ", description: "แนบบทคัดย่อและลิงก์ Google Drive หรือ Google Classroom", href: "/student/proposal", urgency: "สูง" }];
   }
   if (status === "IN_PROGRESS") {
-    return [{ title: "เสนอวันสอบ Progress/Final", description: "กรรมการทุกคนต้องอนุมัติก่อนยืนยันตาราง", href: "/student/schedule" }];
+    return [{ title: "เสนอวันสอบความก้าวหน้าหรือสอบขั้นสุดท้าย", description: "กรรมการทุกคนต้องอนุมัติก่อนยืนยันตารางสอบ", href: "/student/schedule" }];
   }
-  if (["FINAL_DONE", "REPORT_REVIEW"].includes(status)) {
-    return [{ title: "ส่งเล่มรายงาน version ใหม่", description: "ต้องใช้ลิงก์ Google Drive ใหม่ทุก version", href: "/student/report" }];
+  if (status === "FINAL_DONE") {
+    return [{ title: "ส่งเล่มรายงานฉบับสมบูรณ์", description: "ส่งเล่มรายงานครั้งแรกหลังการสอบนำเสนอขั้นสุดท้ายเสร็จสมบูรณ์", href: "/student/report" }];
+  }
+  if (status === "REPORT_REVIEW") {
+    return [{ title: "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข", description: "ส่งได้เมื่อผู้ตรวจขอให้แก้ไขเล่มรายงาน", href: "/student/report" }];
   }
   return [{ title: "ติดตามสถานะ", description: "ขั้นตอนนี้กำลังรอบุคคลที่เกี่ยวข้องดำเนินการ", urgency: "รอคนอื่น" }];
 }
@@ -187,7 +190,7 @@ export default async function StudentDashboardPage() {
             orderBy: { createdAt: "desc" },
             take: 12
           },
-          reportVersions: { select: { versionNo: true }, orderBy: { versionNo: "desc" }, take: 1 },
+          reportVersions: { select: { versionNo: true, reviews: { select: { decision: true } } }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
           attempts: {
             where: { attemptType: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
@@ -251,10 +254,10 @@ export default async function StudentDashboardPage() {
     timer.end("missing_project");
     return (
       <div className="space-y-6">
-        <PageHeader title={`สวัสดี, ${student.firstNameTh}`} description="ยังไม่มีโปรเจคในรายวิชานี้" />
+        <PageHeader title={`สวัสดี, ${student.firstNameTh}`} description="ยังไม่มีโครงงานในรายวิชานี้" />
         <EmptyState
-          title="ยังไม่มีโปรเจค"
-          description="เมื่อผู้ดูแลระบบนำเข้ารายชื่อและสร้างรายวิชาแล้ว โปรเจคของคุณจะแสดงที่นี่"
+          title="ยังไม่มีโครงงาน"
+          description="เมื่อผู้ดูแลระบบนำเข้ารายชื่อและสร้างรายวิชาแล้ว โครงงานของคุณจะแสดงที่นี่"
           actionLabel="ดูข้อมูลนักศึกษา"
           href="/student/profile"
         />
@@ -284,8 +287,17 @@ export default async function StudentDashboardPage() {
     PROGRESS_2: hasCompletedScores("PROGRESS_2") ? "COMPLETED" as const : "NOT_STARTED" as const,
     FINAL_PRESENT: hasCompletedScores("FINAL_PRESENTATION") ? "COMPLETED" as const : "NOT_STARTED" as const
   };
+  const latestReport = project.reportVersions[0];
+  const latestReportHasRevisionRequest = Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"));
+  const reportStatus = !latestReport
+    ? "NONE" as const
+    : latestReportHasRevisionRequest
+      ? "REVISION_REQUIRED" as const
+      : project.status === "REPORT_APPROVED"
+        ? "APPROVED" as const
+        : "SUBMITTED" as const;
   const nextAction = getNextActionForStudent(project.status);
-  const workflowActions = getStudentAvailableActions(project.status, assessmentStates);
+  const workflowActions = getStudentAvailableActions(project.status, assessmentStates, reportStatus);
   const proposal = project.presentationSubmissions[0];
   const activeSchedule = project.scheduleProposals.find((schedule) => {
     if (schedule.assessmentKind === "PROGRESS_1") return assessmentStates.PROGRESS_1 !== "COMPLETED";
@@ -315,28 +327,28 @@ export default async function StudentDashboardPage() {
   const nextAssessmentAction = project.status === "IN_PROGRESS"
     ? assessmentStates.PROGRESS_1 !== "COMPLETED"
       ? {
-          title: "ดำเนินการ Progress 1",
-          description: "บันทึกเอกสาร/หลักฐาน Progress 1 แล้วเสนอวันสอบให้กรรมการยืนยัน",
-          actionLabel: "เปิด Progress 1",
+          title: "ดำเนินการสอบความก้าวหน้าครั้งที่ 1",
+          description: "บันทึกเอกสาร/หลักฐานการสอบความก้าวหน้าครั้งที่ 1 แล้วเสนอวันสอบให้กรรมการยืนยัน",
+          actionLabel: "เปิดการสอบความก้าวหน้าครั้งที่ 1",
           href: "/student/schedule"
         }
       : assessmentStates.PROGRESS_2 !== "COMPLETED"
         ? {
-            title: "ดำเนินการ Progress 2",
-            description: "Progress 1 เสร็จแล้ว ขั้นตอนถัดไปคือบันทึกเอกสาร Progress 2 และเสนอวันสอบ",
-            actionLabel: "เปิด Progress 2",
+            title: "ดำเนินการสอบความก้าวหน้าครั้งที่ 2",
+            description: "การสอบความก้าวหน้าครั้งที่ 1 เสร็จแล้ว ขั้นตอนถัดไปคือบันทึกเอกสารการสอบความก้าวหน้าครั้งที่ 2 และเสนอวันสอบ",
+            actionLabel: "เปิดการสอบความก้าวหน้าครั้งที่ 2",
             href: "/student/schedule"
           }
         : assessmentStates.FINAL_PRESENT !== "COMPLETED"
           ? {
-              title: "ดำเนินการ Final Presentation",
-              description: "Progress 1 และ Progress 2 เสร็จแล้ว ขั้นตอนถัดไปคือบันทึกเอกสาร Final และเสนอวันสอบ",
-              actionLabel: "เปิด Final Presentation",
+              title: "ดำเนินการสอบนำเสนอขั้นสุดท้าย",
+              description: "การสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 เสร็จแล้ว ขั้นตอนถัดไปคือบันทึกเอกสารสอบนำเสนอขั้นสุดท้ายและเสนอวันสอบ",
+              actionLabel: "เปิดการสอบนำเสนอขั้นสุดท้าย",
               href: "/student/schedule"
             }
           : {
               title: "ส่งเล่มรายงานฉบับสมบูรณ์",
-              description: "Final Presentation เสร็จแล้ว ขั้นตอนถัดไปคือแก้เล่มตามข้อเสนอแนะและส่งให้ที่ปรึกษา/กรรมการตรวจ",
+              description: "การสอบนำเสนอขั้นสุดท้ายเสร็จแล้ว ขั้นตอนถัดไปคือแก้รายงานตามข้อเสนอแนะและส่งให้ที่ปรึกษา/กรรมการตรวจ",
               actionLabel: "เปิดหน้าส่งเล่ม",
               href: "/student/report",
               tone: "success" as const
@@ -392,14 +404,13 @@ export default async function StudentDashboardPage() {
               href: "/student/schedule"
             }]
           : assessmentStates.PROGRESS_1 !== "COMPLETED"
-            ? [{ title: "เตรียม Progress 1", description: "บันทึกเอกสาร/หลักฐาน Progress 1 แล้วเสนอวันสอบ", href: "/student/schedule", urgency: "สูง" }]
+            ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 1", description: "บันทึกเอกสาร/หลักฐานการสอบความก้าวหน้าครั้งที่ 1 แล้วเสนอวันสอบ", href: "/student/schedule", urgency: "สูง" }]
             : assessmentStates.PROGRESS_2 !== "COMPLETED"
-              ? [{ title: "เตรียม Progress 2", description: "Progress 1 เสร็จแล้ว ขั้นตอนถัดไปคือ Progress 2", href: "/student/schedule", urgency: "สูง" }]
+              ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 2", description: "การสอบความก้าวหน้าครั้งที่ 1 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบความก้าวหน้าครั้งที่ 2", href: "/student/schedule", urgency: "สูง" }]
               : assessmentStates.FINAL_PRESENT !== "COMPLETED"
-                ? [{ title: "เตรียม Final Presentation", description: "Progress 1 และ Progress 2 เสร็จแล้ว ขั้นตอนถัดไปคือ Final Presentation", href: "/student/schedule", urgency: "สูง" }]
-                : [{ title: "ส่งเล่มรายงานฉบับสมบูรณ์", description: "แก้เล่มตามข้อเสนอแนะ แล้วส่ง version รายงานให้ที่ปรึกษาและกรรมการตรวจ", href: "/student/report", urgency: "สูง" }]
+                ? [{ title: "เตรียมสอบนำเสนอขั้นสุดท้าย", description: "การสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบนำเสนอขั้นสุดท้าย", href: "/student/schedule", urgency: "สูง" }]
+              : [{ title: "ส่งเล่มรายงานฉบับสมบูรณ์", description: "แก้เล่มตามข้อเสนอแนะ แล้วส่งรายงานฉบับแก้ไขให้อาจารย์ที่ปรึกษาและกรรมการตรวจ", href: "/student/report", urgency: "สูง" }]
     : buildStudentTasks(project.status);
-  const latestReport = project.reportVersions[0];
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
     .map((attempt) => {
@@ -426,9 +437,9 @@ export default async function StudentDashboardPage() {
     });
   const visibleResultByRound = new Map(visibleAssessmentResults.map((result) => [result.attempt.assessmentRound.roundType, result]));
   const assessmentResultCards = [
-    { roundType: "PROGRESS_1" as const, label: "Progress 1", href: "/student/feedback?round=progress-1#progress-1" },
-    { roundType: "PROGRESS_2" as const, label: "Progress 2", href: "/student/feedback?round=progress-2#progress-2" },
-    { roundType: "FINAL_PRESENTATION" as const, label: "Final Presentation", href: "/student/feedback?round=final#final" }
+    { roundType: "PROGRESS_1" as const, label: "ความก้าวหน้าครั้งที่ 1", href: "/student/feedback?round=progress-1#progress-1" },
+    { roundType: "PROGRESS_2" as const, label: "ความก้าวหน้าครั้งที่ 2", href: "/student/feedback?round=progress-2#progress-2" },
+    { roundType: "FINAL_PRESENTATION" as const, label: "สอบนำเสนอขั้นสุดท้าย", href: "/student/feedback?round=final#final" }
   ].map((round) => ({ ...round, result: visibleResultByRound.get(round.roundType) }));
   timer.end();
 
@@ -436,7 +447,7 @@ export default async function StudentDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title={`สวัสดี, ${student.firstNameTh}`}
-        description="แดชบอร์ดนี้สรุปสถานะโครงงาน สิ่งที่ต้องทำ และหลักฐานสำคัญใน Project Lifecycle v2"
+        description="แดชบอร์ดนี้สรุปสถานะโครงงาน สิ่งที่ต้องทำ และหลักฐานสำคัญตลอดขั้นตอนการดำเนินงาน"
         actions={<StatusBadge status={project.status} />}
       />
 
@@ -540,11 +551,11 @@ export default async function StudentDashboardPage() {
                   </div>
                   {item.result ? (
                     <div className="flex items-center justify-between gap-3">
-                      {item.result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(item.result.averageScore)} / 100</p> : <p className="mt-1 text-muted">มี feedback แต่ยังไม่มีคะแนนที่บันทึก</p>}
+                      {item.result.showScore ? <p className="mt-1 text-muted">คะแนนเฉลี่ย {formatScore(item.result.averageScore)} / 100</p> : <p className="mt-1 text-muted">มีข้อเสนอแนะ แต่ยังไม่มีคะแนนที่บันทึก</p>}
                       <span className="text-xs font-semibold text-brand">ดูรายละเอียด</span>
                     </div>
                   ) : (
-                    <p className="mt-1 text-muted">จะแสดงเมื่อกรรมการบันทึกคะแนนหรือ feedback</p>
+                    <p className="mt-1 text-muted">จะแสดงเมื่อกรรมการบันทึกคะแนนหรือข้อเสนอแนะ</p>
                   )}
                 </Link>
               ))}
@@ -587,12 +598,12 @@ export default async function StudentDashboardPage() {
               </p>
             </div>
             <div className="rounded-md border border-line bg-paper p-3">
-              <div className="text-sm font-semibold">Proposal</div>
-              <p className="mt-1 text-sm text-muted">{proposal ? "ส่งข้อมูล Proposal แล้ว" : "ยังไม่ได้ส่ง Proposal"}</p>
+              <div className="text-sm font-semibold">เอกสารเสนอหัวข้อ</div>
+              <p className="mt-1 text-sm text-muted">{proposal ? "ส่งเอกสารเสนอหัวข้อแล้ว" : "ยังไม่ได้ส่งเอกสารเสนอหัวข้อ"}</p>
             </div>
             <div className="rounded-md border border-line bg-paper p-3">
               <div className="text-sm font-semibold">รายงาน</div>
-              <p className="mt-1 text-sm text-muted">{latestReport ? `version ${latestReport.versionNo}` : "ยังไม่มี version รายงาน"}</p>
+              <p className="mt-1 text-sm text-muted">{latestReport ? `ฉบับที่ ${latestReport.versionNo}` : "ยังไม่มีรายงานที่ส่ง"}</p>
             </div>
           </div>
           <div className="mt-4 space-y-3">
@@ -613,7 +624,7 @@ export default async function StudentDashboardPage() {
               />
               <StudentWorkflowGroup
                 title="ขั้นตอนในอนาคต"
-                description="ระบบล็อกไว้จนกว่า lifecycle จะถึงขั้นตอนนั้น"
+                description="ระบบล็อกไว้จนกว่าขั้นตอนโครงงานจะพร้อมดำเนินการ"
                 actions={workflowActions.locked_future}
                 tone="locked"
                 emptyText="ไม่มีขั้นตอนที่ล็อกอยู่"
@@ -621,7 +632,7 @@ export default async function StudentDashboardPage() {
             </div>
             <StudentWorkflowGroup
               title="ประวัติการดำเนินงาน"
-              description="รายการที่ทำแล้วหรือดูย้อนหลังได้ ไม่ใช่ action หลัก"
+              description="รายการที่ทำแล้วหรือดูย้อนหลังได้ ไม่ใช่งานหลักที่ต้องดำเนินการ"
               actions={workflowActions.read_only_history}
               tone="history"
               emptyText="ยังไม่มีประวัติในขั้นก่อนหน้า"
@@ -640,8 +651,8 @@ export default async function StudentDashboardPage() {
       />
 
       {project.status === "PROPOSAL_REVIEW" ? (
-        <InfoAlert title="การแสดงผล Proposal">
-          นักศึกษาจะเห็น comment และชื่ออาจารย์ทันที แต่คะแนน Proposal จะไม่แสดงให้นักศึกษาเห็น
+        <InfoAlert title="การแสดงผลการเสนอหัวข้อ">
+          นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่คะแนนการเสนอหัวข้อจะไม่แสดงให้นักศึกษาเห็น
         </InfoAlert>
       ) : null}
 

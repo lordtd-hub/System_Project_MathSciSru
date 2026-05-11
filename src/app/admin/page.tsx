@@ -50,30 +50,30 @@ function deriveAdminCurrentRoundFocus({
   const openNextLabel = roundTypeLabelTh(focusRoundType);
   const focusItems = {
     PROPOSAL: [
-      { title: "ตรวจ Proposal และผลประชุม", description: "ดูคะแนน ความเห็น และบันทึก final decision ของ Proposal", href: "/admin/proposals" },
-      { title: "เตรียมแต่งตั้งกรรมการ", description: "หัวข้อที่ผ่านแล้วต้องมีกรรมการครบก่อนเข้าสู่ Progress", href: "/admin/committee" }
+      { title: "ตรวจผลการเสนอหัวข้อและผลประชุม", description: "ดูคะแนน ความเห็น และบันทึกผลพิจารณาสุดท้ายของการเสนอหัวข้อ", href: "/admin/proposals" },
+      { title: "เตรียมแต่งตั้งกรรมการ", description: "หัวข้อที่ผ่านแล้วต้องมีกรรมการครบก่อนเข้าสู่การสอบความก้าวหน้า", href: "/admin/committee" }
     ],
     PROGRESS_1: [
-      { title: "ติดตามตารางสอบ Progress 1", description: "ดูการเสนอวันสอบ การตอบรับของกรรมการ และงานที่รอคะแนน", href: "/admin/schedules" },
-      { title: "ดูความพร้อม Progress 1", description: `${progress1EligibleCount} project พร้อมเข้าสู่ Progress 1 ตามเงื่อนไขปัจจุบัน`, href: "/admin/rounds" }
+      { title: "ติดตามตารางสอบความก้าวหน้าครั้งที่ 1", description: "ดูการเสนอวันสอบ การตอบรับของกรรมการ และงานที่รอบันทึกคะแนน", href: "/admin/schedules" },
+      { title: "ดูความพร้อมสอบความก้าวหน้าครั้งที่ 1", description: `${progress1EligibleCount} โครงงานพร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1 ตามเงื่อนไขปัจจุบัน`, href: "/admin/rounds" }
     ],
     PROGRESS_2: [
-      { title: "ติดตามตารางสอบ Progress 2", description: "ดูการเสนอวันสอบ การตอบรับของกรรมการ และงานที่รอคะแนน", href: "/admin/schedules" },
-      { title: "เตรียมรอบ Final", description: "หลังปิด Progress 2 ให้เปิด Final Presentation ตามลำดับรายวิชา", href: "/admin/rounds" }
+      { title: "ติดตามตารางสอบความก้าวหน้าครั้งที่ 2", description: "ดูการเสนอวันสอบ การตอบรับของกรรมการ และงานที่รอบันทึกคะแนน", href: "/admin/schedules" },
+      { title: "เตรียมรอบสอบขั้นสุดท้าย", description: "หลังปิดการสอบความก้าวหน้าครั้งที่ 2 ให้เปิดรอบสอบนำเสนอขั้นสุดท้ายตามลำดับรายวิชา", href: "/admin/rounds" }
     ],
     FINAL_PRESENTATION: [
-      { title: "ติดตามตารางสอบ Final", description: "ดูวันสอบที่ยืนยันแล้วและงานให้คะแนน Final Presentation", href: "/admin/schedules" },
-      { title: "เตรียมเล่มรายงานและ closeout", description: "หลัง Final complete ให้ติดตาม report review, advisor score และ closeout", href: "/admin/closeout" }
+      { title: "ติดตามตารางสอบนำเสนอขั้นสุดท้าย", description: "ดูวันสอบที่ยืนยันแล้วและงานบันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย", href: "/admin/schedules" },
+      { title: "เตรียมตรวจรายงานและยืนยันจบโครงงาน", description: "หลังการสอบขั้นสุดท้ายเสร็จสิ้น ให้ติดตามการตรวจรายงาน คะแนนสรุปของอาจารย์ที่ปรึกษา และการยืนยันจบโครงงาน", href: "/admin/closeout" }
     ]
   } satisfies Record<CourseLevelRoundType, Array<{ title: string; description: string; href: string }>>;
 
   return {
     title: currentOpenRoundType ? `กำลังอยู่ในรอบ ${activeRoundLabel}` : `โฟกัสถัดไป: ${openNextLabel}`,
     description: currentOpenRoundType
-      ? "แดชบอร์ดควรให้ความสำคัญกับงานของรอบที่กำลังเปิดอยู่ก่อนงาน monitoring อื่น"
+      ? "แดชบอร์ดควรให้ความสำคัญกับงานของรอบที่กำลังเปิดอยู่ก่อนงานติดตามทั่วไป"
       : canOpenNextRound
         ? `ยังไม่มีรอบที่เปิดอยู่ ขั้นตอนถัดไปคือเปิดรอบ ${openNextLabel}`
-        : `ยังไม่มีรอบที่เปิดอยู่ และ ${openNextLabel} ยังไม่พร้อมเปิดตามลำดับ workflow`,
+        : `ยังไม่มีรอบที่เปิดอยู่ และ ${openNextLabel} ยังไม่พร้อมเปิดตามลำดับการดำเนินงาน`,
     items: focusItems[activeRoundType]
   };
 }
@@ -238,11 +238,11 @@ export default async function AdminDashboardPage({
   ];
   const nextAction = getNextActionForAdmin(nextActionProjects);
   const adminWorkflowCards = [
-    { label: "รอ Admin ยืนยัน", value: pendingAdminProjects.length, href: "#pending-admin-confirmation", tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const },
-    { label: "รอตัดสิน Proposal", value: proposalDecisionReadyCount, href: "/admin/proposals", tone: proposalDecisionReadyCount ? "ready" as const : "quiet" as const },
+    { label: "รอผู้ดูแลระบบยืนยัน", value: pendingAdminProjects.length, href: "#pending-admin-confirmation", tone: pendingAdminProjects.length ? "ready" as const : "quiet" as const },
+    { label: "รอตัดสินผลเสนอหัวข้อ", value: proposalDecisionReadyCount, href: "/admin/proposals", tone: proposalDecisionReadyCount ? "ready" as const : "quiet" as const },
     { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const },
-    { label: "รอ Advisor score", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" as const : "quiet" as const },
-    { label: "พร้อมตรวจ closeout", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const }
+    { label: "รอคะแนนที่ปรึกษา", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" as const : "quiet" as const },
+    { label: "พร้อมยืนยันจบโครงงาน", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const }
   ];
   const adminActionQueue = [
     {
@@ -254,8 +254,8 @@ export default async function AdminDashboardPage({
       statusLabel: claims ? "ต้องอนุมัติ" : "ปกติ"
     },
     {
-      title: "ยืนยันโปรเจคและอาจารย์ที่ปรึกษา",
-      description: pendingAdminProjects.length ? "โปรเจคที่ advisor อนุมัติแล้วรอ Admin confirmation" : "ยังไม่มีโปรเจครอ Admin confirmation",
+      title: "ยืนยันโครงงานและอาจารย์ที่ปรึกษา",
+      description: pendingAdminProjects.length ? "โครงงานที่อาจารย์ที่ปรึกษาอนุมัติแล้ว รอผู้ดูแลระบบยืนยัน" : "ยังไม่มีโครงงานที่รอผู้ดูแลระบบยืนยัน",
       href: "#pending-admin-confirmation",
       ctaLabel: pendingAdminProjects.length ? "ไปยืนยัน" : "ดูรายการ",
       count: pendingAdminProjects.length,
@@ -263,16 +263,16 @@ export default async function AdminDashboardPage({
       statusLabel: pendingAdminProjects.length ? "พร้อมดำเนินการ" : "ปกติ"
     },
     {
-      title: "ตัดสินผล Proposal",
-      description: "ตรวจคะแนน ความเห็น และผลประชุมก่อนยืนยันผลสุดท้ายของ Proposal",
+      title: "ตัดสินผลการเสนอหัวข้อ",
+      description: "ตรวจคะแนน ความเห็น และผลประชุมก่อนยืนยันผลสุดท้ายของการเสนอหัวข้อ",
       href: "/admin/proposals",
       count: proposalDecisionReadyCount,
       tone: proposalDecisionReadyCount || failAlertCount ? "urgent" as const : "quiet" as const,
-      statusLabel: proposalDecisionReadyCount ? "ต้องบันทึก final decision" : failAlertCount ? "มี FAIL ≥ 50%" : "รอตัดสิน"
+      statusLabel: proposalDecisionReadyCount ? "ต้องบันทึกผลพิจารณา" : failAlertCount ? "มีผลไม่ผ่านตั้งแต่ 50%" : "รอตัดสิน"
     },
     {
       title: "แต่งตั้งกรรมการ",
-      description: "หัวข้อที่ผ่านแล้วต้องมีกรรมการครบก่อนเข้าสู่รอบ Progress",
+      description: "หัวข้อที่ผ่านแล้วต้องมีกรรมการครบก่อนเข้าสู่รอบสอบความก้าวหน้า",
       href: "/admin/committee",
       count: countFromStatus(statusCounts, "TOPIC_APPROVED"),
       tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const,
@@ -280,18 +280,18 @@ export default async function AdminDashboardPage({
     },
     {
       title: "จัดการรอบสอบของรายวิชา",
-      description: "ตรวจสถานะ Proposal, Progress 1, Progress 2 และ Final Presentation",
+      description: "ตรวจสถานะการเสนอหัวข้อ การสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบขั้นสุดท้าย",
       href: "/admin/rounds",
       tone: "quiet" as const,
       statusLabel: "ดูรอบสอบ"
     },
     {
-      title: "ตรวจ closeout / completion",
-      description: "ตรวจเงื่อนไขก่อนเปลี่ยนโปรเจคเป็น COMPLETED โดย Admin เท่านั้น",
+      title: "ยืนยันจบโครงงาน",
+      description: "ตรวจเงื่อนไขครบถ้วนก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์โดยผู้ดูแลระบบเท่านั้น",
       href: "/admin/closeout",
       count: countFromStatus(statusCounts, "ADVISOR_SCORING"),
       tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const,
-      statusLabel: "completion"
+      statusLabel: "ตรวจเงื่อนไข"
     }
   ];
   timer.end("admin_first_render");
@@ -300,7 +300,7 @@ export default async function AdminDashboardPage({
     <div className="space-y-4">
       <PageHeader
         title="แดชบอร์ดผู้ดูแลระบบ"
-        description="ติดตาม lifecycle ทั้งระบบ ยืนยันโปรเจค จัดการ Proposal แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
+        description="ติดตามขั้นตอนโครงงานทั้งระบบ ยืนยันโครงงาน จัดการการเสนอหัวข้อ แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
         actions={
           <>
             <span
@@ -310,7 +310,7 @@ export default async function AdminDashboardPage({
             >
               โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
             </span>
-            <Link className="button-secondary" href="/admin/evidence">Evidence & AUN-QA</Link>
+            <Link className="button-secondary" href="/admin/evidence">หลักฐานและ AUN-QA</Link>
             <Link className="button-secondary" href="/admin/teachers">จัดการอาจารย์</Link>
           </>
         }
@@ -320,7 +320,7 @@ export default async function AdminDashboardPage({
         <WarningAlert title="โหมดทดสอบระบบเปิดอยู่">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm">
-              ใช้สำหรับช่วงลองระบบเท่านั้น ปุ่มนี้จะล้าง course offering ปัจจุบันพร้อมข้อมูลนิสิต/โปรเจค/รอบสอบ/คะแนน/รายงานที่ผูกกับรายวิชานี้ แล้วให้เริ่ม import ใหม่
+              ใช้สำหรับช่วงทดสอบระบบเท่านั้น ปุ่มนี้จะล้างรายวิชาปัจจุบันพร้อมข้อมูลนักศึกษา/โครงงาน/รอบสอบ/คะแนน/รายงานที่ผูกกับรายวิชานี้ แล้วให้เริ่มนำเข้าข้อมูลใหม่
             </p>
             <form action={resetCourseOfferingTestData}>
               <input type="hidden" name="course_offering_id" value={activeOffering.id} />
@@ -338,7 +338,7 @@ export default async function AdminDashboardPage({
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
         <DashboardActionQueue
           title="งานที่ต้องดำเนินการ"
-          description="รายการที่ต้องกดต่อ พิจารณา หรือยืนยันก่อน lifecycle จะเดินต่อ"
+          description="รายการที่ต้องกดต่อ พิจารณา หรือยืนยันก่อนขั้นตอนโครงงานจะดำเนินต่อ"
           items={adminActionQueue}
           mobilePrimaryCount={3}
           mobileSummaryLabel="งานติดตามของผู้ดูแลระบบ"
@@ -349,11 +349,11 @@ export default async function AdminDashboardPage({
             <DashboardSectionHeader title="งานที่ต้องติดตาม" description="สัญญาณที่ไม่จำเป็นต้องกดทันที แต่ควรเห็นก่อนลงรายละเอียด" />
             <div className="mt-4 space-y-2 text-sm">
               <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/proposals">
-                <span>Proposal รอประเมิน</span>
+                <span>การเสนอหัวข้อรอประเมิน</span>
                 <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PROPOSAL_REVIEW")}</span>
               </Link>
               <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin">
-                <span>โปรเจครอที่ปรึกษา</span>
+                <span>โครงงานรออาจารย์ที่ปรึกษา</span>
                 <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PENDING_ADVISOR")}</span>
               </Link>
               <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/students">
@@ -361,7 +361,7 @@ export default async function AdminDashboardPage({
                 <span className="font-semibold tabular-nums text-ink">{students}</span>
               </Link>
               <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/evidence">
-                <span>Evidence & AUN-QA</span>
+                <span>หลักฐานและ AUN-QA</span>
                 <span className="text-xs font-semibold text-muted">CSV</span>
               </Link>
             </div>
@@ -370,18 +370,18 @@ export default async function AdminDashboardPage({
       </div>
       <GuidancePanel
         title="คำแนะนำสำหรับผู้ดูแลระบบ"
-        current="ตรวจรายการค้าง เช่น Admin confirmation, Proposal decision, teacher claims และ committee assignment"
-        next="ระบบไม่ตัดสินผล Proposal อัตโนมัติ ผู้ดูแลระบบต้องยืนยันผลสุดท้ายด้วยตนเอง"
+        current="ตรวจรายการค้าง เช่น การยืนยันโครงงาน การตัดสินผลเสนอหัวข้อ คำขอผูกบัญชีอาจารย์ และการแต่งตั้งกรรมการ"
+        next="ระบบไม่ตัดสินผลการเสนอหัวข้ออัตโนมัติ ผู้ดูแลระบบต้องยืนยันผลสุดท้ายด้วยตนเอง"
         actor="ผู้ดูแลระบบเป็นผู้ยืนยันขั้นสำคัญและดูแลหลักฐาน"
       />
       {failAlertCount ? (
-        <WarningAlert title="มี Proposal ที่ FAIL ≥ 50%">
-          กรุณาตรวจ vote และ comment อย่างละเอียดก่อนตัดสินผลสุดท้าย
+        <WarningAlert title="มีเอกสารเสนอหัวข้อที่มีผลไม่ผ่านตั้งแต่ 50%">
+          กรุณาตรวจผลพิจารณาและข้อเสนอแนะอย่างละเอียดก่อนตัดสินผลสุดท้าย
         </WarningAlert>
       ) : null}
       <CompactMetricRow
         title="ภาพรวมสถานะ"
-        description="ตัวเลขสนับสนุนสำหรับดู bottleneck ของ lifecycle โดยไม่แย่งความสำคัญจาก action queue"
+        description="ตัวเลขสนับสนุนสำหรับดูจุดค้างของขั้นตอนโครงงาน โดยไม่แย่งความสำคัญจากงานที่ต้องดำเนินการ"
         metrics={adminWorkflowCards}
       />
       <Suspense fallback={<RoundGateSkeleton />}>
@@ -389,8 +389,8 @@ export default async function AdminDashboardPage({
       </Suspense>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
         <section id="pending-admin-confirmation" className="panel dashboard-console-panel scroll-mt-24">
-          <h2 className="text-lg font-semibold">โปรเจครอ Admin ยืนยัน</h2>
-          <p className="mt-1 text-sm text-muted">เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น PROPOSAL_PENDING</p>
+          <h2 className="text-lg font-semibold">โครงงานรอผู้ดูแลระบบยืนยัน</h2>
+          <p className="mt-1 text-sm text-muted">เมื่อยืนยันแล้ว นักศึกษาจะเข้าสู่ขั้นตอนส่งเอกสารเสนอหัวข้อ</p>
           <div className="mt-3 space-y-3">
             {pendingAdminProjects.length ? pendingAdminProjects.map((project) => (
               <form key={project.id} action={confirmProjectAdvisor} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line p-3">
@@ -401,10 +401,10 @@ export default async function AdminDashboardPage({
                     {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                   </div>
                 </div>
-                <SubmitButton pendingText="กำลังยืนยัน...">ยืนยันโปรเจคและอาจารย์ที่ปรึกษา</SubmitButton>
+                <SubmitButton pendingText="กำลังยืนยัน...">ยืนยันโครงงานและอาจารย์ที่ปรึกษา</SubmitButton>
               </form>
             )) : (
-              <EmptyState title="ยังไม่มี project รอ Admin ยืนยัน" description="เมื่อ advisor อนุมัติแล้ว รายการจะแสดงที่นี่" />
+              <EmptyState title="ยังไม่มีโครงงานรอผู้ดูแลระบบยืนยัน" description="เมื่ออาจารย์ที่ปรึกษาอนุมัติแล้ว รายการจะแสดงที่นี่" />
             )}
           </div>
         </section>
@@ -412,19 +412,19 @@ export default async function AdminDashboardPage({
           title="ทางลัดปฏิบัติการ"
           compact
           tasks={[
-            { title: "รอบสอบของรายวิชา", description: "รอบแบบ course-level", href: "/admin/rounds" },
-            { title: "Course offering", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
-            { title: "ปิดงานโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนเปลี่ยนเป็น COMPLETED", href: "/admin/closeout" }
+            { title: "รอบสอบของรายวิชา", description: "รอบสอบระดับรายวิชา", href: "/admin/rounds" },
+            { title: "รายวิชาที่เปิดสอน", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
+            { title: "ยืนยันจบโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์", href: "/admin/closeout" }
           ]}
         />
       </div>
-      <Suspense fallback={<DashboardSectionSkeleton title="Project status overview" />}>
+      <Suspense fallback={<DashboardSectionSkeleton title="ภาพรวมสถานะโครงงาน" />}>
         <ProjectStatusOverviewSection projectsPromise={recentProjectsQuery} statusGroupsPromise={statusGroupsQuery} />
       </Suspense>
       <Suspense fallback={null}>
         <AdminNotificationsSection notificationsPromise={notificationsQuery} />
       </Suspense>
-      <Suspense fallback={<DashboardSectionSkeleton title="Latest evidence" />}>
+      <Suspense fallback={<DashboardSectionSkeleton title="หลักฐานล่าสุด" />}>
         <AdminTimelineSection timelinePromise={timelineQuery} />
       </Suspense>
     </div>
@@ -483,7 +483,7 @@ async function AdminRoundGateSection({
       <section className="panel dashboard-console-panel border-l-4 border-l-brand">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand">Current round focus</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand">รอบสอบที่ต้องติดตาม</p>
             <h2 className="mt-1 text-lg font-semibold">{roundFocus.title}</h2>
             <p className="mt-1 text-sm text-muted">{roundFocus.description}</p>
           </div>
@@ -515,7 +515,7 @@ async function AdminRoundGateSection({
             {!focusGate.canOpen && progress1BlockedReason ? (
               <p className="mt-1 text-sm text-amber-700">{reasonLabelTh(progress1BlockedReason)}</p>
             ) : focusRoundType === "PROGRESS_1" && !focusGate.canOpen && !progress1Eligibility.eligible.length ? (
-              <p className="mt-1 text-sm text-amber-700">ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1</p>
+              <p className="mt-1 text-sm text-amber-700">ยังไม่มีโครงงานที่พร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1</p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -535,9 +535,9 @@ async function AdminRoundGateSection({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">รอบสอบของรายวิชา</h2>
-              <p className="mt-1 text-sm text-muted">Proposal, Progress 1, Progress 2 และ Final Presentation เป็นรอบระดับรายวิชา ไม่ใช่รอบแยกต่อโปรเจค</p>
+              <p className="mt-1 text-sm text-muted">การเสนอหัวข้อ การสอบความก้าวหน้าครั้งที่ 1 การสอบความก้าวหน้าครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้ายเป็นรอบระดับรายวิชา ไม่ใช่รอบแยกต่อโครงงาน</p>
             </div>
-            <Link href="/admin/proposals" className="btn-secondary">ดูรอบ Proposal</Link>
+            <Link href="/admin/proposals" className="btn-secondary">ดูรอบการเสนอหัวข้อ</Link>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {rounds.map((round) => {
@@ -558,7 +558,7 @@ async function AdminRoundGateSection({
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button className="btn-secondary" disabled>เปิดรอบ</button>
                     <button className="btn-secondary" disabled>ปิดรอบ</button>
-                    <button className="btn-secondary" disabled>ดูโปรเจคที่มีปัญหา</button>
+                    <button className="btn-secondary" disabled>ดูโครงงานที่มีปัญหา</button>
                   </div>
                 </div>
               );

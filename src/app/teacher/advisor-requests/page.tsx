@@ -63,7 +63,7 @@ export default async function TeacherAdvisorRequestsPage({
       <GuidancePanel
         title="การอนุมัติที่ปรึกษา"
         current="อ่านชื่อหัวข้อ เหตุผล และเอกสารที่นักศึกษาส่ง"
-        next="ถ้าอนุมัติ โปรเจคจะไป PENDING_ADMIN ถ้าปฏิเสธจะกลับ DRAFT พร้อมเก็บประวัติ"
+        next="ถ้าอนุมัติ โครงงานจะเข้าสู่ขั้นรอผู้ดูแลระบบยืนยัน ถ้าปฏิเสธจะกลับสู่ขั้นร่างหัวข้อพร้อมเก็บประวัติ"
         actor="อาจารย์ที่ถูกเลือกเป็นที่ปรึกษา"
       />
       <div className="space-y-3">

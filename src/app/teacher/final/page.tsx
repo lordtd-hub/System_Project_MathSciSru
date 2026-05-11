@@ -26,7 +26,7 @@ export default async function TeacherFinalPage({
   const session = await auth();
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
-  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
+  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีกับโปรไฟล์อาจารย์ก่อนใช้งาน" />;
   const params = (await searchParams) ?? {};
   const showQaEvidenceAlignment = isQaAunEvidenceAlignmentEnabled();
 
@@ -81,16 +81,16 @@ export default async function TeacherFinalPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="บันทึกคะแนน Final Presentation" description="สำหรับ HEAD/MEMBER ที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
+      <PageHeader title="บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย" description="สำหรับประธานหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
-        title="Final Presentation scoring"
-        current="ประเมิน Final ด้วย rubric แบบ condition-based รวม 100 คะแนน โดยตรวจหลักฐานที่เชื่อมกับ Proposal, Progress, Report และการตอบคำถาม"
-        next="ระบบบันทึกคะแนนไว้ก่อน ยังไม่เปลี่ยน lifecycle หรือเริ่ม report approval loop อัตโนมัติ"
-        actor="HEAD หรือ MEMBER ที่ได้รับแต่งตั้ง"
+        title="การประเมินการสอบนำเสนอขั้นสุดท้าย"
+        current="ประเมินการสอบขั้นสุดท้ายด้วยเกณฑ์แบบตรวจเงื่อนไข รวม 100 คะแนน โดยตรวจหลักฐานที่เชื่อมกับเอกสารเสนอหัวข้อ การสอบความก้าวหน้า รายงาน และการตอบคำถาม"
+        next="ระบบบันทึกคะแนนไว้ก่อน และจะเข้าสู่ขั้นตอนส่งรายงานฉบับสมบูรณ์เมื่อผลการประเมินของกรรมการครบตามเงื่อนไข"
+        actor="ประธานหรือกรรมการที่ได้รับแต่งตั้ง"
       />
       {!finalRound ? (
-        <EmptyState title="ยังไม่มีรอบ Final Presentation" description="ผู้ดูแลระบบต้องเปิดรอบ Final Presentation ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
+        <EmptyState title="ยังไม่มีรอบสอบนำเสนอขั้นสุดท้าย" description="ผู้ดูแลระบบต้องเปิดรอบสอบนำเสนอขั้นสุดท้ายระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
       ) : null}
       <div className="space-y-4">
         {projects.length ? projects.map((project) => {
@@ -102,18 +102,18 @@ export default async function TeacherFinalPage({
             const attempt = project.attempts.find((item) => item.assessmentRound.roundType === roundType);
             const submission = attempt?.evaluatorAssignments.find((assignment) => assignment.scoreSubmission)?.scoreSubmission;
             return {
-              label: roundType === "PROGRESS_1" ? "Progress 1" : "Progress 2",
+              label: roundType === "PROGRESS_1" ? "ความก้าวหน้าครั้งที่ 1" : "ความก้าวหน้าครั้งที่ 2",
               score: submission?.totalScore ? Number(submission.totalScore).toFixed(2) : null,
               submittedAt: submission?.submittedAt ?? null
             };
           });
           const finalArtifacts = [
             {
-              label: "Final schedule/submission",
+              label: "วันสอบและหลักฐานการสอบขั้นสุดท้าย",
               value: project.assessmentSubmissions.find((submission) => submission.kind === "FINAL_PRESENT")?.materialLink ?? null
             },
             {
-              label: "Proposal material",
+              label: "หลักฐานเอกสารเสนอหัวข้อ",
               value: project.presentationSubmissions[0]?.materialLink ?? null
             }
           ];
@@ -171,18 +171,18 @@ export default async function TeacherFinalPage({
                   ))
                 )}
                 <div>
-                  <MarkdownLatexEditor name="comment" label="Comment / feedback" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
+                  <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
                 </div>
                 <div>
-                  <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนน Final Presentation หรือไม่?">
-                    บันทึกคะแนน Final Presentation
+                  <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?">
+                    บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย
                   </SubmitButton>
                 </div>
               </form>
             </section>
           );
         }) : finalRound ? (
-          <EmptyState title="ยังไม่มีโครงงาน Final Presentation ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็น HEAD/MEMBER และกรรมการยืนยันวันสอบ Final Presentation ครบแล้ว" />
+          <EmptyState title="ยังไม่มีโครงงานสอบนำเสนอขั้นสุดท้ายที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็นประธานหรือกรรมการ และกรรมการยืนยันวันสอบนำเสนอขั้นสุดท้ายครบแล้ว" />
         ) : null}
       </div>
     </div>

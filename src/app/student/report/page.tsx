@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
-import { getReportSubmissionGate, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
+import { getReportSubmissionGate, getStudentReportActionLabel, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 export default async function StudentReportPage({
@@ -69,10 +69,16 @@ export default async function StudentReportPage({
 
   const project = student.projects[0];
   if (!project) {
-    return <EmptyState title="ยังไม่มีโปรเจค" description="ยังไม่พบโปรเจคสำหรับส่งเล่มรายงาน" />;
+    return <EmptyState title="ยังไม่มีโครงงาน" description="ยังไม่พบโครงงานสำหรับส่งรายงานฉบับสมบูรณ์" />;
   }
 
   const latestReport = project.reportVersions[0];
+  const latestReportHasRevisionRequest = Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"));
+  const reportActionLabel = getStudentReportActionLabel({
+    hasReportVersion: Boolean(latestReport),
+    latestReportHasRevisionRequest
+  });
+  const reportHistory = [...project.reportVersions].sort((a, b) => a.versionNo - b.versionNo);
   const finalPresentationCompleted = project.status === "IN_PROGRESS"
     ? isPresentationAssessmentComplete({
         roundStatus: project.courseOffering.assessmentRounds[0]?.status,
@@ -87,7 +93,7 @@ export default async function StudentReportPage({
     : false;
   const gate = getReportSubmissionGate({
     projectStatus: project.status,
-    latestReportHasRevisionRequest: Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL")),
+    latestReportHasRevisionRequest,
     finalPresentationCompleted
   });
 
@@ -95,46 +101,51 @@ export default async function StudentReportPage({
     <div className="space-y-6">
       <PageHeader
         title="ส่งเล่มรายงาน"
-        description="ส่งลิงก์เล่มรายงานและติดตามผลตรวจ PASS / ขอแก้ไขจากอาจารย์"
+        description="ส่งลิงก์รายงานฉบับสมบูรณ์และติดตามผลการตรวจจากอาจารย์ผู้ตรวจ"
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel
-        title="Report approval loop"
+        title="ขั้นตอนการตรวจรายงาน"
         current={reportSubmissionReasonLabel(gate.reason)}
-        next="ถ้าอาจารย์ขอแก้ไข นักศึกษาจะส่ง version ใหม่ได้จากหน้านี้"
+        next="หากผู้ตรวจขอให้แก้ไข นักศึกษาสามารถส่งรายงานฉบับแก้ไขจากหน้านี้"
         actor="นักศึกษาและอาจารย์ผู้ตรวจเล่ม"
       />
       {project.status === "REPORT_APPROVED" ? (
-        <SuccessAlert title="เล่มรายงานผ่านแล้ว">ระบบหยุดที่สถานะ REPORT_APPROVED และยังไม่เข้าสู่ Advisor scoring ในขั้นตอนนี้</SuccessAlert>
+        <SuccessAlert title="รายงานฉบับสมบูรณ์ผ่านการตรวจแล้ว">ขั้นตอนถัดไปคือรออาจารย์ที่ปรึกษาบันทึกคะแนนสรุปตามกระบวนการของรายวิชา</SuccessAlert>
       ) : null}
       {!gate.allowed && project.status !== "REPORT_APPROVED" ? (
         <WarningAlert title="ยังส่งเล่มไม่ได้">{reportSubmissionReasonLabel(gate.reason)}</WarningAlert>
       ) : null}
-      <InfoAlert title="รูปแบบลิงก์">ใช้ลิงก์ Google Drive, Google Docs หรือ Google Classroom เท่านั้น และ comment รองรับ Markdown/LaTeX</InfoAlert>
+      {latestReportHasRevisionRequest ? (
+        <WarningAlert title="ผู้ตรวจขอให้แก้ไขเล่มรายงาน">
+          กรุณาอ่านข้อเสนอแนะของผู้ตรวจในประวัติรายงานด้านล่าง แก้ไขเล่มรายงาน แล้วส่งรายงานฉบับแก้ไขพร้อมสรุปการแก้ไขเป็นข้อ ๆ
+        </WarningAlert>
+      ) : null}
+      <InfoAlert title="รูปแบบลิงก์">ใช้ลิงก์ Google Drive, Google Docs หรือ Google Classroom เท่านั้น และช่องสรุปการแก้ไขรองรับ Markdown/LaTeX</InfoAlert>
       {(
         <div className="space-y-4">
           <section className="panel">
-            <h2 className="text-lg font-semibold">Report evidence guidance</h2>
+            <h2 className="text-lg font-semibold">คำแนะนำสำหรับหลักฐานรายงาน</h2>
             <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
-              <p>รายงานควรมี abstract, background, objectives, methods, results, conclusion และ references ครบถ้วน</p>
-              <p>วัตถุประสงค์ วิธีดำเนินงาน และผลลัพธ์ในรายงานควรสอดคล้องกันและตรวจสอบย้อนกลับไปยัง Proposal ได้</p>
-              <p>ผลลัพธ์หรือข้อสรุปควรมีหลักฐานรองรับ เช่น proof, analysis, implementation, experiment result หรือ artifact ที่ตรวจได้</p>
-              <p>สมการ รูปภาพ ตาราง และเอกสารอ้างอิงควรมีรูปแบบสม่ำเสมอเพื่อใช้เป็นหลักฐาน QA/AUN-QA</p>
+            <p>รายงานควรมีบทคัดย่อ ความเป็นมา วัตถุประสงค์ วิธีดำเนินงาน ผลการดำเนินงาน สรุปผล และเอกสารอ้างอิงครบถ้วน</p>
+              <p>วัตถุประสงค์ วิธีดำเนินงาน และผลลัพธ์ในรายงานควรสอดคล้องกันและตรวจสอบย้อนกลับไปยังเอกสารเสนอหัวข้อได้</p>
+            <p>ผลลัพธ์หรือข้อสรุปควรมีหลักฐานรองรับ เช่น การพิสูจน์ การวิเคราะห์ ชิ้นงานระบบ ผลการทดลอง หรือเอกสารประกอบที่ตรวจสอบได้</p>
+            <p>สมการ รูปภาพ ตาราง และเอกสารอ้างอิงควรมีรูปแบบสม่ำเสมอ เพื่อใช้เป็นหลักฐานประกอบการประกันคุณภาพการศึกษา</p>
             </div>
           </section>
         </div>
       )}
 
-      <FormSection title="ส่งเล่มรายงาน version ใหม่" description={reportSubmissionReasonLabel(gate.reason)}>
+      <FormSection title={reportActionLabel} description={reportSubmissionReasonLabel(gate.reason)}>
         <DraftPreservingForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} clearOnSuccess={params.success === "report_submitted"} className="space-y-4">
           <MaterialLinkField name="report_drive_link" />
           <MarkdownLatexEditor
             name="report_note"
-            label="สรุปการแก้ไข / ตอบกลับ comment ผู้ตรวจ"
+            label="สรุปการแก้ไข / ตอบกลับข้อเสนอแนะของผู้ตรวจ"
             required={false}
             rows={4}
-            placeholder={`ตัวอย่างการตอบกลับ comment ผู้ตรวจ
+            placeholder={`ตัวอย่างการตอบกลับข้อเสนอแนะของผู้ตรวจ
 
 ข้อเสนอแนะที่ 1: ระบุข้อเสนอแนะของผู้ตรวจ
 การแก้ไขที่ดำเนินการ: แก้ไขตามข้อเสนอแนะโดยปรับนิยาม/คำอธิบายในหัวข้อ ...
@@ -151,23 +162,23 @@ export default async function StudentReportPage({
             <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
               บันทึกไว้ก่อน
             </button>
-            <SubmitButton disabled={!gate.allowed} pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งเล่มรายงาน version นี้หรือไม่?" className="w-full sm:w-auto">
-              ส่งเล่มรายงาน version ใหม่
+            <SubmitButton disabled={!gate.allowed} pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งรายงานฉบับนี้หรือไม่?" className="w-full sm:w-auto">
+              {reportActionLabel}
             </SubmitButton>
           </div>
         </DraftPreservingForm>
       </FormSection>
 
       <section className="panel">
-        <h2 className="text-lg font-semibold">ประวัติ version รายงาน</h2>
+        <h2 className="text-lg font-semibold">ประวัติการส่งรายงาน</h2>
         <div className="mt-3 space-y-3">
-          {project.reportVersions.length ? (
-            project.reportVersions.map((version) => {
+          {reportHistory.length ? (
+            reportHistory.map((version) => {
               const noteEvent = project.timelineEvents.find((event) => event.relatedEntityId === version.id);
               return (
                 <div key={version.id} className="rounded-md border border-line p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="font-medium">Version {version.versionNo}</div>
+                    <div className="font-medium">ฉบับที่ {version.versionNo}</div>
                     <span className="text-xs text-muted">{version.submittedAt.toLocaleString("th-TH")}</span>
                   </div>
                   <a className="mt-1 inline-block text-brand" href={version.driveLink} target="_blank" rel="noreferrer">
@@ -193,7 +204,7 @@ export default async function StudentReportPage({
               );
             })
           ) : (
-            <EmptyState title="ยังไม่มี version รายงาน" description="หลังสอบ Final เสร็จและสถานะเป็น FINAL_DONE นักศึกษาจะเริ่มส่งเล่มรายงานได้" />
+            <EmptyState title="ยังไม่มีประวัติการส่งรายงาน" description="หลังการสอบนำเสนอขั้นสุดท้ายเสร็จสิ้น นักศึกษาจะเริ่มส่งรายงานฉบับสมบูรณ์ได้" />
           )}
         </div>
       </section>

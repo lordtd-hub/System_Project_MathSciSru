@@ -19,7 +19,7 @@ describe("admin dashboard duplicate and batch round UX", () => {
 
   it("surfaces a current-round focus panel for admin workflow priority", () => {
     expect(pageSource).toContain("deriveAdminCurrentRoundFocus");
-    expect(pageSource).toContain("Current round focus");
+    expect(pageSource).toContain("รอบสอบที่ต้องติดตาม");
     expect(pageSource).toContain("roundFocus.items.map");
     expect(pageSource).toContain('href: "/admin/schedules"');
     expect(pageSource).toContain('href: "/admin/closeout"');

@@ -29,7 +29,7 @@ describe("admin proposal summary UX", () => {
 
   it("uses explicit final decision labels and next-step guidance", () => {
     expect(pageSource).toContain("บันทึกผลการตัดสิน");
-    expect(pageSource).toContain("ขั้นถัดไป: แต่งตั้ง HEAD และ MEMBER");
+    expect(pageSource).toContain("ขั้นถัดไป: แต่งตั้งประธานกรรมการและกรรมการ");
     expect(pageSource).toContain("decided_at");
   });
 });
