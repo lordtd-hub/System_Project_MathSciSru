@@ -8,11 +8,15 @@ import {
   buildQaSessionPayload,
   getQaRoleDashboardPath,
   getQaRoleEmail,
+  getQaStudentEmail,
   getQaTeacherEmail,
   getQaTeacherOptions,
   hasQaLoginSecret,
   isQaLoginEnabled,
   parseQaRole,
+  qaPilotAdmin,
+  qaPilotStudents,
+  qaPilotTeachers,
   verifyQaLoginSecret
 } from "@/lib/auth/qaLogin";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
@@ -22,12 +26,14 @@ function qaError(error: string): never {
   redirectWithQuery("/qa-login", { error });
 }
 
-const qaTeacherNames = [
-  { academicPrefix: "อ.", firstNameTh: "QA", lastNameTh: "ที่ปรึกษา" },
-  { academicPrefix: "อ.", firstNameTh: "QA", lastNameTh: "กรรมการหนึ่ง" },
-  { academicPrefix: "อ.", firstNameTh: "QA", lastNameTh: "กรรมการสอง" },
-  { academicPrefix: "อ.", firstNameTh: "QA", lastNameTh: "กรรมการสำรอง" }
-];
+const qaTeacherProfileNames = new Map(qaPilotTeachers.map((teacher, index) => {
+  const suffix = ["A", "B", "C", "Delta"][index] ?? `${index + 1}`;
+  return [teacher.email, {
+    academicPrefix: "อ.",
+    firstNameTh: "QA Teacher",
+    lastNameTh: suffix
+  }];
+}));
 
 async function setQaSession(payload: DevSessionPayload) {
   const cookieStore = await cookies();
@@ -58,7 +64,7 @@ export async function selectQaUser(formData: FormData) {
   const role = parseQaRole(formData.get("role"));
   if (!role) qaError("Please select a valid QA role.");
 
-  const email = role === "teacher" ? undefined : getQaRoleEmail(role);
+  const email = role === "teacher" ? undefined : role === "student" ? getQaStudentEmail(formData.get("student_email")) : getQaRoleEmail(role);
   if (role !== "teacher" && !email) qaError(`Missing QA email configuration for ${role}.`);
 
   if (role === "student") {
@@ -66,14 +72,14 @@ export async function selectQaUser(formData: FormData) {
       where: { generatedEmail: email! },
       select: { id: true, studentCode: true, firstNameTh: true, lastNameTh: true, generatedEmail: true }
     });
-    if (!student) qaError("QA student is not in the roster. Import the student first.");
+    if (!student) qaError("QA student is not in the roster. Prepare QA pilot identities first.");
 
     const user = await prisma.user.upsert({
       where: { email: email! },
       update: { globalRole: "STUDENT", active: true, name: `${student.firstNameTh} ${student.lastNameTh}` },
       create: {
         email: email!,
-        emailDomain: "student.sru.ac.th",
+        emailDomain: email!.split("@")[1] ?? null,
         globalRole: "STUDENT",
         active: true,
         name: `${student.firstNameTh} ${student.lastNameTh}`,
@@ -96,7 +102,7 @@ export async function selectQaUser(formData: FormData) {
       where: { email: teacherEmail, active: true },
       select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
     });
-    if (!teacher) qaError("QA teacher profile is missing or inactive. Link the teacher email first.");
+    if (!teacher) qaError("QA teacher profile is missing or inactive. Prepare QA pilot identities first.");
 
     const name = teacherDisplayName(teacher);
     const user = await prisma.user.upsert({
@@ -104,7 +110,7 @@ export async function selectQaUser(formData: FormData) {
       update: { globalRole: "TEACHER", active: true, name },
       create: {
         email: teacherEmail,
-        emailDomain: "sru.ac.th",
+        emailDomain: teacherEmail.split("@")[1] ?? null,
         globalRole: "TEACHER",
         active: true,
         name,
@@ -122,13 +128,13 @@ export async function selectQaUser(formData: FormData) {
     });
     const user = await prisma.user.upsert({
       where: { email: email! },
-      update: { globalRole: "ADMIN", active: true, name: "QA Admin" },
+      update: { globalRole: "ADMIN", active: true, name: qaPilotAdmin.displayName },
       create: {
         email: email!,
         emailDomain: email!.split("@")[1] ?? null,
         globalRole: "ADMIN",
         active: true,
-        name: "QA Admin",
+        name: qaPilotAdmin.displayName,
         googleSub: `qa-admin-${email!}`
       }
     });
@@ -139,12 +145,51 @@ export async function selectQaUser(formData: FormData) {
       role,
       userId: user.id,
       email: email!,
-      name: user.name ?? "QA Admin",
+      name: user.name ?? qaPilotAdmin.displayName,
       teacherId: linkedTeacher?.id ?? null
     }));
   }
 
   redirectWithQuery(getQaRoleDashboardPath(role), { success: "qa_login" });
+}
+
+async function upsertQaTeacher(option: ReturnType<typeof getQaTeacherOptions>[number], index: number) {
+  const identity = qaTeacherProfileNames.get(option.email) ?? { academicPrefix: "อ.", firstNameTh: "QA Legacy", lastNameTh: `${index + 1}` };
+  const existing = await prisma.teacher.findUnique({ where: { email: option.email }, select: { id: true } });
+  if (existing) {
+    await prisma.teacher.update({
+      where: { id: existing.id },
+      data: { active: true, canEvaluateProposal: true, isInternal: true }
+    });
+    return;
+  }
+
+  await prisma.teacher.upsert({
+    where: {
+      academicPrefix_firstNameTh_lastNameTh: {
+        academicPrefix: identity.academicPrefix,
+        firstNameTh: identity.firstNameTh,
+        lastNameTh: identity.lastNameTh
+      }
+    },
+    update: {
+      email: option.email,
+      department: "Mathematics",
+      active: true,
+      canEvaluateProposal: true,
+      isInternal: true
+    },
+    create: {
+      academicPrefix: identity.academicPrefix,
+      firstNameTh: identity.firstNameTh,
+      lastNameTh: identity.lastNameTh,
+      email: option.email,
+      department: "Mathematics",
+      active: true,
+      canEvaluateProposal: true,
+      isInternal: true
+    }
+  });
 }
 
 export async function prepareQaTeacherProfiles(formData: FormData) {
@@ -157,46 +202,51 @@ export async function prepareQaTeacherProfiles(formData: FormData) {
   const options = getQaTeacherOptions();
   if (options.length < 3) qaError("Set at least three QA teacher emails for advisor and committee testing.");
 
-  await Promise.all(options.slice(0, 4).map(async (option, index) => {
-    const identity = qaTeacherNames[index] ?? { academicPrefix: "อ.", firstNameTh: "QA", lastNameTh: `กรรมการ ${index + 1}` };
-    const existing = await prisma.teacher.findUnique({ where: { email: option.email }, select: { id: true } });
-    if (existing) {
-      await prisma.teacher.update({
-        where: { id: existing.id },
-        data: { active: true, canEvaluateProposal: true, isInternal: true }
-      });
-      return;
-    }
-
-    await prisma.teacher.upsert({
-      where: {
-        academicPrefix_firstNameTh_lastNameTh: {
-          academicPrefix: identity.academicPrefix,
-          firstNameTh: identity.firstNameTh,
-          lastNameTh: identity.lastNameTh
-        }
-      },
-      update: {
-        email: option.email,
-        department: "Mathematics",
-        active: true,
-        canEvaluateProposal: true,
-        isInternal: true
-      },
-      create: {
-        academicPrefix: identity.academicPrefix,
-        firstNameTh: identity.firstNameTh,
-        lastNameTh: identity.lastNameTh,
-        email: option.email,
-        department: "Mathematics",
-        active: true,
-        canEvaluateProposal: true,
-        isInternal: true
-      }
-    });
-  }));
+  await Promise.all(options.slice(0, 8).map(upsertQaTeacher));
 
   redirectWithQuery("/qa-login", { success: "qa_teachers_prepared" });
+}
+
+export async function prepareQaPilotIdentities(formData: FormData) {
+  assertRateLimit("qa-login:prepare-pilot-identities", pilotRateLimits.devLogin);
+
+  if (!isQaLoginEnabled()) qaError("QA login is disabled for this environment.");
+  if (!hasQaLoginSecret()) qaError("QA_LOGIN_SECRET is not configured.");
+  if (!verifyQaLoginSecret(String(formData.get("secret") ?? ""))) qaError("QA login secret is incorrect.");
+
+  await prisma.user.upsert({
+    where: { email: qaPilotAdmin.email },
+    update: { globalRole: "ADMIN", active: true, name: qaPilotAdmin.displayName },
+    create: {
+      email: qaPilotAdmin.email,
+      emailDomain: qaPilotAdmin.email.split("@")[1] ?? null,
+      globalRole: "ADMIN",
+      active: true,
+      name: qaPilotAdmin.displayName,
+      googleSub: `qa-admin-${qaPilotAdmin.email}`
+    }
+  });
+
+  await Promise.all(qaPilotStudents.map((student) => prisma.student.upsert({
+    where: { generatedEmail: student.email },
+    update: {
+      studentCode: student.studentCode,
+      firstNameTh: student.firstNameTh,
+      lastNameTh: student.lastNameTh,
+      active: true
+    },
+    create: {
+      studentCode: student.studentCode,
+      firstNameTh: student.firstNameTh,
+      lastNameTh: student.lastNameTh,
+      generatedEmail: student.email,
+      active: true
+    }
+  })));
+
+  await Promise.all(getQaTeacherOptions().slice(0, 8).map(upsertQaTeacher));
+
+  redirectWithQuery("/qa-login", { success: "qa_pilot_identities_prepared" });
 }
 
 export async function clearQaUser() {

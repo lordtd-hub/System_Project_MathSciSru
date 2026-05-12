@@ -30,12 +30,22 @@ describe("QA login source guards", () => {
     expect(authSource).toContain("decodeDevSession");
   });
 
-  it("explains QA teacher identity mapping without exposing secrets", () => {
+  it("explains the multi-user QA identity design without exposing secrets", () => {
     const pageSource = readFileSync(join(root, "src/app/qa-login/page.tsx"), "utf8");
 
-    expect(pageSource).toContain("คู่มือจับคู่ QA Teacher");
-    expect(pageSource).toContain("ให้ยึด email เป็นหลัก");
-    expect(pageSource).toContain("ข้อจำกัดของ QA");
+    expect(pageSource).toContain("บัญชีทดสอบหลัก");
+    expect(pageSource).toContain("ผังบทบาทอาจารย์ใน Multi-User Pilot");
+    expect(pageSource).toContain("สถานการณ์ที่ต้องทดสอบ");
+    expect(pageSource).toContain("ข้อจำกัด QA Mode");
     expect(pageSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
+  });
+
+  it("keeps the QA pilot setup guarded by QA login controls", () => {
+    const actionSource = readFileSync(join(root, "src/app/qa-login/actions.ts"), "utf8");
+
+    expect(actionSource).toContain("prepareQaPilotIdentities");
+    expect(actionSource).toContain("verifyQaLoginSecret");
+    expect(actionSource).toContain("isQaLoginEnabled");
+    expect(actionSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
   });
 });

@@ -77,6 +77,7 @@ errorMessages.report_not_available = "ยังส่งเล่มรายง
 errorMessages.proposal_rubric_missing = "ยังไม่มีเกณฑ์ประเมินสำหรับการเสนอหัวข้อ กรุณาให้ผู้ดูแลระบบตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนประเมิน";
 successMessages.rubric_baseline_seeded = "ตั้งค่าเกณฑ์ประเมินมาตรฐานสำหรับการเสนอหัวข้อ การสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้ายเรียบร้อยแล้ว";
 successMessages.qa_teachers_prepared = "เตรียม Teacher profiles สำหรับ QA เรียบร้อยแล้ว";
+successMessages.qa_pilot_identities_prepared = "เตรียมบัญชีทดสอบสำหรับ Multi-User Pilot เรียบร้อยแล้ว";
 
 export function ActionFeedback({
   success,

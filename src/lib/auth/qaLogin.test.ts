@@ -3,6 +3,7 @@ import {
   buildQaSessionPayload,
   getQaRoleDashboardPath,
   getQaRoleEmail,
+  getQaStudentOptions,
   getQaTeacherEmail,
   getQaTeacherOptions,
   hasQaLoginSecret,
@@ -48,9 +49,9 @@ describe("QA login gate", () => {
       QA_STUDENT_EMAIL: "9999999999@student.sru.ac.th"
     };
 
-    expect(getQaRoleEmail("admin", env)).toBe("qa.admin@sru.ac.th");
-    expect(getQaRoleEmail("teacher", env)).toBe("qa.teacher@sru.ac.th");
-    expect(getQaRoleEmail("student", env)).toBe("9999999999@student.sru.ac.th");
+    expect(getQaRoleEmail("admin", env)).toBe("qa.admin@sru.test");
+    expect(getQaRoleEmail("teacher", env)).toBe("qa.teacher.alpha@sru.test");
+    expect(getQaRoleEmail("student", env)).toBe("qa.student.a@sru.test");
     expect(getQaRoleDashboardPath("admin")).toBe("/admin");
     expect(getQaRoleDashboardPath("teacher")).toBe("/teacher");
     expect(getQaRoleDashboardPath("student")).toBe("/student");
@@ -74,17 +75,21 @@ describe("QA login gate", () => {
     };
 
     expect(getQaTeacherOptions(env).map((option) => option.email)).toEqual([
+      "qa.teacher.alpha@sru.test",
+      "qa.teacher.beta@sru.test",
+      "qa.teacher.gamma@sru.test",
+      "qa.teacher.delta@sru.test",
       "qa.teacher@sru.ac.th",
       "qa.advisor@sru.ac.th",
       "qa.committee1@sru.ac.th",
       "qa.committee2@sru.ac.th",
       "qa.extra@sru.ac.th"
     ]);
-    expect(getQaTeacherEmail("committee1", env)).toBe("qa.committee1@sru.ac.th");
-    expect(getQaTeacherEmail(null, env)).toBe("qa.teacher@sru.ac.th");
+    expect(getQaTeacherEmail("teacher-beta", env)).toBe("qa.teacher.beta@sru.test");
+    expect(getQaTeacherEmail(null, env)).toBe("qa.teacher.alpha@sru.test");
   });
 
-  it("adds synthetic QA teacher identities in enabled preview when only one teacher email is configured", () => {
+  it("uses designed QA teacher identities even when only one legacy teacher email is configured", () => {
     const env = {
       ENABLE_QA_LOGIN: "1",
       VERCEL_ENV: "preview",
@@ -92,18 +97,36 @@ describe("QA login gate", () => {
     };
 
     expect(getQaTeacherOptions(env).map((option) => option.email)).toEqual([
-      "qa.teacher@sru.ac.th",
-      "qa.advisor@sru.ac.th",
-      "qa.committee1@sru.ac.th",
-      "qa.committee2@sru.ac.th"
-    ]);
-    expect(getQaTeacherEmail("synthetic-committee1", env)).toBe("qa.committee1@sru.ac.th");
-  });
-
-  it("does not add synthetic teacher identities when QA login is disabled", () => {
-    expect(getQaTeacherOptions({ QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th" }).map((option) => option.email)).toEqual([
+      "qa.teacher.alpha@sru.test",
+      "qa.teacher.beta@sru.test",
+      "qa.teacher.gamma@sru.test",
+      "qa.teacher.delta@sru.test",
       "qa.teacher@sru.ac.th"
     ]);
+    expect(getQaTeacherEmail("teacher-gamma", env)).toBe("qa.teacher.gamma@sru.test");
+  });
+
+  it("keeps designed QA teacher identities available when QA login is disabled", () => {
+    expect(getQaTeacherOptions({ QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th" }).map((option) => option.email)).toEqual([
+      "qa.teacher.alpha@sru.test",
+      "qa.teacher.beta@sru.test",
+      "qa.teacher.gamma@sru.test",
+      "qa.teacher.delta@sru.test",
+      "qa.teacher@sru.ac.th"
+    ]);
+  });
+
+  it("provides designed multi-user QA students first and keeps legacy student as optional", () => {
+    const students = getQaStudentOptions({ QA_STUDENT_EMAIL: "9999999999@student.sru.ac.th" });
+
+    expect(students.slice(0, 5).map((student) => student.email)).toEqual([
+      "qa.student.a@sru.test",
+      "qa.student.b@sru.test",
+      "qa.student.c@sru.test",
+      "qa.student.d@sru.test",
+      "qa.student.e@sru.test"
+    ]);
+    expect(students.at(-1)?.email).toBe("9999999999@student.sru.ac.th");
   });
 });
 
