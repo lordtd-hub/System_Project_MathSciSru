@@ -446,3 +446,78 @@ Latest validation:
 - `npm test`: PASS, 76 files / 297 tests
 - `npm run build`: PASS
 - Secret scan in `e2e-artifacts`: PASS, QA secret not found in artifacts
+
+## Guarded Verification Completed - Proposal Queue After Admin Decision
+
+QA preview verified:
+
+- `https://system-project-math-sci-3tbavgvkp-lordtd-hubs-projects.vercel.app`
+- Commit: `8593c8b`
+- Browser/session: visible persistent Edge `edgepilot`
+
+Verification result:
+
+- Teacher 01 dashboard: PASS
+  - Proposal queue count is `0`.
+  - Project 02 no longer appears as an actionable Proposal scoring task.
+- Teacher 01 `/teacher/proposals`: PASS
+  - Empty state shown.
+  - No Project 02 active scoring action.
+- QA Teacher Delta dashboard: PASS
+  - Proposal queue count is `0`.
+  - No Project 02 action.
+- QA Teacher Delta `/teacher/proposals`: PASS
+  - Empty state shown.
+  - No Project 02 active scoring action.
+- QA Teacher Delta direct Project 02 scoring URL: PASS
+  - Route opens read-only.
+  - Message says Admin has recorded the Proposal decision.
+  - No score submit button is visible.
+
+Screenshot:
+
+- `screenshots/teacher-delta-project02-direct-scoring-readonly-after-admin-decision-8593c8b.png`
+
+Current status:
+
+- Stale Proposal queue after Admin decision is resolved for the verified roles.
+- Unauthorized/actionable Proposal visibility for Teacher Delta after Admin decision is resolved.
+- No emergency patch was needed during this verification.
+
+Remaining Wave 1 tasks:
+
+- Admin incomplete/late visibility review.
+- Verify Project 02 late/reopen tag remains understandable in Admin timeline/evidence.
+- Open Progress 2 only through Admin and verify eligible students see Progress 2 afterward.
+- Continue Progress 2 checks for eligible Projects 01, 04, and 05.
+- Keep watching the Admin Proposal decision pending-state issue if it is reproduced.
+
+## Admin Round Exception UX Patch
+
+Status: implemented locally and validated.
+
+Why:
+
+- `/admin/rounds` showed the late Proposal reopen form for every missed student.
+- With the 40-student MULTI-PILOT-R2 dataset, this created a very long page and made it hard for Admin to operate safely.
+
+What changed:
+
+- `/admin/rounds` now keeps only a compact late/missed summary and a link to a dedicated exception-management page.
+- Added `/admin/round-exceptions` for operational handling of missed/late cases.
+- The new page supports round filter, status filter, search, compact table display, and per-row expandable late-open form.
+- The audited late-open server action is reused and can redirect back to `/admin/round-exceptions`.
+
+Validation:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 300 tests
+- `npm run build`: PASS
+
+Next live check:
+
+- Push/deploy QA preview.
+- Open existing Edge session to `/admin/rounds`.
+- Confirm the long list is gone from `/admin/rounds`.
+- Open `/admin/round-exceptions?round_type=PROPOSAL`.
+- Confirm missed Proposal students are shown in a searchable/filterable table and only one row expands when Admin chooses to open a case.

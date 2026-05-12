@@ -10,7 +10,7 @@ import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligi
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
-import { closeCourseRound, openCourseRound, openLateRoundSubmissionForProject, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
+import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
@@ -191,31 +191,29 @@ export default async function AdminRoundsPage({
 
               {roundType === "PROPOSAL" && round && isRoundClosed(round.status) && missingProposalProjects.length ? (
                 <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-                  <div className="font-semibold text-amber-900">เปิดส่งย้อนหลังเป็นรายกรณี</div>
-                  <p className="mt-1 text-amber-900">รายการที่เปิดย้อนหลังจะถูกติดป้ายส่งหลังปิดรอบ และหักคะแนนรอบ Proposal 10% เว้นแต่ผู้ดูแลระบบระบุเป็นเหตุสุดวิสัย</p>
-                  <div className="mt-3 space-y-2">
-                    {missingProposalProjects.map((project) => {
-                      const alreadyOpen = project.roundExceptions.length > 0;
-                      return (
-                        <form key={project.id} action={openLateRoundSubmissionForProject} className="rounded-md border border-amber-200 bg-surface p-2">
-                          <input type="hidden" name="project_id" value={project.id} />
-                          <input type="hidden" name="round_type" value="PROPOSAL" />
-                          <div className="font-medium">{project.student?.studentCode} {project.student?.firstNameTh} {project.student?.lastNameTh}</div>
-                          <label className="mt-2 block text-xs font-semibold text-muted">เหตุผล/บันทึกการเปิดย้อนหลัง</label>
-                          <textarea name="reason" rows={2} defaultValue="เปิดให้ส่ง Proposal หลังปิดรอบเป็นกรณีพิเศษ โดยระบบติดป้ายส่งหลังปิดรอบและหักคะแนนรอบนี้ 10%" />
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <label className="flex items-center gap-2 text-xs text-muted">
-                              <input type="checkbox" name="excused" value="yes" />
-                              เหตุสุดวิสัย ไม่หักคะแนน
-                            </label>
-                            <SubmitButton disabled={alreadyOpen} pendingText="กำลังเปิดสิทธิ์...">
-                              {alreadyOpen ? "เปิดไว้แล้ว" : "เปิดส่งรายกรณี"}
-                            </SubmitButton>
-                          </div>
-                        </form>
-                      );
-                    })}
+                  <div className="font-semibold text-amber-900">จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ</div>
+                  <p className="mt-1 text-amber-900">
+                    มีนักศึกษาที่ยังไม่ส่ง Proposal {missingProposalProjects.length} รายการ ใช้หน้าเฉพาะเพื่อค้นหา กรองสถานะ และเปิดส่งย้อนหลังรายกรณีอย่างปลอดภัย
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-md border border-amber-200 bg-surface p-2">
+                      <div className="text-lg font-semibold text-amber-900">{missingProposalProjects.length}</div>
+                      <div className="text-xs text-muted">ยังไม่ส่ง Proposal</div>
+                    </div>
+                    <div className="rounded-md border border-amber-200 bg-surface p-2">
+                      <div className="text-lg font-semibold text-amber-900">
+                        {missingProposalProjects.filter((project) => project.roundExceptions.length > 0).length}
+                      </div>
+                      <div className="text-xs text-muted">เปิดส่งย้อนหลังแล้ว</div>
+                    </div>
+                    <div className="rounded-md border border-amber-200 bg-surface p-2">
+                      <div className="text-lg font-semibold text-amber-900">10%</div>
+                      <div className="text-xs text-muted">หักคะแนนเริ่มต้นถ้าไม่ใช่เหตุสุดวิสัย</div>
+                    </div>
                   </div>
+                  <a className="button-secondary mt-3" href="/admin/round-exceptions?round_type=PROPOSAL">
+                    จัดการผู้ส่งย้อนหลัง
+                  </a>
                 </div>
               ) : null}
 

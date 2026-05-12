@@ -579,3 +579,172 @@ Validation after this continuation:
 - `npm test`: PASS, 76 files / 297 tests
 - `npm run build`: PASS
 - Secret scan in `e2e-artifacts`: PASS, QA secret not found in artifacts
+
+## Guarded Verification After Proposal Queue Policy Patch
+
+QA preview verified:
+
+- `https://system-project-math-sci-3tbavgvkp-lordtd-hubs-projects.vercel.app`
+- Commit: `8593c8b`
+- Browser/session: visible persistent Microsoft Edge session `edgepilot`
+- Browser safety: Edge was not closed, storage was not reset, and role switching used `/qa-login`.
+
+### Teacher 01 result
+
+Result: PASS.
+
+- Role: `MULTI-PILOT-R2 Teacher 01`
+- Routes checked:
+  - `/teacher`
+  - `/teacher/proposals`
+- Expected: Project 02 should no longer appear as an actionable Proposal scoring item after Admin recorded the Proposal decision.
+- Actual:
+  - Teacher dashboard showed Proposal queue count `0`.
+  - `/teacher/proposals` showed an empty state.
+  - No active `ประเมินการเสนอหัวข้อ` action for Project 02 was visible.
+  - Queue count matched visible actionable items.
+
+### QA Teacher Delta result
+
+Result: PASS.
+
+- Role: `QA Teacher Delta`
+- Routes checked:
+  - `/teacher`
+  - `/teacher/proposals`
+  - direct route `/teacher/scoring/cmp2kuzqb000gju0424o8v2wv`
+- Expected:
+  - Teacher Delta should not see Project 02 as an actionable pending Proposal scoring item after Admin decision.
+  - Direct route should be blocked, redirected, or read-only with no editable scoring form.
+- Actual:
+  - Dashboard showed Proposal queue count `0`.
+  - `/teacher/proposals` showed an empty state.
+  - Direct scoring route displayed a read-only state:
+    - `ผู้ดูแลระบบบันทึกผลการเสนอหัวข้อแล้ว`
+    - `รายการนี้ปิดการประเมินหลังผู้ดูแลระบบบันทึกผลตัดสินแล้ว อาจารย์ที่ยังไม่ได้ประเมินไม่จำเป็นต้องส่งคะแนนเพิ่ม`
+  - No active score submit button was visible.
+
+Screenshot:
+
+- `screenshots/teacher-delta-project02-direct-scoring-readonly-after-admin-decision-8593c8b.png`
+
+### Queue consistency result
+
+Result: PASS.
+
+- Completed Proposal work after Admin decision is no longer counted as pending work.
+- Teacher dashboard summary and `/teacher/proposals` matched the visible actionable queue.
+- The stale Project 02 Proposal queue issue is resolved for the verified roles.
+
+### Recommendation after verification
+
+Continue Wave 1. The Proposal queue-after-decision semantics are now stable enough to resume with:
+
+1. Admin incomplete/late visibility review.
+2. Project 02 late/reopen tag review in Admin timeline/evidence.
+3. Admin opens Progress 2 and verifies that eligible students see Progress 2 only after round open.
+4. Continue Progress 2 checks for Projects 01, 04, and 05.
+
+## Wave 1 Continuation - Admin Visibility Review Before Progress 2
+
+QA preview observed:
+
+- `https://system-project-math-sci-3tbavgvkp-lordtd-hubs-projects.vercel.app`
+- Commit: `8593c8b`
+- Browser/session: visible persistent Microsoft Edge session `edgepilot`
+
+### Admin incomplete/late visibility
+
+Result: PARTIAL PASS with operational noise.
+
+- Admin `/admin/rounds` loaded correctly as `MULTI-PILOT-R2 Admin`.
+- The page clearly showed the course-level round state:
+  - Proposal: closed.
+  - Progress 1: open.
+  - Progress 2: not opened.
+  - Final: not opened.
+- The Proposal late/reopen panel is visible and explains that late Proposal access is per-case and applies a 10% deduction unless marked excused.
+- The Proposal late/reopen panel lists many unsubmitted students (`R2STU06` through `R2STU40`) with per-student open controls.
+- Operational pain point: because Wave 1 is running inside a 40-student R2 dataset, the missed/late list is very long and Wave 1 items are easy to lose. Before Wave 2, Admin needs filtering/grouping for active wave, scenario, or actionable exception status.
+
+Screenshot:
+
+- `screenshots/admin-rounds-progress1-counter-before-progress2-8593c8b.png`
+
+### Project 02 late/reopen evidence review
+
+Result: PASS for evidence continuity; UX wording still has mixed English.
+
+- Admin `/admin/evidence` showed Project 02 evidence continuity:
+  - late round submission opened,
+  - Proposal submitted,
+  - Teacher 03 Proposal score submitted,
+  - Teacher 02 Proposal score submitted,
+  - Admin Proposal decision saved.
+- Evidence overview listed Project 02 as `หัวข้อโครงงานได้รับอนุมัติ`.
+- Latest evidence list clearly included the Project 02 late/reopen timeline.
+- Remaining polish: some evidence timeline action details still show English machine labels such as `late round submission opened`, `proposal submitted`, `teacher score submitted`, and `admin final decision`.
+
+### Progress 2 opening guard result
+
+Result: STOPPED before opening Progress 2.
+
+- Admin `/admin/rounds` showed Progress 2 open button disabled because Progress 1 is still open.
+- Progress 1 close button was available, but the Progress 1 summary showed:
+  - ready for round: `4`
+  - submitted: `0`
+  - completed: `0`
+  - not ready/exceptions: `36`
+- This conflicts with the pilot evidence and previous student/teacher checks showing Progress 1 scores completed for Projects 01, 04, and 05.
+- Because the counter/state did not match expected pilot state, no round-close or Progress 2-open action was clicked.
+
+Suggested next investigation:
+
+- Confirm what `/admin/rounds` means by Progress 1 `submitted` and `completed`.
+- If the counters are intended to count Progress 1 evidence/schedule rather than score evidence, the UI label should say so.
+- If the counters are intended to reflect completed Progress 1 assessment, this is likely a status aggregation bug and should be patched before opening Progress 2.
+
+### Session interruption
+
+- After the above observations, the local power outage closed the Playwright Edge session.
+- A guarded snapshot returned `Browser 'edgepilot' is not open`.
+- No further browser action was attempted after session loss.
+- This was recorded as an environmental/session interruption, not as script-initiated browser close.
+
+## Stabilization Patch - Admin Round Exception List
+
+Reason:
+
+- The `/admin/rounds` Proposal late-opening panel became too long in a 40-student dataset.
+- Showing one textarea and one action button per missed student made the page hard to scan and increased the risk of opening the wrong student case.
+
+Patch:
+
+- `/admin/rounds` now shows a compact summary for missed Proposal cases:
+  - total missed Proposal count,
+  - already-opened late count,
+  - default 10% late penalty reminder,
+  - link to the dedicated exception list.
+- Added `/admin/round-exceptions`.
+- The new page provides:
+  - round filter,
+  - status filter,
+  - search by student/project/advisor,
+  - compact table rows,
+  - per-row expandable action form for opening late access.
+- The existing audited `openLateRoundSubmissionForProject` action is reused.
+- A hidden `return_to=/admin/round-exceptions` field lets the action return to the list after use.
+
+Tests added:
+
+- `src/app/admin/round-exceptions/roundExceptionsUx.test.ts`
+
+Validation:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 300 tests
+- `npm run build`: PASS
+
+Pilot note:
+
+- This patch should be verified on QA preview before continuing Wave 1. After verification, resume with Admin incomplete/late visibility and Progress 2 gating checks.

@@ -139,6 +139,8 @@ Suggested manual wording:
 - Check whether teachers understand that late penalty is automatic and they should score normally.
 - Check whether the schedule/evidence form is too far below the rubric on student schedule page.
 - Check whether multi-project teacher queues remain readable when more requests arrive.
+- Admin manual should explain that missed/late round recovery is managed from the dedicated `จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ` page, not directly from the round overview page.
+- Admin round overview should be described as a control summary; exception handling should be described as an operational list with search/filter and per-student expansion.
 
 ## Notes Added From Wave 1 Continuation
 
