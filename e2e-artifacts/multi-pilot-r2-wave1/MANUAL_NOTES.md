@@ -159,6 +159,7 @@ These are not ready for final manuals yet, but should be carried into manual pla
   - Progress 1 required committee scores make a project eligible for Progress 2.
   - Progress 2 required committee scores make a project eligible for Final.
   - Eligibility after a round has already closed requires the late/reopen exception flow.
+- Live Wave 1 check confirmed that Student 03 is the only Progress 1 eligible-but-incomplete project; the other 36 students are not-yet-eligible and should be explained as separate from current-round incomplete work.
 
 ## QA Runbook Notes
 

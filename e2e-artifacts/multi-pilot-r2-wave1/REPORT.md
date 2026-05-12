@@ -988,3 +988,38 @@ Next QA step:
 - Commit/push this scoped patch to QA preview.
 - Open the new preview URL, not the old `kwtp9kb6q` URL.
 - Verify `/admin/rounds` as MULTI-PILOT-R2 Admin before closing Progress 1.
+
+## Live QA Verification - Round Eligibility Buckets
+
+QA preview verified:
+
+- `https://system-project-math-sci-cejnzvxde-lordtd-hubs-projects.vercel.app`
+- Commit: `f19c78d` (`Fix round eligibility close buckets`)
+- Browser: persistent Microsoft Edge CDP session on port `9333`
+- Role: `MULTI-PILOT-R2 Admin`
+
+Result: PASS for the required Progress 1 guard.
+
+- `/admin/rounds` loaded under the correct MULTI-PILOT-R2 Admin identity.
+- Progress 1 displayed:
+  - ready/eligible for this round: `4`
+  - submitted/current-round evidence: `3`
+  - completed/current-round assessment: `3`
+  - eligible but incomplete: `1`
+  - not yet eligible for this round: `36`
+  - late/open exceptions: `0`
+- The eligible-but-incomplete warning listed only:
+  - `R2STU03 MULTI-PILOT-R2 Student 03 - MULTI-PILOT-R2 Project 03 ระบบทดสอบหลักฐานไม่ครบ`
+- The 36 not-yet-eligible projects were separated into the not-yet-eligible bucket and were not treated as current-round blockers.
+- The Progress 1 close acknowledgement checkbox is present for the one eligible-but-incomplete project.
+- Progress 1 was not closed and Progress 2 was not opened during this verification.
+
+Screenshot:
+
+- `screenshots/admin-rounds-eligibility-buckets-f19c78d-live.png`
+
+Wave 1 continuation recommendation:
+
+- Wave 1 can continue to the Admin decision point for closing Progress 1.
+- Admin should close Progress 1 only after confirming that Project 03 is intentionally incomplete or handled by policy.
+- After closing Progress 1 with the acknowledgement, Progress 2 can be opened for eligible projects.

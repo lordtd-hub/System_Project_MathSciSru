@@ -653,3 +653,22 @@ Next required action:
   - the 36 not-yet-eligible projects should be in the separate not-yet-eligible bucket.
   - close Progress 1 should require acknowledgement only for eligible-but-incomplete projects.
 - Do not close Progress 1 unless the guard clearly matches the intended state.
+
+Live verification completed:
+
+- QA preview: `https://system-project-math-sci-cejnzvxde-lordtd-hubs-projects.vercel.app`
+- Commit: `f19c78d`
+- Role: `MULTI-PILOT-R2 Admin`
+- Result: PASS.
+- Progress 1 buckets:
+  - ready/eligible `4`
+  - submitted `3`
+  - completed `3`
+  - eligible-but-incomplete `1`
+  - not-yet-eligible `36`
+  - exceptions `0`
+- The eligible-but-incomplete warning lists only Student 03 / Project 03.
+- The 36 not-yet-eligible projects are separated and are not current-round blockers.
+- No close/open action was clicked.
+
+Wave 1 can continue only after Admin deliberately decides how to handle the one eligible-but-incomplete Project 03 before closing Progress 1.
