@@ -33,6 +33,7 @@ export default async function ProposalScoringPage({
         assessmentAttempt: {
           include: {
             assessmentRound: true,
+            proposalResult: true,
             presentationSubmission: true,
             project: { include: { student: true } }
           }
@@ -108,8 +109,10 @@ export default async function ProposalScoringPage({
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
   const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
   const isScoreLocked = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || Boolean(assignment.scoreSubmission?.lockedAt);
+  const hasAdminProposalDecision = Boolean(assignment.assessmentAttempt.proposalResult);
   const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasLateRoundOverride;
   const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;
+  const isScoreFormUnavailable = isScoreLocked || isProposalRoundClosed || hasAdminProposalDecision;
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
@@ -140,6 +143,11 @@ export default async function ProposalScoringPage({
         <WarningAlert title="รอบเสนอหัวข้อปิดแล้ว">
           หน้านี้เปิดให้อ่านหลักฐานและคะแนนเดิมเท่านั้น ไม่สามารถเริ่มหรือส่งคะแนนการเสนอหัวข้อเพิ่มหลังปิดรอบได้
         </WarningAlert>
+      ) : null}
+      {hasAdminProposalDecision ? (
+        <InfoAlert title="ผู้ดูแลระบบบันทึกผลการเสนอหัวข้อแล้ว">
+          รายการนี้ปิดการประเมินหลังผู้ดูแลระบบบันทึกผลตัดสินแล้ว อาจารย์ที่ยังไม่ได้ประเมินไม่จำเป็นต้องส่งคะแนนเพิ่ม
+        </InfoAlert>
       ) : null}
       {isScoreLocked || isProposalRoundClosed ? (
         <InfoAlert title={isScoreLocked ? "ส่งคะแนนการเสนอหัวข้อแล้ว" : "รอบเสนอหัวข้อปิดแล้ว"}>
@@ -204,12 +212,16 @@ export default async function ProposalScoringPage({
           </section>
         </aside>
       </div>
-      {isScoreLocked ? (
+      {isScoreFormUnavailable ? (
         <section className="panel space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">ผลการประเมินที่ส่งแล้ว</h2>
-              <p className="mt-1 text-sm text-muted">อ่านย้อนหลังได้เท่านั้น ระบบล็อกการแก้ไขหลังส่งคะแนนจริง</p>
+              <h2 className="text-lg font-semibold">{isScoreLocked ? "ผลการประเมินที่ส่งแล้ว" : "ปิดการประเมินสำหรับรายการนี้"}</h2>
+              <p className="mt-1 text-sm text-muted">
+                {isScoreLocked
+                  ? "อ่านย้อนหลังได้เท่านั้น ระบบล็อกการแก้ไขหลังส่งคะแนนจริง"
+                  : "ผู้ดูแลระบบบันทึกผลตัดสินหรือรอบประเมินปิดแล้ว จึงไม่ต้องส่งคะแนนเพิ่ม"}
+              </p>
             </div>
             <span className="rounded-full border border-line bg-surface px-3 py-1 text-sm font-semibold">{currentTotal}/100 คะแนน</span>
           </div>

@@ -318,3 +318,131 @@ Screenshots captured:
 Note:
 
 - The earlier bug screenshot above was from a script-login fragility, not from the patched app UI. Manual guarded verification after aligning the login flow with `/qa-login` confirmed the app behavior is correct.
+
+## Wave 1 Continuation Status After Project 02 Reviewer 2
+
+Completed:
+
+- Logged in through `/qa-login` as `MULTI-PILOT-R2 Teacher 02`.
+- Verified Teacher 02 had one actionable Proposal item for `MULTI-PILOT-R2 Project 02 Late Proposal Recovery`.
+- Opened Teacher 02 scoring page for Project 02.
+- Confirmed the page showed the late-opened Proposal warning and 10% deduction notice.
+- Submitted Teacher 02 Proposal assessment.
+- Confirmed redirect to `?success=proposal_score_saved`.
+- Confirmed Teacher 02 scoring page became read-only and no active submit button remained.
+
+Screenshot:
+
+- `screenshots/project02-teacher02-proposal-score-saved-readonly.png`
+
+Remaining from current prompt:
+
+- Admin Proposal decision for Project 02.
+- Verify Project 02 late/reopen tag remains understandable in Admin decision/timeline.
+- Continue Project 04 Progress 1 scoring.
+- Continue Project 05 schedule rejection/resubmission verification and Progress 1 scoring.
+- Future-round lock check after Project 04/05 Progress 1 completion.
+- Teacher role-overlap checks for Teachers 01-04.
+- Teacher Delta unauthorized/empty queue check.
+- Student/admin unauthorized route checks.
+- Admin incomplete/late visibility review.
+- Run `npm test` after pilot continuation.
+
+Automation/session caution:
+
+- Do not use Playwright CLI `open` to jump between protected preview URLs or deep links during an authenticated QA flow.
+- In this run, jumping directly to a protected preview deep link caused the session to land on the Vercel preview-protection/login page and lose the QA role context.
+- Continue by keeping one visible Edge session and using the app header `กลับหน้า QA Login` link, then the QA logout/login controls.
+- If the browser is already on Vercel login, restore the session by opening the known accessible QA preview manually or with user assistance rather than repeatedly opening/closing new Edge windows.
+
+## Browser/session safety rule
+
+This rule is now mandatory for every remaining pilot action.
+
+- Do not close Edge during the pilot.
+- Do not open a competing Edge session unless the user explicitly asks.
+- Do not reset storage, delete cookies, or switch preview URL mid-flow.
+- Do not use direct `open` jumps to protected preview deep links during authenticated QA flow.
+- Use the app header `กลับหน้า QA Login` to return to `/qa-login`.
+- If the expected role is already active, do not login/logout again.
+- If role switching is needed, use the QA logout/login controls from `/qa-login`.
+- Before each action, verify role, project, route, current state, and that the intended button/form exists and is enabled.
+- After each action, verify success state, queue/read-only state, no digest error, no blank page, and no unexpected route jump.
+- If state does not match, stop, capture screenshot, document the mismatch, and do not guess-click.
+
+Script guard status:
+
+- Added `pilot-session-guard.playwright.js`.
+- Updated login helpers to stop on Vercel/login pages and avoid fixed preview jumps.
+- Updated Proposal, Progress 1, Admin decision, and schedule helper scripts to guard before acting.
+- Updated long-running Node runners so they leave Edge open by default. Browser close requires explicit `PW_CLOSE_BROWSER=1` outside live pilot work.
+
+## Latest Continuation Result - Stop on Guard Failure
+
+Current browser/session:
+
+- Existing Microsoft Edge session: `live-late-proposal-verify`
+- Last checked QA preview origin: `https://system-project-math-sci-rddm0ys1l-lordtd-hubs-projects.vercel.app`
+- Edge was not closed.
+- Role switching used `/qa-login` inside the app and QA logout/login controls.
+
+Completed after Project 02 reviewer 2:
+
+- Teacher 02 submitted Progress 1 scores for Project 05 and Project 04.
+- Teacher 02 queue cleared after those scores.
+- Teacher 03 was checked and did not show Progress 1 scoring tasks for Project 04/05.
+- Teacher 01 submitted Progress 1 scores for Project 05 and Project 04.
+- Teacher 01 queue cleared after those scores.
+- Student 04 dashboard confirmed Progress 1 complete and Progress 2 locked until Admin opens the round.
+- Student 05 dashboard confirmed Progress 1 complete, schedule rejection/resubmission evidence is visible, and Progress 2 is locked until Admin opens the round.
+
+Screenshots added:
+
+- `screenshots/project05-teacher02-progress1-score-saved-project04-remaining.png`
+- `screenshots/teacher02-progress1-queue-cleared-after-project04-project05.png`
+- `screenshots/teacher03-no-progress1-actions-after-teacher02-scores.png`
+- `screenshots/project05-teacher01-progress1-score-saved-project04-remaining.png`
+- `screenshots/teacher01-progress1-queue-cleared-after-project04-project05.png`
+- `screenshots/student04-progress1-complete-progress2-locked.png`
+- `screenshots/student05-progress1-complete-progress2-locked-after-reschedule.png`
+
+Guard failure found:
+
+- Policy clarified by user: Proposal can be assessed by any teacher during the valid scoring window.
+- Therefore `QA Teacher Delta` seeing Proposal scoring is not a boundary bug by itself.
+- Actual issue: after Admin records the Proposal decision, Teacher Delta and Teacher 01 should no longer see Project 02 as pending/unscored Proposal work.
+- Screenshot: `screenshots/teacher-delta-unexpected-project02-proposal-action.png`
+- Action taken: stopped immediately and did not click the scoring action.
+
+Related bug carried forward:
+
+- Teacher 01 also saw Project 02 Proposal scoring as actionable after Admin Proposal decision was already saved.
+- Screenshot: `screenshots/teacher01-stale-project02-proposal-action-after-admin-decision.png`
+
+Current stop reason:
+
+- Stop because the state did not match the clarified after-decision behavior.
+- Do not continue browser actions until Project 02 Proposal reviewer/decision queue consistency is patched and verified.
+
+Patch applied locally:
+
+- Teacher dashboard Proposal query excludes attempts with an existing Admin Proposal decision.
+- `/teacher/proposals` excludes attempts with an existing Admin Proposal decision.
+- `openProposalScoring` and `submitProposalScore` block when Admin Proposal decision already exists.
+- Direct scoring page shows read-only Admin-decision message instead of an active form after decision.
+- Added `src/app/proposalDecisionQueueSource.test.ts`.
+
+Remaining Wave 1 tasks after stabilization:
+
+- Admin incomplete/late visibility review.
+- Verify Project 02 late/reopen tag remains understandable in Admin timeline/evidence.
+- Open Progress 2 only after Admin action and verify student actions appear only then.
+- Continue Progress 2 checks for eligible Projects 01/04/05 after the above queue/boundary issues are fixed.
+- Run `npm test` after artifact updates and before next handoff.
+
+Latest validation:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 76 files / 297 tests
+- `npm run build`: PASS
+- Secret scan in `e2e-artifacts`: PASS, QA secret not found in artifacts

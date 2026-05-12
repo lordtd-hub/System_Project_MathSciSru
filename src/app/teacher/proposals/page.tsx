@@ -16,6 +16,7 @@ export default async function TeacherProposalsPage() {
   const attempts = await prisma.assessmentAttempt.findMany({
     where: {
       presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
+      proposalResult: { is: null },
       OR: [
         { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
         {

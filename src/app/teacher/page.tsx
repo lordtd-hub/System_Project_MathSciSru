@@ -190,6 +190,7 @@ export default async function TeacherDashboardPage() {
     prisma.assessmentAttempt.findMany({
       where: {
         presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
+        proposalResult: { is: null },
         OR: [
           { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
           {

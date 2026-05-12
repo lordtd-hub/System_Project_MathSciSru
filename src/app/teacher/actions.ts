@@ -136,9 +136,13 @@ export async function openProposalScoring(formData: FormData) {
     select: {
       projectId: true,
       assessmentRoundId: true,
-      assessmentRound: { select: { roundType: true, status: true } }
+      assessmentRound: { select: { roundType: true, status: true } },
+      proposalResult: { select: { id: true } }
     }
   });
+  if (attempt.proposalResult) {
+    redirectWithQuery("/teacher/proposals", { error: "proposal_decision_already_saved" });
+  }
   const lateRoundExceptions = await prisma.projectRoundException.findMany({
     where: { projectId: attempt.projectId, assessmentRoundId: attempt.assessmentRoundId, status: "OPEN" },
     select: { exceptionType: true, status: true }
@@ -370,7 +374,7 @@ export async function submitProposalScore(formData: FormData) {
   const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
     where: { id: assignmentId },
     include: {
-      assessmentAttempt: { include: { assessmentRound: true } },
+      assessmentAttempt: { include: { assessmentRound: true, proposalResult: true } },
       scoreSubmission: { select: { status: true, lockedAt: true } }
     }
   }));
@@ -378,6 +382,9 @@ export async function submitProposalScore(formData: FormData) {
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
   if (assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.lockedAt) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_score_locked" });
+  }
+  if (assignment.assessmentAttempt.proposalResult) {
+    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_decision_already_saved" });
   }
   const proposalRoundExceptions = await prisma.projectRoundException.findMany({
     where: {
