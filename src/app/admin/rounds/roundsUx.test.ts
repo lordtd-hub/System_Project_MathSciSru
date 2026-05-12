@@ -66,10 +66,19 @@ describe("admin course round management UX", () => {
 
   it("requires close acknowledgement only for eligible but incomplete non-Proposal projects", () => {
     expect(pageSource).toContain("eligibility.eligibleButIncomplete.length");
+    expect(pageSource).toContain("requireIncompleteCloseAck");
+    expect(pageSource).toContain("isRoundOpen(round.status)");
     expect(pageSource).toContain("acknowledge_incomplete_projects");
+    expect(pageSource).toContain("ยืนยันก่อนปิดรอบ");
     expect(pageSource).toContain("โครงงานที่ยังไม่ผ่านรอบก่อนหน้าจะแยกอยู่ในกลุ่ม");
     expect(actionSource).toContain("eligibleButIncomplete");
     expect(actionSource).toContain("round_close_incomplete_ack_required");
+  });
+
+  it("uses the same warning pattern for close blockers and closed-round late management", () => {
+    expect(pageSource).toContain('<WarningAlert title="จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ">');
+    expect(pageSource).toContain("requireProposalCloseAck");
+    expect(pageSource).toContain("requiresCloseAck ? \"basis-full space-y-2\" : \"\"");
   });
 
   it("warns about grade I risk when closing Final with eligible incomplete projects", () => {

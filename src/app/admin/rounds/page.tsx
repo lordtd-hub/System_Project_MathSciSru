@@ -146,6 +146,9 @@ export default async function AdminRoundsPage({
           const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
           const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
           const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];
+          const requireProposalCloseAck = roundType === "PROPOSAL" && Boolean(round && isRoundOpen(round.status) && missingProposalProjects.length);
+          const requireIncompleteCloseAck = roundType !== "PROPOSAL" && Boolean(round && isRoundOpen(round.status) && eligibility.eligibleButIncomplete.length);
+          const requiresCloseAck = requireProposalCloseAck || requireIncompleteCloseAck;
           const resetState = round
             ? getCourseRoundResetState(round.status, {
                 attempts: round.attempts.length,
@@ -186,7 +189,7 @@ export default async function AdminRoundsPage({
                 )}
               </div>
 
-              {roundType === "PROPOSAL" && round && isRoundOpen(round.status) && missingProposalProjects.length ? (
+              {requireProposalCloseAck ? (
                 <WarningAlert title={`มีนักศึกษายังไม่ส่ง Proposal ${missingProposalProjects.length} ราย`}>
                   <div className="space-y-2">
                     <p>ก่อนปิดรอบ โปรดยืนยันว่ารับทราบรายชื่อนักศึกษาที่ค้างส่งแล้ว ระบบจะล็อกการส่งปกติหลังปิดรอบ</p>
@@ -200,7 +203,7 @@ export default async function AdminRoundsPage({
                 </WarningAlert>
               ) : null}
 
-              {roundType !== "PROPOSAL" && round && isRoundOpen(round.status) && eligibility.eligibleButIncomplete.length ? (
+              {requireIncompleteCloseAck ? (
                 <WarningAlert title={`มีโครงงานที่พร้อมเข้าสู่ ${roundTypeLabelTh(roundType)} แต่ยังดำเนินการไม่ครบ ${eligibility.eligibleButIncomplete.length} รายการ`}>
                   <div className="space-y-2">
                     <p>
@@ -224,31 +227,32 @@ export default async function AdminRoundsPage({
               ) : null}
 
               {roundType === "PROPOSAL" && round && isRoundClosed(round.status) && missingProposalProjects.length ? (
-                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-                  <div className="font-semibold text-amber-900">จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ</div>
-                  <p className="mt-1 text-amber-900">
-                    มีนักศึกษาที่ยังไม่ส่ง Proposal {missingProposalProjects.length} รายการ ใช้หน้าเฉพาะเพื่อค้นหา กรองสถานะ และเปิดส่งย้อนหลังรายกรณีอย่างปลอดภัย
-                  </p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    <div className="rounded-md border border-amber-200 bg-surface p-2">
-                      <div className="text-lg font-semibold text-amber-900">{missingProposalProjects.length}</div>
-                      <div className="text-xs text-muted">ยังไม่ส่ง Proposal</div>
-                    </div>
-                    <div className="rounded-md border border-amber-200 bg-surface p-2">
-                      <div className="text-lg font-semibold text-amber-900">
-                        {missingProposalProjects.filter((project) => project.roundExceptions.length > 0).length}
+                <WarningAlert title="จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ">
+                  <div className="space-y-3">
+                    <p>
+                      มีนักศึกษาที่ยังไม่ส่ง Proposal {missingProposalProjects.length} รายการ ใช้หน้าเฉพาะเพื่อค้นหา กรองสถานะ และเปิดส่งย้อนหลังรายกรณีอย่างปลอดภัย
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-md border border-amber-200 bg-surface p-2">
+                        <div className="text-lg font-semibold text-amber-900">{missingProposalProjects.length}</div>
+                        <div className="text-xs text-muted">ยังไม่ส่ง Proposal</div>
                       </div>
-                      <div className="text-xs text-muted">เปิดส่งย้อนหลังแล้ว</div>
+                      <div className="rounded-md border border-amber-200 bg-surface p-2">
+                        <div className="text-lg font-semibold text-amber-900">
+                          {missingProposalProjects.filter((project) => project.roundExceptions.length > 0).length}
+                        </div>
+                        <div className="text-xs text-muted">เปิดส่งย้อนหลังแล้ว</div>
+                      </div>
+                      <div className="rounded-md border border-amber-200 bg-surface p-2">
+                        <div className="text-lg font-semibold text-amber-900">10%</div>
+                        <div className="text-xs text-muted">หักคะแนนเริ่มต้นถ้าไม่ใช่เหตุสุดวิสัย</div>
+                      </div>
                     </div>
-                    <div className="rounded-md border border-amber-200 bg-surface p-2">
-                      <div className="text-lg font-semibold text-amber-900">10%</div>
-                      <div className="text-xs text-muted">หักคะแนนเริ่มต้นถ้าไม่ใช่เหตุสุดวิสัย</div>
-                    </div>
+                    <a className="button-secondary" href="/admin/round-exceptions?round_type=PROPOSAL">
+                      จัดการผู้ส่งย้อนหลัง
+                    </a>
                   </div>
-                  <a className="button-secondary mt-3" href="/admin/round-exceptions?round_type=PROPOSAL">
-                    จัดการผู้ส่งย้อนหลัง
-                  </a>
-                </div>
+                </WarningAlert>
               ) : null}
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -260,18 +264,24 @@ export default async function AdminRoundsPage({
                   </SubmitButton>
                 </form>
                 {round ? (
-                  <form action={closeCourseRound}>
+                  <form action={closeCourseRound} className={requiresCloseAck ? "basis-full space-y-2" : ""}>
                     <input type="hidden" name="round_id" value={round.id} />
-                    {roundType === "PROPOSAL" && missingProposalProjects.length ? (
-                      <label className="mb-2 flex items-center gap-2 text-xs text-muted">
-                        <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
-                        รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                    {requireProposalCloseAck ? (
+                      <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                        <input className="mt-1" type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                        <span>
+                          <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
+                          รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                        </span>
                       </label>
                     ) : null}
-                    {roundType !== "PROPOSAL" && eligibility.eligibleButIncomplete.length ? (
-                      <label className="mb-2 flex items-center gap-2 text-xs text-muted">
-                        <input type="checkbox" name="acknowledge_incomplete_projects" value="yes" />
-                        รับทราบรายชื่อโครงงานที่พร้อมเข้าสู่รอบนี้แต่ยังดำเนินการไม่ครบแล้ว
+                    {requireIncompleteCloseAck ? (
+                      <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                        <input className="mt-1" type="checkbox" name="acknowledge_incomplete_projects" value="yes" />
+                        <span>
+                          <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
+                          รับทราบรายชื่อโครงงานที่พร้อมเข้าสู่รอบนี้แต่ยังดำเนินการไม่ครบแล้ว
+                        </span>
                       </label>
                     ) : null}
                     <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>
