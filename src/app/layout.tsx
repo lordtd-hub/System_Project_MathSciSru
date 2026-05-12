@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { PageShell } from "@/components/ui/PageShell";
@@ -9,6 +10,8 @@ import {
   getSessionRoleLabel,
   getSessionDisplayName
 } from "@/lib/auth/sessionUi";
+import { DEV_SESSION_COOKIE, decodeDevSession } from "@/lib/auth/devSession";
+import { isQaLoginEnabled } from "@/lib/auth/qaLogin";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -28,6 +31,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const initials = getFallbackInitials(displayName);
   const dashboardLinks = getSessionDashboardLinks(user);
   const roleLabel = getSessionRoleLabel(user);
+  const cookieStore = await cookies();
+  const qaSession = isQaLoginEnabled() ? decodeDevSession(cookieStore.get(DEV_SESSION_COOKIE)?.value) : null;
   timer.end();
 
   return (
@@ -91,6 +96,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                         {link.label}
                       </Link>
                     ))}
+                    {qaSession ? (
+                      <Link className="button-secondary mobile-header-control whitespace-nowrap" href="/qa-login">
+                        กลับหน้า QA Login
+                      </Link>
+                    ) : null}
                     <form
                       action={async () => {
                         "use server";

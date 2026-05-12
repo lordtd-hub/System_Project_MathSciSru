@@ -5,12 +5,15 @@ import { join } from "node:path";
 const root = process.cwd();
 
 describe("QA login source guards", () => {
-  it("keeps QA login off public homepage/navigation", () => {
+  it("keeps QA login off public homepage and only links it for active QA sessions", () => {
     const homePage = readFileSync(join(root, "src/app/page.tsx"), "utf8");
     const layout = readFileSync(join(root, "src/app/layout.tsx"), "utf8");
 
     expect(homePage).not.toContain("/qa-login");
-    expect(layout).not.toContain("/qa-login");
+    expect(layout).toContain("isQaLoginEnabled()");
+    expect(layout).toContain("DEV_SESSION_COOKIE");
+    expect(layout).toContain("decodeDevSession");
+    expect(layout).toContain("กลับหน้า QA Login");
   });
 
   it("rate-limits and secret-protects QA login action", () => {
