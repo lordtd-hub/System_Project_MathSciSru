@@ -748,3 +748,137 @@ Validation:
 Pilot note:
 
 - This patch should be verified on QA preview before continuing Wave 1. After verification, resume with Admin incomplete/late visibility and Progress 2 gating checks.
+
+## Live QA Verification Attempt - New Preview Access Guard
+
+QA preview target:
+
+- `https://system-project-math-sci-29rpu93od-lordtd-hubs-projects.vercel.app/qa-login`
+- Commit: `638e16e` (`fix: move late round exceptions to admin list`)
+
+Result: BLOCKED by Vercel Deployment Protection before app verification could continue.
+
+What happened:
+
+- The new preview was opened in the existing persistent Edge session `edgepilot`.
+- The first `/qa-login` page loaded, and QA Admin login was submitted.
+- A direct protected deep link to `/admin/rounds` redirected to Vercel login/protection instead of the app.
+- Returning to `/qa-login` on the new preview also redirected to Vercel login/protection.
+- Guard rule was followed: no random clicks, no storage reset, no browser close, and no workflow actions were attempted after the mismatch.
+
+Screenshot:
+
+- `screenshots/new-preview-vercel-protection-block-638e16e.png`
+
+Next required action:
+
+- Restore/open Vercel preview access for the new deployment URL in the same Edge session.
+- Start from `/qa-login`, then use the normal QA role switch/login path.
+- After access is restored, verify:
+  1. `/admin/rounds` shows only the compact late/missed Proposal summary.
+  2. `/admin/round-exceptions?round_type=PROPOSAL` shows the searchable/filterable exception table.
+  3. No late-open form is submitted unless intentionally testing one case.
+
+## Live QA Verification - Admin Round Exception UX
+
+QA preview verified:
+
+- `https://system-project-math-sci-29rpu93od-lordtd-hubs-projects.vercel.app`
+- Commit: `638e16e` (`fix: move late round exceptions to admin list`)
+- Browser: Microsoft Edge persistent CDP session on port `9333`
+
+Browser/session note:
+
+- The earlier `playwright-cli -s=edgepilot open about:blank` flow opened a window briefly and then the visible page disappeared.
+- To avoid repeating that instability, this verification used a persistent Edge process launched with a dedicated user-data directory and remote debugging.
+- The browser stayed open, CDP remained reachable, and the QA preview page was controlled without closing the window.
+- Added `cdp-edge-guard.js` as a guarded utility for this session style.
+
+### `/admin/rounds`
+
+Result: PASS.
+
+- The long per-student late Proposal form list is no longer shown on `/admin/rounds`.
+- Guard counts:
+  - `textarea[name="reason"]`: `0`
+  - direct late-open buttons on the round summary page: `0`
+- The page shows a compact late/missed Proposal summary with:
+  - missed Proposal count,
+  - already-opened late count,
+  - default 10% deduction reminder,
+  - link to the dedicated exception list.
+
+Screenshot:
+
+- `screenshots/admin-rounds-late-summary-638e16e-live.png`
+
+### `/admin/round-exceptions?round_type=PROPOSAL`
+
+Result: PASS.
+
+- The dedicated exception page loaded correctly.
+- Visible controls:
+  - round filter,
+  - status filter,
+  - search field,
+  - compact table,
+  - expandable per-row action controls.
+- Guard counts:
+  - table rows: `36`
+  - expandable action rows: `35`
+- Student 02 appears as `ส่งแล้วหลังปิดรอบ`, shows 10% deduction, and has no additional action available.
+- Other missing students appear as `ยังไม่ส่ง` with expandable `เปิดส่งรายกรณี` controls.
+- No exception action was submitted during this verification.
+
+Screenshot:
+
+- `screenshots/admin-round-exceptions-list-638e16e-live.png`
+
+### Continuation Guard
+
+Wave 1 should not open Progress 2 yet on commit `638e16e`.
+
+Reason:
+
+- The live `/admin/rounds` page still shows suspicious Progress 1 counters:
+  - ready: `4`
+  - submitted: `0`
+  - completed: `0`
+  - not ready/exceptions: `36`
+- This still conflicts with prior pilot evidence that Projects 01, 04, and 05 had Progress 1 activity/scoring.
+- Before clicking close/open round controls, investigate whether these counters are intentionally counting a narrower status or are a status aggregation bug.
+
+## Stabilization Patch - Admin Progress Counter Source
+
+Finding:
+
+- The suspicious Progress 1 counters were a display aggregation bug on `/admin/rounds`.
+- The page was counting `presentationSubmission`, which is the Proposal submission model.
+- Progress 1, Progress 2, and Final evidence use `assessmentSubmission` instead.
+- The completed count also treated non-Proposal attempts as complete only when the attempt status was closed, so completed-but-not-closed scoring could show as `0`.
+
+Patch:
+
+- `/admin/rounds` now maps:
+  - `PROGRESS_1` -> `AssessmentSubmission.kind = PROGRESS_1`
+  - `PROGRESS_2` -> `AssessmentSubmission.kind = PROGRESS_2`
+  - `FINAL_PRESENTATION` -> `AssessmentSubmission.kind = FINAL_PRESENT`
+- Non-Proposal completed counts now use `isPresentationAssessmentComplete`, checking required committee score submissions.
+- Proposal counting remains based on Proposal presentation submissions/final decision.
+
+Files:
+
+- `src/app/admin/rounds/page.tsx`
+- `src/app/admin/rounds/roundsUx.test.ts`
+
+Validation:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 301 tests
+- `npm run build`: PASS
+
+Next QA step:
+
+- Push this patch to QA preview.
+- Open the new preview URL.
+- Verify `/admin/rounds` shows Progress 1 counts matching Projects 01/04/05 evidence/scoring before closing Progress 1 or opening Progress 2.

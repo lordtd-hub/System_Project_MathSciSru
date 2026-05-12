@@ -9,11 +9,19 @@ import { baselineRubricDefinitions } from "@/lib/admin/rubricBaseline";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { prisma } from "@/lib/db";
 import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
+}
+
+function submissionKindForRound(roundType: (typeof courseLevelRoundTypes)[number]) {
+  if (roundType === "PROGRESS_1") return "PROGRESS_1" as const;
+  if (roundType === "PROGRESS_2") return "PROGRESS_2" as const;
+  if (roundType === "FINAL_PRESENTATION") return "FINAL_PRESENT" as const;
+  return null;
 }
 
 export default async function AdminRoundsPage({
@@ -39,21 +47,40 @@ export default async function AdminRoundsPage({
     where: { courseOfferingId: offering.id, roundType: { in: [...courseLevelRoundTypes] } },
     include: {
       closedByAdmin: true,
-      attempts: { include: { presentationSubmission: true } },
+      attempts: {
+        include: {
+          presentationSubmission: true,
+          project: { include: { committeeAssignments: true } },
+          evaluatorAssignments: { include: { scoreSubmission: true } }
+        }
+      },
       projectExceptions: true,
       scheduleProposals: true
     }
   });
   const roundMap = new Map(rounds.map((round) => [round.roundType, round]));
   const roundStatuses = Object.fromEntries(courseLevelRoundTypes.map((roundType) => [roundType, roundMap.get(roundType)?.status ?? "DRAFT"]));
-  const [progress1Eligibility, rubrics] = await Promise.all([
+  const [progress1Eligibility, rubrics, assessmentSubmissions] = await Promise.all([
     getRoundEligibility(offering.id, "PROGRESS_1"),
     prisma.rubric.findMany({
       where: { roundType: { in: [...courseLevelRoundTypes] }, active: true },
       orderBy: [{ roundType: "asc" }, { version: "desc" }],
       select: { id: true, roundType: true, version: true, active: true, items: { select: { id: true } } }
+    }),
+    prisma.assessmentSubmission.findMany({
+      where: {
+        kind: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] },
+        project: { courseOfferingId: offering.id }
+      },
+      select: { kind: true, projectId: true }
     })
   ]);
+  const submittedProjectIdsByKind = new Map<(typeof assessmentSubmissions)[number]["kind"], Set<string>>();
+  for (const submission of assessmentSubmissions) {
+    const projects = submittedProjectIdsByKind.get(submission.kind) ?? new Set<string>();
+    projects.add(submission.projectId);
+    submittedProjectIdsByKind.set(submission.kind, projects);
+  }
   const missingProposalProjects = await prisma.project.findMany({
     where: { courseOfferingId: offering.id, presentationSubmissions: { none: {} } },
     orderBy: { student: { studentCode: "asc" } },
@@ -132,8 +159,21 @@ export default async function AdminRoundsPage({
         {courseLevelRoundTypes.map((roundType) => {
           const round = roundMap.get(roundType);
           const eligibility = roundType === "PROGRESS_1" ? progress1Eligibility : { eligible: [], notReady: [] };
-          const submittedCount = round?.attempts.filter((attempt) => ["SUBMITTED", "LOCKED"].includes(attempt.presentationSubmission?.status ?? "")).length ?? 0;
-          const completedCount = round?.attempts.filter((attempt) => isRoundClosed(attempt.status) || Boolean(attempt.finalDecision)).length ?? 0;
+          const submissionKind = submissionKindForRound(roundType);
+          const submittedCount = submissionKind
+            ? submittedProjectIdsByKind.get(submissionKind)?.size ?? 0
+            : round?.attempts.filter((attempt) => ["SUBMITTED", "LOCKED"].includes(attempt.presentationSubmission?.status ?? "")).length ?? 0;
+          const completedCount = round?.attempts.filter((attempt) => {
+            if (roundType === "PROPOSAL") return isRoundClosed(attempt.status) || Boolean(attempt.finalDecision);
+            return isPresentationAssessmentComplete({
+              roundStatus: attempt.status,
+              committeeAssignments: attempt.project.committeeAssignments,
+              scoreSubmissions: attempt.evaluatorAssignments.map((assignment) => ({
+                teacherId: assignment.teacherId,
+                status: assignment.scoreSubmission?.status
+              }))
+            });
+          }).length ?? 0;
           const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
           const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
           const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];

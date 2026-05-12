@@ -151,3 +151,10 @@ These are not ready for final manuals yet, but should be carried into manual pla
 - Teacher manuals must explain that once a teacher submits a score, that item should disappear from their actionable queue or become read-only for that teacher only.
 - Admin manuals should explain that Proposal decision should be made only when required reviewers are complete, or the UI must clearly warn when deciding with missing reviewers.
 - Proposal scoring policy clarification: during the valid Proposal scoring window, all teachers may assess Proposal items. After Admin records the Proposal decision, teachers who have not assessed that Proposal should no longer see it as pending work.
+
+## QA Runbook Notes
+
+- After every new QA preview push, testers must open the new preview URL before checking fixes. Old preview URLs will not contain the latest patch.
+- Use one persistent Edge session during pilot testing. Do not close the browser between role switches.
+- If `playwright-cli open` makes the browser flash and disappear, use the persistent Edge CDP method instead and keep the window open through the pilot.
+- Admin late/missed round handling should be explained as a dedicated operational list. The round overview page is now a summary/control page; detailed exception handling happens on `/admin/round-exceptions`.

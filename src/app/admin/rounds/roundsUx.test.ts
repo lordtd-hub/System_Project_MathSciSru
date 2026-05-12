@@ -55,4 +55,11 @@ describe("admin course round management UX", () => {
     expect(scheduleSource).toContain("isRoundOpen(progress1Round.status)");
     expect(scheduleSource).toContain("getProgress1Readiness(project)");
   });
+  it("counts Progress and Final submissions from assessment evidence instead of Proposal submissions", () => {
+    expect(pageSource).toContain("submissionKindForRound");
+    expect(pageSource).toContain("prisma.assessmentSubmission.findMany");
+    expect(pageSource).toContain('kind: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] }');
+    expect(pageSource).toContain("submittedProjectIdsByKind");
+    expect(pageSource).toContain("isPresentationAssessmentComplete");
+  });
 });

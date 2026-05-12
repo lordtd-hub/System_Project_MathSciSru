@@ -521,3 +521,76 @@ Next live check:
 - Confirm the long list is gone from `/admin/rounds`.
 - Open `/admin/round-exceptions?round_type=PROPOSAL`.
 - Confirm missed Proposal students are shown in a searchable/filterable table and only one row expands when Admin chooses to open a case.
+
+Latest live-check attempt:
+
+- New QA preview after push: `https://system-project-math-sci-29rpu93od-lordtd-hubs-projects.vercel.app/qa-login`
+- Commit: `638e16e`
+- Status: blocked by Vercel Deployment Protection before app verification.
+- Screenshot: `screenshots/new-preview-vercel-protection-block-638e16e.png`
+
+Guard outcome:
+
+- Stop condition triggered because the browser landed on `vercel.com/login`, not the QA app.
+- Edge was not closed.
+- Storage/cookies were not reset.
+- No admin workflow action was clicked.
+
+To continue:
+
+1. Open/approve the new preview URL in the same visible Edge session.
+2. Start at `/qa-login`.
+3. Login as `MULTI-PILOT-R2 Admin`.
+4. Verify the Admin Round Exception UX patch before continuing Wave 1.
+
+Live verification completed:
+
+- New QA preview: `https://system-project-math-sci-29rpu93od-lordtd-hubs-projects.vercel.app`
+- Commit: `638e16e`
+- Browser method: persistent Edge CDP session on port `9333`.
+- Added guarded helper: `cdp-edge-guard.js`.
+
+Results:
+
+- `/admin/rounds`: PASS.
+  - Long per-student late Proposal form list is gone.
+  - Compact summary and link to `/admin/round-exceptions` are visible.
+  - Screenshot: `screenshots/admin-rounds-late-summary-638e16e-live.png`
+- `/admin/round-exceptions?round_type=PROPOSAL`: PASS.
+  - Filter/search/table UI works.
+  - Student 02 is shown as submitted after round close with 10% deduction and no extra action.
+  - Missing students remain expandable one row at a time for case-by-case reopen.
+  - Screenshot: `screenshots/admin-round-exceptions-list-638e16e-live.png`
+
+Do not continue to Progress 2 yet:
+
+- `/admin/rounds` still shows suspicious Progress 1 counters:
+  - ready `4`,
+  - submitted `0`,
+  - completed `0`,
+  - not ready/exceptions `36`.
+- This does not match the earlier Wave 1 evidence that Projects 01/04/05 have Progress 1 activity and scoring.
+- Next step should be a guarded investigation of Progress 1 counter semantics before closing Progress 1 or opening Progress 2.
+
+Progress 1 counter investigation result:
+
+- Cause found: `/admin/rounds` was using Proposal-oriented `presentationSubmission` counts for every round.
+- Progress and Final evidence are stored as `assessmentSubmission`, so Progress 1 showed submitted/completed `0` even when pilot evidence existed.
+- Patch applied:
+  - `src/app/admin/rounds/page.tsx`
+  - `src/app/admin/rounds/roundsUx.test.ts`
+- New behavior:
+  - Progress/Final submitted counts use `AssessmentSubmission.kind`.
+  - Progress/Final completed counts use required committee score completion via `isPresentationAssessmentComplete`.
+
+Validation after patch:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 301 tests
+- `npm run build`: PASS
+
+Next required action:
+
+- Commit/push the scoped counter patch to QA preview.
+- Open the new QA preview URL after deployment.
+- Verify `/admin/rounds` counter values live before closing Progress 1 or opening Progress 2.
