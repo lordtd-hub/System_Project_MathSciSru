@@ -227,7 +227,7 @@ export async function prepareQaPilotIdentities(formData: FormData) {
     }
   });
 
-  await Promise.all(qaPilotStudents.map((student) => prisma.student.upsert({
+  const students = await Promise.all(qaPilotStudents.map((student) => prisma.student.upsert({
     where: { generatedEmail: student.email },
     update: {
       studentCode: student.studentCode,
@@ -241,6 +241,22 @@ export async function prepareQaPilotIdentities(formData: FormData) {
       lastNameTh: student.lastNameTh,
       generatedEmail: student.email,
       active: true
+    }
+  })));
+
+  const latestCourseOffering = await prisma.courseOffering.findFirst({
+    where: { status: "ACTIVE" },
+    select: { id: true }
+  }) ?? await prisma.courseOffering.findFirst({ select: { id: true } });
+  if (!latestCourseOffering) qaError("Create a course offering before preparing QA pilot identities.");
+
+  await Promise.all(students.map((student) => prisma.project.upsert({
+    where: { courseOfferingId_studentId: { courseOfferingId: latestCourseOffering.id, studentId: student.id } },
+    update: {},
+    create: {
+      courseOfferingId: latestCourseOffering.id,
+      studentId: student.id,
+      status: "STUDENT_PROFILE"
     }
   })));
 

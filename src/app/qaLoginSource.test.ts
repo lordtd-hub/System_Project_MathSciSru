@@ -46,6 +46,8 @@ describe("QA login source guards", () => {
     expect(actionSource).toContain("prepareQaPilotIdentities");
     expect(actionSource).toContain("verifyQaLoginSecret");
     expect(actionSource).toContain("isQaLoginEnabled");
+    expect(actionSource).toContain("prisma.project.upsert");
+    expect(actionSource).toContain("status: \"STUDENT_PROFILE\"");
     expect(actionSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
   });
 });
