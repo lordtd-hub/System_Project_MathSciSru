@@ -16,4 +16,15 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("teacherProjectInvolvementWhere");
     expect(page).toContain('status: "CONFIRMED"');
   });
+
+  it("keeps teacher notifications and proposal links reviewer-specific", () => {
+    const page = source();
+
+    expect(page).toContain("teacherActionableTaskCount");
+    expect(page).toContain("มีงานที่ต้องดำเนินการ");
+    expect(page).toContain("การแจ้งเตือน");
+    expect(page).toContain("assignmentSubmitted");
+    expect(page).toContain("ดูผลประเมินที่ส่งแล้ว");
+    expect(page).toContain("pendingProposalScores.length");
+  });
 });

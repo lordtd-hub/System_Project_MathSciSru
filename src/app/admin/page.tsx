@@ -322,6 +322,9 @@ export default async function AdminDashboardPage({
             <p className="text-sm">
               ใช้สำหรับช่วงทดสอบระบบเท่านั้น ปุ่มนี้จะล้างรายวิชาปัจจุบันพร้อมข้อมูลนักศึกษา/โครงงาน/รอบสอบ/คะแนน/รายงานที่ผูกกับรายวิชานี้ แล้วให้เริ่มนำเข้าข้อมูลใหม่
             </p>
+            <p className="text-sm text-amber-800">
+              หมายเหตุ: ข้อมูล Legacy QA อาจยังปรากฏในภาพรวมบางส่วนเพื่อรักษาประวัติการทดสอบเดิม โปรดใช้ชื่อชุดข้อมูล MULTI-PILOT-R2 เมื่อตรวจผลรอบปัจจุบัน
+            </p>
             <form action={resetCourseOfferingTestData}>
               <input type="hidden" name="course_offering_id" value={activeOffering.id} />
               <SubmitButton
@@ -590,7 +593,7 @@ async function ProjectStatusOverviewSection({
         </WarningAlert>
       ) : null}
       <section className="panel dashboard-console-panel">
-        <h2 className="text-lg font-semibold">Project status overview</h2>
+        <h2 className="text-lg font-semibold">ภาพรวมสถานะโครงงาน</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {lifecycleV2Steps.map((status) => {
             const items = projects.filter((project) => project.status === status);
@@ -629,7 +632,7 @@ async function AdminNotificationsSection({
   return (
     <section className="panel dashboard-console-panel">
       <DashboardSectionHeader
-        title="Notification ที่ต้องติดตาม"
+        title="การแจ้งเตือนที่ต้องติดตาม"
         description="แสดงเฉพาะรายการที่ระบบต้องการให้ผู้ดูแลระบบเห็นเพิ่มเติม"
       />
       <div className="mt-3 space-y-2">

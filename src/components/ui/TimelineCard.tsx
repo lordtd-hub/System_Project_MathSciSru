@@ -12,7 +12,7 @@ export type TimelineCardEvent = {
 export function TimelineCard({ title = "Evidence timeline", events }: { title?: string; events: TimelineCardEvent[] }) {
   return (
     <section className="panel">
-      <SectionHeading title={title} description="Evidence trail" compact />
+      <SectionHeading title={title} description="ประวัติหลักฐาน" compact />
       <div className="mt-4 space-y-4">
         {events.length ? (
           events.map((event) => (

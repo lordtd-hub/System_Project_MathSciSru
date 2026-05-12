@@ -169,7 +169,7 @@ export default async function ProposalScoringPage({
           </div>
         </section>
         <aside className="space-y-4">
-          <WarningAlert title="Critical item warnings">
+          <WarningAlert title="ข้อควรพิจารณาในรายการสำคัญ">
             หากไม่ผ่านรายการสำคัญ ควรอธิบายในข้อเสนอแนะให้ชัดเจน โดยเฉพาะกรณีให้แก้ไขหรือไม่ผ่าน
           </WarningAlert>
           <section className="panel">

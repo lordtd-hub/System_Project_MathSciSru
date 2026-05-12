@@ -302,6 +302,13 @@ export default async function TeacherDashboardPage() {
     take: 8
   });
   const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
+  const teacherActionableTaskCount =
+    advisorRequestCount +
+    pendingProposalScores.length +
+    scheduleApprovalCount +
+    presentationScoreReadyCount +
+    reportReviewCount +
+    advisorScoreProjectCount;
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequestCount,
     pendingProposalScores: pendingProposalScores.length,
@@ -496,6 +503,7 @@ export default async function TeacherDashboardPage() {
             {attempts.length ? (
               attempts.map((attempt) => {
                 const assignment = attempt.evaluatorAssignments[0];
+                const assignmentSubmitted = assignment?.scoreSubmission?.status === submittedScoreStatus;
                 return (
                   <div key={attempt.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line p-3">
                     <div>
@@ -504,7 +512,9 @@ export default async function TeacherDashboardPage() {
                         {attempt.project.student.studentCode} {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
                       </div>
                     </div>
-                    {assignment ? (
+                    {assignmentSubmitted ? (
+                      <Link className="button-secondary" href={`/teacher/scoring/${assignment.id}`}>ดูผลประเมินที่ส่งแล้ว</Link>
+                    ) : assignment ? (
                       <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
                     ) : (
                       <form action={openProposalScoring}>
@@ -527,14 +537,20 @@ export default async function TeacherDashboardPage() {
         />
       </div>
       <section className="panel dashboard-console-panel">
-        <h2 className="text-lg font-semibold">Notification</h2>
+        <h2 className="text-lg font-semibold">การแจ้งเตือน</h2>
         <div className="mt-3 space-y-2">
           {notifications.length ? notifications.map((notification) => (
             <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
               <div className="font-medium">{notification.title}</div>
               {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
             </div>
-          )) : <InfoAlert title="ยังไม่มีงานที่ต้องดำเนินการ">งานใหม่จะแสดงใน dashboard และ route ย่อยตามบทบาท</InfoAlert>}
+          )) : teacherActionableTaskCount ? (
+            <InfoAlert title={`มีงานที่ต้องดำเนินการ ${teacherActionableTaskCount} รายการ`}>
+              ตรวจรายละเอียดในส่วนงานที่ต้องดำเนินการด้านบน ระบบนับจากคำขอที่ปรึกษา งานประเมิน ตารางสอบ งานตรวจรายงาน และคะแนนที่ปรึกษาที่รอท่านดำเนินการ
+            </InfoAlert>
+          ) : (
+            <InfoAlert title="ยังไม่มีงานที่ต้องดำเนินการ">งานใหม่จะแสดงใน dashboard และ route ย่อยตามบทบาท</InfoAlert>
+          )}
         </div>
       </section>
     </div>
