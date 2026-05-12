@@ -1,6 +1,8 @@
 async (page) => {
-  const base = "https://system-project-math-sci-7v0pnfhqv-lordtd-hubs-projects.vercel.app";
-  const secret = "SET_QA_SECRET_BEFORE_RUNNING_AND_REMOVE_AFTER_USE";
+  const env = typeof process === "undefined" ? {} : process.env;
+  const base = env.QA_BASE_URL || "https://system-project-math-sci-7v0pnfhqv-lordtd-hubs-projects.vercel.app";
+  const secret = env.QA_SECRET;
+  if (!secret) throw new Error("QA_SECRET environment variable is required.");
   const students = ["01", "03", "04", "05"];
 
   for (const n of students) {

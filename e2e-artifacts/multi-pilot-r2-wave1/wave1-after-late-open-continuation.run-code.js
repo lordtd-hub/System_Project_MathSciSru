@@ -1,6 +1,7 @@
 async (page) => {
-  const BASE_URL = "__QA_BASE_URL__";
-  const QA_SECRET = "__QA_SECRET__";
+  const env = typeof process === "undefined" ? {} : process.env;
+  const BASE_URL = env.QA_BASE_URL || "__QA_BASE_URL__";
+  const QA_SECRET = env.QA_SECRET || "__QA_SECRET__";
   if (!QA_SECRET || QA_SECRET.startsWith("__")) throw new Error("QA secret placeholder was not replaced.");
 
   const SCREENSHOT_DIR = "e2e-artifacts/multi-pilot-r2-wave1/screenshots";
@@ -86,30 +87,13 @@ async (page) => {
   async function login(role, identityKey) {
     const expectedPath = expectedPathFor(role);
     const expectedText = expectedIdentityText(role, identityKey);
-    const qaLink = page.locator('a[href="/qa-login"], a[href$="/qa-login"]').first();
-    if (await qaLink.count()) {
-      await qaLink.click();
-      await page.waitForLoadState("domcontentloaded").catch(() => {});
-      await page.waitForLoadState("networkidle").catch(() => {});
-    } else if (!page.url().includes("/qa-login")) {
-      await goto("/qa-login", `qa-login-${role}-${identityKey}`);
-    }
-    const logoutFormIndex = await page.evaluate(() => {
-      const forms = Array.from(document.querySelectorAll("form"));
-      const roleFormIndex = forms.findIndex((form) => Boolean(form.querySelector("#role")));
-      const nonRoleFormIndex = forms.findIndex((form) => !form.querySelector("#role"));
-      return nonRoleFormIndex !== -1 && roleFormIndex !== -1 && nonRoleFormIndex < roleFormIndex ? nonRoleFormIndex : -1;
-    });
-    if (logoutFormIndex >= 0) {
-      await page.locator("form").nth(logoutFormIndex).locator('button[type="submit"]').click();
-      await page.waitForLoadState("networkidle").catch(() => {});
-      await goto("/qa-login", `qa-login-after-dom-logout-${role}-${identityKey}`);
-    }
-    const qaLogout = page.locator("button").filter({ hasText: "ออกจาก QA session" }).first();
+    await goto("/qa-login", `qa-login-start-${role}-${identityKey}`);
+    const qaLogout = page.getByRole("button", { name: "ออกจาก QA session" }).first();
     if (await qaLogout.count()) {
       await qaLogout.click();
+      await page.waitForLoadState("domcontentloaded").catch(() => {});
       await page.waitForLoadState("networkidle").catch(() => {});
-      await goto("/qa-login", `qa-login-after-logout-${role}-${identityKey}`);
+      await goto("/qa-login", `qa-login-after-qa-session-logout-${role}-${identityKey}`);
     }
     await selectByValueOrText("#role", role);
     if (role === "student") await selectByValueOrText("#student_email", identityKey);
@@ -119,15 +103,27 @@ async (page) => {
     await page.locator("form:has(#role)").first().locator('button[type="submit"]').last().click();
     await page.waitForLoadState("networkidle").catch(() => {});
     if (!page.url().includes(expectedPath)) {
-      await goto(expectedPath, `post-login-route-check-${role}-${identityKey}`);
+      const text = await bodyText();
+      await bug({
+        severity: "Blocker",
+        slug: `qa-login-did-not-redirect-${role}-${identityKey}`,
+        role,
+        project: "QA session",
+        route: page.url(),
+        expected: `QA login should redirect to ${expectedPath} after selecting ${identityKey}.`,
+        actual: text.slice(0, 700),
+        suggestedFix: "Check QA login form selection, role option, secret, and session cookie replacement."
+      });
+      throw new Error(`QA login did not redirect for ${role}/${identityKey}`);
     }
     const text = await bodyText();
     const wrongRoleText =
-      (role === "student" && text.includes("หน้าที่สำหรับนักศึกษาเท่านั้น")) ||
-      (role === "teacher" && text.includes("หน้าที่สำหรับอาจารย์เท่านั้น")) ||
-      (role === "admin" && text.includes("หน้าที่สำหรับผู้ดูแลระบบเท่านั้น"));
-    const ok = page.url().includes(expectedPath) && (!expectedText || text.includes(expectedText)) && !wrongRoleText;
-    await step("LOGIN", { role, identityKey, expectedPath, expectedText, ok, url: page.url() });
+      (role === "student" && text.includes("หน้านี้สำหรับนักศึกษาเท่านั้น")) ||
+      (role === "teacher" && text.includes("หน้านี้สำหรับอาจารย์เท่านั้น")) ||
+      (role === "admin" && text.includes("หน้านี้สำหรับผู้ดูแลระบบเท่านั้น"));
+    const expectedTextSeen = !expectedText || text.includes(expectedText);
+    const ok = page.url().includes(expectedPath) && !wrongRoleText;
+    await step("LOGIN", { role, identityKey, expectedPath, expectedText, expectedTextSeen, ok, url: page.url() });
     if (!ok) {
       await bug({
         severity: "Blocker",

@@ -349,4 +349,35 @@ Recommended QA check after preview update:
 - Student 01 should not see Progress 2 as actionable until Admin opens the Progress 2 round.
 - Student 02 should see a clear late/blocked Proposal state after Proposal round closure.
 - Teacher/admin schedule approval queues should list older submitted requests first.
+
+Manual/user-guide notes:
+
+- See `e2e-artifacts/multi-pilot-r2-wave1/MANUAL_NOTES.md` for role-based notes that should be included in the Admin, Teacher, and Student manuals.
 - Raw `PROGRESS_1 · CONFIRMED` style labels should no longer appear on the patched schedule/status surfaces.
+
+## Student 02 Late Proposal Verification After Patch
+
+Patch commit:
+
+- `fce9bdc` - `fix: show submitted late proposal state`
+
+QA preview:
+
+- `https://system-project-math-sci-2ybxa0lct-lordtd-hubs-projects.vercel.app`
+
+Result:
+
+- Student 02 late Proposal page now renders a read-only submitted summary after submission.
+- The late submitted notice is visible.
+- The active Proposal form is hidden after submission.
+- Teacher 03 sees Student 02 / Project 02 in the Proposal reviewer queue.
+- Teacher 03 submitted one Proposal score and the scoring page became read-only with no active score-submit button.
+
+Script compatibility:
+
+- Updated the Proposal submit script to guard on `data-testid` submitted summary instead of relying only on Thai button text.
+- Updated the Wave 1 continuation script to follow the real QA login switch flow and to fail if login does not redirect to the selected role dashboard.
+
+Remaining script risk:
+
+- Long-running pilot scripts should be treated as guarded helpers only. For important workflow decisions, use manual review plus short guarded checks, not unattended end-to-end automation.

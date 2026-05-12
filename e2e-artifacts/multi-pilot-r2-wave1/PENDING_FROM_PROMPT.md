@@ -256,3 +256,65 @@ Validation after the late/missed round patch:
 - `npm run typecheck`: PASS
 - `npm test`: PASS, 75 files / 296 tests
 - `npm run build`: PASS
+
+Manual/user-guide notes:
+
+- See `e2e-artifacts/multi-pilot-r2-wave1/MANUAL_NOTES.md` for the role-based explanation points that must be carried into the Admin, Teacher, and Student manuals.
+
+## Student 02 Late Proposal UI Patch Verification
+
+Status: patched and pushed to QA preview after script compatibility review.
+
+Commit:
+
+- `fce9bdc` - `fix: show submitted late proposal state`
+
+QA preview verified:
+
+- `https://system-project-math-sci-2ybxa0lct-lordtd-hubs-projects.vercel.app`
+
+What was fixed:
+
+- `/student/proposal` now distinguishes `canSubmitProposal=false` because the student is blocked from submitting from `canSubmitProposal=false` because the Proposal has already been submitted.
+- After Student 02 late Proposal submission, the page shows a read-only submitted summary.
+- The active Proposal submit form is hidden after successful submission.
+- Late submitted cases show `ส่ง Proposal หลังปิดรอบแล้ว`.
+- The old misleading message `ยังส่งเอกสารเสนอหัวข้อไม่ได้` is no longer shown after successful late submission.
+
+Pilot script compatibility work:
+
+- Updated `student-wave1-proposal-submit.playwright.js` to assert that a submitted Proposal reaches the read-only summary and that the active form disappears.
+- Updated `wave1-after-late-open-continuation.run-code.js` to use stable `data-testid` guards for:
+  - `student-proposal-submitted-summary`
+  - `student-proposal-late-submitted-notice`
+- Fixed the QA role switching helper to follow the real QA login code path:
+  1. go to `/qa-login`
+  2. click `ออกจาก QA session` if a QA session exists
+  3. select the next role
+  4. submit QA login
+  5. fail immediately if the login does not redirect to the role dashboard
+- Removed the old fragile behavior where the script manually navigated to `/teacher` or `/student` after a failed login attempt.
+
+Guarded verification result:
+
+- Student 02 `/student/proposal`: PASS
+  - submitted summary present
+  - late-submitted notice present
+  - active Proposal form absent
+  - project remains in Proposal review/waiting-review state
+- Teacher 03 `/teacher/proposals`: PASS
+  - Student 02 / Project 02 appears in the Proposal reviewer queue
+  - scoring link is visible
+- Teacher 03 submitted one Proposal score for Project 02: PASS
+  - redirected with `success=proposal_score_saved`
+  - scoring page became read-only
+  - no active `ส่งคะแนนการเสนอหัวข้อ` button remained
+
+Screenshots captured:
+
+- `e2e-artifacts/multi-pilot-r2-wave1/screenshots/2026-05-12T12-38-33-821Z-student02-late-proposal-before-fill.png`
+- `e2e-artifacts/multi-pilot-r2-wave1/screenshots/2026-05-12T12-39-05-718Z-bug-Major-student02-late-open-proposal-submit-disabled-after-fill.png`
+
+Note:
+
+- The earlier bug screenshot above was from a script-login fragility, not from the patched app UI. Manual guarded verification after aligning the login flow with `/qa-login` confirmed the app behavior is correct.
