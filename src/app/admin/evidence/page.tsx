@@ -5,6 +5,7 @@ import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CompactMetricRow, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { getEvidenceDashboardData } from "@/lib/evidence/adminEvidence";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 
 function percent(value: number, total: number) {
   if (!total) return "0%";
@@ -160,7 +161,7 @@ export default async function AdminEvidencePage({
                       <td>{row.advisorScore ? "มี" : "ไม่มี"}</td>
                       <td>{row.timelineEventCount} / {row.statusHistoryCount}</td>
                       <td>
-                        <div>{row.lastEvidenceUpdate ? row.lastEvidenceUpdate.toLocaleString("th-TH") : "ไม่มีข้อมูล"}</div>
+                        <div>{row.lastEvidenceUpdate ? formatThaiDateTime24(row.lastEvidenceUpdate) : "ไม่มีข้อมูล"}</div>
                         {row.missingEvidence.length ? <div className="mt-1 text-xs text-amber-700">{row.missingEvidence.join(", ")}</div> : null}
                       </td>
                     </tr>
@@ -224,7 +225,7 @@ export default async function AdminEvidencePage({
                   <div key={event.id} className="rounded-lg border border-line bg-paperSoft p-3">
                     <div className="font-semibold">{event.eventTitle}</div>
                     <div className="text-xs text-muted">{event.studentCode} · {event.projectTitle}</div>
-                    <div className="mt-1 text-xs text-muted">{event.eventType} · {event.occurredAt.toLocaleString("th-TH")} · {event.actorName}</div>
+                    <div className="mt-1 text-xs text-muted">{event.eventType} · {formatThaiDateTime24(event.occurredAt)} · {event.actorName}</div>
                   </div>
                 ))}
                 {!data.recentTimelineEvents.length ? <EmptyState title="ยังไม่มีเหตุการณ์หลักฐาน" /> : null}
@@ -238,7 +239,7 @@ export default async function AdminEvidencePage({
                   <div key={log.id} className="rounded-lg border border-line bg-paperSoft p-3">
                     <div className="font-semibold">{log.action}</div>
                     <div className="text-xs text-muted">{log.entityType} · {log.entityId}</div>
-                    <div className="mt-1 text-xs text-muted">{log.occurredAt.toLocaleString("th-TH")} · {log.actorName}</div>
+                    <div className="mt-1 text-xs text-muted">{formatThaiDateTime24(log.occurredAt)} · {log.actorName}</div>
                   </div>
                 ))}
                 {!data.recentAuditLogs.length ? <EmptyState title="ยังไม่มีประวัติการดำเนินการ" /> : null}

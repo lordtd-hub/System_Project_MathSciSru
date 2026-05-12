@@ -20,6 +20,7 @@ import { findDuplicateActiveProjectGroups, getCurrentDashboardProjects } from "@
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { getNextActionForAdmin } from "@/lib/lifecycle/nextActions";
 import { lifecycleV2Steps, projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
@@ -30,8 +31,7 @@ function countFromStatus(statusCounts: Map<ProjectStatus, number>, status: Proje
 }
 
 function formatDate(value: Date | null | undefined) {
-  if (!value) return "-";
-  return value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+  return formatThaiDateTime24(value);
 }
 
 function deriveAdminCurrentRoundFocus({

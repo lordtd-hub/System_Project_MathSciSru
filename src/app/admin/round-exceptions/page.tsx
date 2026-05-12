@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, isRoundClosed, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { openLateRoundSubmissionForProject } from "../actions";
 
 type RoundType = (typeof courseLevelRoundTypes)[number];
@@ -28,7 +29,7 @@ function getParam(value: string | string[] | undefined) {
 }
 
 function formatDate(value?: Date | null) {
-  return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
+  return formatThaiDateTime24(value);
 }
 
 function teacherName(teacher?: { academicPrefix: string; firstNameTh: string; lastNameTh: string } | null) {

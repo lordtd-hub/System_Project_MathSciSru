@@ -1,4 +1,5 @@
 import { evidenceTimelineTitle } from "@/lib/evidence/eventLabels";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { SectionHeading } from "./SectionHeading";
 
 export type TimelineCardEvent = {
@@ -21,7 +22,7 @@ export function TimelineCard({ title = "Evidence timeline", events }: { title?: 
               <span className="absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full bg-brand ring-4 ring-white" aria-hidden="true" />
               <div className="font-semibold text-ink">{evidenceTimelineTitle(event.eventTitle)}</div>
               <div className="mt-0.5 text-xs text-muted">
-                {event.occurredAt.toLocaleString("th-TH")}
+                {formatThaiDateTime24(event.occurredAt)}
                 {event.actorName ? ` โดย ${event.actorName}` : ""}
               </div>
               {event.eventDescription ? <p className="mt-1 leading-6 text-muted">{event.eventDescription}</p> : null}

@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { closeProposalRound, releaseFeedback, saveFinalDecision } from "../actions";
@@ -166,7 +167,7 @@ export default async function AdminProposalsPage({
                   </div>
                   {closed && round.closedAt ? (
                     <p className="mt-1 text-sm text-muted">
-                      ปิดรอบเมื่อ: {round.closedAt.toLocaleString("th-TH")}
+                      ปิดรอบเมื่อ: {formatThaiDateTime24(round.closedAt)}
                       {round.closedByAdmin ? ` | ผู้ปิดรอบ: ${round.closedByAdmin.email ?? round.closedByAdmin.name ?? "ผู้ดูแลระบบ"}` : ""}
                     </p>
                   ) : (
@@ -289,7 +290,7 @@ export default async function AdminProposalsPage({
                               <div className="mt-1 break-words text-xs leading-5 text-muted">
                                 decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
                                 <br />
-                                decided_at: {attempt.proposalResult.decidedAt.toLocaleString("th-TH")}
+                                decided_at: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
                               </div>
                             ) : null}
                             {attempt.proposalResult?.finalDecisionReason ? (
@@ -412,7 +413,7 @@ export default async function AdminProposalsPage({
                               <div className="mt-1 text-xs leading-5 text-muted">
                                 decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
                                 <br />
-                                decided_at: {attempt.proposalResult.decidedAt.toLocaleString("th-TH")}
+                                decided_at: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
                               </div>
                             ) : null}
                             {attempt.proposalResult?.finalDecisionReason ? (

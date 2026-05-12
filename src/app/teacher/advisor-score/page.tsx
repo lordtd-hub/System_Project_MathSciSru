@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { advisorCriteria } from "@/lib/scoring/advisorScoring";
 
 function fieldName(key: string) {
@@ -126,7 +127,7 @@ export default async function TeacherAdvisorScorePage({
                       <div className="font-semibold text-ink">บันทึกคะแนนสรุปแล้ว</div>
                       <p className="mt-1 text-muted">
                         คะแนนรวม {Number(previous.score ?? 0)}/100
-                        {previous.submittedAt ? ` · ${previous.submittedAt.toLocaleString("th-TH")}` : ""}
+                        {previous.submittedAt ? ` · ${formatThaiDateTime24(previous.submittedAt)}` : ""}
                       </p>
                     </div>
                     <div className="grid gap-2 md:grid-cols-2">

@@ -10,10 +10,11 @@ import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligi
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
-  return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
+  return formatThaiDateTime24(value);
 }
 
 function readinessActionForReason(reason: string) {

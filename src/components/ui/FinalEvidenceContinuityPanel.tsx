@@ -1,4 +1,5 @@
 import { buildEvidenceContinuityIndicators } from "@/lib/qa/evidenceAlignment";
+import { formatThaiDate } from "@/lib/format/dateTime";
 import { normalizeProgressPlanTasks } from "@/lib/qa/progressPlanCheckConfig";
 
 type ProgressHistoryItem = {
@@ -90,7 +91,7 @@ export function FinalEvidenceContinuityPanel({
                 <div className="font-medium">{item.label}</div>
                 <div className="text-muted">
                   {item.score !== null && item.score !== undefined ? `คะแนนหรือหลักฐาน: ${item.score}` : "ยังไม่พบคะแนนหรือหลักฐาน"}
-                  {item.submittedAt ? ` · ${item.submittedAt.toLocaleDateString("th-TH")}` : ""}
+                  {item.submittedAt ? ` · ${formatThaiDate(item.submittedAt)}` : ""}
                 </div>
               </div>
             )) : <p className="text-muted">ยังไม่พบหลักฐานการสอบความก้าวหน้า</p>}

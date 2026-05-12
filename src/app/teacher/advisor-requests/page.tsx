@@ -10,6 +10,7 @@ import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { sourceTypeLabelTh } from "@/lib/projects/sourceType";
 
 function waitingDays(date: Date) {
@@ -86,7 +87,7 @@ export default async function TeacherAdvisorRequestsPage({
                   <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold">{request.status}</span>
                 </div>
                 <p className="mt-3 text-sm text-muted">
-                  ส่งคำขอเมื่อ {request.requestedAt.toLocaleString("th-TH")} · รอ {days} วัน
+                  ส่งคำขอเมื่อ {formatThaiDateTime24(request.requestedAt)} · รอ {days} วัน
                 </p>
                 <div className="mt-4 rounded-md border border-line-strong bg-paper p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">

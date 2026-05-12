@@ -13,6 +13,7 @@ import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { getReportSubmissionGate, getStudentReportActionLabel, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
@@ -183,7 +184,7 @@ export default async function StudentReportPage({
                 <div key={version.id} className="rounded-md border border-line p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="font-medium">ฉบับที่ {version.versionNo}</div>
-                    <span className="text-xs text-muted">{version.submittedAt.toLocaleString("th-TH")}</span>
+                    <span className="text-xs text-muted">{formatThaiDateTime24(version.submittedAt)}</span>
                   </div>
                   <a className="mt-1 inline-block text-brand" href={version.driveLink} target="_blank" rel="noreferrer">
                     เปิดลิงก์รายงาน
