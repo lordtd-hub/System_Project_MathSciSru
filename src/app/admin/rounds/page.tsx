@@ -16,6 +16,19 @@ function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
 }
 
+function readinessActionForReason(reason: string) {
+  if (["committee not assigned", "missing HEAD", "missing MEMBER"].includes(reason)) {
+    return { href: "/admin/committee", label: "ไปจัดการกรรมการ" };
+  }
+  if (["waiting proposal final decision", "proposal failed/revise", "previous proposal gate not passed"].includes(reason)) {
+    return { href: "/admin/proposals", label: "ไปตรวจผล Proposal" };
+  }
+  if (["project still PENDING_ADMIN", "project in DRAFT", "project still PENDING_ADVISOR"].includes(reason)) {
+    return { href: "/admin", label: "กลับแดชบอร์ดผู้ดูแลระบบ" };
+  }
+  return null;
+}
+
 export default async function AdminRoundsPage({
   searchParams
 }: {
@@ -87,6 +100,18 @@ export default async function AdminRoundsPage({
   const currentOpenRoundType = courseLevelRoundTypes.find((roundType) => isRoundOpen(roundStatuses[roundType] ?? "DRAFT"));
   const nextNotClosedRoundType = courseLevelRoundTypes.find((roundType) => !isRoundClosed(roundStatuses[roundType] ?? "DRAFT"));
   const readinessFocusRoundType = currentOpenRoundType ?? nextNotClosedRoundType ?? "FINAL_PRESENTATION";
+  const readinessFocusEligibility = roundEligibilityByType.get(readinessFocusRoundType) ?? emptyEligibility;
+  const readinessReasonGroups = Array.from(
+    readinessFocusEligibility.notReady.reduce((groups, item) => {
+      for (const reason of item.reasons.length ? item.reasons : ["ยังไม่ผ่านเงื่อนไขของรอบก่อนหน้า"]) {
+        const current = groups.get(reason) ?? { reason, count: 0, samples: [] as typeof readinessFocusEligibility.notReady };
+        current.count += 1;
+        if (current.samples.length < 3) current.samples.push(item);
+        groups.set(reason, current);
+      }
+      return groups;
+    }, new Map<string, { reason: string; count: number; samples: typeof readinessFocusEligibility.notReady }>()).values()
+  ).sort((a, b) => b.count - a.count || reasonLabelTh(a.reason).localeCompare(reasonLabelTh(b.reason), "th"));
 
   return (
     <div className="space-y-6">
@@ -301,7 +326,7 @@ export default async function AdminRoundsPage({
                     </SubmitButton>
                   </form>
                 ) : null}
-                <a className="button-secondary" href="#not-ready">ดูความพร้อมของรอบปัจจุบัน</a>
+                <a className="button-secondary" href="#not-ready">ดูสรุปกลุ่มที่ยังไม่พร้อม</a>
               </div>
             </section>
           );
@@ -310,21 +335,56 @@ export default async function AdminRoundsPage({
 
       <section id="not-ready" className="panel">
         <h2 className="text-lg font-semibold">ความพร้อมสำหรับรอบ {roundTypeLabelTh(readinessFocusRoundType)}</h2>
-        <div className="mt-4 space-y-2">
-          {readinessFocusRoundType !== "PROGRESS_1" ? (
-            <InfoAlert title={`กำลังอยู่ในรอบ ${roundTypeLabelTh(readinessFocusRoundType)}`}>
-              รอบสอบความก้าวหน้าครั้งที่ 1 ปิดหรือผ่านไปแล้ว รายการความพร้อมของรอบนี้จึงไม่ใช่งานหลักของรอบปัจจุบัน
-            </InfoAlert>
-          ) : progress1Eligibility.notReady.length ? progress1Eligibility.notReady.map((item) => (
-            <div key={item.project.id} className="rounded-md border border-line p-3 text-sm">
-              <div className="font-medium">
-                {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}
+        <div className="mt-2 text-sm text-muted">
+          ใช้ส่วนนี้เพื่อดูภาพรวมว่าโครงงานที่ยังไม่พร้อมติดเงื่อนไขใด ไม่ใช่รายชื่อที่ต้องรับทราบก่อนปิดรอบปัจจุบัน
+        </div>
+        <div className="mt-4 space-y-3">
+          {readinessFocusEligibility.notReady.length ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-md border border-line bg-paper p-3 text-sm">
+                  <div className="text-2xl font-semibold">{readinessFocusEligibility.eligible.length}</div>
+                  <div className="text-muted">พร้อมเข้ารอบนี้</div>
+                </div>
+                <div className="rounded-md border border-line bg-paper p-3 text-sm">
+                  <div className="text-2xl font-semibold">{readinessFocusEligibility.eligibleButIncomplete.length}</div>
+                  <div className="text-muted">พร้อมแต่ยังไม่ครบ</div>
+                </div>
+                <div className="rounded-md border border-line bg-paper p-3 text-sm">
+                  <div className="text-2xl font-semibold">{readinessFocusEligibility.notReady.length}</div>
+                  <div className="text-muted">ยังไม่พร้อมรอบนี้</div>
+                </div>
               </div>
-              <div className="mt-1 text-muted">{item.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</div>
-              <div className="mt-2 text-muted">{item.reasons.map(reasonLabelTh).join(" · ")}</div>
-            </div>
-          )) : (
-            <InfoAlert title="ทุกโครงงานที่เกี่ยวข้องพร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1" />
+              <div className="space-y-2">
+                {readinessReasonGroups.map((group) => {
+                  const action = readinessActionForReason(group.reason);
+                  return (
+                    <div key={group.reason} className="rounded-md border border-line bg-surface p-3 text-sm">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="font-semibold">{reasonLabelTh(group.reason)}</div>
+                          <div className="mt-1 text-muted">{group.count} รายการ</div>
+                        </div>
+                        {action ? <a className="button-secondary min-h-9 px-3 py-1.5 text-xs" href={action.href}>{action.label}</a> : null}
+                      </div>
+                      <ul className="mt-3 space-y-1 text-xs text-muted">
+                        {group.samples.map((item) => (
+                          <li key={`${group.reason}-${item.project.id}`}>
+                            {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}
+                            {item.project.currentTitleTh ? ` - ${item.project.currentTitleTh}` : " - ยังไม่มีชื่อหัวข้อ"}
+                          </li>
+                        ))}
+                      </ul>
+                      {group.count > group.samples.length ? (
+                        <div className="mt-2 text-xs text-muted">และรายการอื่นอีก {group.count - group.samples.length} รายการ</div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <InfoAlert title="ทุกโครงงานที่เกี่ยวข้องพร้อมเข้าสู่รอบนี้" />
           )}
         </div>
       </section>

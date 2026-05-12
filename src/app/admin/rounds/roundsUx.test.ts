@@ -10,7 +10,7 @@ describe("admin course round management UX", () => {
   it("adds a course-level round management page with Progress 1 actions", () => {
     expect(pageSource).toContain("รอบสอบของรายวิชา");
     expect(pageSource).toContain("เปิดรอบ");
-    expect(pageSource).toContain("ดูความพร้อมของรอบปัจจุบัน");
+    expect(pageSource).toContain("ดูสรุปกลุ่มที่ยังไม่พร้อม");
     expect(pageSource).toContain("courseLevelRoundTypes.map(async (roundType)");
     expect(pageSource).toContain("getRoundEligibility(offering.id, roundType)");
   });
@@ -84,5 +84,13 @@ describe("admin course round management UX", () => {
   it("warns about grade I risk when closing Final with eligible incomplete projects", () => {
     expect(pageSource).toContain("นักศึกษาอาจได้รับเกรด I");
     expect(actionSource).toContain("round_close_final_incomplete_ack_required");
+  });
+
+  it("summarizes not-ready projects by reason instead of rendering a long project list", () => {
+    expect(pageSource).toContain("readinessReasonGroups");
+    expect(pageSource).toContain("readinessActionForReason");
+    expect(pageSource).toContain("ใช้ส่วนนี้เพื่อดูภาพรวมว่าโครงงานที่ยังไม่พร้อมติดเงื่อนไขใด");
+    expect(pageSource).toContain("และรายการอื่นอีก");
+    expect(pageSource).not.toContain("progress1Eligibility.notReady.map((item)");
   });
 });
