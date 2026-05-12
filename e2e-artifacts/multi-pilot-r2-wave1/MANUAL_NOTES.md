@@ -167,3 +167,35 @@ These are not ready for final manuals yet, but should be carried into manual pla
 - Use one persistent Edge session during pilot testing. Do not close the browser between role switches.
 - If `playwright-cli open` makes the browser flash and disappear, use the persistent Edge CDP method instead and keep the window open through the pilot.
 - Admin late/missed round handling should be explained as a dedicated operational list. The round overview page is now a summary/control page; detailed exception handling happens on `/admin/round-exceptions`.
+
+## 2026-05-13 Operational Notes From Progress 1 Closure
+
+These notes should be carried into manual planning later, but no documentation/manual screenshot pass was started.
+
+### Admin
+
+- Admin can now see that Progress 1 has one eligible-but-incomplete project and 36 not-yet-eligible projects.
+- The 36 not-yet-eligible projects should be explained as "not current-round blockers".
+- The close acknowledgement wording is understandable for the controlled pilot: Admin sees Project03 and must acknowledge before closing.
+- The round summary is useful at 40-student scale after grouping not-ready reasons.
+- Remaining pain point: after closing Progress 1, Project03 was not listed in the Progress 1 late/reopen exception page, so Admin recovery for eligible-but-incomplete Progress rounds is not clear enough for real operation.
+
+### Student
+
+- Students 01, 04, and 05 saw Progress 2 as available after Admin opened the Progress 2 round.
+- Student03 stayed locked from Progress 2 because Progress 1 was not completed.
+- Student manual should explain that passing the previous gate and Admin opening the round are both required before the next round becomes actionable.
+
+### Teacher
+
+- Teacher01-04 did not get stale Progress 1 scoring tasks after Progress 1 closure.
+- Teacher01-04 did not get Progress 2 scoring tasks immediately after the round opened, which is correct because students have not submitted/confirmed Progress 2 schedules yet.
+- QA Teacher Delta had no unauthorized actionable tasks.
+- Teacher manual should explain that opening a round does not create scoring tasks until the student's evidence/schedule flow reaches the required stage.
+
+### UI Debt To Carry
+
+- Add a dedicated panel for eligible-but-incomplete projects after closure.
+- Add a broader reopen workflow panel for Progress 1, Progress 2, and Final, not only Proposal.
+- Add clearer late/excused management UI for non-Proposal rounds.
+- Keep improving Admin action hierarchy; open/close/reset controls are still dense in the round cards.

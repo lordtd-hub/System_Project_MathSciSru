@@ -8,6 +8,166 @@
 - Run date: 2026-05-12
 - Mode: operational workflow testing, not documentation screenshots
 
+## 2026-05-13 Continuation: Progress 1 Closure and Progress 2 Transition
+
+- QA preview: `https://system-project-math-sci-f96db92qp-lordtd-hubs-projects.vercel.app`
+- QA commits in scope: `8ec1533`, `6354e14`
+- Browser: Microsoft Edge persistent session via CDP
+- Mode: operational workflow testing; no production deploy; no direct DB manipulation
+
+### Admin Rounds Verification
+
+`/admin/rounds` was verified before taking action.
+
+Progress 1 showed the intended buckets:
+
+- Ready / eligible: `4`
+- Submitted current-round evidence: `3`
+- Completed current-round assessment: `3`
+- Eligible but incomplete: `1`
+- Not yet eligible: `36`
+- Open exceptions: `0`
+
+The eligible-but-incomplete warning listed only Project03:
+
+- `R2STU03 MULTI-PILOT-R2 Student 03 - MULTI-PILOT-R2 Project 03 ระบบทดสอบหลักฐานไม่ครบ`
+
+The 36 not-yet-eligible projects were not listed as Progress 1 close blockers. The summary section grouped not-ready students by cause instead of rendering a long list.
+
+Screenshot:
+
+- `screenshots/admin-rounds-pre-close-progress1-f96db92qp.png`
+
+### Project03 Handling Decision
+
+Chosen pilot action: leave Project03 incomplete and proceed with Admin acknowledgement.
+
+Reason:
+
+- The purpose of this pass was to validate the new eligible-vs-not-eligible close policy.
+- Project03 was the only eligible-but-incomplete project, so it was the correct case to test the acknowledgement-before-close behavior.
+- Completing Project03 first would avoid the exact guard path that needed live validation.
+
+After Progress 1 was closed, `/admin/round-exceptions?round_type=PROGRESS_1` was checked for recovery/reopen handling. It did not list Project03 and showed zero missing/open-late rows for Progress 1.
+
+Operational result:
+
+- Progress 1 close acknowledgement works.
+- Project03 is not clearly recoverable through the current Progress 1 exception UI after closure.
+- This is a remaining operational gap before Wave 2 if late Progress/Final recovery must be handled by Admin through the UI.
+
+Screenshot:
+
+- `screenshots/admin-round-exceptions-progress1-after-close-project03.png`
+
+### Progress 1 Closure
+
+Admin acknowledged the eligible-but-incomplete Project03 warning and closed Progress 1 through the UI.
+
+After closure:
+
+- Progress 1 status: closed
+- Progress 1 counts remained:
+  - ready `4`
+  - submitted `3`
+  - completed `3`
+  - eligible-but-incomplete `1`
+  - not-yet-eligible `36`
+- Progress 2 open action became available.
+
+Screenshot:
+
+- `screenshots/admin-rounds-after-progress1-close-ack.png`
+
+### Progress 2 Opening
+
+Admin opened Progress 2 through `/admin/rounds`.
+
+After opening:
+
+- Progress 2 status: open
+- Progress 2 ready / eligible: `3`
+- Progress 2 eligible-but-incomplete: `3`
+- Progress 2 not-yet-eligible: `37`
+- Progress 2 warning listed only Projects 05, 04, and 01 as ready but incomplete.
+- Project03 was not included in Progress 2 eligibility.
+
+Screenshot:
+
+- `screenshots/admin-rounds-after-progress2-open.png`
+
+### Student Visibility After Progress 2 Open
+
+Verified through QA role switching in Edge.
+
+Expected unlock:
+
+- Student01: Progress 2 dashboard action and schedule/evidence controls visible.
+- Student04: Progress 2 schedule/evidence controls visible.
+- Student05: Progress 2 dashboard action and schedule/evidence controls visible.
+
+Expected lock:
+
+- Student03: Progress 2 shown as not yet reached/locked; no active Progress 2 controls.
+
+Screenshots:
+
+- `screenshots/multi-r2-student-01-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-01-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-student-04-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-04-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-student-05-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-05-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-student-03-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-03-schedule-after-progress2-open.png`
+
+Observation:
+
+- Student04 dashboard first sample was sparse during one automated read, but `/student/schedule` correctly showed Progress 2 controls. Student01 was rechecked separately and the schedule page correctly showed Progress 2 controls.
+
+### Teacher Queue Verification After Progress 2 Open
+
+Verified Teacher01-04 and QA Teacher Delta.
+
+Results:
+
+- Teacher01-04 dashboards showed no actionable pending queue after Progress 2 opened.
+- `/teacher/progress1` showed no stale Progress 1 scoring tasks.
+- `/teacher/progress2` showed no Progress 2 scoring tasks yet, as no Progress 2 schedule/evidence has been submitted and confirmed.
+- `/teacher/schedules` showed read-only confirmed schedule visibility; no active approval buttons were present.
+- QA Teacher Delta had no unauthorized committee/advisor actions and no active scoring/schedule tasks.
+
+Screenshots:
+
+- `screenshots/multi-r2-teacher-01-teacher-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-02-teacher-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-03-teacher-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-04-teacher-dashboard-after-progress2-open.png`
+- `screenshots/teacher-delta-teacher-dashboard-after-progress2-open.png`
+
+### Operational Decision Questions
+
+1. Is eligible-vs-not-eligible separation operationally understandable?
+   - Yes. Admin can now distinguish the one true close blocker from the 36 not-yet-eligible projects.
+
+2. Is Project03 recoverable after round closure?
+   - Not clearly through current UI. The Progress 1 exception page did not list Project03 after closure.
+
+3. Is acknowledgement-before-close sufficient for real admin use?
+   - Sufficient for controlled closure, but only if paired later with a visible recovery/reopen path for incomplete eligible projects.
+
+4. Should the system later add dedicated panels?
+   - Yes. Add a dedicated incomplete-project panel, late/reopen workflow panel, and late/excused management UI before Wave 2 or before real operation.
+
+5. Is Progress 2 unlock logic now trustworthy?
+   - Yes for the tested Wave 1 state: Projects 01/04/05 unlocked, Project03 stayed locked, and 37 not-yet-eligible projects did not unlock.
+
+### Current Recommendation
+
+Wave 1 can continue into Progress 2 operational testing for Projects 01/04/05.
+
+Do not start Wave 2 yet. Wave 2 planning can begin later after Progress 2 schedule/evidence submission, teacher queue updates, scoring, and the Project03 recovery gap are either patched or explicitly accepted as out of scope for Wave 1.
+
 Wave 1 continued from the existing R2 state. The workflow did not deadlock, but the run found one important workflow/status risk: after Progress 1 receives the required committee scores, the student dashboard and schedule page start presenting Progress 2 as actionable even though Admin has not opened the Progress 2 round.
 
 Recommendation: patch stabilization before continuing deeper into Progress 2/Final or Wave 2.

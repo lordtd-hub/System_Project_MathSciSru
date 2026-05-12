@@ -181,6 +181,63 @@ Recommended order:
 4. Verify schedule approval queue ordering by submission time.
 5. Continue Wave 1 with Project 04 and Project 05 Progress 1 scoring.
 
+## 2026-05-13 Progress 1 Closure / Progress 2 Transition Update
+
+Current QA preview:
+
+- `https://system-project-math-sci-f96db92qp-lordtd-hubs-projects.vercel.app`
+
+Completed in this continuation:
+
+- Verified `/admin/rounds` after the operational summary patch.
+- Confirmed Progress 1 buckets:
+  - completed: Projects 01, 04, 05
+  - eligible-but-incomplete: Project03
+  - not-yet-eligible: 36 projects
+- Chose to leave Project03 incomplete and test Admin acknowledgement, because this validates the intended close policy.
+- Closed Progress 1 with acknowledgement.
+- Verified Progress 2 became openable.
+- Opened Progress 2 through Admin UI.
+- Verified Progress 2 eligibility:
+  - unlocked: Projects 01, 04, 05
+  - still locked/not eligible: Project03 and the other not-yet-eligible projects
+- Verified Student01/04/05 can access Progress 2 schedule/evidence controls.
+- Verified Student03 cannot access active Progress 2 controls.
+- Verified Teacher01-04 and QA Teacher Delta have no stale Proposal/Progress1 tasks and no unauthorized active tasks immediately after Progress 2 opens.
+
+New screenshots:
+
+- `screenshots/admin-rounds-pre-close-progress1-f96db92qp.png`
+- `screenshots/admin-rounds-after-progress1-close-ack.png`
+- `screenshots/admin-rounds-after-progress2-open.png`
+- `screenshots/admin-round-exceptions-progress1-after-close-project03.png`
+- `screenshots/multi-r2-student-01-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-01-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-student-04-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-04-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-student-05-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-05-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-student-03-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-student-03-schedule-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-01-teacher-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-02-teacher-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-03-teacher-dashboard-after-progress2-open.png`
+- `screenshots/multi-r2-teacher-04-teacher-dashboard-after-progress2-open.png`
+- `screenshots/teacher-delta-teacher-dashboard-after-progress2-open.png`
+
+New operational gap:
+
+- Project03 is not clearly recoverable after Progress 1 closure through `/admin/round-exceptions?round_type=PROGRESS_1`; the page showed zero rows for Progress 1 after closure.
+- Add a dedicated eligible-incomplete/reopen panel before Wave 2 if Progress/Final late recovery must be operated fully through Admin UI.
+
+Recommended next step from current state:
+
+1. Continue Wave 1 inside Progress 2 for Projects 01, 04, and 05.
+2. Have Students 01/04/05 submit Progress 2 evidence and schedule requests.
+3. Verify schedule approval queues appear only for assigned teachers and clear after approval.
+4. Verify Project03 remains locked unless a deliberate late/reopen workflow is added.
+5. Do not start Wave 2 until the Project03 recovery gap is decided.
+
 ## Latest Validation
 
 - `npm test`: PASS, 73 files / 285 tests
