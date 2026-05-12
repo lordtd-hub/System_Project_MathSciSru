@@ -88,8 +88,10 @@ describe("admin course round management UX", () => {
 
   it("summarizes not-ready projects by reason instead of rendering a long project list", () => {
     expect(pageSource).toContain("readinessReasonGroups");
+    expect(pageSource).toContain("readinessReasonGroup");
     expect(pageSource).toContain("readinessActionForReason");
     expect(pageSource).toContain("ใช้ส่วนนี้เพื่อดูภาพรวมว่าโครงงานที่ยังไม่พร้อมติดเงื่อนไขใด");
+    expect(pageSource).toContain("ยังไม่ได้แต่งตั้งกรรมการครบ");
     expect(pageSource).toContain("และรายการอื่นอีก");
     expect(pageSource).not.toContain("progress1Eligibility.notReady.map((item)");
   });

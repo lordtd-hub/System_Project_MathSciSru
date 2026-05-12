@@ -17,16 +17,29 @@ function formatDate(value?: Date | null) {
 }
 
 function readinessActionForReason(reason: string) {
-  if (["committee not assigned", "missing HEAD", "missing MEMBER"].includes(reason)) {
+  if (["committee", "committee not assigned", "missing HEAD", "missing MEMBER"].includes(reason)) {
     return { href: "/admin/committee", label: "ไปจัดการกรรมการ" };
   }
-  if (["waiting proposal final decision", "proposal failed/revise", "previous proposal gate not passed"].includes(reason)) {
+  if (["proposal", "waiting proposal final decision", "proposal failed/revise", "previous proposal gate not passed"].includes(reason)) {
     return { href: "/admin/proposals", label: "ไปตรวจผล Proposal" };
   }
-  if (["project still PENDING_ADMIN", "project in DRAFT", "project still PENDING_ADVISOR"].includes(reason)) {
+  if (["project_state", "project still PENDING_ADMIN", "project in DRAFT", "project still PENDING_ADVISOR"].includes(reason)) {
     return { href: "/admin", label: "กลับแดชบอร์ดผู้ดูแลระบบ" };
   }
   return null;
+}
+
+function readinessReasonGroup(reason: string) {
+  if (["committee not assigned", "missing HEAD", "missing MEMBER"].includes(reason)) {
+    return { key: "committee", label: "ยังไม่ได้แต่งตั้งกรรมการครบ" };
+  }
+  if (["waiting proposal final decision", "proposal failed/revise", "previous proposal gate not passed"].includes(reason)) {
+    return { key: "proposal", label: "ยังไม่ผ่าน/ยังไม่จบขั้น Proposal" };
+  }
+  if (["project still PENDING_ADMIN", "project in DRAFT", "project still PENDING_ADVISOR"].includes(reason)) {
+    return { key: "project_state", label: "สถานะโครงงานยังไม่พร้อม" };
+  }
+  return { key: reason, label: reasonLabelTh(reason) };
 }
 
 export default async function AdminRoundsPage({
@@ -103,15 +116,19 @@ export default async function AdminRoundsPage({
   const readinessFocusEligibility = roundEligibilityByType.get(readinessFocusRoundType) ?? emptyEligibility;
   const readinessReasonGroups = Array.from(
     readinessFocusEligibility.notReady.reduce((groups, item) => {
+      const seenGroupKeys = new Set<string>();
       for (const reason of item.reasons.length ? item.reasons : ["ยังไม่ผ่านเงื่อนไขของรอบก่อนหน้า"]) {
-        const current = groups.get(reason) ?? { reason, count: 0, samples: [] as typeof readinessFocusEligibility.notReady };
+        const groupInfo = readinessReasonGroup(reason);
+        if (seenGroupKeys.has(groupInfo.key)) continue;
+        seenGroupKeys.add(groupInfo.key);
+        const current = groups.get(groupInfo.key) ?? { key: groupInfo.key, label: groupInfo.label, count: 0, samples: [] as typeof readinessFocusEligibility.notReady };
         current.count += 1;
         if (current.samples.length < 3) current.samples.push(item);
-        groups.set(reason, current);
+        groups.set(groupInfo.key, current);
       }
       return groups;
-    }, new Map<string, { reason: string; count: number; samples: typeof readinessFocusEligibility.notReady }>()).values()
-  ).sort((a, b) => b.count - a.count || reasonLabelTh(a.reason).localeCompare(reasonLabelTh(b.reason), "th"));
+    }, new Map<string, { key: string; label: string; count: number; samples: typeof readinessFocusEligibility.notReady }>()).values()
+  ).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "th"));
 
   return (
     <div className="space-y-6">
@@ -357,19 +374,19 @@ export default async function AdminRoundsPage({
               </div>
               <div className="space-y-2">
                 {readinessReasonGroups.map((group) => {
-                  const action = readinessActionForReason(group.reason);
+                  const action = readinessActionForReason(group.key);
                   return (
-                    <div key={group.reason} className="rounded-md border border-line bg-surface p-3 text-sm">
+                    <div key={group.key} className="rounded-md border border-line bg-surface p-3 text-sm">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <div className="font-semibold">{reasonLabelTh(group.reason)}</div>
+                          <div className="font-semibold">{group.label}</div>
                           <div className="mt-1 text-muted">{group.count} รายการ</div>
                         </div>
                         {action ? <a className="button-secondary min-h-9 px-3 py-1.5 text-xs" href={action.href}>{action.label}</a> : null}
                       </div>
                       <ul className="mt-3 space-y-1 text-xs text-muted">
                         {group.samples.map((item) => (
-                          <li key={`${group.reason}-${item.project.id}`}>
+                          <li key={`${group.key}-${item.project.id}`}>
                             {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}
                             {item.project.currentTitleTh ? ` - ${item.project.currentTitleTh}` : " - ยังไม่มีชื่อหัวข้อ"}
                           </li>
