@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
+import { applyLatePenalty, hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
@@ -81,6 +82,20 @@ async function assertScoreNotAlreadySubmitted(projectId: string, assessmentRound
   }
 }
 
+async function getLateRoundScoreAdjustment(projectId: string, assessmentRoundId: string, rawScore: number) {
+  const exceptions = await prisma.projectRoundException.findMany({
+    where: { projectId, assessmentRoundId, status: "OPEN" },
+    select: { exceptionType: true, status: true }
+  });
+  const latePenaltyRequired = requiresLateRoundPenalty(exceptions);
+  return {
+    rawScore,
+    score: latePenaltyRequired ? applyLatePenalty(rawScore) : rawScore,
+    latePenaltyRequired,
+    latePenaltyPercent: latePenaltyRequired ? 10 : 0
+  };
+}
+
 export async function claimTeacherProfile(formData: FormData) {
   const user = await requirePendingTeacherClaimUser();
   assertRateLimit(`teacher:${user.id}:claimTeacherProfile`, pilotRateLimits.workflowMutation);
@@ -118,9 +133,20 @@ export async function openProposalScoring(formData: FormData) {
   const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
   const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({
     where: { id: attemptId },
-    select: { assessmentRound: { select: { roundType: true, status: true } } }
+    select: {
+      projectId: true,
+      assessmentRoundId: true,
+      assessmentRound: { select: { roundType: true, status: true } }
+    }
   });
-  if (attempt.assessmentRound.roundType !== "PROPOSAL" || attempt.assessmentRound.status !== "SCORING_OPEN") {
+  const lateRoundExceptions = await prisma.projectRoundException.findMany({
+    where: { projectId: attempt.projectId, assessmentRoundId: attempt.assessmentRoundId, status: "OPEN" },
+    select: { exceptionType: true, status: true }
+  });
+  if (
+    attempt.assessmentRound.roundType !== "PROPOSAL" ||
+    (attempt.assessmentRound.status !== "SCORING_OPEN" && !hasOpenLateRoundException(lateRoundExceptions))
+  ) {
     redirectWithQuery("/teacher/proposals", { error: "proposal_round_not_open" });
   }
   await prisma.evaluatorAssignment.upsert({
@@ -353,7 +379,15 @@ export async function submitProposalScore(formData: FormData) {
   if (assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.lockedAt) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_score_locked" });
   }
-  if (assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN") {
+  const proposalRoundExceptions = await prisma.projectRoundException.findMany({
+    where: {
+      projectId: assignment.assessmentAttempt.projectId,
+      assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId,
+      status: "OPEN"
+    },
+    select: { exceptionType: true, status: true }
+  });
+  if (assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasOpenLateRoundException(proposalRoundExceptions)) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_round_not_open" });
   }
 
@@ -380,6 +414,11 @@ export async function submitProposalScore(formData: FormData) {
     maxScore: rubric.items.reduce((sum, item) => sum + item.points, 0),
     criticalWarnings: scoredItems.filter((scoredItem) => scoredItem.item.isCritical && scoredItem.pointsAwarded === 0).map((scoredItem) => scoredItem.item.itemLabelTh)
   };
+  const scoreAdjustment = await getLateRoundScoreAdjustment(
+    assignment.assessmentAttempt.projectId,
+    assignment.assessmentAttempt.assessmentRoundId,
+    scoreResult.totalScore
+  );
   const decisionErrors = submitMode === "submit" ? validateProposalDecision(decision, reason) : [];
   if (submitMode === "submit" && !overallComment) {
     decisionErrors.push("กรุณาระบุข้อเสนอแนะเพื่อให้นักศึกษาใช้ปรับปรุงงาน");
@@ -389,7 +428,7 @@ export async function submitProposalScore(formData: FormData) {
   const scoreSubmission = await timer.measure("upsert_score_submission", () => prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignmentId },
     update: {
-      totalScore: scoreResult.totalScore,
+      totalScore: scoreAdjustment.score,
       overallComment,
       status: submitMode === "submit" ? "SUBMITTED" : "DRAFT",
       submittedAt: submitMode === "submit" ? new Date() : null,
@@ -397,7 +436,7 @@ export async function submitProposalScore(formData: FormData) {
     },
     create: {
       evaluatorAssignmentId: assignmentId,
-      totalScore: scoreResult.totalScore,
+      totalScore: scoreAdjustment.score,
       overallComment,
       status: submitMode === "submit" ? "SUBMITTED" : "DRAFT",
       submittedAt: submitMode === "submit" ? new Date() : null,
@@ -486,7 +525,13 @@ export async function submitProposalScore(formData: FormData) {
         actorUserId: user.id,
         relatedEntityType: "ScoreSubmission",
         relatedEntityId: scoreSubmission.id,
-        metadataJson: { totalScore: scoreResult.totalScore, criticalWarnings: scoreResult.criticalWarnings }
+        metadataJson: {
+          totalScore: scoreAdjustment.score,
+          rawTotalScore: scoreAdjustment.rawScore,
+          latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
+          latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
+          criticalWarnings: scoreResult.criticalWarnings
+        }
       }
     });
   }
@@ -687,6 +732,7 @@ export async function submitProgress1Score(formData: FormData) {
     return { item, checked: pointsAwarded > 0, pointsAwarded };
   });
   const progressTotalScore = scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0);
+  const scoreAdjustment = await getLateRoundScoreAdjustment(project.id, round.id, progressTotalScore);
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -716,8 +762,8 @@ export async function submitProgress1Score(formData: FormData) {
   });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
-    update: { totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
-    create: { evaluatorAssignmentId: assignment.id, totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
+    update: { totalScore: scoreAdjustment.score, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
+    create: { evaluatorAssignmentId: assignment.id, totalScore: scoreAdjustment.score, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
   });
 
   await timer.measure("upsert_score_items", () => Promise.all(
@@ -738,7 +784,12 @@ export async function submitProgress1Score(formData: FormData) {
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
       relatedEntityId: scoreSubmission.id,
-      metadataJson: { totalScore: progressTotalScore }
+      metadataJson: {
+        totalScore: scoreAdjustment.score,
+        rawTotalScore: scoreAdjustment.rawScore,
+        latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
+        latePenaltyPercent: scoreAdjustment.latePenaltyPercent
+      }
     }
   }));
 
@@ -805,6 +856,7 @@ export async function submitProgress2Score(formData: FormData) {
     return { item, checked: pointsAwarded > 0, pointsAwarded };
   });
   const progressTotalScore = scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0);
+  const scoreAdjustment = await getLateRoundScoreAdjustment(project.id, round.id, progressTotalScore);
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -834,8 +886,8 @@ export async function submitProgress2Score(formData: FormData) {
   });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
-    update: { totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
-    create: { evaluatorAssignmentId: assignment.id, totalScore: progressTotalScore, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
+    update: { totalScore: scoreAdjustment.score, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
+    create: { evaluatorAssignmentId: assignment.id, totalScore: scoreAdjustment.score, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() }
   });
 
   await timer.measure("upsert_score_items", () => Promise.all(
@@ -856,7 +908,12 @@ export async function submitProgress2Score(formData: FormData) {
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
       relatedEntityId: scoreSubmission.id,
-      metadataJson: { totalScore: progressTotalScore }
+      metadataJson: {
+        totalScore: scoreAdjustment.score,
+        rawTotalScore: scoreAdjustment.rawScore,
+        latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
+        latePenaltyPercent: scoreAdjustment.latePenaltyPercent
+      }
     }
   }));
 
@@ -910,6 +967,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     return { item, checked: false, pointsAwarded: 0 };
   });
   const finalTotalScore = scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0);
+  const scoreAdjustment = await getLateRoundScoreAdjustment(project.id, round.id, finalTotalScore);
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
       projectId_assessmentRoundId_attemptNo: {
@@ -940,7 +998,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
     update: {
-      totalScore: finalTotalScore,
+      totalScore: scoreAdjustment.score,
       overallComment: comment || null,
       status: "SUBMITTED",
       submittedAt: new Date(),
@@ -948,7 +1006,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     },
     create: {
       evaluatorAssignmentId: assignment.id,
-      totalScore: finalTotalScore,
+      totalScore: scoreAdjustment.score,
       overallComment: comment || null,
       status: "SUBMITTED",
       submittedAt: new Date(),
@@ -974,7 +1032,13 @@ export async function submitFinalPresentationScore(formData: FormData) {
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
       relatedEntityId: scoreSubmission.id,
-      metadataJson: { rubricMode: "condition_based_final", totalScore: finalTotalScore }
+      metadataJson: {
+        rubricMode: "condition_based_final",
+        totalScore: scoreAdjustment.score,
+        rawTotalScore: scoreAdjustment.rawScore,
+        latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
+        latePenaltyPercent: scoreAdjustment.latePenaltyPercent
+      }
     }
   }));
 

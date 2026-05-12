@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
+import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
@@ -188,8 +189,22 @@ export default async function TeacherDashboardPage() {
   const independentTeacherQueries = timer.measure("teacher_independent_queries", () => Promise.all([
     prisma.assessmentAttempt.findMany({
       where: {
-        assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" },
-        presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } }
+        presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
+        OR: [
+          { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
+          {
+            assessmentRound: { roundType: "PROPOSAL" },
+            project: {
+              roundExceptions: {
+                some: {
+                  status: "OPEN",
+                  exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] },
+                  assessmentRound: { roundType: "PROPOSAL" }
+                }
+              }
+            }
+          }
+        ]
       },
       select: {
         id: true,

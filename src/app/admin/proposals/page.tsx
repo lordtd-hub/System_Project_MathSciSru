@@ -72,6 +72,13 @@ export default async function AdminProposalsPage({
   const hasProposalAttempts = allAttempts.length > 0;
   const latestProposalRound = rounds[0];
   const progress1Eligibility = latestProposalRound ? await getRoundEligibility(latestProposalRound.courseOfferingId, "PROGRESS_1") : { eligible: [], notReady: [] };
+  const missingProposalProjects = latestProposalRound
+    ? await prisma.project.findMany({
+        where: { courseOfferingId: latestProposalRound.courseOfferingId, presentationSubmissions: { none: {} } },
+        orderBy: { student: { studentCode: "asc" } },
+        select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } }
+      })
+    : [];
   const waitingDecisionCount = allAttempts.filter((attempt) => !attempt.proposalResult).length;
   const approvedWithoutCommitteeCount = allAttempts.filter((attempt) => {
     if (attempt.project.status !== "TOPIC_APPROVED") return false;
@@ -170,6 +177,12 @@ export default async function AdminProposalsPage({
                 </div>
                 <form action={closeProposalRound}>
                   <input type="hidden" name="round_id" value={round.id} />
+                  {!closed && missingProposalProjects.length ? (
+                    <label className="mb-2 flex items-center gap-2 text-xs text-muted">
+                      <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                      รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                    </label>
+                  ) : null}
                   <SubmitButton
                     disabled={closed}
                     pendingText="กำลังปิดรอบ..."
@@ -179,6 +192,19 @@ export default async function AdminProposalsPage({
                   </SubmitButton>
                 </form>
               </div>
+
+              {!closed && missingProposalProjects.length ? (
+                <WarningAlert title={`มีนักศึกษายังไม่ส่ง Proposal ${missingProposalProjects.length} ราย`}>
+                  <div className="space-y-1">
+                    <p>ก่อนปิดรอบ โปรดยืนยันว่ารับทราบรายชื่อนักศึกษาที่ค้างส่งแล้ว</p>
+                    <ul className="list-disc pl-5">
+                      {missingProposalProjects.slice(0, 10).map((project) => (
+                        <li key={project.id}>{project.student?.studentCode} {project.student?.firstNameTh} {project.student?.lastNameTh}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </WarningAlert>
+              ) : null}
 
               {closed ? (
                 <InfoAlert title="ปิดรอบแล้ว">

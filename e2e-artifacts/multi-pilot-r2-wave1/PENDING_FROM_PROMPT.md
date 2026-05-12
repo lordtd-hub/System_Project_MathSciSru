@@ -223,7 +223,36 @@ Validation after this patch:
 - `npm test`: PASS, 73 files / 288 tests
 - `npm run build`: PASS
 
-Decision questions still open:
+## Policy Decision - Late/Missed Round Handling
 
-- Whether late Proposal should stay hard-locked or have an audited Admin override.
-- Whether Admin round closure should require explicit acknowledgement when submissions are missing.
+Status: decided and patched after the future-round gate.
+
+Decisions:
+
+- Late/missed submissions are hard-locked by default after a round closes.
+- Student-facing wording should say the student must contact the responsible instructor/admin for case-by-case handling.
+- Admin can open a late/missed round for one project at a time with audit/timeline evidence.
+- When Admin closes Proposal while students have not submitted, the UI must list missing students and require explicit acknowledgement before closing.
+- The same policy direction applies to Proposal, Progress 1, Progress 2, and Final.
+- Default penalty for a non-excused late/missed round is 10% deducted from the score submitted by each evaluator for that round.
+- If Admin marks the case as excused/force majeure, the late tag remains as evidence but the 10% deduction is not applied.
+- If the Final round has closed and a project remains incomplete, the student dashboard must warn that the project may receive grade I and must contact the responsible instructor/admin.
+
+Patch notes:
+
+- Added a shared late-round exception helper and default 10% penalty helper.
+- Added audited Admin action to open late round access per project using existing `ProjectRoundException`.
+- Proposal submission and Progress/Final evidence/schedule actions can proceed after round closure only when an open per-project late exception exists.
+- Proposal, Progress 1, Progress 2, and Final scoring actions apply the late penalty at score-submission time and keep raw score metadata for audit.
+- Student dashboard shows late-round tags and Final-closed incomplete grade-I risk warning.
+- Teacher Proposal dashboard/list/scoring pages include opened late Proposal cases after the normal Proposal round is closed, so an admin override does not create a hidden evaluator task.
+
+Remaining implementation gap:
+
+- The Admin UI currently exposes the per-case reopening flow clearly for missed Proposal cases. A broader Admin list for missed Progress 1, Progress 2, and Final cases should be added before Wave 2 if the pilot needs to recover late Progress/Final students through the UI without direct route/form construction.
+
+Validation after the late/missed round patch:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 75 files / 296 tests
+- `npm run build`: PASS

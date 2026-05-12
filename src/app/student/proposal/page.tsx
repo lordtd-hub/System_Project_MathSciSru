@@ -14,6 +14,7 @@ import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { canEditUntilDeadline } from "@/lib/submissions/versioning";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
@@ -49,12 +50,20 @@ export default async function ProposalSubmissionPage({
   const proposalRound = project
     ? await prisma.assessmentRound.findFirst({
         where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" },
-        select: { status: true, submissionDeadline: true }
+        select: { id: true, status: true, submissionDeadline: true }
       })
     : null;
+  const lateRoundExceptions = project && proposalRound
+    ? await prisma.projectRoundException.findMany({
+        where: { projectId: project.id, assessmentRoundId: proposalRound.id, status: "OPEN" },
+        select: { exceptionType: true, status: true, reason: true }
+      })
+    : [];
+  const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
+  const latePenaltyRequired = requiresLateRoundPenalty(lateRoundExceptions);
   const canPrepareProposal = project?.status === "PROPOSAL_PENDING";
   const canSubmitProposal =
-    Boolean(canPrepareProposal && proposalRound && isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline));
+    Boolean(canPrepareProposal && proposalRound && ((isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline)) || hasLateOverride));
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาสร้างโครงงานก่อนส่งเอกสารเสนอหัวข้อ" actionLabel="ไปหน้าโครงงาน" href="/student/project" />;
@@ -67,6 +76,17 @@ export default async function ProposalSubmissionPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {hasLateOverride ? (
+        <WarningAlert title="เปิดให้ส่ง Proposal รายกรณีหลังปิดรอบ">
+          {latePenaltyRequired
+            ? "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษ ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
+            : "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษโดยผู้ดูแลระบบ กรุณาส่งข้อมูลให้ครบตามที่ได้รับอนุญาต"}
+        </WarningAlert>
+      ) : canPrepareProposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
+        <WarningAlert title="พ้นกำหนดส่ง Proposal แล้ว">
+          ขณะนี้รอบ Proposal ปิดแล้ว หากจำเป็นต้องส่งย้อนหลัง กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดเป็นรายกรณี
+        </WarningAlert>
+      ) : null}
       {params.success === "proposal_submitted" ? (
         <InfoAlert title="ส่ง Proposal สำเร็จ">
           ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์และผู้ดูแลระบบดำเนินการตามสถานะโครงงาน

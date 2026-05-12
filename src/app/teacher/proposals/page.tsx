@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
+import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { openProposalScoring } from "../actions";
 
 export default async function TeacherProposalsPage() {
@@ -13,7 +14,24 @@ export default async function TeacherProposalsPage() {
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
 
   const attempts = await prisma.assessmentAttempt.findMany({
-    where: { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" }, presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } } },
+    where: {
+      presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
+      OR: [
+        { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
+        {
+          assessmentRound: { roundType: "PROPOSAL" },
+          project: {
+            roundExceptions: {
+              some: {
+                status: "OPEN",
+                exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] },
+                assessmentRound: { roundType: "PROPOSAL" }
+              }
+            }
+          }
+        }
+      ]
+    },
     include: {
       presentationSubmission: true,
       project: { include: { student: true } },

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { getProgress1Readiness } from "@/lib/assessments/roundEligibility";
+import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { isSchedulableRoundType, parseScheduleDateTime, roundTypeToAssessmentKind } from "@/lib/scheduling/scheduleRules";
 import { buildSubmissionSnapshot, canEditUntilDeadline, nextVersionNo } from "@/lib/submissions/versioning";
 import { validateMaterialLink } from "@/lib/validators/materialLink";
@@ -279,8 +280,13 @@ export async function saveProposalSubmission(formData: FormData) {
     where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" }
   });
   if (!round) redirectWithQuery("/student/proposal", { error: "proposal_round_not_open" });
-  if (!isRoundOpen(round.status)) redirectWithQuery("/student/proposal", { error: "proposal_round_not_open" });
-  if (!canEditUntilDeadline(new Date(), round.submissionDeadline)) redirectWithQuery("/student/proposal", { error: "proposal_deadline_passed" });
+  const lateRoundExceptions = await prisma.projectRoundException.findMany({
+    where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
+    select: { exceptionType: true, status: true }
+  });
+  const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
+  if (!isRoundOpen(round.status) && !hasLateOverride) redirectWithQuery("/student/proposal", { error: "proposal_round_closed_contact_admin" });
+  if (!hasLateOverride && !canEditUntilDeadline(new Date(), round.submissionDeadline)) redirectWithQuery("/student/proposal", { error: "proposal_deadline_passed" });
 
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
   const linkResult = validateMaterialLink(materialLink);
@@ -395,7 +401,12 @@ export async function saveProposalSubmission(formData: FormData) {
       eventTitle: "ส่ง Proposal",
       actorUserId: userId,
       relatedEntityType: "PresentationSubmission",
-      relatedEntityId: submission.id
+      relatedEntityId: submission.id,
+      metadataJson: {
+        lateRoundOverride: hasLateOverride,
+        latePenaltyRequired: requiresLateRoundPenalty(lateRoundExceptions),
+        latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
+      }
     }
   });
 
@@ -422,7 +433,13 @@ export async function saveAssessmentEvidence(formData: FormData) {
       }
     }
   });
-  if (!round || !isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  if (!round) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  const lateRoundExceptions = await prisma.projectRoundException.findMany({
+    where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
+    select: { exceptionType: true, status: true }
+  });
+  const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
+  if (!isRoundOpen(round.status) && !hasLateOverride) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
   await assertPreviousPresentationRoundComplete(project.id, roundType);
 
   if (roundType === "PROGRESS_1") {
@@ -499,7 +516,14 @@ export async function saveAssessmentEvidence(formData: FormData) {
       actorUserId: userId,
       relatedEntityType: "AssessmentSubmission",
       relatedEntityId: submission.id,
-      metadataJson: { kind, roundType, materialLink: linkResult.normalizedUrl }
+      metadataJson: {
+        kind,
+        roundType,
+        materialLink: linkResult.normalizedUrl,
+        lateRoundOverride: hasLateOverride,
+        latePenaltyRequired: requiresLateRoundPenalty(lateRoundExceptions),
+        latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
+      }
     }
   });
 
@@ -525,7 +549,12 @@ export async function submitExamSchedule(formData: FormData) {
     }
   });
   if (!round) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
-  if (!isRoundOpen(round.status)) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
+  const lateRoundExceptions = await prisma.projectRoundException.findMany({
+    where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
+    select: { exceptionType: true, status: true }
+  });
+  const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
+  if (!isRoundOpen(round.status) && !hasLateOverride) redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" });
   await assertPreviousPresentationRoundComplete(project.id, roundType);
   const assessmentKind = roundTypeToAssessmentKind(roundType);
   const evidence = await prisma.assessmentSubmission.findFirst({
@@ -614,7 +643,15 @@ export async function submitExamSchedule(formData: FormData) {
       actorUserId: userId,
       relatedEntityType: "ExamScheduleProposal",
       relatedEntityId: schedule.id,
-      metadataJson: { roundType, assessmentSubmissionId: evidence.id, proposedStartAt: start.toISOString(), room }
+      metadataJson: {
+        roundType,
+        assessmentSubmissionId: evidence.id,
+        proposedStartAt: start.toISOString(),
+        room,
+        lateRoundOverride: hasLateOverride,
+        latePenaltyRequired: requiresLateRoundPenalty(lateRoundExceptions),
+        latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
+      }
     }
   });
 

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
+import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
 import { findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { submitProposalScore } from "../../actions";
@@ -47,6 +48,16 @@ export default async function ProposalScoringPage({
   const submission = assignment.assessmentAttempt.presentationSubmission;
   const content = submission?.contentJson as Record<string, string> | undefined;
   const student = assignment.assessmentAttempt.project.student;
+  const lateRoundExceptions = await prisma.projectRoundException.findMany({
+    where: {
+      projectId: assignment.assessmentAttempt.projectId,
+      assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId,
+      status: "OPEN"
+    },
+    select: { exceptionType: true, status: true }
+  });
+  const hasLateRoundOverride = hasOpenLateRoundException(lateRoundExceptions);
+  const latePenaltyRequired = requiresLateRoundPenalty(lateRoundExceptions);
 
   if (!rubric || rubric.items.length === 0) {
     return (
@@ -97,7 +108,8 @@ export default async function ProposalScoringPage({
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
   const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
   const isScoreLocked = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || Boolean(assignment.scoreSubmission?.lockedAt);
-  const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN";
+  const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasLateRoundOverride;
+  const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
@@ -117,6 +129,13 @@ export default async function ProposalScoringPage({
         actions={<span className="sticky-score rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
       />
       <ActionFeedback success={query.success} error={query.error} />
+      {isLateProposalOverride ? (
+        <WarningAlert title="เปิดประเมินย้อนหลังเป็นรายกรณี">
+          {latePenaltyRequired
+            ? "รายการนี้ถูกเปิดหลังปิดรอบ Proposal ระบบจะหักคะแนน 10% จากคะแนนที่อาจารย์ประเมินในรอบนี้"
+            : "รายการนี้ถูกเปิดหลังปิดรอบ Proposal เป็นกรณีพิเศษโดยไม่หักคะแนน"}
+        </WarningAlert>
+      ) : null}
       {isProposalRoundClosed ? (
         <WarningAlert title="รอบเสนอหัวข้อปิดแล้ว">
           หน้านี้เปิดให้อ่านหลักฐานและคะแนนเดิมเท่านั้น ไม่สามารถเริ่มหรือส่งคะแนนการเสนอหัวข้อเพิ่มหลังปิดรอบได้

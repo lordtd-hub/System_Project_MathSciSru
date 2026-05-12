@@ -18,6 +18,12 @@ import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate } from "@/lib/assessments/roundSequence";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
+import {
+  LATE_ROUND_EXCEPTION_TYPE,
+  LATE_ROUND_EXCUSED_EXCEPTION_TYPE,
+  lateRoundPenaltyNotice,
+  roundExceptionLabel
+} from "@/lib/assessments/roundExceptions";
 import { termDisplayName } from "@/lib/terms/display";
 import { generatedStudentEmail, hasImportErrors, validateStudentImportRows } from "@/lib/validators/studentImport";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
@@ -33,6 +39,31 @@ async function requireAdminUserId() {
     throw new Error("ไม่อนุญาตให้เข้าถึง");
   }
   return session.user.id;
+}
+
+type CourseRoundType = (typeof courseLevelRoundTypes)[number];
+
+async function getMissingProposalProjects(courseOfferingId: string) {
+  return prisma.project.findMany({
+    where: {
+      courseOfferingId,
+      presentationSubmissions: { none: {} }
+    },
+    select: {
+      id: true,
+      currentTitleTh: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
+    },
+    orderBy: { student: { studentCode: "asc" } }
+  });
+}
+
+function parseCourseRoundType(value: FormDataEntryValue | null): CourseRoundType {
+  const roundType = String(value ?? "");
+  if (!courseLevelRoundTypes.includes(roundType as CourseRoundType)) {
+    throw new Error("รอบสอบไม่ถูกต้อง");
+  }
+  return roundType as CourseRoundType;
 }
 
 export async function openCourseOffering(formData: FormData) {
@@ -431,6 +462,10 @@ export async function closeProposalRound(formData: FormData) {
     where: { assessmentRoundId: roundId },
     select: { id: true, projectId: true }
   }));
+  const missingProjects = await timer.measure("load_missing_proposal_projects", () => getMissingProposalProjects(round.courseOfferingId));
+  if (missingProjects.length && String(formData.get("acknowledge_missing_projects") ?? "") !== "yes") {
+    redirectWithQuery("/admin/proposals", { error: "round_close_missing_ack_required" });
+  }
 
   const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
   await timer.measure("close_round", () => prisma.$transaction([
@@ -448,7 +483,13 @@ export async function closeProposalRound(formData: FormData) {
           closedByAdminId: round.closedByAdminId
         },
         afterJson: closedRoundData,
-        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId, attemptCount: attempts.length }
+        metadataJson: {
+          roundType: round.roundType,
+          courseOfferingId: round.courseOfferingId,
+          attemptCount: attempts.length,
+          missingProjectCount: missingProjects.length,
+          missingProjectIds: missingProjects.map((project) => project.id)
+        }
       }
     })
   ]));
@@ -469,6 +510,98 @@ export async function closeProposalRound(formData: FormData) {
   revalidatePath("/admin/proposals");
   timer.end("redirect");
   redirect("/admin/proposals?success=proposal_round_closed");
+}
+
+export async function openLateRoundSubmissionForProject(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:openLateRoundSubmissionForProject`, pilotRateLimits.workflowMutation);
+
+  const projectId = String(formData.get("project_id") ?? "");
+  const roundType = parseCourseRoundType(formData.get("round_type"));
+  const reason = String(formData.get("reason") ?? "").trim() || lateRoundPenaltyNotice;
+  const excused = String(formData.get("excused") ?? "") === "yes";
+  const exceptionType = excused ? LATE_ROUND_EXCUSED_EXCEPTION_TYPE : LATE_ROUND_EXCEPTION_TYPE;
+
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    select: {
+      id: true,
+      courseOfferingId: true,
+      currentTitleTh: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
+    }
+  });
+  const round = await prisma.assessmentRound.findUniqueOrThrow({
+    where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType } }
+  });
+  if (!isRoundClosed(round.status)) redirectWithQuery("/admin/rounds", { error: "late_round_requires_closed_round" });
+
+  const existing = await prisma.projectRoundException.findFirst({
+    where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
+    orderBy: { createdAt: "desc" }
+  });
+  const exception = existing
+    ? await prisma.projectRoundException.update({
+        where: { id: existing.id },
+        data: { exceptionType, reason, reopenedAt: new Date(), reopenedById: adminUserId }
+      })
+    : await prisma.projectRoundException.create({
+        data: {
+          projectId: project.id,
+          assessmentRoundId: round.id,
+          exceptionType,
+          reason,
+          reopenedAt: new Date(),
+          reopenedById: adminUserId
+        }
+      });
+
+  const roundLabel = roundExceptionLabel(round.roundType);
+  await prisma.$transaction([
+    prisma.projectTimelineEvent.create({
+      data: {
+        projectId: project.id,
+        eventType: "LATE_ROUND_SUBMISSION_OPENED",
+        eventTitle: `เปิดให้ดำเนินการย้อนหลัง: ${roundLabel}`,
+        eventDescription: excused
+          ? `ผู้ดูแลระบบเปิดให้ดำเนินการย้อนหลังเป็นกรณีพิเศษโดยไม่หักคะแนน: ${reason}`
+          : `ผู้ดูแลระบบเปิดให้ดำเนินการย้อนหลังเป็นกรณีพิเศษ และระบบจะหักคะแนน 10% ของรอบนี้: ${reason}`,
+        actorUserId: adminUserId,
+        relatedEntityType: "ProjectRoundException",
+        relatedEntityId: exception.id,
+        metadataJson: {
+          roundType: round.roundType,
+          assessmentRoundId: round.id,
+          exceptionType,
+          penaltyPercent: excused ? 0 : 10,
+          studentCode: project.student?.studentCode
+        }
+      }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "LATE_ROUND_SUBMISSION_OPENED",
+        entityType: "ProjectRoundException",
+        entityId: exception.id,
+        afterJson: {
+          projectId: project.id,
+          assessmentRoundId: round.id,
+          roundType: round.roundType,
+          exceptionType,
+          penaltyPercent: excused ? 0 : 10,
+          reason
+        }
+      }
+    })
+  ]);
+
+  revalidatePath("/admin/rounds");
+  revalidatePath("/admin/proposals");
+  revalidatePath("/student");
+  revalidatePath("/student/proposal");
+  revalidatePath("/teacher");
+  redirectWithQuery("/admin/rounds", { success: "late_round_opened" });
 }
 
 export async function openCourseRound(formData: FormData) {
@@ -573,6 +706,13 @@ export async function closeCourseRound(formData: FormData) {
     : [];
   if (isRoundClosed(round.status)) throw new Error("รอบสอบนี้ปิดแล้ว");
 
+  const missingProposalProjects = round.roundType === "PROPOSAL"
+    ? await getMissingProposalProjects(round.courseOfferingId)
+    : [];
+  if (missingProposalProjects.length && String(formData.get("acknowledge_missing_projects") ?? "") !== "yes") {
+    redirectWithQuery("/admin/rounds", { error: "round_close_missing_ack_required" });
+  }
+
   const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
   await prisma.$transaction(async (tx) => {
     await tx.assessmentRound.update({ where: { id: roundId }, data: closedRoundData });
@@ -589,7 +729,12 @@ export async function closeCourseRound(formData: FormData) {
           closedByAdminId: round.closedByAdminId
         },
         afterJson: closedRoundData,
-        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId }
+        metadataJson: {
+          roundType: round.roundType,
+          courseOfferingId: round.courseOfferingId,
+          missingProjectCount: missingProposalProjects.length,
+          missingProjectIds: missingProposalProjects.map((project) => project.id)
+        }
       }
     });
 

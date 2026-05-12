@@ -278,6 +278,38 @@ Recommendation:
 
 - `npm test`: PASS, 73 files / 285 tests
 - `npm run build`: PASS
+
+## Late/Missed Round Policy Patch
+
+Policy decisions captured:
+
+- Students who miss a round are hard-locked after the round closes.
+- The student-facing state tells the student to contact the responsible instructor/admin.
+- Admin can open access for one project as a case-by-case exception with audit/timeline evidence.
+- Closing Proposal while students are missing submissions requires visible acknowledgement of the missing student list.
+- The same late/missed policy applies conceptually to Proposal, Progress 1, Progress 2, and Final.
+- Non-excused late/missed rounds receive a 10% deduction from the evaluator-submitted score for that round.
+- Excused/force-majeure cases keep the late evidence tag but do not receive the 10% deduction.
+- If Final closes while a project is still incomplete, the student dashboard warns that the student may receive grade I.
+
+Patch status:
+
+- Implemented shared late-round exception and penalty helpers.
+- Implemented audited Admin per-project late-round opening action.
+- Proposal and Progress/Final evidence/schedule actions respect late-round exceptions after round closure.
+- Proposal, Progress 1, Progress 2, and Final scoring apply the 10% late penalty when required and keep raw score metadata.
+- Teacher Proposal dashboard/list/scoring pages include late-opened Proposal work after the normal Proposal round is closed.
+- Student dashboard shows active late-round tags and Final-closed incomplete grade-I warning.
+
+Remaining gap:
+
+- Admin UI currently exposes the late-opening form clearly for missed Proposal cases. A broader Admin view for missed Progress 1, Progress 2, and Final recovery should be added before Wave 2 if late recovery for those rounds must be operated from UI.
+
+Validation status after late/missed round patch:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 75 files / 296 tests
+- `npm run build`: PASS
 - `npm run typecheck`: PASS on rerun after `next build` generated `.next/types`
 - Note: the first `typecheck` attempt was run in parallel with `build` and failed because `.next/types` files did not exist yet. This was a validation-order race, not an app type error.
 - Secret scan in `e2e-artifacts`: PASS, QA secret not found in artifacts.

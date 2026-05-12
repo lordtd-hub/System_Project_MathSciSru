@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
-import { InfoAlert } from "@/components/ui/Alert";
+import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -10,7 +10,7 @@ import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligi
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
-import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
+import { closeCourseRound, openCourseRound, openLateRoundSubmissionForProject, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
@@ -54,6 +54,19 @@ export default async function AdminRoundsPage({
       select: { id: true, roundType: true, version: true, active: true, items: { select: { id: true } } }
     })
   ]);
+  const missingProposalProjects = await prisma.project.findMany({
+    where: { courseOfferingId: offering.id, presentationSubmissions: { none: {} } },
+    orderBy: { student: { studentCode: "asc" } },
+    select: {
+      id: true,
+      currentTitleTh: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+      roundExceptions: {
+        where: { status: "OPEN", assessmentRound: { roundType: "PROPOSAL" } },
+        select: { id: true, exceptionType: true, reason: true }
+      }
+    }
+  });
   const rubricMap = new Map<(typeof rubrics)[number]["roundType"], (typeof rubrics)[number]>();
   for (const rubric of rubrics) {
     if (!rubricMap.has(rubric.roundType)) rubricMap.set(rubric.roundType, rubric);
@@ -162,6 +175,50 @@ export default async function AdminRoundsPage({
                 )}
               </div>
 
+              {roundType === "PROPOSAL" && round && isRoundOpen(round.status) && missingProposalProjects.length ? (
+                <WarningAlert title={`มีนักศึกษายังไม่ส่ง Proposal ${missingProposalProjects.length} ราย`}>
+                  <div className="space-y-2">
+                    <p>ก่อนปิดรอบ โปรดยืนยันว่ารับทราบรายชื่อนักศึกษาที่ค้างส่งแล้ว ระบบจะล็อกการส่งปกติหลังปิดรอบ</p>
+                    <ul className="list-disc space-y-1 pl-5">
+                      {missingProposalProjects.slice(0, 8).map((project) => (
+                        <li key={project.id}>{project.student?.studentCode} {project.student?.firstNameTh} {project.student?.lastNameTh}</li>
+                      ))}
+                    </ul>
+                    {missingProposalProjects.length > 8 ? <p>และรายการอื่นอีก {missingProposalProjects.length - 8} ราย</p> : null}
+                  </div>
+                </WarningAlert>
+              ) : null}
+
+              {roundType === "PROPOSAL" && round && isRoundClosed(round.status) && missingProposalProjects.length ? (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+                  <div className="font-semibold text-amber-900">เปิดส่งย้อนหลังเป็นรายกรณี</div>
+                  <p className="mt-1 text-amber-900">รายการที่เปิดย้อนหลังจะถูกติดป้ายส่งหลังปิดรอบ และหักคะแนนรอบ Proposal 10% เว้นแต่ผู้ดูแลระบบระบุเป็นเหตุสุดวิสัย</p>
+                  <div className="mt-3 space-y-2">
+                    {missingProposalProjects.map((project) => {
+                      const alreadyOpen = project.roundExceptions.length > 0;
+                      return (
+                        <form key={project.id} action={openLateRoundSubmissionForProject} className="rounded-md border border-amber-200 bg-surface p-2">
+                          <input type="hidden" name="project_id" value={project.id} />
+                          <input type="hidden" name="round_type" value="PROPOSAL" />
+                          <div className="font-medium">{project.student?.studentCode} {project.student?.firstNameTh} {project.student?.lastNameTh}</div>
+                          <label className="mt-2 block text-xs font-semibold text-muted">เหตุผล/บันทึกการเปิดย้อนหลัง</label>
+                          <textarea name="reason" rows={2} defaultValue="เปิดให้ส่ง Proposal หลังปิดรอบเป็นกรณีพิเศษ โดยระบบติดป้ายส่งหลังปิดรอบและหักคะแนนรอบนี้ 10%" />
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <label className="flex items-center gap-2 text-xs text-muted">
+                              <input type="checkbox" name="excused" value="yes" />
+                              เหตุสุดวิสัย ไม่หักคะแนน
+                            </label>
+                            <SubmitButton disabled={alreadyOpen} pendingText="กำลังเปิดสิทธิ์...">
+                              {alreadyOpen ? "เปิดไว้แล้ว" : "เปิดส่งรายกรณี"}
+                            </SubmitButton>
+                          </div>
+                        </form>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-4 flex flex-wrap gap-2">
                 <form action={openCourseRound}>
                   <input type="hidden" name="course_offering_id" value={offering.id} />
@@ -173,6 +230,12 @@ export default async function AdminRoundsPage({
                 {round ? (
                   <form action={closeCourseRound}>
                     <input type="hidden" name="round_id" value={round.id} />
+                    {roundType === "PROPOSAL" && missingProposalProjects.length ? (
+                      <label className="mb-2 flex items-center gap-2 text-xs text-muted">
+                        <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                        รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                      </label>
+                    ) : null}
                     <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>
                       ปิดรอบ
                     </SubmitButton>

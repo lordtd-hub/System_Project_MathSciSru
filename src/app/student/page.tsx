@@ -10,7 +10,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
-import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { isRoundClosed, isRoundOpen } from "@/lib/assessments/courseRounds";
+import { roundExceptionLabel, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
@@ -216,6 +217,16 @@ export default async function StudentDashboardPage() {
           },
           reportVersions: { select: { versionNo: true, reviews: { select: { decision: true } } }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          roundExceptions: {
+            where: { status: "OPEN" },
+            select: {
+              id: true,
+              exceptionType: true,
+              status: true,
+              reason: true,
+              assessmentRound: { select: { roundType: true } }
+            }
+          },
           attempts: {
             where: { attemptType: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
             select: {
@@ -351,6 +362,9 @@ export default async function StudentDashboardPage() {
       FINAL_PRESENT: Boolean(roundStatusByType.get("FINAL_PRESENTATION") && isRoundOpen(roundStatusByType.get("FINAL_PRESENTATION")!))
     }
   };
+  const finalRoundClosed = Boolean(roundStatusByType.get("FINAL_PRESENTATION") && isRoundClosed(roundStatusByType.get("FINAL_PRESENTATION")!));
+  const hasIncompleteAfterFinal = finalRoundClosed && project.status !== "COMPLETED";
+  const lateRoundExceptions = project.roundExceptions ?? [];
   const workflowActions = getStudentAvailableActions(project.status, assessmentStates, reportStatus, studentWorkflowContext);
   const blockedPrimaryWorkflowAction = workflowActions.blocked_waiting_for[0];
   const roundAwareBaseNextAction = project.status === "PROPOSAL_PENDING" && blockedPrimaryWorkflowAction
@@ -549,6 +563,26 @@ export default async function StudentDashboardPage() {
         วันนี้ {todayText}
       </div>
       <NextActionCard action={scheduleAwareStudentNextAction} />
+
+      {hasIncompleteAfterFinal ? (
+        <WarningAlert title="รอบสอบขั้นสุดท้ายปิดแล้ว แต่โครงงานยังไม่ครบถ้วน">
+          หากยังมีรายการค้างหลังปิดรอบ Final นักศึกษาอาจได้รับเกรด I กรุณาติดต่ออาจารย์ผู้รับผิดชอบและดำเนินการตามรายการที่ระบบแจ้งให้ครบถ้วน
+        </WarningAlert>
+      ) : null}
+
+      {lateRoundExceptions.length ? (
+        <WarningAlert title="มีรายการดำเนินการไม่ตรงรอบ">
+          <div className="space-y-1">
+            {lateRoundExceptions.map((exception) => (
+              <p key={exception.id}>
+                {roundExceptionLabel(exception.assessmentRound.roundType)}: {requiresLateRoundPenalty([exception])
+                  ? "ติดป้ายส่ง/สอบหลังปิดรอบ และหักคะแนนรอบนี้ 10%"
+                  : "เปิดย้อนหลังเป็นกรณีพิเศษโดยไม่หักคะแนน"}
+              </p>
+            ))}
+          </div>
+        </WarningAlert>
+      ) : null}
 
       {actionableSchedule?.status === "REJECTED" ? (
         <WarningAlert title="มีอาจารย์ไม่สะดวกตามวันสอบที่เสนอ">
