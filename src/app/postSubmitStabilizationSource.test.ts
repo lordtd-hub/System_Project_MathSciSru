@@ -11,6 +11,12 @@ describe("post-submit stabilization source checks", () => {
 
     expect(proposalPage).toContain('params.success === "proposal_submitted"');
     expect(proposalPage).toContain("ส่ง Proposal สำเร็จ");
+    expect(proposalPage).toContain("showSubmittedProposalState");
+    expect(proposalPage).toContain('data-testid="student-proposal-submitted-summary"');
+    expect(proposalPage).toContain('data-testid="student-proposal-late-submitted-notice"');
+    expect(proposalPage).toContain("สถานะเอกสารเสนอหัวข้อ");
+    expect(proposalPage).toContain("ส่งเอกสารเสนอหัวข้อแล้ว");
+    expect(proposalPage).toContain("ส่ง Proposal หลังปิดรอบแล้ว");
     expect(proposalPage).toContain("presentationSubmissions: { orderBy: { createdAt: \"desc\" }, take: 1 }");
     expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
     expect(schedulePage).toContain("บันทึกหลักฐานการประเมินแล้ว");

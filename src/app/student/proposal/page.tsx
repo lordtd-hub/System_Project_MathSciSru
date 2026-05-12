@@ -64,6 +64,8 @@ export default async function ProposalSubmissionPage({
   const canPrepareProposal = project?.status === "PROPOSAL_PENDING";
   const canSubmitProposal =
     Boolean(canPrepareProposal && proposalRound && ((isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline)) || hasLateOverride));
+  const showSubmittedProposalState = Boolean(submission && project?.status !== "PROPOSAL_PENDING");
+  const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState;
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาสร้างโครงงานก่อนส่งเอกสารเสนอหัวข้อ" actionLabel="ไปหน้าโครงงาน" href="/student/project" />;
@@ -76,7 +78,15 @@ export default async function ProposalSubmissionPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
-      {hasLateOverride ? (
+      {showLateSubmittedNotice ? (
+        <div data-testid="student-proposal-late-submitted-notice">
+          <WarningAlert title="ส่ง Proposal หลังปิดรอบแล้ว">
+            {latePenaltyRequired
+              ? "ระบบบันทึกรายการนี้เป็นการส่งหลังปิดรอบ และจะติดป้ายส่งหลังปิดรอบพร้อมหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
+              : "ระบบบันทึกรายการนี้เป็นการส่งหลังปิดรอบแบบได้รับอนุญาตเป็นกรณีพิเศษ โดยไม่หักคะแนน แต่ยังเก็บป้ายกำกับไว้เป็นหลักฐาน"}
+          </WarningAlert>
+        </div>
+      ) : hasLateOverride ? (
         <WarningAlert title="เปิดให้ส่ง Proposal รายกรณีหลังปิดรอบ">
           {latePenaltyRequired
             ? "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษ ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
@@ -107,6 +117,37 @@ export default async function ProposalSubmissionPage({
           กรุณาสร้างหรือแก้ไขโครงงานและส่งคำขอที่ปรึกษาก่อนส่งเอกสารเสนอหัวข้อ
         </WarningAlert>
       ) : null}
+      {showSubmittedProposalState && submission ? (
+        <section className="panel space-y-4" data-testid="student-proposal-submitted-summary">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-accent">สถานะเอกสารเสนอหัวข้อ</p>
+            <h2 className="text-lg font-semibold">ส่งเอกสารเสนอหัวข้อแล้ว</h2>
+            <p className="mt-1 text-sm text-muted">
+              ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วน Comment ด้านล่าง
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-md border border-line bg-paper p-3">
+              <div className="text-xs text-muted">ชื่อเอกสารเสนอหัวข้อภาษาไทย</div>
+              <div className="mt-1 font-medium">{submission.titleTh}</div>
+            </div>
+            <div className="rounded-md border border-line bg-paper p-3">
+              <div className="text-xs text-muted">ชื่อเอกสารเสนอหัวข้อภาษาอังกฤษ</div>
+              <div className="mt-1 font-medium">{submission.titleEn || "-"}</div>
+            </div>
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <div className="text-xs text-muted">บทคัดย่อการนำเสนอ</div>
+            <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0" value={submission.abstractText} emptyText="ไม่มีข้อมูล" />
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <div className="text-xs text-muted">ลิงก์เอกสารประกอบ</div>
+            <a className="mt-1 inline-block break-all text-accent underline" href={submission.materialLink} target="_blank" rel="noreferrer">
+              {submission.materialLink}
+            </a>
+          </div>
+        </section>
+      ) : (
       <ProposalDraftForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`} clearOnSuccess={params.success === "proposal_submitted"}>
         <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <InfoAlert title="คำแนะนำตาม rubric">
@@ -176,6 +217,7 @@ export default async function ProposalSubmissionPage({
           </div>
         </FormSection>
       </ProposalDraftForm>
+      )}
       <section className="panel">
         <h2 className="text-lg font-semibold">Comment จากอาจารย์</h2>
         <p className="mt-1 text-sm text-muted">ส่วนนี้แสดงข้อเสนอแนะทันที พร้อมชื่ออาจารย์ แต่ไม่แสดงคะแนนการเสนอหัวข้อ</p>
