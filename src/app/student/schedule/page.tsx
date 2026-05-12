@@ -51,6 +51,13 @@ function scheduleKindLabel(kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") 
   return "สอบนำเสนอขั้นสุดท้าย";
 }
 
+function scheduleStatusLabel(status?: string | null) {
+  if (status === "PROPOSED") return "รอกรรมการยืนยัน";
+  if (status === "CONFIRMED") return "ยืนยันแล้ว";
+  if (status === "REJECTED") return "มีกรรมการไม่สะดวก";
+  return status ?? "-";
+}
+
 function roundTypeToScheduleKind(roundType: (typeof scheduleRoundTypes)[number]) {
   return roundType === "FINAL_PRESENTATION" ? "FINAL_PRESENT" : roundType;
 }
@@ -311,6 +318,9 @@ export default async function StudentSchedulePage({
       </div>
       <section className="grid gap-3 md:grid-cols-3">
           {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
+            const roundType = assessmentKindToRoundType(kind);
+            const round = roundMap.get(roundType);
+            const roundOpen = Boolean(round && isRoundOpen(round.status));
             const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
             const hasEvidence = project.assessmentSubmissions.some((item) => item.kind === kind);
             const activeSchedule = activeScheduleByKind.get(kind);
@@ -319,7 +329,8 @@ export default async function StudentSchedulePage({
               project.status,
               completed,
               latest?.status === "CONFIRMED" ? "CONFIRMED" : latest?.status === "PROPOSED" ? "PROPOSED" : latest?.status === "REJECTED" ? "REJECTED" : "NONE",
-              false
+              false,
+              roundOpen
             );
           const evidenceReadyState = hasEvidence && rawState.editable
             ? { label: "มีเอกสารแล้ว", buttonLabel: "แก้เอกสาร/เสนอวันสอบ", editable: true }
@@ -544,7 +555,7 @@ export default async function StudentSchedulePage({
               const confirmed = proposal.approvals.length > 0 && proposal.approvals.every((approval) => approval.decision === "APPROVE");
               return (
                 <div key={proposal.id} className="rounded-md border border-line p-3 text-sm">
-                  <div className="font-medium">{assessmentKindToRoundType(proposal.assessmentKind)} · {proposal.status}</div>
+                  <div className="font-medium">{scheduleKindLabel(proposal.assessmentKind)} · {scheduleStatusLabel(proposal.status)}</div>
                   <div className="mt-1 text-muted">
                     {formatThaiScheduleRange(proposal.proposedStartAt, proposal.proposedEndAt)} {proposal.room ? `· ห้อง ${proposal.room}` : ""}
                   </div>

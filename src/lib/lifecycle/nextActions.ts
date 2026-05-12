@@ -24,6 +24,13 @@ export type StudentAvailableActions = {
   blocked_waiting_for: StudentWorkflowAction[];
 };
 
+export type StudentAssessmentRoundKey = "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT";
+
+export type StudentWorkflowContext = {
+  proposalRoundOpen?: boolean;
+  roundAvailability?: Partial<Record<StudentAssessmentRoundKey, boolean>>;
+};
+
 function action(
   key: string,
   title: string,
@@ -34,10 +41,21 @@ function action(
   return { key, title, description, state, href };
 }
 
+function roundWaitingAction(key: StudentAssessmentRoundKey): StudentWorkflowAction {
+  if (key === "PROGRESS_1") {
+    return action("progress_1_round_closed", "รอผู้ดูแลระบบเปิดรอบความก้าวหน้าครั้งที่ 1", "ยังไม่สามารถบันทึกหลักฐานหรือเสนอวันสอบความก้าวหน้าครั้งที่ 1 ได้จนกว่ารอบสอบจะเปิด", "blocked");
+  }
+  if (key === "PROGRESS_2") {
+    return action("progress_2_round_closed", "รอผู้ดูแลระบบเปิดรอบความก้าวหน้าครั้งที่ 2", "ความก้าวหน้าครั้งที่ 1 เสร็จแล้ว แต่ยังต้องรอผู้ดูแลระบบเปิดรอบความก้าวหน้าครั้งที่ 2", "blocked");
+  }
+  return action("final_present_round_closed", "รอผู้ดูแลระบบเปิดรอบสอบนำเสนอขั้นสุดท้าย", "ความก้าวหน้าครั้งที่ 1 และ 2 เสร็จแล้ว แต่ยังต้องรอผู้ดูแลระบบเปิดรอบสอบนำเสนอขั้นสุดท้าย", "blocked");
+}
+
 export function getStudentAvailableActions(
   status?: ProjectStatus | null,
   assessments: Partial<Record<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", "NOT_STARTED" | "SCHEDULED" | "SUBMITTED" | "COMPLETED">> = {},
-  reportStatus?: "NONE" | "REVISION_REQUIRED" | "SUBMITTED" | "APPROVED"
+  reportStatus?: "NONE" | "REVISION_REQUIRED" | "SUBMITTED" | "APPROVED",
+  context: StudentWorkflowContext = {}
 ): StudentAvailableActions {
   const result: StudentAvailableActions = {
     available_now: [],
@@ -45,6 +63,7 @@ export function getStudentAvailableActions(
     locked_future: [],
     blocked_waiting_for: []
   };
+  const roundIsOpen = (key: StudentAssessmentRoundKey) => context.roundAvailability?.[key] ?? true;
   const lockFuture = () => {
     result.locked_future.push(
       action("proposal", "เอกสารเสนอหัวข้อ", "ยังไม่ถึงขั้นตอนส่งเอกสารเสนอหัวข้อ", "locked"),
@@ -82,6 +101,10 @@ export function getStudentAvailableActions(
       result.blocked_waiting_for.push(action("waiting_admin", "รอผู้ดูแลระบบยืนยัน", "ผู้ดูแลระบบต้องยืนยันโครงงานและอาจารย์ที่ปรึกษา", "blocked"));
       break;
     case "PROPOSAL_PENDING":
+      if (context.proposalRoundOpen === false) {
+        result.blocked_waiting_for.push(action("proposal_round_closed", "พ้นกำหนดส่ง Proposal แล้ว", "กรุณาติดต่อผู้ดูแลระบบหรืออาจารย์ผู้รับผิดชอบรายวิชาเพื่อพิจารณาแนวทางดำเนินการต่อ", "blocked"));
+        break;
+      }
       result.available_now.push(action("proposal", "ส่งเอกสารเสนอหัวข้อ", "แนบบทคัดย่อและลิงก์เอกสารประกอบ", "available", "/student/proposal"));
       result.read_only_history.push(action("project", "ข้อมูลโครงงาน", "ส่งคำขอที่ปรึกษาแล้ว", "history", "/student/project"));
       result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอผลการเสนอหัวข้อ", "locked"), action("report", "รายงาน", "ยังไม่ถึงขั้นตอน", "locked"));
@@ -144,6 +167,18 @@ export function getStudentAvailableActions(
       result.blocked_waiting_for.push(action("unknown", "รอสถานะจากระบบ", "ยังไม่มี action ที่เปิดให้ทำ", "blocked"));
   }
 
+  if (status === "IN_PROGRESS") {
+    const blockRoundIfClosed = (roundKey: StudentAssessmentRoundKey, availableKey: string) => {
+      if (roundIsOpen(roundKey)) return;
+      const before = result.available_now.length;
+      result.available_now = result.available_now.filter((item) => item.key !== availableKey);
+      if (result.available_now.length !== before) result.blocked_waiting_for.push(roundWaitingAction(roundKey));
+    };
+    blockRoundIfClosed("PROGRESS_1", "progress_1");
+    blockRoundIfClosed("PROGRESS_2", "progress_2");
+    blockRoundIfClosed("FINAL_PRESENT", "final_present");
+  }
+
   return result;
 }
 
@@ -152,8 +187,12 @@ export function getAssessmentCardState(
   status?: ProjectStatus | null,
   completed: Partial<Record<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", boolean>> = {},
   scheduleStatus?: "NONE" | "PROPOSED" | "CONFIRMED" | "REJECTED",
-  submitted = false
+  submitted = false,
+  roundOpen = true
 ) {
+  if (!roundOpen && status === "IN_PROGRESS" && !completed[assessment]) {
+    return { label: "รอเปิดรอบสอบ", buttonLabel: "ล็อก", editable: false };
+  }
   if (status !== "IN_PROGRESS" && status !== "FINAL_DONE" && status !== "COMPLETED") {
     return { label: "ยังไม่ถึงขั้นตอน", buttonLabel: "ล็อก", editable: false };
   }

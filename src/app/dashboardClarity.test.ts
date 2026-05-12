@@ -5,7 +5,7 @@ describe("dashboard clarity phase 2", () => {
   it("keeps student dashboard task-first without changing lifecycle helpers", () => {
     const page = readFileSync("src/app/student/page.tsx", "utf8");
 
-    expect(page).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus)");
+    expect(page).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus, studentWorkflowContext)");
     expect(page).toContain("StudentWorkflowGroup");
     expect(page).toContain("visibleAssessmentResults");
     expect(page).toContain("showScoreToStudent");

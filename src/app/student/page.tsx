@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
+import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
@@ -29,6 +30,25 @@ function assessmentKindLabel(kind?: string | null) {
   if (kind === "FINAL_PRESENTATION") return "การสอบนำเสนอขั้นสุดท้าย";
   if (kind === "FINAL_PRESENT") return "การสอบนำเสนอขั้นสุดท้าย";
   return "รอบสอบ";
+}
+
+function scheduleStatusLabel(status?: string | null) {
+  if (status === "PROPOSED") return "รอกรรมการยืนยัน";
+  if (status === "CONFIRMED") return "ยืนยันแล้ว";
+  if (status === "REJECTED") return "มีกรรมการไม่สะดวก";
+  return status ?? "-";
+}
+
+function displayTimelineText(value?: string | null) {
+  if (!value) return value ?? undefined;
+  return value
+    .replaceAll("PROGRESS_1", "ความก้าวหน้าครั้งที่ 1")
+    .replaceAll("PROGRESS_2", "ความก้าวหน้าครั้งที่ 2")
+    .replaceAll("FINAL_PRESENT", "สอบนำเสนอขั้นสุดท้าย")
+    .replaceAll("FINAL_PRESENTATION", "สอบนำเสนอขั้นสุดท้าย")
+    .replaceAll("CONFIRMED", "ยืนยันแล้ว")
+    .replaceAll("REJECTED", "มีกรรมการไม่สะดวก")
+    .replaceAll("PROPOSED", "รอกรรมการยืนยัน");
 }
 
 function scoreAverage(scores: number[]) {
@@ -323,7 +343,23 @@ export default async function StudentDashboardPage() {
         tone: project.status === "REPORT_APPROVED" ? "success" as const : baseNextAction.tone
       }
     : baseNextAction;
-  const workflowActions = getStudentAvailableActions(project.status, assessmentStates, reportStatus);
+  const studentWorkflowContext = {
+    proposalRoundOpen: Boolean(roundStatusByType.get("PROPOSAL") && isRoundOpen(roundStatusByType.get("PROPOSAL")!)),
+    roundAvailability: {
+      PROGRESS_1: Boolean(roundStatusByType.get("PROGRESS_1") && isRoundOpen(roundStatusByType.get("PROGRESS_1")!)),
+      PROGRESS_2: Boolean(roundStatusByType.get("PROGRESS_2") && isRoundOpen(roundStatusByType.get("PROGRESS_2")!)),
+      FINAL_PRESENT: Boolean(roundStatusByType.get("FINAL_PRESENTATION") && isRoundOpen(roundStatusByType.get("FINAL_PRESENTATION")!))
+    }
+  };
+  const workflowActions = getStudentAvailableActions(project.status, assessmentStates, reportStatus, studentWorkflowContext);
+  const blockedPrimaryWorkflowAction = workflowActions.blocked_waiting_for[0];
+  const roundAwareBaseNextAction = project.status === "PROPOSAL_PENDING" && blockedPrimaryWorkflowAction
+    ? {
+        title: blockedPrimaryWorkflowAction.title,
+        description: blockedPrimaryWorkflowAction.description,
+        tone: "warning" as const
+      }
+    : nextAction;
   const proposal = project.presentationSubmissions[0];
   const activeSchedule = project.scheduleProposals.find((schedule) => {
     if (schedule.assessmentKind === "PROGRESS_1") return assessmentStates.PROGRESS_1 !== "COMPLETED";
@@ -379,7 +415,17 @@ export default async function StudentDashboardPage() {
               href: "/student/report",
               tone: "success" as const
             }
-    : nextAction;
+    : roundAwareBaseNextAction;
+  const primaryWorkflowAction = workflowActions.available_now[0] ?? workflowActions.blocked_waiting_for[0];
+  const roundAwareNextAssessmentAction = project.status === "IN_PROGRESS" && primaryWorkflowAction
+    ? {
+        title: primaryWorkflowAction.title,
+        description: primaryWorkflowAction.description,
+        actionLabel: primaryWorkflowAction.state === "available" ? "เปิดงานนี้" : undefined,
+        href: primaryWorkflowAction.state === "available" ? primaryWorkflowAction.href : undefined,
+        tone: primaryWorkflowAction.state === "blocked" ? "warning" as const : undefined
+      }
+    : nextAssessmentAction;
   const studentNextAction = actionableSchedule?.status === "REJECTED"
     ? {
         title: `${actionableScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
@@ -404,7 +450,7 @@ export default async function StudentDashboardPage() {
             href: "/student/schedule",
             tone: "success" as const
           }
-        : nextAssessmentAction;
+        : roundAwareNextAssessmentAction;
   const scheduleAwareStudentNextAction = actionableSchedule && ["PROPOSED", "CONFIRMED"].includes(actionableSchedule.status)
     ? { ...studentNextAction, description: `${actionableScheduleDateText} · ${studentNextAction.description}` }
     : studentNextAction;
@@ -444,6 +490,21 @@ export default async function StudentDashboardPage() {
           urgency: !latestReport || latestReportHasRevisionRequest ? "สูง" : "รอคนอื่น"
         }]
       : buildStudentTasks(project.status);
+  const roundAwareStudentTrackingTasks: TaskListItem[] = project.status === "IN_PROGRESS" && !actionableSchedule && !workflowActions.available_now.length && workflowActions.blocked_waiting_for.length
+    ? workflowActions.blocked_waiting_for.slice(0, 1).map((item) => ({
+        title: item.title,
+        description: item.description,
+        href: item.href,
+        urgency: "รอเปิดรอบ"
+      }))
+    : studentTrackingTasks;
+  const displayStudentTrackingTasks: TaskListItem[] = project.status === "PROPOSAL_PENDING" && blockedPrimaryWorkflowAction
+    ? [{
+        title: blockedPrimaryWorkflowAction.title,
+        description: blockedPrimaryWorkflowAction.description,
+        urgency: "พ้นกำหนด"
+      }]
+    : roundAwareStudentTrackingTasks;
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
     .map((attempt) => {
@@ -561,7 +622,7 @@ export default async function StudentDashboardPage() {
             <div className="mt-3 border-t border-line pt-3 text-xs leading-5 text-muted">
               {latestSchedule ? (
                 <p>
-                  <span className="font-semibold text-ink">วันสอบล่าสุด:</span> {latestScheduleRoundLabel} · {latestScheduleDateText || "ยังไม่ระบุวันเวลา"} · {latestSchedule.status}
+                  <span className="font-semibold text-ink">วันสอบล่าสุด:</span> {latestScheduleRoundLabel} · {latestScheduleDateText || "ยังไม่ระบุวันเวลา"} · {scheduleStatusLabel(latestSchedule.status)}
                   {" "}· อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount}
                   {latestScheduleRejectedCount ? ` · ไม่สะดวก ${latestScheduleRejectedCount}` : ""}
                   {latestSchedulePendingCount ? ` · รอ ${latestSchedulePendingCount}` : ""}
@@ -673,7 +734,7 @@ export default async function StudentDashboardPage() {
           </div>
         </section>
 
-        <TaskListCard title="รายการที่ต้องติดตาม" tasks={studentTrackingTasks} />
+        <TaskListCard title="รายการที่ต้องติดตาม" tasks={displayStudentTrackingTasks} />
       </div>
 
       <GuidancePanel
@@ -694,8 +755,8 @@ export default async function StudentDashboardPage() {
         events={project.timelineEvents.map((event) => ({
           id: event.id,
           occurredAt: event.occurredAt,
-          eventTitle: event.eventTitle,
-          eventDescription: event.eventDescription,
+          eventTitle: displayTimelineText(event.eventTitle) ?? event.eventTitle,
+          eventDescription: displayTimelineText(event.eventDescription),
           actorName: event.actor?.name
         }))}
       />

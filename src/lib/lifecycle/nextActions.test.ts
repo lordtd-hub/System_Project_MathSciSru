@@ -39,6 +39,43 @@ describe("next action helpers", () => {
     expect(afterFinal.blocked_waiting_for.map((item) => item.key)).not.toContain("waiting_after_final");
   });
 
+  it("blocks future assessment actions until the course round is open", () => {
+    const progress2Closed = getStudentAvailableActions(
+      "IN_PROGRESS",
+      { PROGRESS_1: "COMPLETED" },
+      undefined,
+      { roundAvailability: { PROGRESS_2: false } }
+    );
+    expect(progress2Closed.available_now.map((item) => item.key)).not.toContain("progress_2");
+    expect(progress2Closed.blocked_waiting_for.map((item) => item.key)).toContain("progress_2_round_closed");
+
+    const progress2Open = getStudentAvailableActions(
+      "IN_PROGRESS",
+      { PROGRESS_1: "COMPLETED" },
+      undefined,
+      { roundAvailability: { PROGRESS_2: true } }
+    );
+    expect(progress2Open.available_now.map((item) => item.key)).toContain("progress_2");
+
+    const finalClosed = getStudentAvailableActions(
+      "IN_PROGRESS",
+      { PROGRESS_1: "COMPLETED", PROGRESS_2: "COMPLETED" },
+      undefined,
+      { roundAvailability: { FINAL_PRESENT: false } }
+    );
+    expect(finalClosed.available_now.map((item) => item.key)).not.toContain("final_present");
+    expect(finalClosed.blocked_waiting_for.map((item) => item.key)).toContain("final_present_round_closed");
+  });
+
+  it("shows a blocked late state when Proposal round is closed before submission", () => {
+    const closedProposal = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, { proposalRoundOpen: false });
+    expect(closedProposal.available_now.map((item) => item.key)).not.toContain("proposal");
+    expect(closedProposal.blocked_waiting_for.map((item) => item.key)).toContain("proposal_round_closed");
+
+    const openProposal = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, { proposalRoundOpen: true });
+    expect(openProposal.available_now.map((item) => item.key)).toContain("proposal");
+  });
+
   it("keeps completed projects out of pending student action groups", () => {
     const completed = getStudentAvailableActions("COMPLETED");
     expect(completed.available_now).toEqual([]);
@@ -51,6 +88,7 @@ describe("next action helpers", () => {
     expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).editable).toBe(false);
     expect(getAssessmentCardState("PROGRESS_1", "IN_PROGRESS", { PROGRESS_1: true }).buttonLabel).toBe("ดูข้อเสนอแนะ");
     expect(getAssessmentCardState("PROGRESS_2", "IN_PROGRESS", { PROGRESS_1: false }).label).toBe("ยังไม่ถึงขั้นตอน");
+    expect(getAssessmentCardState("PROGRESS_2", "IN_PROGRESS", { PROGRESS_1: true }, "NONE", false, false).editable).toBe(false);
   });
 
   it("prioritizes teacher tasks", () => {

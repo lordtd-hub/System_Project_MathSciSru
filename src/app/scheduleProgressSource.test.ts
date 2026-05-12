@@ -178,8 +178,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(studentPage).toContain("latestScheduleDateText");
     expect(studentPage).toContain("scheduleAwareStudentNextAction");
     expect(studentPage).toContain("assessmentStates");
-    expect(studentPage).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus)");
+    expect(studentPage).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus, studentWorkflowContext)");
     expect(studentPage).toContain("nextAssessmentAction");
     expect(studentPage).toContain("studentTrackingTasks");
+    expect(studentPage).toContain("displayStudentTrackingTasks");
   });
 });

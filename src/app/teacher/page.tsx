@@ -23,6 +23,13 @@ function assessmentKindLabel(kind?: string | null) {
   return "รอบสอบ";
 }
 
+function teacherRoleBadgeLabel(role: CommitteeRole | "ADVISOR") {
+  if (role === "ADVISOR") return "อาจารย์ที่ปรึกษา";
+  if (role === "HEAD") return "ประธานกรรมการ";
+  if (role === "MEMBER") return "กรรมการ";
+  return role;
+}
+
 async function getTeacherWorkloadCounts(teacherId: string) {
   const openScoringRoundStatuses: AssessmentStatus[] = ["SUBMISSION_OPEN", "SCORING_OPEN"];
   const scoringCommitteeRoles: CommitteeRole[] = ["HEAD", "MEMBER"];
@@ -442,10 +449,10 @@ export default async function TeacherDashboardPage() {
             />
             <div className="mt-3 space-y-2">
               {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
-                const roles = [
+                const roles = Array.from(new Set([
                   ...schedule.project.committeeAssignments.map((assignment) => assignment.role),
                   ...(schedule.project.advisorRequests.length ? ["ADVISOR" as const] : [])
-                ];
+                ]));
                 return (
                   <Link key={schedule.id} className="block rounded-md border border-line bg-surface p-3 text-sm hover:border-brand" href="/teacher/schedules">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -463,7 +470,7 @@ export default async function TeacherDashboardPage() {
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {roles.map((role) => (
-                        <span key={`${schedule.id}-${role}`} className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">{role}</span>
+                        <span key={`${schedule.id}-${role}`} className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">{teacherRoleBadgeLabel(role)}</span>
                       ))}
                     </div>
                   </Link>
