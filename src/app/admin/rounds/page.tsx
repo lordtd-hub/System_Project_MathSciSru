@@ -9,19 +9,11 @@ import { baselineRubricDefinitions } from "@/lib/admin/rubricBaseline";
 import { getRoundEligibility, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
-import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { prisma } from "@/lib/db";
 import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
   return value ? value.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
-}
-
-function submissionKindForRound(roundType: (typeof courseLevelRoundTypes)[number]) {
-  if (roundType === "PROGRESS_1") return "PROGRESS_1" as const;
-  if (roundType === "PROGRESS_2") return "PROGRESS_2" as const;
-  if (roundType === "FINAL_PRESENTATION") return "FINAL_PRESENT" as const;
-  return null;
 }
 
 export default async function AdminRoundsPage({
@@ -60,27 +52,17 @@ export default async function AdminRoundsPage({
   });
   const roundMap = new Map(rounds.map((round) => [round.roundType, round]));
   const roundStatuses = Object.fromEntries(courseLevelRoundTypes.map((roundType) => [roundType, roundMap.get(roundType)?.status ?? "DRAFT"]));
-  const [progress1Eligibility, rubrics, assessmentSubmissions] = await Promise.all([
-    getRoundEligibility(offering.id, "PROGRESS_1"),
+  const [roundEligibilityEntries, rubrics] = await Promise.all([
+    Promise.all(courseLevelRoundTypes.map(async (roundType) => [roundType, await getRoundEligibility(offering.id, roundType)] as const)),
     prisma.rubric.findMany({
       where: { roundType: { in: [...courseLevelRoundTypes] }, active: true },
       orderBy: [{ roundType: "asc" }, { version: "desc" }],
       select: { id: true, roundType: true, version: true, active: true, items: { select: { id: true } } }
-    }),
-    prisma.assessmentSubmission.findMany({
-      where: {
-        kind: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] },
-        project: { courseOfferingId: offering.id }
-      },
-      select: { kind: true, projectId: true }
     })
   ]);
-  const submittedProjectIdsByKind = new Map<(typeof assessmentSubmissions)[number]["kind"], Set<string>>();
-  for (const submission of assessmentSubmissions) {
-    const projects = submittedProjectIdsByKind.get(submission.kind) ?? new Set<string>();
-    projects.add(submission.projectId);
-    submittedProjectIdsByKind.set(submission.kind, projects);
-  }
+  const emptyEligibility = { eligible: [], notReady: [], submitted: [], completed: [], eligibleButIncomplete: [] };
+  const roundEligibilityByType = new Map(roundEligibilityEntries);
+  const progress1Eligibility = roundEligibilityByType.get("PROGRESS_1") ?? emptyEligibility;
   const missingProposalProjects = await prisma.project.findMany({
     where: { courseOfferingId: offering.id, presentationSubmissions: { none: {} } },
     orderBy: { student: { studentCode: "asc" } },
@@ -158,22 +140,9 @@ export default async function AdminRoundsPage({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {courseLevelRoundTypes.map((roundType) => {
           const round = roundMap.get(roundType);
-          const eligibility = roundType === "PROGRESS_1" ? progress1Eligibility : { eligible: [], notReady: [] };
-          const submissionKind = submissionKindForRound(roundType);
-          const submittedCount = submissionKind
-            ? submittedProjectIdsByKind.get(submissionKind)?.size ?? 0
-            : round?.attempts.filter((attempt) => ["SUBMITTED", "LOCKED"].includes(attempt.presentationSubmission?.status ?? "")).length ?? 0;
-          const completedCount = round?.attempts.filter((attempt) => {
-            if (roundType === "PROPOSAL") return isRoundClosed(attempt.status) || Boolean(attempt.finalDecision);
-            return isPresentationAssessmentComplete({
-              roundStatus: attempt.status,
-              committeeAssignments: attempt.project.committeeAssignments,
-              scoreSubmissions: attempt.evaluatorAssignments.map((assignment) => ({
-                teacherId: assignment.teacherId,
-                status: assignment.scoreSubmission?.status
-              }))
-            });
-          }).length ?? 0;
+          const eligibility = roundEligibilityByType.get(roundType) ?? emptyEligibility;
+          const submittedCount = eligibility.submitted.length;
+          const completedCount = eligibility.completed.length;
           const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
           const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
           const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];
@@ -197,10 +166,12 @@ export default async function AdminRoundsPage({
               <dl className="mt-4 space-y-1 text-sm text-muted">
                 <div className="flex justify-between gap-3"><dt>เปิดเมื่อ</dt><dd>{formatDate(round?.submissionOpenAt)}</dd></div>
                 <div className="flex justify-between gap-3"><dt>ปิดเมื่อ</dt><dd>{formatDate(round?.closedAt)}</dd></div>
-                <div className="flex justify-between gap-3"><dt>พร้อมเข้าสู่รอบ</dt><dd>{roundType === "PROGRESS_1" ? eligibility.eligible.length : "-"}</dd></div>
-                <div className="flex justify-between gap-3"><dt>ส่งแล้ว</dt><dd>{submittedCount}</dd></div>
-                <div className="flex justify-between gap-3"><dt>ดำเนินการครบ</dt><dd>{completedCount}</dd></div>
-                <div className="flex justify-between gap-3"><dt>ยังไม่พร้อม/ข้อยกเว้น</dt><dd>{roundType === "PROGRESS_1" ? eligibility.notReady.length + exceptionCount : exceptionCount}</dd></div>
+                <div className="flex justify-between gap-3"><dt>พร้อมเข้าสู่รอบนี้</dt><dd>{eligibility.eligible.length}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ส่งหลักฐานรอบนี้แล้ว</dt><dd>{submittedCount}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ประเมินรอบนี้ครบ</dt><dd>{completedCount}</dd></div>
+                <div className="flex justify-between gap-3"><dt>พร้อมแต่ยังไม่ครบ</dt><dd>{eligibility.eligibleButIncomplete.length}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ยังไม่พร้อมรอบนี้</dt><dd>{eligibility.notReady.length}</dd></div>
+                <div className="flex justify-between gap-3"><dt>ข้อยกเว้น/เปิดส่งย้อนหลัง</dt><dd>{exceptionCount}</dd></div>
               </dl>
 
               <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm">
@@ -225,6 +196,29 @@ export default async function AdminRoundsPage({
                       ))}
                     </ul>
                     {missingProposalProjects.length > 8 ? <p>และรายการอื่นอีก {missingProposalProjects.length - 8} ราย</p> : null}
+                  </div>
+                </WarningAlert>
+              ) : null}
+
+              {roundType !== "PROPOSAL" && round && isRoundOpen(round.status) && eligibility.eligibleButIncomplete.length ? (
+                <WarningAlert title={`มีโครงงานที่พร้อมเข้าสู่ ${roundTypeLabelTh(roundType)} แต่ยังดำเนินการไม่ครบ ${eligibility.eligibleButIncomplete.length} รายการ`}>
+                  <div className="space-y-2">
+                    <p>
+                      รายการนี้นับเฉพาะโครงงานที่ผ่านเกณฑ์จากรอบก่อนหน้าแล้ว แต่ยังส่งหลักฐานหรือประเมินรอบปัจจุบันไม่ครบ
+                      โครงงานที่ยังไม่ผ่านรอบก่อนหน้าจะแยกอยู่ในกลุ่ม &quot;ยังไม่พร้อมรอบนี้&quot; และไม่ใช่ตัวบล็อกของรอบนี้
+                    </p>
+                    {roundType === "FINAL_PRESENTATION" ? (
+                      <p className="font-semibold">หากปิดรอบ Final ขณะที่รายการเหล่านี้ยังไม่ครบ นักศึกษาอาจได้รับเกรด I</p>
+                    ) : null}
+                    <ul className="list-disc space-y-1 pl-5">
+                      {eligibility.eligibleButIncomplete.slice(0, 8).map((item) => (
+                        <li key={item.project.id}>
+                          {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}
+                          {item.project.currentTitleTh ? ` - ${item.project.currentTitleTh}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                    {eligibility.eligibleButIncomplete.length > 8 ? <p>และรายการอื่นอีก {eligibility.eligibleButIncomplete.length - 8} รายการ</p> : null}
                   </div>
                 </WarningAlert>
               ) : null}
@@ -272,6 +266,12 @@ export default async function AdminRoundsPage({
                       <label className="mb-2 flex items-center gap-2 text-xs text-muted">
                         <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
                         รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                      </label>
+                    ) : null}
+                    {roundType !== "PROPOSAL" && eligibility.eligibleButIncomplete.length ? (
+                      <label className="mb-2 flex items-center gap-2 text-xs text-muted">
+                        <input type="checkbox" name="acknowledge_incomplete_projects" value="yes" />
+                        รับทราบรายชื่อโครงงานที่พร้อมเข้าสู่รอบนี้แต่ยังดำเนินการไม่ครบแล้ว
                       </label>
                     ) : null}
                     <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>

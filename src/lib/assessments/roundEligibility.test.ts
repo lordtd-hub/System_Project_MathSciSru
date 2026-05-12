@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getProgress1Readiness, reasonLabelTh } from "./roundEligibility";
+import { buildRoundEligibilityBuckets, getProgress1Readiness, getRoundReadiness, reasonLabelTh } from "./roundEligibility";
 
 const baseProject = {
   id: "project-1",
@@ -34,5 +34,87 @@ describe("round eligibility", () => {
   it("shows exact waiting reason before admin confirmation", () => {
     const readiness = getProgress1Readiness({ ...baseProject, status: "PENDING_ADMIN", proposalResults: [] });
     expect(readiness.reasons).toContain("project still PENDING_ADMIN");
+  });
+
+  it("does not count projects that are not yet eligible as current-round incomplete", () => {
+    const blockedProject = { ...baseProject, id: "blocked", status: "PROPOSAL_REVIEW" as const, proposalResults: [] };
+    const buckets = buildRoundEligibilityBuckets([baseProject, blockedProject], "PROGRESS_1");
+
+    expect(buckets.notReady.map((item) => item.project.id)).toContain("blocked");
+    expect(buckets.eligibleButIncomplete.map((item) => item.project.id)).toEqual(["project-1"]);
+  });
+
+  it("marks Progress 2 eligible only after required Progress 1 committee scoring is complete", () => {
+    const project = {
+      ...baseProject,
+      committeeAssignments: [
+        { role: "ADVISOR" as const, active: true, teacherId: "advisor" },
+        { role: "HEAD" as const, active: true, teacherId: "head" },
+        { role: "MEMBER" as const, active: true, teacherId: "member" }
+      ],
+      attempts: [{
+        status: "SCORING_OPEN",
+        assessmentRound: { roundType: "PROGRESS_1" as const },
+        evaluatorAssignments: [
+          { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+          { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+        ]
+      }]
+    };
+
+    expect(getRoundReadiness(project, "PROGRESS_2").eligible).toBe(true);
+  });
+
+  it("keeps Progress 2 not eligible while Progress 1 required scoring is incomplete", () => {
+    const project = {
+      ...baseProject,
+      committeeAssignments: [
+        { role: "ADVISOR" as const, active: true, teacherId: "advisor" },
+        { role: "HEAD" as const, active: true, teacherId: "head" },
+        { role: "MEMBER" as const, active: true, teacherId: "member" }
+      ],
+      attempts: [{
+        status: "SCORING_OPEN",
+        assessmentRound: { roundType: "PROGRESS_1" as const },
+        evaluatorAssignments: [
+          { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } }
+        ]
+      }]
+    };
+
+    const readiness = getRoundReadiness(project, "PROGRESS_2");
+    expect(readiness.eligible).toBe(false);
+    expect(readiness.reasons).toContain("progress 1 assessment incomplete");
+  });
+
+  it("marks Final eligible only after required Progress 2 scoring is complete", () => {
+    const project = {
+      ...baseProject,
+      committeeAssignments: [
+        { role: "ADVISOR" as const, active: true, teacherId: "advisor" },
+        { role: "HEAD" as const, active: true, teacherId: "head" },
+        { role: "MEMBER" as const, active: true, teacherId: "member" }
+      ],
+      attempts: [
+        {
+          status: "SCORING_OPEN",
+          assessmentRound: { roundType: "PROGRESS_1" as const },
+          evaluatorAssignments: [
+            { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+            { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+          ]
+        },
+        {
+          status: "SCORING_OPEN",
+          assessmentRound: { roundType: "PROGRESS_2" as const },
+          evaluatorAssignments: [
+            { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+            { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+          ]
+        }
+      ]
+    };
+
+    expect(getRoundReadiness(project, "FINAL_PRESENTATION").eligible).toBe(true);
   });
 });

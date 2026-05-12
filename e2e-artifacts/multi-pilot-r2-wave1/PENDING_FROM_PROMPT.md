@@ -594,3 +594,62 @@ Next required action:
 - Commit/push the scoped counter patch to QA preview.
 - Open the new QA preview URL after deployment.
 - Verify `/admin/rounds` counter values live before closing Progress 1 or opening Progress 2.
+
+Counter patch live verification:
+
+- QA preview: `https://system-project-math-sci-kwtp9kb6q-lordtd-hubs-projects.vercel.app`
+- Commit: `53203a1`
+- Result: PASS.
+- Progress 1 now shows:
+  - ready `4`,
+  - submitted `3`,
+  - completed `3`,
+  - not ready/exceptions `36`.
+- Screenshot: `screenshots/admin-rounds-progress1-counters-fixed-53203a1-live.png`
+
+New stop reason before opening Progress 2:
+
+- Admin can see Progress 1 still has many not-ready/incomplete projects, but the close-round UI does not show an affected-student list or acknowledgement for Progress 1.
+- Proposal already has an acknowledgement flow, but the user's policy decision says the same incomplete/late discipline should apply to every round.
+- Do not close Progress 1 or open Progress 2 until the non-Proposal round closure warning/acknowledgement behavior is reviewed or patched.
+
+Recommended next patch:
+
+- Extend Admin round closure warning/acknowledgement from Proposal to Progress 1, Progress 2, and Final.
+- Show affected project/student names for incomplete/not-ready cases.
+- For Final, explicitly warn that incomplete projects may receive grade I.
+- Keep the patch display/guard scoped; do not change scoring semantics.
+
+Round eligibility bucket patch status:
+
+- Implemented locally after the Progress counter patch.
+- `/admin/rounds` now separates:
+  - ready/eligible for this round,
+  - submitted evidence for this round,
+  - assessment completed for this round,
+  - eligible but incomplete,
+  - not yet eligible,
+  - late/open exceptions.
+- Non-Proposal close acknowledgement is based only on eligible-but-incomplete projects.
+- Not-yet-eligible projects are no longer treated as current-round blockers.
+- Final close warning includes grade-I risk wording.
+
+Validation after this patch:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 308 tests
+- `npm run build`: PASS
+- Final `npm run typecheck`: PASS
+
+Next required action:
+
+- Commit and push the scoped patch to `qa-preview`.
+- Wait for the new Vercel QA preview URL.
+- Open the new preview at `/qa-login` in the persistent Microsoft Edge session.
+- Login as `MULTI-PILOT-R2 Admin`.
+- Verify Progress 1 buckets on `/admin/rounds`:
+  - Projects 01/04/05 should be completed.
+  - eligible-but-incomplete should show only projects that passed the previous gate but have not completed Progress 1.
+  - the 36 not-yet-eligible projects should be in the separate not-yet-eligible bucket.
+  - close Progress 1 should require acknowledgement only for eligible-but-incomplete projects.
+- Do not close Progress 1 unless the guard clearly matches the intended state.

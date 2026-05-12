@@ -882,3 +882,109 @@ Next QA step:
 - Push this patch to QA preview.
 - Open the new preview URL.
 - Verify `/admin/rounds` shows Progress 1 counts matching Projects 01/04/05 evidence/scoring before closing Progress 1 or opening Progress 2.
+
+## Live QA Verification - Admin Progress Counter Source
+
+QA preview verified:
+
+- `https://system-project-math-sci-kwtp9kb6q-lordtd-hubs-projects.vercel.app`
+- Commit: `53203a1` (`fix: correct admin round progress counters`)
+
+Result: PASS.
+
+- `/admin/rounds` now shows Progress 1:
+  - ready: `4`
+  - submitted: `3`
+  - completed: `3`
+  - not ready/exceptions: `36`
+- This matches the known Wave 1 state better than the previous `0/0` counter display:
+  - Projects 01/04/05 have Progress 1 activity/scoring.
+  - One eligible project remains not submitted for Progress 1.
+  - The remaining starter projects are still not ready/incomplete.
+
+Screenshot:
+
+- `screenshots/admin-rounds-progress1-counters-fixed-53203a1-live.png`
+
+### New Guard Finding - Non-Proposal Round Closure Warning
+
+Severity: Major / policy gap.
+
+Route:
+
+- `/admin/rounds`
+
+Expected:
+
+- The policy now says missed/incomplete handling should apply to every assessment round.
+- Before closing Progress 1, Progress 2, or Final with incomplete/not-ready projects, Admin should see affected student/project names and acknowledge the impact.
+- Final closure should also warn about possible grade I for incomplete projects.
+
+Actual:
+
+- Proposal has an explicit missing-student acknowledgement flow.
+- Progress 1 shows `ยังไม่พร้อม/ข้อยกเว้น 36`, but the close action does not show an affected-student list or acknowledgement comparable to Proposal.
+- The close button is visible while many projects remain incomplete/not ready.
+
+Action taken:
+
+- Stopped before closing Progress 1.
+- Did not open Progress 2.
+
+Suggested minimal fix:
+
+- Extend the Admin round closure warning/acknowledgement pattern beyond Proposal:
+  - list affected projects for the current round,
+  - require acknowledgement before close,
+  - show late/lock/grade-I impact wording according to round type,
+  - keep actual close semantics unchanged unless a policy change is explicitly requested.
+
+## Stabilization Patch - Round Eligibility Buckets and Close Acknowledgement
+
+Patch status: implemented locally and validated before QA push.
+
+Policy implemented:
+
+- Admin round overview now derives round buckets for every course-level round:
+  - eligible for this round,
+  - submitted/current-round evidence,
+  - completed/current-round assessment,
+  - eligible but incomplete,
+  - not yet eligible for this round,
+  - late/open exceptions.
+- Progress 1 eligibility remains Proposal PASS plus active ADVISOR/HEAD/MEMBER assignments.
+- Progress 2 eligibility requires Progress 1 required HEAD/MEMBER scoring completion.
+- Final eligibility requires Progress 2 required HEAD/MEMBER scoring completion.
+- Not-yet-eligible projects are displayed separately and are not treated as current-round incomplete blockers.
+- Progress 1 / Progress 2 / Final close now requires Admin acknowledgement only when eligible-but-incomplete projects exist.
+- Final close warning explicitly mentions grade I risk.
+- Existing Proposal missing-submission acknowledgement behavior is preserved.
+- Close audit metadata now records eligible incomplete project ids/counts for non-Proposal rounds.
+
+Files:
+
+- `src/lib/assessments/roundEligibility.ts`
+- `src/lib/assessments/roundEligibility.test.ts`
+- `src/app/admin/rounds/page.tsx`
+- `src/app/admin/rounds/roundsUx.test.ts`
+- `src/app/admin/actions.ts`
+- `src/app/lateRoundPolicySource.test.ts`
+
+Validation:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 308 tests
+- `npm run build`: PASS
+- Final `npm run typecheck`: PASS
+
+Remaining UX debt recorded:
+
+- Duplicate close/open controls and reset controls still need a cleaner hierarchy.
+- The close acknowledgement checkbox is functional but still visually awkward inside the action area.
+- Warning copy/button hierarchy should be redesigned later; this patch intentionally keeps UI minimal.
+
+Next QA step:
+
+- Commit/push this scoped patch to QA preview.
+- Open the new preview URL, not the old `kwtp9kb6q` URL.
+- Verify `/admin/rounds` as MULTI-PILOT-R2 Admin before closing Progress 1.

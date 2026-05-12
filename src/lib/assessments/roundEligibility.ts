@@ -1,5 +1,6 @@
-import type { AssessmentRoundType, CommitteeRole, Decision, ProjectStatus } from "@prisma/client";
+import type { AssessmentRoundType, CommitteeRole, Decision, ProjectStatus, ScoreStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isPresentationAssessmentComplete } from "./presentationCompletion";
 
 export type RoundEligibilityProject = {
   id: string;
@@ -7,14 +8,33 @@ export type RoundEligibilityProject = {
   student?: { studentCode: string; firstNameTh: string; lastNameTh: string };
   currentTitleTh?: string | null;
   proposalResults?: Array<{ finalDecision: Decision }>;
-  committeeAssignments?: Array<{ role: CommitteeRole; active: boolean }>;
+  committeeAssignments?: Array<{ role: CommitteeRole; active: boolean; teacherId?: string | null }>;
   roundExceptions?: Array<{ status: string; reason: string }>;
+  assessmentSubmissions?: Array<{ kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT" }>;
+  attempts?: Array<{
+    status: string;
+    finalDecision?: Decision | null;
+    assessmentRound?: { roundType: AssessmentRoundType };
+    presentationSubmission?: { status: string } | null;
+    evaluatorAssignments: Array<{
+      teacherId?: string | null;
+      scoreSubmission?: { status: ScoreStatus } | null;
+    }>;
+  }>;
 };
 
 export type ProjectReadiness = {
   project: RoundEligibilityProject;
   eligible: boolean;
   reasons: string[];
+};
+
+export type RoundEligibilityBuckets = {
+  eligible: ProjectReadiness[];
+  notReady: ProjectReadiness[];
+  submitted: ProjectReadiness[];
+  completed: ProjectReadiness[];
+  eligibleButIncomplete: ProjectReadiness[];
 };
 
 function hasCommittee(project: RoundEligibilityProject, role: CommitteeRole) {
@@ -40,6 +60,87 @@ export function getProgress1Readiness(project: RoundEligibilityProject): Project
   return { project, eligible, reasons };
 }
 
+function assessmentKindForRound(roundType: AssessmentRoundType) {
+  if (roundType === "PROGRESS_1") return "PROGRESS_1" as const;
+  if (roundType === "PROGRESS_2") return "PROGRESS_2" as const;
+  if (roundType === "FINAL_PRESENTATION") return "FINAL_PRESENT" as const;
+  return null;
+}
+
+export function hasCompletedPresentationRound(
+  project: RoundEligibilityProject,
+  roundType: Extract<AssessmentRoundType, "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION">
+) {
+  return project.attempts?.some((attempt) =>
+    attempt.assessmentRound?.roundType === roundType &&
+    isPresentationAssessmentComplete({
+      roundStatus: attempt.status as Parameters<typeof isPresentationAssessmentComplete>[0]["roundStatus"],
+      committeeAssignments: (project.committeeAssignments ?? []).map((assignment) => ({
+        ...assignment,
+        teacherId: assignment.teacherId ?? null
+      })),
+      scoreSubmissions: attempt.evaluatorAssignments.map((assignment) => ({
+        teacherId: assignment.teacherId ?? null,
+        status: assignment.scoreSubmission?.status ?? null
+      }))
+    })
+  ) ?? false;
+}
+
+export function hasSubmittedRoundEvidence(project: RoundEligibilityProject, roundType: AssessmentRoundType) {
+  if (roundType === "PROPOSAL") {
+    return project.attempts?.some((attempt) =>
+      attempt.assessmentRound?.roundType === "PROPOSAL" &&
+      ["SUBMITTED", "LOCKED"].includes(attempt.presentationSubmission?.status ?? "")
+    ) ?? false;
+  }
+
+  const kind = assessmentKindForRound(roundType);
+  return Boolean(kind && project.assessmentSubmissions?.some((submission) => submission.kind === kind));
+}
+
+export function hasCompletedCurrentRound(project: RoundEligibilityProject, roundType: AssessmentRoundType) {
+  if (roundType === "PROPOSAL") return Boolean(project.proposalResults?.[0]?.finalDecision);
+  if (roundType === "PROGRESS_1" || roundType === "PROGRESS_2" || roundType === "FINAL_PRESENTATION") {
+    return hasCompletedPresentationRound(project, roundType);
+  }
+  return false;
+}
+
+export function getRoundReadiness(project: RoundEligibilityProject, roundType: AssessmentRoundType): ProjectReadiness {
+  if (roundType === "PROPOSAL") return { project, eligible: true, reasons: [] };
+  if (roundType === "PROGRESS_1") return getProgress1Readiness(project);
+
+  const previousRoundType = roundType === "PROGRESS_2" ? "PROGRESS_1" : "PROGRESS_2";
+  const previousReadiness = roundType === "PROGRESS_2" ? getProgress1Readiness(project) : getRoundReadiness(project, "PROGRESS_2");
+  const reasons = [...previousReadiness.reasons];
+
+  if (!previousReadiness.eligible) {
+    reasons.push(roundType === "PROGRESS_2" ? "previous proposal gate not passed" : "previous progress 1 gate not passed");
+  } else if (!hasCompletedPresentationRound(project, previousRoundType)) {
+    reasons.push(roundType === "PROGRESS_2" ? "progress 1 assessment incomplete" : "progress 2 assessment incomplete");
+  }
+
+  return { project, eligible: reasons.length === 0, reasons };
+}
+
+export function buildRoundEligibilityBuckets(projects: RoundEligibilityProject[], roundType: AssessmentRoundType): RoundEligibilityBuckets {
+  const readiness = projects.map((project) => getRoundReadiness(project, roundType));
+  const eligible = readiness.filter((item) => item.eligible);
+  const notReady = readiness.filter((item) => !item.eligible);
+  const submitted = eligible.filter((item) => hasSubmittedRoundEvidence(item.project, roundType));
+  const completed = eligible.filter((item) => hasCompletedCurrentRound(item.project, roundType));
+  const completedProjectIds = new Set(completed.map((item) => item.project.id));
+
+  return {
+    eligible,
+    notReady,
+    submitted,
+    completed,
+    eligibleButIncomplete: eligible.filter((item) => !completedProjectIds.has(item.project.id))
+  };
+}
+
 export function reasonLabelTh(reason: string) {
   switch (reason) {
     case "waiting proposal final decision":
@@ -58,6 +159,14 @@ export function reasonLabelTh(reason: string) {
       return "ยังรอผู้ดูแลระบบยืนยัน";
     case "project in DRAFT":
       return "โครงงานยังอยู่ในขั้นร่างหัวข้อ";
+    case "previous proposal gate not passed":
+      return "ยังไม่ผ่านเกณฑ์จากการเสนอหัวข้อ";
+    case "previous progress 1 gate not passed":
+      return "ยังไม่ผ่านเกณฑ์จากการสอบความก้าวหน้าครั้งที่ 1";
+    case "progress 1 assessment incomplete":
+      return "ยังประเมินการสอบความก้าวหน้าครั้งที่ 1 ไม่ครบ";
+    case "progress 2 assessment incomplete":
+      return "ยังประเมินการสอบความก้าวหน้าครั้งที่ 2 ไม่ครบ";
     default:
       return reason;
   }
@@ -72,7 +181,23 @@ export async function getRoundEligibility(courseOfferingId: string, roundType: A
       currentTitleTh: true,
       student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
       proposalResults: { select: { finalDecision: true }, orderBy: { decidedAt: "desc" }, take: 1 },
-      committeeAssignments: { select: { role: true, active: true } },
+      committeeAssignments: { select: { role: true, active: true, teacherId: true } },
+      assessmentSubmissions: { select: { kind: true } },
+      attempts: {
+        where: { assessmentRound: { roundType: { in: ["PROPOSAL", "PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } } },
+        select: {
+          status: true,
+          finalDecision: true,
+          assessmentRound: { select: { roundType: true } },
+          presentationSubmission: { select: { status: true } },
+          evaluatorAssignments: {
+            select: {
+              teacherId: true,
+              scoreSubmission: { select: { status: true } }
+            }
+          }
+        }
+      },
       roundExceptions: {
         where: { assessmentRound: { roundType } },
         select: { status: true, reason: true },
@@ -82,12 +207,5 @@ export async function getRoundEligibility(courseOfferingId: string, roundType: A
     orderBy: { updatedAt: "desc" }
   });
 
-  const readiness = roundType === "PROGRESS_1"
-    ? projects.map((project) => getProgress1Readiness(project))
-    : projects.map((project) => ({ project, eligible: false, reasons: ["ยังไม่เปิดใช้ flow นี้"] }));
-
-  return {
-    eligible: readiness.filter((item) => item.eligible),
-    notReady: readiness.filter((item) => !item.eligible)
-  };
+  return buildRoundEligibilityBuckets(projects, roundType);
 }

@@ -141,6 +141,9 @@ Suggested manual wording:
 - Check whether multi-project teacher queues remain readable when more requests arrive.
 - Admin manual should explain that missed/late round recovery is managed from the dedicated `จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ` page, not directly from the round overview page.
 - Admin round overview should be described as a control summary; exception handling should be described as an operational list with search/filter and per-student expansion.
+- Admin round overview now separates "พร้อมแต่ยังไม่ครบ" from "ยังไม่พร้อมรอบนี้"; manuals should explain that only the eligible-but-incomplete group is reviewed before closing the current round.
+- For Progress 1 / Progress 2 / Final, Admin must acknowledge eligible-but-incomplete projects before closing; projects that have not passed the previous gate are not counted as current-round incomplete.
+- Final close warnings should be described with clear grade-I risk wording.
 
 ## Notes Added From Wave 1 Continuation
 
@@ -151,6 +154,11 @@ These are not ready for final manuals yet, but should be carried into manual pla
 - Teacher manuals must explain that once a teacher submits a score, that item should disappear from their actionable queue or become read-only for that teacher only.
 - Admin manuals should explain that Proposal decision should be made only when required reviewers are complete, or the UI must clearly warn when deciding with missing reviewers.
 - Proposal scoring policy clarification: during the valid Proposal scoring window, all teachers may assess Proposal items. After Admin records the Proposal decision, teachers who have not assessed that Proposal should no longer see it as pending work.
+- Round gate wording to carry into the manual:
+  - Proposal PASS plus committee assignment makes a project eligible for Progress 1.
+  - Progress 1 required committee scores make a project eligible for Progress 2.
+  - Progress 2 required committee scores make a project eligible for Final.
+  - Eligibility after a round has already closed requires the late/reopen exception flow.
 
 ## QA Runbook Notes
 

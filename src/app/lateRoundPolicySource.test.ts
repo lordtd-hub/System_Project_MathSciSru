@@ -27,6 +27,13 @@ describe("late round policy source coverage", () => {
     expect(studentActions).toContain("latePenaltyRequired");
   });
 
+  it("lets eligible projects enter an open Progress/Final round normally and requires late override after close", () => {
+    const studentActions = read("src/app/student/actions.ts");
+    expect(studentActions).toContain("if (!isRoundOpen(round.status) && !hasLateOverride)");
+    expect(studentActions).toContain('redirectWithQuery("/student/schedule", { error: "schedule_round_not_open" })');
+    expect(studentActions).toContain("await assertPreviousPresentationRoundComplete(project.id, roundType)");
+  });
+
   it("deducts late-round penalty at scoring submission time", () => {
     const teacherActions = read("src/app/teacher/actions.ts");
     expect(teacherActions).toContain("getLateRoundScoreAdjustment");

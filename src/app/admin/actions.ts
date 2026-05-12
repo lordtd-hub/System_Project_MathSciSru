@@ -715,6 +715,14 @@ export async function closeCourseRound(formData: FormData) {
   if (missingProposalProjects.length && String(formData.get("acknowledge_missing_projects") ?? "") !== "yes") {
     redirectWithQuery("/admin/rounds", { error: "round_close_missing_ack_required" });
   }
+  const incompleteEligibleProjects = round.roundType !== "PROPOSAL"
+    ? (await getRoundEligibility(round.courseOfferingId, round.roundType)).eligibleButIncomplete.map((item) => item.project)
+    : [];
+  if (incompleteEligibleProjects.length && String(formData.get("acknowledge_incomplete_projects") ?? "") !== "yes") {
+    redirectWithQuery("/admin/rounds", {
+      error: round.roundType === "FINAL_PRESENTATION" ? "round_close_final_incomplete_ack_required" : "round_close_incomplete_ack_required"
+    });
+  }
 
   const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
   await prisma.$transaction(async (tx) => {
@@ -736,7 +744,9 @@ export async function closeCourseRound(formData: FormData) {
           roundType: round.roundType,
           courseOfferingId: round.courseOfferingId,
           missingProjectCount: missingProposalProjects.length,
-          missingProjectIds: missingProposalProjects.map((project) => project.id)
+          missingProjectIds: missingProposalProjects.map((project) => project.id),
+          eligibleIncompleteProjectCount: incompleteEligibleProjects.length,
+          eligibleIncompleteProjectIds: incompleteEligibleProjects.map((project) => project.id)
         }
       }
     });

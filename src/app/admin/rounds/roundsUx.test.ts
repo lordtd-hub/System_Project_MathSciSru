@@ -11,7 +11,8 @@ describe("admin course round management UX", () => {
     expect(pageSource).toContain("รอบสอบของรายวิชา");
     expect(pageSource).toContain("เปิดรอบ");
     expect(pageSource).toContain("ดูความพร้อมของรอบปัจจุบัน");
-    expect(pageSource).toContain('getRoundEligibility(offering.id, "PROGRESS_1")');
+    expect(pageSource).toContain("courseLevelRoundTypes.map(async (roundType)");
+    expect(pageSource).toContain("getRoundEligibility(offering.id, roundType)");
   });
 
   it("opens Progress 1 through one course-level upsert", () => {
@@ -56,10 +57,23 @@ describe("admin course round management UX", () => {
     expect(scheduleSource).toContain("getProgress1Readiness(project)");
   });
   it("counts Progress and Final submissions from assessment evidence instead of Proposal submissions", () => {
-    expect(pageSource).toContain("submissionKindForRound");
-    expect(pageSource).toContain("prisma.assessmentSubmission.findMany");
-    expect(pageSource).toContain('kind: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] }');
-    expect(pageSource).toContain("submittedProjectIdsByKind");
-    expect(pageSource).toContain("isPresentationAssessmentComplete");
+    expect(pageSource).toContain("roundEligibilityByType");
+    expect(pageSource).toContain("eligibility.submitted.length");
+    expect(pageSource).toContain("eligibility.completed.length");
+    expect(pageSource).toContain("พร้อมเข้าสู่รอบนี้");
+    expect(pageSource).toContain("ยังไม่พร้อมรอบนี้");
+  });
+
+  it("requires close acknowledgement only for eligible but incomplete non-Proposal projects", () => {
+    expect(pageSource).toContain("eligibility.eligibleButIncomplete.length");
+    expect(pageSource).toContain("acknowledge_incomplete_projects");
+    expect(pageSource).toContain("โครงงานที่ยังไม่ผ่านรอบก่อนหน้าจะแยกอยู่ในกลุ่ม");
+    expect(actionSource).toContain("eligibleButIncomplete");
+    expect(actionSource).toContain("round_close_incomplete_ack_required");
+  });
+
+  it("warns about grade I risk when closing Final with eligible incomplete projects", () => {
+    expect(pageSource).toContain("นักศึกษาอาจได้รับเกรด I");
+    expect(actionSource).toContain("round_close_final_incomplete_ack_required");
   });
 });
