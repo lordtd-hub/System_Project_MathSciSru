@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { DevSessionPayload } from "./devSession";
+import { multiPilotR2Admin, multiPilotR2Students, multiPilotR2Teachers } from "@/lib/qa/multiPilotR2";
 
 export type QaRole = "admin" | "teacher" | "student";
 export type QaTeacherOption = {
@@ -23,6 +24,10 @@ export type QaPrimaryAccount = {
   displayName: string;
   email: string;
   purpose: string;
+};
+export type QaAdminOption = QaPrimaryAccount & {
+  key: string;
+  label: string;
 };
 export type QaPilotProjectRole = {
   project: string;
@@ -71,6 +76,13 @@ export function getQaRoleEmail(role: QaRole, env: EnvLike = process.env) {
   if (role === "admin") return qaPilotAdmin.email;
   if (role === "student") return getQaStudentOptions(env)[0]?.email;
   return getQaTeacherOptions(env)[0]?.email;
+}
+
+export function getQaAdminOptions(): QaAdminOption[] {
+  return [
+    { ...qaPilotAdmin, key: "qa-admin", label: "QA Admin" },
+    { ...multiPilotR2Admin, key: "multi-r2-admin", label: "MULTI-PILOT-R2 Admin" }
+  ];
 }
 
 function splitEmailList(value: string | undefined) {
@@ -215,6 +227,7 @@ export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption
   };
 
   qaPilotTeachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, teacher.displayName, teacher.purpose));
+  multiPilotR2Teachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`, "MULTI-PILOT-R2 controlled operational simulation"));
 
   add("legacy-default", "Legacy QA Teacher", readEnv(env, "QA_TEACHER_EMAIL"), undefined, "Legacy single-teacher QA identity");
   add("legacy-advisor", "Legacy QA Advisor", readEnv(env, "QA_TEACHER_ADVISOR_EMAIL") ?? readEnv(env, "QA_TEACHER_EMAIL_1"), undefined, "Legacy advisor identity");
@@ -229,7 +242,18 @@ export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption
 }
 
 export function getQaStudentOptions(env: EnvLike = process.env): QaStudentOption[] {
-  const entries = [...qaPilotStudents];
+  const entries: QaStudentOption[] = [
+    ...qaPilotStudents,
+    ...multiPilotR2Students.map((student) => ({
+      key: student.key,
+      label: student.label,
+      email: student.email,
+      studentCode: student.studentCode,
+      firstNameTh: student.firstNameTh,
+      lastNameTh: student.lastNameTh,
+      purpose: "MULTI-PILOT-R2 controlled operational simulation"
+    }))
+  ];
   const configured = readEnv(env, "QA_STUDENT_EMAIL")?.toLowerCase();
   if (configured && !entries.some((student) => student.email === configured)) {
     entries.push({
@@ -256,6 +280,12 @@ export function getQaTeacherEmail(selection: FormDataEntryValue | null, env: Env
   if (!options.length) return undefined;
   const keyOrEmail = String(selection ?? "").trim().toLowerCase();
   return options.find((option) => option.key === keyOrEmail || option.email === keyOrEmail)?.email ?? options[0].email;
+}
+
+export function getQaAdminEmail(selection: FormDataEntryValue | null) {
+  const options = getQaAdminOptions();
+  const keyOrEmail = String(selection ?? "").trim().toLowerCase();
+  return options.find((option) => option.key === keyOrEmail || option.email === keyOrEmail)?.email ?? options[0]?.email;
 }
 
 export function getQaRoleDashboardPath(role: QaRole) {

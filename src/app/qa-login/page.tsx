@@ -5,14 +5,23 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DEV_SESSION_COOKIE, decodeDevSession } from "@/lib/auth/devSession";
 import {
+  getQaAdminOptions,
   getQaStudentOptions,
   getQaTeacherOptions,
   hasQaLoginSecret,
   isQaLoginEnabled,
-  qaPilotAdmin,
   qaPilotProjectRoles
 } from "@/lib/auth/qaLogin";
-import { clearQaUser, prepareQaPilotIdentities, prepareQaTeacherProfiles, selectQaUser } from "./actions";
+import {
+  MULTI_PILOT_R2_PREFIX,
+  getMultiPilotR2ScenarioCounts,
+  getMultiPilotR2TeacherRoleSummary,
+  multiPilotR2Projects,
+  multiPilotR2Students,
+  multiPilotR2Teachers,
+  multiPilotR2WavePlan
+} from "@/lib/qa/multiPilotR2";
+import { clearQaUser, prepareMultiPilotR2Data, prepareQaPilotIdentities, prepareQaTeacherProfiles, selectQaUser } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +54,9 @@ export default async function QaLoginPage({
   const qaSession = decodeDevSession(cookieStore.get(DEV_SESSION_COOKIE)?.value);
   const teacherOptions = getQaTeacherOptions();
   const studentOptions = getQaStudentOptions();
+  const adminOptions = getQaAdminOptions();
+  const r2RoleSummary = getMultiPilotR2TeacherRoleSummary();
+  const r2ScenarioCounts = getMultiPilotR2ScenarioCounts();
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -86,13 +98,21 @@ export default async function QaLoginPage({
           </p>
         </div>
         <form action={selectQaUser} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label htmlFor="role">บทบาท</label>
               <select id="role" name="role" required defaultValue="student">
                 <option value="admin">Admin</option>
                 <option value="teacher">Teacher</option>
                 <option value="student">Student</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="admin_email">Admin identity</label>
+              <select id="admin_email" name="admin_email" defaultValue={adminOptions[0]?.key ?? ""}>
+                {adminOptions.map((admin) => (
+                  <option key={admin.key} value={admin.key}>{admin.label} · {admin.email}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -131,6 +151,108 @@ export default async function QaLoginPage({
 
       <section className="panel space-y-3">
         <div>
+          <h2 className="text-lg font-semibold">MULTI-PILOT-R2 operational simulation</h2>
+          <p className="mt-1 text-sm text-muted">
+            QA-only setup for a realistic course-scale pilot: 40 students, 11 teachers, 40 starter projects, and one isolated course offering.
+          </p>
+        </div>
+        <form action={prepareMultiPilotR2Data} className="space-y-3 rounded-md border border-line bg-paper p-3">
+          <div>
+            <label htmlFor="prepare_r2_secret">QA login secret</label>
+            <input id="prepare_r2_secret" name="secret" type="password" required autoComplete="off" />
+          </div>
+          <button type="submit" className="button-secondary" disabled={!secretConfigured}>
+            เตรียมข้อมูล MULTI-PILOT-R2
+          </button>
+          <p className="text-xs text-muted">
+            Creates or reuses the {MULTI_PILOT_R2_PREFIX} course offering, prepares synthetic roster/teacher profiles, and creates starter student projects at STUDENT_PROFILE. It does not delete old pilot history.
+          </p>
+        </form>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-md border border-line bg-paper p-3">
+            <div className="text-2xl font-semibold">{multiPilotR2Students.length}</div>
+            <div className="text-sm text-muted">students</div>
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <div className="text-2xl font-semibold">{multiPilotR2Teachers.length}</div>
+            <div className="text-sm text-muted">teachers</div>
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <div className="text-2xl font-semibold">{multiPilotR2Projects.length}</div>
+            <div className="text-sm text-muted">starter projects</div>
+          </div>
+          <div className="rounded-md border border-line bg-paper p-3">
+            <div className="text-2xl font-semibold">3+1</div>
+            <div className="text-sm text-muted">waves</div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-muted">
+              <tr>
+                <th className="py-2 pr-3">Wave</th>
+                <th className="py-2 pr-3">Students</th>
+                <th className="py-2 pr-3">Teachers</th>
+                <th className="py-2 pr-3">Projects</th>
+                <th className="py-2 pr-3">Goal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {multiPilotR2WavePlan.map((wave) => (
+                <tr key={wave.wave} className="border-t border-line">
+                  <td className="py-2 pr-3 font-medium">{wave.wave}</td>
+                  <td className="py-2 pr-3">{wave.students}</td>
+                  <td className="py-2 pr-3">{wave.teachers}</td>
+                  <td className="py-2 pr-3">{wave.projects}</td>
+                  <td className="py-2 pr-3">{wave.goal}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">MULTI-PILOT-R2 teacher role distribution</h2>
+          <p className="mt-1 text-sm text-muted">
+            Designed so teachers have overlapping advisor, head committee, and member committee responsibilities across different projects.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-muted">
+              <tr>
+                <th className="py-2 pr-3">Teacher</th>
+                <th className="py-2 pr-3">Advisor</th>
+                <th className="py-2 pr-3">Head</th>
+                <th className="py-2 pr-3">Member</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r2RoleSummary.map((row) => (
+                <tr key={row.teacherLabel} className="border-t border-line">
+                  <td className="py-2 pr-3 font-medium">{row.teacherLabel}</td>
+                  <td className="py-2 pr-3">{row.advisorCount}</td>
+                  <td className="py-2 pr-3">{row.headCount}</td>
+                  <td className="py-2 pr-3">{row.memberCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {Object.entries(r2ScenarioCounts).map(([scenario, count]) => (
+            <div key={scenario} className="rounded-md border border-line bg-paper p-3">
+              <div className="font-semibold">{scenario}</div>
+              <div className="text-sm text-muted">{count} projects</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel space-y-3">
+        <div>
           <h2 className="text-lg font-semibold">บัญชีทดสอบหลัก</h2>
           <p className="mt-1 text-sm text-muted">ใช้ชื่อและอีเมลเหล่านี้เป็นหลักระหว่าง controlled multi-user pilot</p>
         </div>
@@ -145,12 +267,14 @@ export default async function QaLoginPage({
               </tr>
             </thead>
             <tbody>
-              <tr className="border-t border-line">
-                <td className="py-2 pr-3 font-medium">{qaPilotAdmin.role}</td>
-                <td className="py-2 pr-3">{qaPilotAdmin.displayName}</td>
-                <td className="py-2 pr-3">{qaPilotAdmin.email}</td>
-                <td className="py-2 pr-3">{qaPilotAdmin.purpose}</td>
-              </tr>
+              {adminOptions.map((admin) => (
+                <tr key={admin.key} className="border-t border-line">
+                  <td className="py-2 pr-3 font-medium">{admin.role}</td>
+                  <td className="py-2 pr-3">{admin.displayName}</td>
+                  <td className="py-2 pr-3">{admin.email}</td>
+                  <td className="py-2 pr-3">{admin.purpose}</td>
+                </tr>
+              ))}
               {studentOptions.map((student) => (
                 <tr key={student.key} className="border-t border-line">
                   <td className="py-2 pr-3 font-medium">Student</td>

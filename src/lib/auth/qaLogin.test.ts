@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildQaSessionPayload,
+  getQaAdminEmail,
+  getQaAdminOptions,
   getQaRoleDashboardPath,
   getQaRoleEmail,
   getQaStudentOptions,
@@ -12,6 +14,7 @@ import {
   parseQaRole,
   verifyQaLoginSecret
 } from "./qaLogin";
+import { multiPilotR2Students, multiPilotR2Teachers } from "@/lib/qa/multiPilotR2";
 
 describe("QA login gate", () => {
   it("is disabled by default", () => {
@@ -57,6 +60,11 @@ describe("QA login gate", () => {
     expect(getQaRoleDashboardPath("student")).toBe("/student");
   });
 
+  it("supports the MULTI-PILOT-R2 admin identity as an explicit admin choice", () => {
+    expect(getQaAdminOptions().map((option) => option.email)).toContain("multi.pilot.r2.admin@sru.test");
+    expect(getQaAdminEmail("multi-r2-admin")).toBe("multi.pilot.r2.admin@sru.test");
+  });
+
   it("rejects unknown role values", () => {
     expect(parseQaRole("admin")).toBe("admin");
     expect(parseQaRole("teacher")).toBe("teacher");
@@ -74,11 +82,15 @@ describe("QA login gate", () => {
       QA_TEACHER_EMAILS: "qa.extra@sru.ac.th"
     };
 
-    expect(getQaTeacherOptions(env).map((option) => option.email)).toEqual([
+    const emails = getQaTeacherOptions(env).map((option) => option.email);
+    expect(emails.slice(0, 4)).toEqual([
       "qa.teacher.alpha@sru.test",
       "qa.teacher.beta@sru.test",
       "qa.teacher.gamma@sru.test",
-      "qa.teacher.delta@sru.test",
+      "qa.teacher.delta@sru.test"
+    ]);
+    expect(emails).toEqual(expect.arrayContaining(multiPilotR2Teachers.map((teacher) => teacher.email)));
+    expect(emails.slice(-5)).toEqual([
       "qa.teacher@sru.ac.th",
       "qa.advisor@sru.ac.th",
       "qa.committee1@sru.ac.th",
@@ -86,6 +98,7 @@ describe("QA login gate", () => {
       "qa.extra@sru.ac.th"
     ]);
     expect(getQaTeacherEmail("teacher-beta", env)).toBe("qa.teacher.beta@sru.test");
+    expect(getQaTeacherEmail("multi-r2-teacher-11", env)).toBe("multi.pilot.r2.teacher11@sru.test");
     expect(getQaTeacherEmail(null, env)).toBe("qa.teacher.alpha@sru.test");
   });
 
@@ -96,24 +109,28 @@ describe("QA login gate", () => {
       QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th"
     };
 
-    expect(getQaTeacherOptions(env).map((option) => option.email)).toEqual([
+    const emails = getQaTeacherOptions(env).map((option) => option.email);
+    expect(emails.slice(0, 4)).toEqual([
       "qa.teacher.alpha@sru.test",
       "qa.teacher.beta@sru.test",
       "qa.teacher.gamma@sru.test",
-      "qa.teacher.delta@sru.test",
-      "qa.teacher@sru.ac.th"
+      "qa.teacher.delta@sru.test"
     ]);
+    expect(emails).toEqual(expect.arrayContaining(multiPilotR2Teachers.map((teacher) => teacher.email)));
+    expect(emails.at(-1)).toBe("qa.teacher@sru.ac.th");
     expect(getQaTeacherEmail("teacher-gamma", env)).toBe("qa.teacher.gamma@sru.test");
   });
 
   it("keeps designed QA teacher identities available when QA login is disabled", () => {
-    expect(getQaTeacherOptions({ QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th" }).map((option) => option.email)).toEqual([
+    const emails = getQaTeacherOptions({ QA_TEACHER_EMAIL: "qa.teacher@sru.ac.th" }).map((option) => option.email);
+    expect(emails.slice(0, 4)).toEqual([
       "qa.teacher.alpha@sru.test",
       "qa.teacher.beta@sru.test",
       "qa.teacher.gamma@sru.test",
-      "qa.teacher.delta@sru.test",
-      "qa.teacher@sru.ac.th"
+      "qa.teacher.delta@sru.test"
     ]);
+    expect(emails).toEqual(expect.arrayContaining(multiPilotR2Teachers.map((teacher) => teacher.email)));
+    expect(emails.at(-1)).toBe("qa.teacher@sru.ac.th");
   });
 
   it("provides designed multi-user QA students first and keeps legacy student as optional", () => {
@@ -126,6 +143,7 @@ describe("QA login gate", () => {
       "qa.student.d@sru.test",
       "qa.student.e@sru.test"
     ]);
+    expect(students.map((student) => student.email)).toEqual(expect.arrayContaining(multiPilotR2Students.map((student) => student.email)));
     expect(students.at(-1)?.email).toBe("9999999999@student.sru.ac.th");
   });
 });

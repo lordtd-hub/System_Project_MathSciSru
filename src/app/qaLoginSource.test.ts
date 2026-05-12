@@ -33,10 +33,10 @@ describe("QA login source guards", () => {
   it("explains the multi-user QA identity design without exposing secrets", () => {
     const pageSource = readFileSync(join(root, "src/app/qa-login/page.tsx"), "utf8");
 
-    expect(pageSource).toContain("บัญชีทดสอบหลัก");
-    expect(pageSource).toContain("ผังบทบาทอาจารย์ใน Multi-User Pilot");
-    expect(pageSource).toContain("สถานการณ์ที่ต้องทดสอบ");
-    expect(pageSource).toContain("ข้อจำกัด QA Mode");
+    expect(pageSource).toContain("Multi-User Pilot");
+    expect(pageSource).toContain("MULTI-PILOT-R2 operational simulation");
+    expect(pageSource).toContain("prepareMultiPilotR2Data");
+    expect(pageSource).toContain("QA Mode");
     expect(pageSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
   });
 
@@ -44,10 +44,12 @@ describe("QA login source guards", () => {
     const actionSource = readFileSync(join(root, "src/app/qa-login/actions.ts"), "utf8");
 
     expect(actionSource).toContain("prepareQaPilotIdentities");
+    expect(actionSource).toContain("prepareMultiPilotR2Data");
     expect(actionSource).toContain("verifyQaLoginSecret");
     expect(actionSource).toContain("isQaLoginEnabled");
     expect(actionSource).toContain("prisma.project.upsert");
     expect(actionSource).toContain("status: \"STUDENT_PROFILE\"");
+    expect(actionSource).toContain("MULTI_PILOT_R2_COURSE_TITLE");
     expect(actionSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
   });
 });
