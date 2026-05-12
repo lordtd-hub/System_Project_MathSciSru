@@ -123,14 +123,23 @@ export default async function TeacherAdvisorRequestsPage({
                     </WarningAlert>
                   </div>
                 ) : null}
-                <form action={reviewAdvisorRequest} className="mt-4 grid gap-3">
-                  <input type="hidden" name="request_id" value={request.id} />
-                  <MarkdownLatexEditor name="comment" label="หมายเหตุถึงนักศึกษา" placeholder="โดยเฉพาะกรณีปฏิเสธ สามารถใช้ $...$ หรือ $$...$$ ได้" required={false} disabled={request.status !== "PENDING"} rows={3} />
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <SubmitButton name="decision" value="APPROVE" disabled={request.status !== "PENDING"} pendingText="กำลังบันทึก...">อนุมัติคำขอที่ปรึกษา</SubmitButton>
-                    <SubmitButton name="decision" value="REJECT" className="button-danger" disabled={request.status !== "PENDING"} pendingText="กำลังบันทึก...">ปฏิเสธคำขอ</SubmitButton>
+                {request.status === "PENDING" ? (
+                  <form action={reviewAdvisorRequest} className="mt-4 grid gap-3">
+                    <input type="hidden" name="request_id" value={request.id} />
+                    <MarkdownLatexEditor name="comment" label="หมายเหตุถึงนักศึกษา" placeholder="โดยเฉพาะกรณีปฏิเสธ สามารถใช้ $...$ หรือ $$...$$ ได้" required={false} rows={3} />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <SubmitButton name="decision" value="APPROVE" pendingText="กำลังบันทึก...">อนุมัติคำขอที่ปรึกษา</SubmitButton>
+                      <SubmitButton name="decision" value="REJECT" className="button-danger" pendingText="กำลังบันทึก...">ปฏิเสธคำขอ</SubmitButton>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm">
+                    <div className="font-semibold">
+                      {request.status === "APPROVED" ? "อนุมัติคำขอเป็นที่ปรึกษาแล้ว" : "ปฏิเสธคำขอแล้ว"}
+                    </div>
+                    <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={request.advisorComment} emptyText="ไม่มีหมายเหตุเพิ่มเติม" />
                   </div>
-                </form>
+                )}
               </section>
             );
           })

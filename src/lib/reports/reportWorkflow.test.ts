@@ -51,8 +51,16 @@ describe("report workflow gates", () => {
   it("uses clear first submission and revision labels", () => {
     expect(getStudentReportActionLabel({ hasReportVersion: false, latestReportHasRevisionRequest: false })).toBe("ส่งเล่มรายงานฉบับสมบูรณ์");
     expect(getStudentReportActionLabel({ hasReportVersion: true, latestReportHasRevisionRequest: true })).toBe(
-      "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข"
+      "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งฉบับใหม่"
     );
+    expect(getStudentReportActionLabel({ hasReportVersion: true, latestReportHasRevisionRequest: false })).toBe("รอผู้ตรวจพิจารณารายงาน");
+    expect(
+      getStudentReportActionLabel({
+        hasReportVersion: true,
+        latestReportHasRevisionRequest: false,
+        projectStatus: "REPORT_APPROVED"
+      })
+    ).toBe("รายงานได้รับการอนุมัติแล้ว");
   });
 
   it("allows resubmission only after a reviewer requests revision", () => {

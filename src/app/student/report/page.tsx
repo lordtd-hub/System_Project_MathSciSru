@@ -76,7 +76,8 @@ export default async function StudentReportPage({
   const latestReportHasRevisionRequest = Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"));
   const reportActionLabel = getStudentReportActionLabel({
     hasReportVersion: Boolean(latestReport),
-    latestReportHasRevisionRequest
+    latestReportHasRevisionRequest,
+    projectStatus: project.status
   });
   const reportHistory = [...project.reportVersions].sort((a, b) => a.versionNo - b.versionNo);
   const finalPresentationCompleted = project.status === "IN_PROGRESS"
@@ -108,7 +109,7 @@ export default async function StudentReportPage({
       <GuidancePanel
         title="ขั้นตอนการตรวจรายงาน"
         current={reportSubmissionReasonLabel(gate.reason)}
-        next="หากผู้ตรวจขอให้แก้ไข นักศึกษาสามารถส่งรายงานฉบับแก้ไขจากหน้านี้"
+        next="หากผู้ตรวจขอให้แก้ไข นักศึกษาสามารถส่งรายงานฉบับใหม่จากหน้านี้"
         actor="นักศึกษาและอาจารย์ผู้ตรวจเล่ม"
       />
       {project.status === "REPORT_APPROVED" ? (
@@ -119,7 +120,7 @@ export default async function StudentReportPage({
       ) : null}
       {latestReportHasRevisionRequest ? (
         <WarningAlert title="ผู้ตรวจขอให้แก้ไขเล่มรายงาน">
-          กรุณาอ่านข้อเสนอแนะของผู้ตรวจในประวัติรายงานด้านล่าง แก้ไขเล่มรายงาน แล้วส่งรายงานฉบับแก้ไขพร้อมสรุปการแก้ไขเป็นข้อ ๆ
+          กรุณาอ่านข้อเสนอแนะของผู้ตรวจในประวัติรายงานด้านล่าง แก้ไขเล่มรายงาน แล้วส่งรายงานฉบับใหม่พร้อมสรุปการแก้ไขเป็นข้อ ๆ
         </WarningAlert>
       ) : null}
       <InfoAlert title="รูปแบบลิงก์">ใช้ลิงก์ Google Drive, Google Docs หรือ Google Classroom เท่านั้น และช่องสรุปการแก้ไขรองรับ Markdown/LaTeX</InfoAlert>
@@ -138,14 +139,15 @@ export default async function StudentReportPage({
       )}
 
       <FormSection title={reportActionLabel} description={reportSubmissionReasonLabel(gate.reason)}>
-        <DraftPreservingForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} clearOnSuccess={params.success === "report_submitted"} className="space-y-4">
-          <MaterialLinkField name="report_drive_link" />
-          <MarkdownLatexEditor
-            name="report_note"
-            label="สรุปการแก้ไข / ตอบกลับข้อเสนอแนะของผู้ตรวจ"
-            required={false}
-            rows={4}
-            placeholder={`ตัวอย่างการตอบกลับข้อเสนอแนะของผู้ตรวจ
+        {gate.allowed ? (
+          <DraftPreservingForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} clearOnSuccess={params.success === "report_submitted"} className="space-y-4">
+            <MaterialLinkField name="report_drive_link" />
+            <MarkdownLatexEditor
+              name="report_note"
+              label="สรุปการแก้ไข / ตอบกลับข้อเสนอแนะของผู้ตรวจ"
+              required={false}
+              rows={4}
+              placeholder={`ตัวอย่างการตอบกลับข้อเสนอแนะของผู้ตรวจ
 
 ข้อเสนอแนะที่ 1: ระบุข้อเสนอแนะของผู้ตรวจ
 การแก้ไขที่ดำเนินการ: แก้ไขตามข้อเสนอแนะโดยปรับนิยาม/คำอธิบายในหัวข้อ ...
@@ -156,17 +158,19 @@ export default async function StudentReportPage({
 การแก้ไขที่ดำเนินการ: ...
 ตำแหน่งที่แก้ไขในเล่ม: ...
 หมายเหตุ: หากไม่ได้แก้ตามข้อเสนอแนะ ให้ระบุเหตุผลเชิงวิชาการอย่างชัดเจน`}
-            disabled={!gate.allowed}
-          />
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
-              บันทึกไว้ก่อน
-            </button>
-            <SubmitButton disabled={!gate.allowed} pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งรายงานฉบับนี้หรือไม่?" className="w-full sm:w-auto">
-              {reportActionLabel}
-            </SubmitButton>
-          </div>
-        </DraftPreservingForm>
+            />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
+                บันทึกไว้ก่อน
+              </button>
+              <SubmitButton pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งรายงานฉบับนี้หรือไม่?" className="w-full sm:w-auto">
+                {reportActionLabel}
+              </SubmitButton>
+            </div>
+          </DraftPreservingForm>
+        ) : (
+          <InfoAlert title={reportActionLabel}>{reportSubmissionReasonLabel(gate.reason)}</InfoAlert>
+        )}
       </FormSection>
 
       <section className="panel">

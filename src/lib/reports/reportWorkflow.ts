@@ -43,10 +43,14 @@ export function canStudentSubmitFinalReport(input: {
 export function getStudentReportActionLabel(input: {
   hasReportVersion: boolean;
   latestReportHasRevisionRequest: boolean;
+  projectStatus?: ProjectStatus;
 }) {
   if (!input.hasReportVersion) return "ส่งเล่มรายงานฉบับสมบูรณ์";
-  if (input.latestReportHasRevisionRequest) return "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข";
-  return "ส่งรายงานฉบับใหม่";
+  if (input.latestReportHasRevisionRequest) return "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งฉบับใหม่";
+  if (input.projectStatus === "REPORT_APPROVED" || input.projectStatus === "ADVISOR_SCORING" || input.projectStatus === "COMPLETED") {
+    return "รายงานได้รับการอนุมัติแล้ว";
+  }
+  return "รอผู้ตรวจพิจารณารายงาน";
 }
 
 export function reportSubmissionReasonLabel(reason: ReportSubmissionBlockReason | null) {

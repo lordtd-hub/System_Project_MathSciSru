@@ -285,7 +285,7 @@ export default async function AdminProposalsPage({
                           </select>
                           <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
                           <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
-                            {decided ? "บันทึกผลการตัดสินอีกครั้ง" : "บันทึกผลการตัดสิน"}
+                            {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
                           </SubmitButton>
                         </form>
                         <form action={releaseFeedback} className="mt-2">
@@ -404,7 +404,7 @@ export default async function AdminProposalsPage({
                               </select>
                               <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
                               <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
-                                {decided ? "บันทึกผลการตัดสินอีกครั้ง" : "บันทึกผลการตัดสิน"}
+                                {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
                               </SubmitButton>
                             </form>
                             <form action={releaseFeedback} className="mt-2">

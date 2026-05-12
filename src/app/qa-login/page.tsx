@@ -90,6 +90,45 @@ export default async function QaLoginPage({
               ช่องนี้ใช้เมื่อเลือกบทบาท Teacher เพื่อสลับเป็นอาจารย์ที่ปรึกษา/กรรมการคนละคน โดย workflow และ permission ยังทำงานจริง
             </p>
           </div>
+          {teacherOptions.length ? (
+            <div className="rounded-md border border-line bg-paper p-3 text-sm">
+              <div className="font-semibold">คู่มือจับคู่ QA Teacher</div>
+              <p className="mt-1 text-xs text-muted">
+                ชื่อที่แสดงหลังเข้าสู่ระบบมาจาก Teacher profile ในฐานข้อมูล หากชื่อในระบบไม่ตรงกับ label ด้านล่าง ให้ยึด email เป็นหลักระหว่างทดสอบ
+              </p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="text-muted">
+                    <tr>
+                      <th className="py-1 pr-3">QA label</th>
+                      <th className="py-1 pr-3">Email</th>
+                      <th className="py-1 pr-3">ใช้ทดสอบเป็น</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teacherOptions.map((option) => (
+                      <tr key={option.key} className="border-t border-line">
+                        <td className="py-1 pr-3 font-medium">{option.label}</td>
+                        <td className="py-1 pr-3">{option.email}</td>
+                        <td className="py-1 pr-3">
+                          {option.key.includes("advisor") || option.key === "default"
+                            ? "ที่ปรึกษา"
+                            : option.key.includes("committee1")
+                              ? "ประธานกรรมการ"
+                              : option.key.includes("committee2")
+                                ? "กรรมการ"
+                                : "อาจารย์ทดสอบ"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-xs text-muted">
+                ข้อจำกัดของ QA: บางบันทึกหลักฐานจากบัญชี ADMIN • TEACHER อาจแสดงชื่อ actor ตาม session หลักของ QA ให้ใช้บทบาทที่เลือกและ email ประกอบการตรวจสอบ
+              </p>
+            </div>
+          ) : null}
           <div>
             <label htmlFor="secret">QA login secret</label>
             <input

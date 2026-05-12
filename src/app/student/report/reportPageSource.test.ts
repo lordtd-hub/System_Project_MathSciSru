@@ -13,4 +13,12 @@ describe("student report page source", () => {
     expect(page).toContain("ตำแหน่งที่แก้ไขในเล่ม");
     expect(page).toContain("เหตุผลเชิงวิชาการ");
   });
+
+  it("hides the report submit form while a submitted report is waiting for review", () => {
+    const page = source();
+
+    expect(page).toContain("gate.allowed ? (");
+    expect(page).toContain("<InfoAlert title={reportActionLabel}>{reportSubmissionReasonLabel(gate.reason)}</InfoAlert>");
+    expect(page).toContain("projectStatus: project.status");
+  });
 });

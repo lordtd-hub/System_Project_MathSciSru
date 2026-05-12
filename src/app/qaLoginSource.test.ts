@@ -29,4 +29,13 @@ describe("QA login source guards", () => {
     expect(authSource).toContain("isDevLoginEnabled() || isQaLoginEnabled()");
     expect(authSource).toContain("decodeDevSession");
   });
+
+  it("explains QA teacher identity mapping without exposing secrets", () => {
+    const pageSource = readFileSync(join(root, "src/app/qa-login/page.tsx"), "utf8");
+
+    expect(pageSource).toContain("คู่มือจับคู่ QA Teacher");
+    expect(pageSource).toContain("ให้ยึด email เป็นหลัก");
+    expect(pageSource).toContain("ข้อจำกัดของ QA");
+    expect(pageSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
+  });
 });

@@ -35,7 +35,7 @@ export default async function ProposalSubmissionPage({
       projects: {
         orderBy: { createdAt: "desc" },
         include: {
-          presentationSubmissions: true,
+          presentationSubmissions: { orderBy: { createdAt: "desc" }, take: 1 },
           origin: true,
           attempts: { include: { proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "desc" } } } }
         }
@@ -67,6 +67,11 @@ export default async function ProposalSubmissionPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {params.success === "proposal_submitted" ? (
+        <InfoAlert title="ส่ง Proposal สำเร็จ">
+          ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์และผู้ดูแลระบบดำเนินการตามสถานะโครงงาน
+        </InfoAlert>
+      ) : null}
       <GuidancePanel
         title="การส่งเอกสารเสนอหัวข้อ"
         current="กรอก abstract และแนบลิงก์ Google Drive/Docs/Classroom"

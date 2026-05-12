@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { saveAssessmentEvidence, submitExamSchedule } from "@/app/student/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
-import { WarningAlert } from "@/components/ui/Alert";
+import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { FormSection } from "@/components/ui/FormSection";
@@ -236,6 +236,11 @@ export default async function StudentSchedulePage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {params.success === "assessment_evidence_saved" ? (
+        <InfoAlert title="บันทึกหลักฐานการประเมินแล้ว">
+          ระบบบันทึกเอกสารและหลักฐานของรอบสอบแล้ว หากยังไม่ได้เสนอวันสอบ ให้ตรวจข้อมูลและเสนอวันสอบในส่วนถัดไป
+        </InfoAlert>
+      ) : null}
       <GuidancePanel
         title="การนัดสอบ"
         current="นักศึกษาเสนอวัน เวลา ห้องสอบ และหมายเหตุให้กรรมการพิจารณา"

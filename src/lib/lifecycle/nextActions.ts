@@ -128,7 +128,7 @@ export function getStudentAvailableActions(
       break;
     case "REPORT_REVIEW":
       if (reportStatus === "REVISION_REQUIRED") {
-        result.available_now.push(action("report_revision", "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข", "ส่งได้เมื่อผู้ตรวจขอแก้ไขเล่มรายงาน", "available", "/student/report"));
+        result.available_now.push(action("report_revision", "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งฉบับใหม่", "ส่งได้เมื่อผู้ตรวจขอแก้ไขเล่มรายงาน", "available", "/student/report"));
       }
       result.read_only_history.push(action("report_versions", "ประวัติรายงานและข้อเสนอแนะ", "ดูฉบับรายงานที่ส่งแล้ว", "history", "/student/report"));
       result.blocked_waiting_for.push(action("waiting_report_review", "รอผู้ตรวจรายงานพิจารณา", "แก้ไขได้เมื่อมีผลให้ปรับปรุง", "blocked"));
@@ -235,8 +235,8 @@ export function getNextActionForStudent(status?: ProjectStatus | null): NextActi
     case "FINAL_DONE":
     case "REPORT_REVIEW":
       return {
-        title: "ส่งรายงานฉบับแก้ไข",
-        description: "ใช้ลิงก์ Google Drive ของรายงานฉบับแก้ไข และรอผู้ตรวจอนุมัติครบ",
+        title: "ส่งเล่มรายงานฉบับสมบูรณ์",
+        description: "ใช้ลิงก์ Google Drive ของเล่มรายงาน และรอผู้ตรวจพิจารณา",
         actionLabel: "ส่งเล่มรายงาน",
         href: "/student/report"
       };

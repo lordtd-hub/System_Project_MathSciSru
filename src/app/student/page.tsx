@@ -15,6 +15,7 @@ import { isPresentationAssessmentComplete } from "@/lib/assessments/presentation
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
+import { getStudentReportActionLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 function daysWaiting(from?: Date | null) {
@@ -60,7 +61,7 @@ function buildStudentTasks(status: string): TaskListItem[] {
     return [{ title: "ส่งเล่มรายงานฉบับสมบูรณ์", description: "ส่งเล่มรายงานครั้งแรกหลังการสอบนำเสนอขั้นสุดท้ายเสร็จสมบูรณ์", href: "/student/report" }];
   }
   if (status === "REPORT_REVIEW") {
-    return [{ title: "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งรายงานฉบับแก้ไข", description: "ส่งได้เมื่อผู้ตรวจขอให้แก้ไขเล่มรายงาน", href: "/student/report" }];
+    return [{ title: "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งฉบับใหม่", description: "ส่งได้เมื่อผู้ตรวจขอให้แก้ไขเล่มรายงาน", href: "/student/report" }];
   }
   if (status === "COMPLETED") {
     return [];
@@ -299,7 +300,29 @@ export default async function StudentDashboardPage() {
       : project.status === "REPORT_APPROVED"
         ? "APPROVED" as const
         : "SUBMITTED" as const;
-  const nextAction = getNextActionForStudent(project.status);
+  const reportActionLabel = getStudentReportActionLabel({
+    hasReportVersion: Boolean(latestReport),
+    latestReportHasRevisionRequest,
+    projectStatus: project.status
+  });
+  const reportActionDescription = !latestReport
+    ? "ส่งเล่มรายงานฉบับสมบูรณ์ครั้งแรกหลังการสอบนำเสนอขั้นสุดท้ายเสร็จสมบูรณ์"
+    : latestReportHasRevisionRequest
+      ? "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ แล้วส่งฉบับใหม่ให้ผู้ตรวจพิจารณาอีกครั้ง"
+      : project.status === "REPORT_APPROVED"
+        ? "รายงานได้รับการอนุมัติแล้ว ขั้นตอนถัดไปคือคะแนนสรุปของอาจารย์ที่ปรึกษาและการปิดโครงงาน"
+        : "ส่งรายงานแล้ว ขณะนี้อยู่ระหว่างรอผู้ตรวจพิจารณารายงาน";
+  const baseNextAction = getNextActionForStudent(project.status);
+  const nextAction = ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED"].includes(project.status)
+    ? {
+        ...baseNextAction,
+        title: reportActionLabel,
+        description: reportActionDescription,
+        actionLabel: project.status === "REPORT_REVIEW" && !latestReportHasRevisionRequest ? "ดูสถานะรายงาน" : reportActionLabel,
+        href: "/student/report",
+        tone: project.status === "REPORT_APPROVED" ? "success" as const : baseNextAction.tone
+      }
+    : baseNextAction;
   const workflowActions = getStudentAvailableActions(project.status, assessmentStates, reportStatus);
   const proposal = project.presentationSubmissions[0];
   const activeSchedule = project.scheduleProposals.find((schedule) => {
@@ -350,8 +373,8 @@ export default async function StudentDashboardPage() {
               href: "/student/schedule"
             }
           : {
-              title: "ส่งเล่มรายงานฉบับสมบูรณ์",
-              description: "การสอบนำเสนอขั้นสุดท้ายเสร็จแล้ว ขั้นตอนถัดไปคือแก้รายงานตามข้อเสนอแนะและส่งให้ที่ปรึกษา/กรรมการตรวจ",
+              title: reportActionLabel,
+              description: reportActionDescription,
               actionLabel: "เปิดหน้าส่งเล่ม",
               href: "/student/report",
               tone: "success" as const
@@ -412,8 +435,15 @@ export default async function StudentDashboardPage() {
               ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 2", description: "การสอบความก้าวหน้าครั้งที่ 1 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบความก้าวหน้าครั้งที่ 2", href: "/student/schedule", urgency: "สูง" }]
               : assessmentStates.FINAL_PRESENT !== "COMPLETED"
                 ? [{ title: "เตรียมสอบนำเสนอขั้นสุดท้าย", description: "การสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบนำเสนอขั้นสุดท้าย", href: "/student/schedule", urgency: "สูง" }]
-              : [{ title: "ส่งเล่มรายงานฉบับสมบูรณ์", description: "แก้เล่มตามข้อเสนอแนะ แล้วส่งรายงานฉบับแก้ไขให้อาจารย์ที่ปรึกษาและกรรมการตรวจ", href: "/student/report", urgency: "สูง" }]
-    : buildStudentTasks(project.status);
+              : [{ title: reportActionLabel, description: reportActionDescription, href: "/student/report", urgency: latestReportHasRevisionRequest ? "สูง" : undefined }]
+    : ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED"].includes(project.status)
+      ? [{
+          title: reportActionLabel,
+          description: reportActionDescription,
+          href: "/student/report",
+          urgency: !latestReport || latestReportHasRevisionRequest ? "สูง" : "รอคนอื่น"
+        }]
+      : buildStudentTasks(project.status);
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
     .map((attempt) => {
