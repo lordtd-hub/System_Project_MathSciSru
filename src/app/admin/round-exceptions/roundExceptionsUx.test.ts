@@ -26,4 +26,12 @@ describe("admin round exception UX", () => {
     expect(actionsSource).toContain('returnTo === "/admin/round-exceptions"');
     expect(actionsSource).toContain('revalidatePath("/admin/round-exceptions")');
   });
+
+  it("surfaces non-Proposal eligible-but-incomplete projects for recovery without counting not-yet-eligible projects", () => {
+    expect(exceptionsPage).toContain("getRoundEligibility");
+    expect(exceptionsPage).toContain("eligibleButIncomplete");
+    expect(exceptionsPage).toContain("eligibleIncompleteProjectIds");
+    expect(exceptionsPage).toContain('selectedRoundType !== "PROPOSAL"');
+    expect(exceptionsPage).toContain('!(selectedRoundType === "PROPOSAL" && hasSubmission)');
+  });
 });

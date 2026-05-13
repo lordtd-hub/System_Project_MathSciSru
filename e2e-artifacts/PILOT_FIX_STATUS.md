@@ -212,12 +212,18 @@ Recommendation:
 Primary plan file:
 
 - `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_REMAINING_FULL_LOOP_PLAN.md`
+- `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_CLEANUP_STABILIZATION_REPORT.md`
+- `e2e-artifacts/multi-pilot-r2-wave1/WAVE2_PLANNING_NOTE.md`
 
 Current recommendation:
 
+- Student readability cleanup has been patched for schedule/report/feedback pages.
+- Project03-style Progress/Final recovery visibility has been patched through `/admin/round-exceptions` using existing eligible-but-incomplete buckets.
+- Grade summary export now includes `student_full_name_th` while preserving existing weighted score calculations.
 - Do not rerun the full Wave 1 lifecycle from scratch.
-- Do not start Wave 2 yet.
+- Do not start Wave 2 execution yet.
 - Do not start documentation/manual screenshots yet.
+- Full validation, QA preview push, and live QA smoke verification are still required for the cleanup patch.
 - Run remaining Wave 1 cleanup as focused full-loop passes.
 
 Recommended order:

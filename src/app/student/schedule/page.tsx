@@ -14,6 +14,7 @@ import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpo
 import { ProgressQaRubricPanel } from "@/components/ui/ProgressQaRubricPanel";
 import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
@@ -236,6 +237,8 @@ export default async function StudentSchedulePage({
     const kind = roundTypeToScheduleKind(roundType);
     return latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind);
   });
+  const completedScheduleRoundCount = scheduleRoundTypes.filter((roundType) => completed[roundTypeToScheduleKind(roundType)]).length;
+  const notCurrentlyAvailableRoundCount = Math.max(scheduleRoundTypes.length - visibleGuidanceRounds.length - completedScheduleRoundCount, 0);
   const defaultScheduleRoundType = schedulableRoundsWithEvidence[0] ?? visibleGuidanceRounds[0] ?? "PROGRESS_1";
 
   return (
@@ -253,6 +256,36 @@ export default async function StudentSchedulePage({
           </InfoAlert>
         </div>
       ) : null}
+      <StudentReadabilitySummary
+        title="สรุปสถานะการสอบของฉัน"
+        description="แยกให้เห็นว่าส่วนไหนต้องทำต่อ ส่วนไหนรอกรรมการ และส่วนไหนยังไม่ใช่งานที่กดได้ตอนนี้"
+        items={[
+          {
+            label: "ต้องทำตอนนี้",
+            value: editableEvidenceRounds.length,
+            detail: "รอบที่ยังบันทึกหลักฐานหรือเสนอวันสอบได้จากหน้านี้",
+            tone: "action"
+          },
+          {
+            label: "รอกรรมการ",
+            value: lockedScheduleRounds.length,
+            detail: "รอบที่ส่งคำขอนัดสอบแล้วและกำลังรอผลพิจารณา",
+            tone: "waiting"
+          },
+          {
+            label: "เสร็จแล้ว",
+            value: completedScheduleRoundCount,
+            detail: "รอบที่กรรมการบันทึกคะแนนครบแล้ว",
+            tone: "done"
+          },
+          {
+            label: "ล็อก/ยังไม่พร้อม",
+            value: notCurrentlyAvailableRoundCount,
+            detail: "รอบที่ยังไม่เปิดหรือยังไม่ผ่านเงื่อนไขก่อนหน้า",
+            tone: "locked"
+          }
+        ]}
+      />
       <GuidancePanel
         title="การนัดสอบ"
         current="นักศึกษาเสนอวัน เวลา ห้องสอบ และหมายเหตุให้กรรมการพิจารณา"

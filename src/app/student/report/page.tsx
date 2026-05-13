@@ -11,6 +11,7 @@ import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
@@ -92,6 +93,7 @@ export default async function StudentReportPage({
     latestReportHasRevisionRequest,
     finalPresentationCompleted
   });
+  const waitingForReview = Boolean(latestReport && !latestReportHasRevisionRequest && project.status === "REPORT_REVIEW");
 
   return (
     <div className="space-y-6">
@@ -106,6 +108,36 @@ export default async function StudentReportPage({
         current={reportSubmissionReasonLabel(gate.reason)}
         next="หากผู้ตรวจขอให้แก้ไข นักศึกษาสามารถส่งรายงานฉบับใหม่จากหน้านี้"
         actor="นักศึกษาและอาจารย์ผู้ตรวจเล่ม"
+      />
+      <StudentReadabilitySummary
+        title="สรุปสถานะรายงาน"
+        description="หน้านี้แยกงานที่นักศึกษาต้องทำออกจากสถานะที่รอผู้ตรวจ เพื่อไม่ให้เข้าใจว่าต้องส่งซ้ำระหว่างรอผล"
+        items={[
+          {
+            label: "ต้องทำตอนนี้",
+            value: gate.allowed ? 1 : 0,
+            detail: latestReportHasRevisionRequest ? "ผู้ตรวจขอแก้ไข ส่งฉบับใหม่พร้อมสรุปการแก้ไข" : "ส่งเล่มรายงานเมื่อระบบเปิดให้ส่ง",
+            tone: gate.allowed ? "action" : "locked"
+          },
+          {
+            label: "รอผู้ตรวจ",
+            value: waitingForReview ? 1 : 0,
+            detail: "มีรายงานที่ส่งแล้วและยังไม่ต้องส่งซ้ำจนกว่าจะมีผลตรวจ",
+            tone: "waiting"
+          },
+          {
+            label: "ผ่านแล้ว",
+            value: project.status === "REPORT_APPROVED" ? 1 : 0,
+            detail: "รายงานฉบับล่าสุดที่ผู้ตรวจรับรองแล้ว",
+            tone: "done"
+          },
+          {
+            label: "ประวัติ",
+            value: reportHistory.length,
+            detail: "จำนวนฉบับรายงานที่เก็บไว้เป็นหลักฐาน",
+            tone: "info"
+          }
+        ]}
       />
       {project.status === "REPORT_APPROVED" ? (
         <SuccessAlert title="รายงานฉบับสมบูรณ์ผ่านการตรวจแล้ว">ขั้นตอนถัดไปคือรออาจารย์ที่ปรึกษาบันทึกคะแนนสรุปตามกระบวนการของรายวิชา</SuccessAlert>
@@ -191,7 +223,7 @@ export default async function StudentReportPage({
                       version.reviews.map((review) => (
                         <div key={review.id} className="rounded-md bg-paper p-2">
                           <span className="font-medium">{teacherDisplayName(review.reviewerTeacher)}</span>
-                          <span className="ml-2">{review.decision === "PASS" ? "PASS" : "ขอแก้ไข"}</span>
+                          <span className="ml-2">{review.decision === "PASS" ? "ผ่านการตรวจ" : "ขอแก้ไข"}</span>
                           {review.comment ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={review.comment} /> : null}
                         </div>
                       ))

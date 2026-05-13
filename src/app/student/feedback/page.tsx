@@ -1,5 +1,8 @@
 import { auth } from "@/auth";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 
@@ -103,14 +106,56 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
   const displayedPresentationResults = requestedRound
     ? allPresentationResults.filter((item) => item.anchor === requestedRound)
     : presentationAttempts;
+  const waitingResultCount = Math.max(allPresentationResults.length - presentationAttempts.length, 0);
 
   if (!allPresentationResults.length) {
-    return <div className="panel">ยังไม่มีข้อเสนอแนะหรือผลประเมินที่เปิดเผย</div>;
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="ผลและข้อเสนอแนะการประเมิน"
+          description="หน้านี้เป็นข้อมูลอ่านอย่างเดียวสำหรับติดตามคะแนนและข้อเสนอแนะที่บันทึกแล้ว"
+        />
+        <EmptyState title="ยังไม่มีข้อเสนอแนะหรือผลประเมินที่เปิดเผย" description="เมื่อกรรมการบันทึกคะแนนหรือข้อเสนอแนะแล้ว รายการจะแสดงในหน้านี้" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">ผลและข้อเสนอแนะการประเมิน</h1>
+      <PageHeader
+        title="ผลและข้อเสนอแนะการประเมิน"
+        description="หน้านี้เป็นข้อมูลอ่านอย่างเดียว ไม่ใช่งานที่นักศึกษาต้องส่งเพิ่ม"
+      />
+      <StudentReadabilitySummary
+        title="สรุปผลที่แสดงอยู่"
+        description="ช่วยแยกผลที่อ่านได้แล้วออกจากรอบที่ยังรอคะแนนหรือข้อเสนอแนะจากกรรมการ"
+        items={[
+          {
+            label: "อ่านได้แล้ว",
+            value: presentationAttempts.length,
+            detail: "รอบที่มีคะแนนหรือข้อเสนอแนะบันทึกแล้ว",
+            tone: "done"
+          },
+          {
+            label: "รอคะแนน",
+            value: waitingResultCount,
+            detail: "รอบที่ยังไม่มีข้อมูลให้แสดง ไม่ใช่งานที่นักศึกษาต้องกด",
+            tone: "waiting"
+          },
+          {
+            label: "ตัวกรอง",
+            value: requestedRound ? "1" : "ทั้งหมด",
+            detail: "ใช้แท็บด้านล่างเพื่อดูเฉพาะรอบที่ต้องการ",
+            tone: "info"
+          },
+          {
+            label: "การแก้ไข",
+            value: "อ่านอย่างเดียว",
+            detail: "คะแนนและข้อเสนอแนะมาจากกรรมการ ไม่เปิดให้แก้จากหน้านี้",
+            tone: "locked"
+          }
+        ]}
+      />
       <nav className="panel flex flex-wrap gap-2 text-sm" aria-label="เลือกดูข้อเสนอแนะตามรอบสอบ">
         {feedbackTabs.map((tab) => (
           <Link

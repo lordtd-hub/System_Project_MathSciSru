@@ -1085,3 +1085,30 @@ Loop rule:
 Recommended next full-loop prompt:
 
 - `MULTI-PILOT-R2 Wave 1 Remaining Cleanup - Student Readability and Recovery UX Stabilization`
+
+## 2026-05-13 Wave 1 Cleanup Stabilization Patch
+
+Artifacts:
+
+- `WAVE1_CLEANUP_STABILIZATION_REPORT.md`
+- `WAVE2_PLANNING_NOTE.md`
+
+Patched:
+
+- Student readability summaries on schedule/report/feedback pages.
+- Project03-style non-Proposal recovery visibility through `/admin/round-exceptions`.
+- Grade summary export now includes `student_full_name_th`.
+
+Pending before marking cleanup complete:
+
+- Full local validation:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- QA preview push from `qa-preview`.
+- Live QA smoke verification on the new preview:
+  - Student schedule/report/feedback readability.
+  - Admin `/admin/round-exceptions?round_type=PROGRESS_1` shows eligible-but-incomplete recovery cases without not-yet-eligible projects.
+  - Admin evidence grade export still downloads.
+
+Do not start Wave 2 execution until this cleanup patch is validated and explicitly approved.

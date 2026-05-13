@@ -363,3 +363,30 @@ Do not turn this into polished manual text yet.
 - Teacher queues should later separate actionable inbox items from read-only history.
 - Admin closeout and evidence pages are operationally usable, but the final UX pass should improve hierarchy and scanning for 40+ projects.
 - Do not start Wave 2 or documentation screenshots until the user explicitly approves the next phase.
+
+## 2026-05-13 Cleanup Stabilization Notes
+
+Do not turn this into polished manual text yet.
+
+### Student readability
+
+- Student schedule/report/feedback pages now have compact summaries that separate:
+  - needs action,
+  - waiting on teachers/reviewers,
+  - completed/read-only,
+  - locked/not available.
+- This is a presentation/readability layer only. It does not change gates, permissions, scores, or lifecycle.
+- Later manual text should use the same mental model: "ทำตอนนี้ / รอ / เสร็จแล้ว / ยังไม่พร้อม".
+
+### Project03 recovery
+
+- The chosen policy for now is to keep the existing audited late/reopen action.
+- `/admin/round-exceptions` should show non-Proposal eligible-but-incomplete projects after a round is closed.
+- Not-yet-eligible projects should stay out of this recovery list.
+- A dedicated recovery console can be designed later, but it is not required before Wave 2 if the exception page is understandable in live QA.
+
+### Grade export
+
+- The grade summary export now includes `student_full_name_th`.
+- Existing weighted score columns remain unchanged.
+- Registrar-facing format may still need final naming decisions later, but the current CSV/XLSX should be useful for end-of-course review.

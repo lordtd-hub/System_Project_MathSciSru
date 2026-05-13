@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, isRoundClosed, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
+import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { openLateRoundSubmissionForProject } from "../actions";
@@ -36,6 +37,13 @@ function teacherName(teacher?: { academicPrefix: string; firstNameTh: string; la
   return teacher ? `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}` : "";
 }
 
+function assessmentSubmissionKindForRound(roundType: RoundType) {
+  if (roundType === "PROGRESS_1") return "PROGRESS_1" as const;
+  if (roundType === "PROGRESS_2") return "PROGRESS_2" as const;
+  if (roundType === "FINAL_PRESENTATION") return "FINAL_PRESENT" as const;
+  return null;
+}
+
 export default async function AdminRoundExceptionsPage({
   searchParams
 }: {
@@ -62,11 +70,16 @@ export default async function AdminRoundExceptionsPage({
   const round = await prisma.assessmentRound.findUnique({
     where: { courseOfferingId_roundType: { courseOfferingId: offering.id, roundType: selectedRoundType } }
   });
+  const eligibility = round ? await getRoundEligibility(offering.id, selectedRoundType) : null;
+  const eligibleIncompleteProjectIds = selectedRoundType === "PROPOSAL"
+    ? []
+    : eligibility?.eligibleButIncomplete.map((item) => item.project.id) ?? [];
   const exceptionProjectWhere: Prisma.ProjectWhereInput[] = round
     ? selectedRoundType === "PROPOSAL"
       ? [{ presentationSubmissions: { none: {} } }, { roundExceptions: { some: { assessmentRoundId: round.id } } }]
-      : [{ roundExceptions: { some: { assessmentRoundId: round.id } } }]
+      : [{ id: { in: eligibleIncompleteProjectIds } }, { roundExceptions: { some: { assessmentRoundId: round.id } } }]
     : [];
+  const selectedAssessmentKind = assessmentSubmissionKindForRound(selectedRoundType);
 
   const projects = round
     ? await prisma.project.findMany({
@@ -87,6 +100,11 @@ export default async function AdminRoundExceptionsPage({
             orderBy: { submittedAt: "desc" },
             take: 1
           },
+          assessmentSubmissions: {
+            where: selectedAssessmentKind ? { kind: selectedAssessmentKind } : undefined,
+            orderBy: { submittedAt: "desc" },
+            take: 1
+          },
           roundExceptions: {
             where: { assessmentRoundId: round.id },
             orderBy: { createdAt: "desc" }
@@ -98,7 +116,7 @@ export default async function AdminRoundExceptionsPage({
   const rows = projects
     .map((project) => {
       const latestException = project.roundExceptions[0];
-      const hasSubmission = selectedRoundType === "PROPOSAL" ? project.presentationSubmissions.length > 0 : false;
+      const hasSubmission = selectedRoundType === "PROPOSAL" ? project.presentationSubmissions.length > 0 : project.assessmentSubmissions.length > 0;
       const isOpen = latestException?.status === "OPEN";
       const status: ExceptionRowStatus = hasSubmission && latestException ? "late_submitted" : isOpen ? "opened" : "missed";
       const searchText = [
@@ -133,6 +151,11 @@ export default async function AdminRoundExceptionsPage({
       <InfoAlert title="ใช้หน้านี้แทนการแสดงฟอร์มยาวในหน้ารอบสอบ">
         เลือกรอบ กรองรายชื่อ แล้วเปิดส่งย้อนหลังเป็นรายกรณี ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนเริ่มต้น 10% เว้นแต่ระบุเป็นเหตุสุดวิสัย
       </InfoAlert>
+      {selectedRoundType !== "PROPOSAL" ? (
+        <InfoAlert title="Progress/Final แสดงเฉพาะโครงการที่เข้าเกณฑ์รอบนี้แต่ยังไม่ครบ">
+          โครงการที่ยังไม่ผ่านรอบก่อนหน้าจะไม่แสดงเป็นผู้พลาดรอบนี้ รายการในตารางคือเคสที่เข้ารอบแล้วแต่ปิดรอบก่อนหลักฐาน/นัดสอบ/คะแนนจะครบ จึงต้องพิจารณาเปิดย้อนหลังเป็นรายกรณี
+        </InfoAlert>
+      ) : null}
 
       <section className="panel">
         <form className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]" action="/admin/round-exceptions">
@@ -208,7 +231,7 @@ export default async function AdminRoundExceptionsPage({
             <tbody className="divide-y divide-line">
               {rows.map(({ project, latestException, hasSubmission, isOpen, status }) => {
                 const excused = latestException?.exceptionType === "LATE_ROUND_EXCUSED";
-                const canOpen = Boolean(round && isRoundClosed(round.status) && !hasSubmission && !isOpen);
+                const canOpen = Boolean(round && isRoundClosed(round.status) && !isOpen && !(selectedRoundType === "PROPOSAL" && hasSubmission));
                 return (
                   <tr key={project.id} className="align-top">
                     <td className="px-3 py-3">

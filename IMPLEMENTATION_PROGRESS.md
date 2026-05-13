@@ -43,6 +43,28 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - The cleanup plan explicitly says not to rerun Wave 1 from scratch, not to start Wave 2, and not to start documentation/manual screenshots until approved.
 - The cleanup loop remains: Minor/UX issues are recorded and the pass continues; Major/Blocker issues stop the loop for minimal patch, validation, QA preview push, live verification, and resume.
 
+## 2026-05-13 Wave 1 cleanup stabilization
+
+- Added `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_CLEANUP_STABILIZATION_REPORT.md`.
+- Added `e2e-artifacts/multi-pilot-r2-wave1/WAVE2_PLANNING_NOTE.md`.
+- Added `src/components/ui/StudentReadabilitySummary.tsx`.
+- Updated `/student/schedule`, `/student/report`, and `/student/feedback` with compact action/waiting/done/locked summaries.
+- Changed student report review display from raw `PASS` to Thai user-facing wording.
+- Updated `/admin/round-exceptions` so non-Proposal eligible-but-incomplete projects are visible for audited per-case recovery through the existing late/reopen action.
+- Kept not-yet-eligible projects out of the recovery list so they are not treated as current-round missed cases.
+- Added `student_full_name_th` to the grade summary export while preserving existing weighted score calculations.
+- Added/updated source and unit tests for student readability, non-Proposal recovery visibility, and grade export columns.
+- Targeted validation passed:
+  - `cmd /c npm.cmd test -- studentReadabilityStabilization`
+  - `cmd /c npm.cmd test -- roundExceptionsUx studentReadabilityStabilization`
+  - `cmd /c npm.cmd test -- adminEvidence roundExceptionsUx studentReadabilityStabilization`
+- Full validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test` - 80 files / 332 tests
+  - `cmd /c npm.cmd run build`
+- Secret scan over cleanup artifacts and changed source files passed for the QA secret; only a historical `AUTH_SECRET` documentation mention was found in `IMPLEMENTATION_PROGRESS.md`.
+- QA push and live QA verification are still required before marking this cleanup pass complete.
+
 ## 2026-05-06 Production baseline seed
 
 - Added `prisma/seed-production-baseline.ts`.

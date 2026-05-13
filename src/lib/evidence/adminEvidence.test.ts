@@ -116,6 +116,12 @@ describe("admin evidence summaries", () => {
       recordedTotalScore: 56.5,
       missingScoreComponents: []
     });
+    expect(courseGradeExportCsvRows(rows)[0].slice(0, 4)).toEqual([
+      "65123456789",
+      "Somchai",
+      "Jaidee",
+      "Somchai Jaidee"
+    ]);
   });
 
   it("keeps missing grade components visible while totals treat them as zero", () => {
