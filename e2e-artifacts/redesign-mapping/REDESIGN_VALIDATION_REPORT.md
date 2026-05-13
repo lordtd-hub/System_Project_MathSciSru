@@ -194,3 +194,32 @@ Screenshots:
 - `e2e-artifacts/redesign-mapping/screenshots/student-schedule-redesign-mobile-4pvh39ven.png`
 - `e2e-artifacts/redesign-mapping/screenshots/student-report-redesign-mobile-4pvh39ven.png`
 - `e2e-artifacts/redesign-mapping/screenshots/student-feedback-redesign-mobile-4pvh39ven.png`
+
+## 2026-05-13 Global Mobile + Non-Mutating Regression
+
+- Phase: 7/8 - global mobile pass and old-vs-new non-mutating regression.
+- Preview URL: `https://system-project-math-sci-66nqpox8d-lordtd-hubs-projects.vercel.app`.
+- Local validation:
+  - `node --check e2e-artifacts/redesign-mapping/verify-teacher-workload-cdp.js` - passed.
+  - `node --check e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js` - passed.
+  - `node --check e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` - passed.
+- Live QA verification: passed with Edge persistent CDP.
+- Viewports:
+  - desktop 1440px.
+  - mobile 390px.
+- Logic touched: no.
+
+Verified route groups:
+
+- Teacher: 8 routes passed on desktop and mobile.
+- Admin: 6 routes passed on desktop and mobile.
+- Student: 6 routes passed on desktop and mobile.
+
+Result:
+
+- No shell-only pages detected.
+- No digest/application error pages detected.
+- No detected mobile horizontal overflow.
+- QA login role selection was guarded before identity selection for each role.
+
+Tooling note: `.env.preview.local` did not match the active preview QA secret during this pass, so live verification used a process-scoped `QA_LIVE_SECRET` environment value. The secret was not written to source or artifact files.

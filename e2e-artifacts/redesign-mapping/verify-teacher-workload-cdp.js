@@ -124,14 +124,33 @@ async function bodyText(client, label) {
   return text;
 }
 
+async function clearExistingQaSession(client) {
+  const cleared = await evaluate(client, `
+    (() => {
+      const forms = Array.from(document.forms);
+      const clearForm = forms.find((form) => !form.querySelector("#role") && /QA session|ออกจาก QA session|ออกจากระบบ/.test(form.innerText || ""));
+      if (!clearForm) return false;
+      clearForm.requestSubmit();
+      return true;
+    })()
+  `, "clear existing QA session");
+  if (cleared) {
+    await sleep(1800);
+    await goto(client, `${baseUrl}/qa-login`);
+  }
+}
+
 async function qaLoginTeacher(client, teacherKey) {
   await goto(client, `${baseUrl}/qa-login`);
+  await clearExistingQaSession(client);
   await evaluate(client, `
     (() => {
-      const form = document.querySelector("form:has(#secret)");
+      const roleSelect = document.querySelector("#role");
+      if (!roleSelect) throw new Error("Missing #role");
+      const form = roleSelect.closest("form");
       if (!form) throw new Error("Missing QA login form");
       const setSelect = (selector, value) => {
-        const el = document.querySelector(selector);
+        const el = form.querySelector(selector);
         if (!el) throw new Error("Missing " + selector);
         const normalizedValue = String(value).toLowerCase();
         const option = Array.from(el.options).find((item) => {
@@ -140,8 +159,13 @@ async function qaLoginTeacher(client, teacherKey) {
           return optionValue === normalizedValue || optionText.includes(normalizedValue);
         });
         if (!option) throw new Error("Missing option " + value + " for " + selector);
-        el.value = option.value;
-        option.selected = true;
+        const valueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+        if (valueSetter) valueSetter.call(el, option.value);
+        else el.value = option.value;
+        Array.from(el.options).forEach((item) => {
+          item.selected = item === option;
+        });
+        el.selectedIndex = option.index;
         el.dispatchEvent(new Event("input", { bubbles: true }));
         el.dispatchEvent(new Event("change", { bubbles: true }));
       };
@@ -155,7 +179,14 @@ async function qaLoginTeacher(client, teacherKey) {
         const invalid = Array.from(form.elements).filter((element) => element.willValidate && !element.checkValidity()).map((element) => element.id || element.name || element.tagName);
         throw new Error("QA login form invalid before submit: " + invalid.join(","));
       }
-      form.requestSubmit();
+      const data = new FormData(form);
+      if (data.get("role") !== "teacher") throw new Error("QA login role was not set to teacher before submit");
+      if (!String(data.get("teacher_email") || "").toLowerCase().includes("teacher")) throw new Error("QA login teacher identity was not set before submit");
+      if (!String(data.get("secret") || "")) throw new Error("QA login secret missing before submit");
+      const submitter = form.querySelector('button[type="submit"]');
+      if (!submitter) throw new Error("Missing QA login submit button");
+      if (submitter?.disabled) throw new Error("QA login submit button is disabled");
+      form.requestSubmit(submitter);
       return true;
     })()
   `, `qa login teacher ${teacherKey}`);

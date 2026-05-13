@@ -1541,4 +1541,6 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `node --check e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` - passed.
 - No lifecycle, auth, scoring, eligibility, schema, server action, API, or production changes were made.
 - Live QA verification passed on `https://system-project-math-sci-4pvh39ven-lordtd-hubs-projects.vercel.app` for `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback` at desktop and 390px mobile width.
-- Next step: global mobile/regression verification across the redesigned Teacher, Admin, and Student surfaces.
+- Global non-mutating desktop/mobile regression passed on `https://system-project-math-sci-66nqpox8d-lordtd-hubs-projects.vercel.app` across Teacher, Admin, and Student route groups.
+- The teacher verifier was patched to clear existing QA sessions before selecting `#role = teacher`, matching the safer role-dropdown handling already used by the Admin and Student verifiers.
+- Next step: completion documentation and readiness assessment for the redesign loop; mutating workflow regression remains deferred to a safe action window.

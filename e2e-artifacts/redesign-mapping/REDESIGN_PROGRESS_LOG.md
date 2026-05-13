@@ -349,3 +349,36 @@ All checked routes rendered without shell-only pages, digest/error pages, or det
 ### Next Phase
 
 Continue to global mobile/regression verification across redesigned Teacher, Admin, and Student surfaces.
+
+## 2026-05-13 - Phase 7/8 Global Mobile + Non-Mutating Regression
+
+### Preview
+
+`https://system-project-math-sci-66nqpox8d-lordtd-hubs-projects.vercel.app`
+
+### Scope
+
+Verified redesigned surfaces across all three roles without mutating workflow state:
+
+- Teacher: `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, `/teacher/advisor-score`.
+- Admin: `/admin`, `/admin/rounds`, `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, `/admin/evidence`.
+- Student: `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, `/student/feedback`.
+
+### Result
+
+Passed for desktop and 390px mobile viewports.
+
+- No shell-only pages detected.
+- No digest/application error pages detected.
+- No detected horizontal overflow in 390px mobile viewport.
+- QA login role dropdown was explicitly selected before identity selection for each role.
+- The teacher verifier was patched to clear existing QA sessions before switching roles, matching the Admin/Student verifier safety pattern.
+
+### Notes
+
+- The local `.env.preview.local` QA secret did not match the active preview secret during this check. The live verification used a process-scoped `QA_LIVE_SECRET` environment value and did not write the secret to artifacts.
+- Mutating workflow regression remains deferred to a safe action window because this pass intentionally preserved Wave 1 QA state.
+
+### Next Phase
+
+Continue to completion documentation and readiness assessment for the redesign loop.

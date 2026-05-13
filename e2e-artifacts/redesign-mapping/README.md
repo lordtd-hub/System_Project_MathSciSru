@@ -1,6 +1,6 @@
 # Full UI Redesign Planning Pack
 
-Status: planning only.
+Status: redesign loop completed through global non-mutating desktop/mobile verification.
 
 This folder is the source of truth for the new redesign work. It is intentionally separate from the older `WEBAPP_REDESIGN_PLAN.md`, because that file has encoding issues and also contains older visual-polish notes.
 
@@ -27,6 +27,10 @@ It must preserve:
 - `THEME_AND_CONTENT_RULES.md` - color, logo, typography, and copy constraints.
 - `REDESIGN_SKILL_GUIDE.md` - design/implementation skills and working rules for Codex.
 - `REDESIGN_FULL_LOOP_PROMPT.md` - copy-paste prompt for executing the redesign as a full loop.
+- `REDESIGN_PROGRESS_LOG.md` - execution log for completed redesign phases.
+- `REDESIGN_VALIDATION_REPORT.md` - local and live QA validation evidence.
+- `REDESIGN_DEFERRED_ITEMS.md` - deferred redesign/workflow items.
+- `REDESIGN_COMPLETION_REPORT.md` - final readiness summary for the current redesign loop.
 
 ## Current Figma Evidence Captured
 
@@ -44,4 +48,4 @@ Captured reference screenshots:
 
 ## Current Recommendation
 
-Start with a real-app mapping audit, then redesign Teacher workflow first because the Figma direction is clearest there and it addresses the highest confirmed UX risk: teacher workload density.
+Use the redesigned QA preview as the baseline for Wave 2 planning. Mutating workflow regression should still be exercised in a safe action window because the final redesign verification was intentionally non-mutating.
