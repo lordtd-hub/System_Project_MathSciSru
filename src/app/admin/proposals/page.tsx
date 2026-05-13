@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminOperationalSummary } from "@/components/ui/AdminOperationalQueue";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
@@ -91,6 +92,8 @@ export default async function AdminProposalsPage({
     const submitted = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED").length;
     return submitted < attempt.evaluatorAssignments.length;
   }).length;
+  const releasedCount = allAttempts.filter((attempt) => attempt.scoreRelease).length;
+  const decidedCount = allAttempts.filter((attempt) => attempt.proposalResult).length;
 
   return (
     <div className="space-y-6">
@@ -102,6 +105,17 @@ export default async function AdminProposalsPage({
 
       {hasProposalAttempts ? (
         <>
+          <AdminOperationalSummary
+            title="สรุปปฏิบัติการ Proposal"
+            description="แยกงานที่ Admin ต้องตัดสิน ออกจากงานที่รอคะแนนอาจารย์หรือเสร็จแล้ว"
+            metrics={[
+              { label: "รอตัดสิน", count: waitingDecisionCount, tone: waitingDecisionCount ? "action" : "completed", description: "มีคะแนน/เอกสารแล้วแต่ยังไม่มีมติสุดท้าย" },
+              { label: "คะแนนยังไม่ครบ", count: missingScoreCount, tone: missingScoreCount ? "waiting" : "completed", description: "ไม่ใช่ blocker เสมอไป แต่ควรตรวจสอบก่อนปิดรอบ" },
+              { label: "FAIL ≥ 50%", count: failAlertCount, tone: failAlertCount ? "exception" : "completed", description: "ต้องอ่านเหตุผลและมติประชุมอย่างระมัดระวัง" },
+              { label: "ตัดสินแล้ว", count: decidedCount, tone: "completed", description: "มี final decision แล้ว" },
+              { label: "เปิดผลแล้ว", count: releasedCount, tone: "completed", description: "นักศึกษาเห็นข้อเสนอแนะแล้ว" }
+            ]}
+          />
           <NextActionCard
             action={{
               title: waitingDecisionCount ? "ตรวจสอบผลและบันทึกผลตัดสินสุดท้าย" : "พร้อมเข้าสู่ขั้นตอนถัดไป",

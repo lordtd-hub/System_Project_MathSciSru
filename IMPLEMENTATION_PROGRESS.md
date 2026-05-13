@@ -11,6 +11,25 @@
 
 Historical note: The original Task 01-10 checklist below is retained as the initial MVP sequence. Later 2026-05-06 sections supersede early Proposal-only limitations.
 
+## 2026-05-13 Admin operational UX stabilization
+
+- Started after MULTI-PILOT-R2 Wave 1 completed Proposal through Admin closeout.
+- Scope is UI/presentation stabilization only; lifecycle, scoring, eligibility, auth, schema, and production settings were preserved.
+- Added `e2e-artifacts/admin-operational-ux/ADMIN_OPERATIONAL_AUDIT.md`.
+- Added `e2e-artifacts/admin-operational-ux/ADMIN_QUEUE_DESIGN.md`.
+- Added a shared Admin operational queue UI component for scan summaries, status buckets, and dangerous action separation.
+- Updated `/admin/rounds` with an operational summary and visually separated open-round controls from close/reset controls.
+- Updated `/admin/closeout` to split ready-to-close, waiting, and completed projects.
+- Updated `/admin/proposals` with proposal decision/missing-score/fail-vote/released summary buckets.
+- Updated `/admin/schedules` to group proposed, rejected, and confirmed schedules.
+- Updated `/admin/evidence` with evidence readiness summary and clearer export descriptions, including grade summary meaning.
+- Added `src/app/admin/adminOperationalUxSource.test.ts`.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Live QA validation pending QA preview push.
+
 ## 2026-05-06 Production baseline seed
 
 - Added `prisma/seed-production-baseline.ts`.

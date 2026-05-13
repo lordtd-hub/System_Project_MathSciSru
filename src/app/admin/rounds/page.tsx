@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminDangerZone, AdminOperationalSummary, AdminQueueBadge } from "@/components/ui/AdminOperationalQueue";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -130,6 +131,22 @@ export default async function AdminRoundsPage({
       return groups;
     }, new Map<string, { key: string; label: string; count: number; samples: typeof readinessFocusEligibility.notReady }>()).values()
   ).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "th"));
+  const roundOperationalState = courseLevelRoundTypes.map((roundType) => {
+    const round = roundMap.get(roundType);
+    const eligibility = roundEligibilityByType.get(roundType) ?? emptyEligibility;
+    const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
+    const open = Boolean(round && isRoundOpen(round.status));
+    const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
+    const waitingTeachers = Math.max(eligibility.submitted.length - eligibility.completed.length, 0);
+    const waitingStudents = Math.max(eligibility.eligibleButIncomplete.length - waitingTeachers, 0);
+    return { roundType, round, eligibility, openGate, open, exceptionCount, waitingTeachers, waitingStudents };
+  });
+  const openableRoundCount = roundOperationalState.filter((item) => item.openGate.canOpen && !item.open).length;
+  const readyToCloseRoundCount = roundOperationalState.filter((item) => item.open && item.eligibility.eligibleButIncomplete.length === 0).length;
+  const waitingTeacherCount = roundOperationalState.reduce((sum, item) => sum + item.waitingTeachers, 0);
+  const waitingStudentCount = roundOperationalState.reduce((sum, item) => sum + item.waitingStudents, 0);
+  const exceptionCount = roundOperationalState.reduce((sum, item) => sum + item.exceptionCount, 0);
+  const notEligibleCount = roundOperationalState.reduce((sum, item) => sum + item.eligibility.notReady.length, 0);
 
   return (
     <div className="space-y-6">
@@ -142,6 +159,19 @@ export default async function AdminRoundsPage({
       <InfoAlert title="การเปิดรอบเป็นระดับรายวิชา">
         การปิดรอบการเสนอหัวข้อไม่ได้เปิดรอบสอบความก้าวหน้าครั้งที่ 1 อัตโนมัติ ผู้ดูแลระบบต้องตัดสินผลการเสนอหัวข้อ แต่งตั้งกรรมการ แล้วเปิดรอบสอบความก้าวหน้าครั้งที่ 1 เอง
       </InfoAlert>
+
+      <AdminOperationalSummary
+        title="สรุปปฏิบัติการรอบสอบ"
+        description="แยกรายการที่ต้องกดดำเนินการ ออกจากรายการที่รอนักศึกษา/อาจารย์ และรายการที่ยังไม่เข้าเกณฑ์ของรอบ"
+        metrics={[
+          { label: "เปิดรอบได้", count: openableRoundCount, tone: openableRoundCount ? "action" : "locked", description: "รอบที่ผ่านเงื่อนไขลำดับแล้ว แต่ยังไม่ได้เปิด" },
+          { label: "พร้อมปิดรอบ", count: readyToCloseRoundCount, tone: readyToCloseRoundCount ? "ready" : "locked", description: "รอบที่เปิดอยู่และไม่มี eligible-but-incomplete" },
+          { label: "รออาจารย์", count: waitingTeacherCount, tone: waitingTeacherCount ? "waiting" : "completed", description: "มีหลักฐานแล้ว แต่คะแนน/การประเมินยังไม่ครบ" },
+          { label: "รอนักศึกษา", count: waitingStudentCount, tone: waitingStudentCount ? "waiting" : "completed", description: "เข้าเกณฑ์รอบนี้แล้ว แต่หลักฐานหรือขั้นตอนยังไม่ครบ" },
+          { label: "ข้อยกเว้น/ย้อนหลัง", count: exceptionCount, tone: exceptionCount ? "exception" : "locked", description: "รายการเปิดส่งย้อนหลังหรือข้อยกเว้นที่ยังไม่ resolved" },
+          { label: "ยังไม่เข้าเกณฑ์", count: notEligibleCount, tone: "locked", description: "ไม่ใช่ blocker ของรอบปัจจุบัน" }
+        ]}
+      />
 
       <section className="panel">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -298,51 +328,67 @@ export default async function AdminRoundsPage({
                 </WarningAlert>
               ) : null}
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <form action={openCourseRound}>
-                  <input type="hidden" name="course_offering_id" value={offering.id} />
-                  <input type="hidden" name="round_type" value={roundType} />
-                  <SubmitButton disabled={!openGate.canOpen} pendingText="กำลังเปิดรอบ...">
-                    เปิดรอบ
-                  </SubmitButton>
-                </form>
+              <div className="mt-4 space-y-3">
+                <div className="rounded-md border border-line bg-paper p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold">การเปิดรอบ</div>
+                      <p className="mt-1 text-xs text-muted">เปิดได้เฉพาะเมื่อผ่านเงื่อนไขลำดับรอบและความพร้อมที่ระบบคำนวณไว้แล้ว</p>
+                    </div>
+                    <AdminQueueBadge tone={openGate.canOpen ? "action" : "locked"}>{openGate.canOpen ? "เปิดได้" : "ยังเปิดไม่ได้"}</AdminQueueBadge>
+                  </div>
+                  <form action={openCourseRound} className="mt-3">
+                    <input type="hidden" name="course_offering_id" value={offering.id} />
+                    <input type="hidden" name="round_type" value={roundType} />
+                    <SubmitButton disabled={!openGate.canOpen} pendingText="กำลังเปิดรอบ...">
+                      เปิดรอบ
+                    </SubmitButton>
+                  </form>
+                </div>
                 {round ? (
-                  <form action={closeCourseRound} className={requiresCloseAck ? "basis-full space-y-2" : ""}>
-                    <input type="hidden" name="round_id" value={round.id} />
-                    {requireProposalCloseAck ? (
-                      <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                        <input className="mt-1" type="checkbox" name="acknowledge_missing_projects" value="yes" />
-                        <span>
-                          <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
-                          รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
-                        </span>
-                      </label>
-                    ) : null}
-                    {requireIncompleteCloseAck ? (
-                      <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                        <input className="mt-1" type="checkbox" name="acknowledge_incomplete_projects" value="yes" />
-                        <span>
-                          <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
-                          รับทราบรายชื่อโครงงานที่พร้อมเข้าสู่รอบนี้แต่ยังดำเนินการไม่ครบแล้ว
-                        </span>
-                      </label>
-                    ) : null}
-                    <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>
-                      ปิดรอบ
-                    </SubmitButton>
-                  </form>
-                ) : null}
-                {round && resetState.canReset ? (
-                  <form action={resetCourseRound}>
-                    <input type="hidden" name="round_id" value={round.id} />
-                    <SubmitButton
-                      className="button-secondary"
-                      pendingText="กำลังรีเซต..."
-                      confirmMessage={`ยืนยันรีเซตรอบ ${roundTypeLabelTh(roundType)} หรือไม่? ใช้ได้เฉพาะรอบที่ยังไม่มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้น`}
-                    >
-                      รีเซตรอบ
-                    </SubmitButton>
-                  </form>
+                  <AdminDangerZone
+                    title="การปิดหรือรีเซตรอบ"
+                    description="ตรวจ bucket ด้านบนและรายการที่ต้องรับทราบก่อนกดปิดรอบ การรีเซตใช้เฉพาะรอบที่ยังไม่มีหลักฐานผูกอยู่"
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      <form action={closeCourseRound} className={requiresCloseAck ? "basis-full space-y-2" : ""}>
+                        <input type="hidden" name="round_id" value={round.id} />
+                        {requireProposalCloseAck ? (
+                          <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                            <input className="mt-1" type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                            <span>
+                              <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
+                              รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                            </span>
+                          </label>
+                        ) : null}
+                        {requireIncompleteCloseAck ? (
+                          <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                            <input className="mt-1" type="checkbox" name="acknowledge_incomplete_projects" value="yes" />
+                            <span>
+                              <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
+                              รับทราบรายชื่อโครงงานที่พร้อมเข้าสู่รอบนี้แต่ยังดำเนินการไม่ครบแล้ว
+                            </span>
+                          </label>
+                        ) : null}
+                        <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>
+                          ปิดรอบ
+                        </SubmitButton>
+                      </form>
+                      {resetState.canReset ? (
+                        <form action={resetCourseRound}>
+                          <input type="hidden" name="round_id" value={round.id} />
+                          <SubmitButton
+                            className="button-secondary"
+                            pendingText="กำลังรีเซต..."
+                            confirmMessage={`ยืนยันรีเซตรอบ ${roundTypeLabelTh(roundType)} หรือไม่? ใช้ได้เฉพาะรอบที่ยังไม่มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้น`}
+                          >
+                            รีเซตรอบ
+                          </SubmitButton>
+                        </form>
+                      ) : null}
+                    </div>
+                  </AdminDangerZone>
                 ) : null}
                 <a className="button-secondary" href="#not-ready">ดูสรุปกลุ่มที่ยังไม่พร้อม</a>
               </div>

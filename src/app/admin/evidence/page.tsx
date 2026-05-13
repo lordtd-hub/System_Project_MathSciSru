@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { AdminOperationalSummary } from "@/components/ui/AdminOperationalQueue";
 import { CompactMetricRow, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { getEvidenceDashboardData } from "@/lib/evidence/adminEvidence";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
@@ -13,12 +14,12 @@ function percent(value: number, total: number) {
 }
 
 const exportItems = [
-  { kind: "grades", label: "สรุปคะแนนรายบุคคล" },
-  { kind: "projects", label: "หลักฐานรายโครงงาน" },
-  { kind: "timeline", label: "เหตุการณ์หลักฐาน" },
-  { kind: "scores", label: "หลักฐานคะแนนตามเกณฑ์" },
-  { kind: "reports", label: "ผลตรวจรายงาน" },
-  { kind: "audit", label: "ประวัติการดำเนินการทั้งระบบ" }
+  { kind: "grades", label: "สรุปคะแนนรายบุคคล", description: "คะแนนแต่ละรอบและสถานะจบรายคน" },
+  { kind: "projects", label: "หลักฐานรายโครงงาน", description: "สถานะหลักฐานและผู้เกี่ยวข้องของแต่ละโครงงาน" },
+  { kind: "timeline", label: "เหตุการณ์หลักฐาน", description: "เหตุการณ์ตาม lifecycle ของโครงงาน" },
+  { kind: "scores", label: "หลักฐานคะแนนตามเกณฑ์", description: "คะแนนที่ผูกกับ rubric และผู้ประเมิน" },
+  { kind: "reports", label: "ผลตรวจรายงาน", description: "เวอร์ชันรายงานและผลตรวจล่าสุด" },
+  { kind: "audit", label: "ประวัติการดำเนินการทั้งระบบ", description: "audit log รวม ไม่จำกัดเฉพาะรายวิชา" }
 ] as const;
 
 function exportHref(kind: string, format: "csv" | "xlsx", courseOfferingId?: string) {
@@ -83,6 +84,17 @@ export default async function AdminEvidencePage({
 
       {data.selectedOffering ? (
         <>
+          <AdminOperationalSummary
+            title="สรุปความพร้อมหลักฐาน"
+            description="ใช้ตรวจความครบถ้วนก่อนดาวน์โหลด ไม่เปลี่ยนกฎการปิดโครงงานหรือการคำนวณคะแนน"
+            metrics={[
+              { label: "โครงงานทั้งหมด", count: totalProjects, tone: totalProjects ? "ready" : "locked", description: "จำนวนโครงงานในรายวิชาที่เลือก" },
+              { label: "เสร็จสมบูรณ์", count: completedProjects, tone: "completed", description: "ผ่าน Admin closeout แล้ว" },
+              { label: "หลักฐานยังไม่ครบ", count: missingEvidenceProjects, tone: missingEvidenceProjects ? "exception" : "completed", description: "ควรตรวจรายการก่อนใช้เป็นชุดหลักฐานทางการ" },
+              { label: "รายงานผ่าน", count: reportCount, tone: reportCount ? "completed" : "locked", description: "มีหลักฐานผลตรวจรายงาน" },
+              { label: "คะแนนที่ปรึกษา", count: advisorScoreCount, tone: advisorScoreCount ? "completed" : "locked", description: "มีคะแนนส่วนที่ปรึกษา 25%" }
+            ]}
+          />
           <CompactMetricRow
             title="ภาพรวมหลักฐานรายวิชา"
             description={data.selectedOffering.label}
@@ -111,6 +123,7 @@ export default async function AdminEvidencePage({
               {exportItems.map((item) => (
                 <div key={item.kind} className="rounded-lg border border-line bg-paperSoft p-2">
                   <div className="mb-2 text-xs font-semibold text-ink">{item.label}</div>
+                  <p className="mb-2 text-[11px] leading-4 text-muted">{item.description}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <a className="button-secondary justify-center px-2 text-xs" href={exportHref(item.kind, "csv", selectedOfferingId)}>CSV</a>
                     <a className="button-secondary justify-center px-2 text-xs" href={exportHref(item.kind, "xlsx", selectedOfferingId)}>Excel</a>
