@@ -1037,3 +1037,36 @@ Real Admin redesign routes in the current repo are complete for non-mutating vis
 ### Next Phase
 
 Continue Phase 6 Student redesign, starting with `/student` and then `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback`.
+
+## 2026-05-14 - Phase 6 Student Dashboard Figma Renderer
+
+### Scope
+
+Started Phase 6 Student redesign with the primary student landing route:
+
+- `/student`
+
+### Patch
+
+- Added a conservative page-level Figma renderer branch for `/student`.
+- Kept the existing student dashboard as the classic fallback.
+- Reused shared Figma visual primitives for page header, KPI cards, next-action panel, workflow grouping, compact assessment/result rows, and side panels.
+- Preserved the existing student guard, data query, lifecycle next-action source, schedule state source, report action source, feedback/result links, committee display, timeline evidence, and Markdown+KaTeX timeline/comment rendering.
+- No student form/server action was added or changed on this route.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 8 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 358 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Deploy/live-verify `/student` classic/figma mode, then continue Phase 6 with `/student/project`.

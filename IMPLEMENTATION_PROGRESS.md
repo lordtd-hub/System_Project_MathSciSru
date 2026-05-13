@@ -1833,3 +1833,23 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - no shell-only page, digest/application error, login fallback, or horizontal overflow.
 - Admin redesign phase is complete for real routes in the current repo. `/admin/reports` remains a planning-only item because no real route exists.
 - Next step: Phase 6 Student redesign, starting with `/student`, then `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback`.
+
+## 2026-05-14 Figma visual redesign - Student dashboard renderer
+
+- Started Phase 6 Student redesign with `/student`.
+- Added a conservative page-level `figma` renderer branch while keeping the existing student dashboard as the `classic` fallback.
+- The Figma student dashboard uses shared visual primitives for:
+  - student page header;
+  - KPI cards for actionable, waiting, completed, locked, and assessment-result counts;
+  - primary next-action panel;
+  - grouped workflow states;
+  - compact committee/schedule/result panels;
+  - timeline evidence.
+- Preserved the existing student guard, data query, lifecycle next-action source, schedule state source, report action source, feedback/result links, committee display, timeline evidence, Markdown+KaTeX rendering, and route behavior.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: push QA preview, live-verify `/student` in classic/figma mode on desktop and 390px mobile, then continue with `/student/project`.

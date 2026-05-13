@@ -618,3 +618,21 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-renderer-figma-mobile-b4pwwud5y.png`
   - `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-renderer-figma-mobile-b4pwwud5y.png`
 - Result: Admin redesign phase is complete for real routes in the current repo, pending later mutating workflow regression.
+
+## 2026-05-14 Student Dashboard Renderer Validation
+
+- Phase: 6 - Student redesign.
+- Scope:
+  - `/student`.
+- Renderer status:
+  - classic fallback remains available;
+  - figma branch added with `.figma-student-dashboard`;
+  - student subpages still need page-level Figma branches.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 8 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 358 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deployment: pending.
+- Live verification: pending.

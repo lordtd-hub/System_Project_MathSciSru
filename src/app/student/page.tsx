@@ -10,6 +10,12 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert, SuccessAlert, InfoAlert } from "@/components/ui/Alert";
+import {
+  FigmaMetricCard,
+  FigmaPageHeader,
+  FigmaPanel,
+  FigmaStatusBadge
+} from "@/components/redesign/VisualSurfaces";
 import { isRoundClosed, isRoundOpen } from "@/lib/assessments/courseRounds";
 import { roundExceptionLabel, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
@@ -19,6 +25,7 @@ import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
 import { getStudentReportActionLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
+import { getUiMode } from "@/lib/uiMode";
 
 function daysWaiting(from?: Date | null) {
   if (!from) return 0;
@@ -549,7 +556,178 @@ export default async function StudentDashboardPage() {
     { roundType: "PROGRESS_2" as const, label: "ความก้าวหน้าครั้งที่ 2", href: "/student/feedback?round=progress-2#progress-2" },
     { roundType: "FINAL_PRESENTATION" as const, label: "สอบนำเสนอขั้นสุดท้าย", href: "/student/feedback?round=final#final" }
   ].map((round) => ({ ...round, result: visibleResultByRound.get(round.roundType) }));
+  const uiMode = await getUiMode();
   timer.end();
+
+  if (uiMode === "figma") {
+    return (
+      <div className="figma-dashboard-page figma-student-dashboard">
+        <FigmaPageHeader
+          eyebrow="Student workspace"
+          title={`สวัสดี, ${student.firstNameTh}`}
+          description="สรุปสิ่งที่ต้องทำ สถานะที่กำลังรอ และหลักฐานสำคัญของโครงงานในที่เดียว"
+          actions={<StatusBadge status={project.status} />}
+        />
+
+        <div className="rounded-lg border border-line bg-surface px-4 py-2 text-sm text-muted">
+          วันนี้ {todayText}
+        </div>
+
+        <div className="figma-kpi-grid">
+          <FigmaMetricCard label="ทำได้ตอนนี้" value={workflowActions.available_now.length} tone={workflowActions.available_now.length ? "action" : "success"} description="งานที่นักศึกษากดทำต่อได้ทันที" />
+          <FigmaMetricCard label="รอผู้อื่น" value={workflowActions.blocked_waiting_for.length} tone={workflowActions.blocked_waiting_for.length ? "warning" : "success"} description="รออาจารย์ กรรมการ หรือผู้ดูแลระบบ" />
+          <FigmaMetricCard label="เสร็จแล้ว" value={workflowActions.read_only_history.length} tone="success" description="รายการที่ใช้ดูย้อนหลังหรือเป็นหลักฐาน" />
+          <FigmaMetricCard label="ยังล็อก" value={workflowActions.locked_future.length} tone={workflowActions.locked_future.length ? "muted" : "success"} description="ขั้นตอนอนาคตที่ยังไม่ถึงเงื่อนไข" />
+          <FigmaMetricCard label="ผลประเมิน" value={visibleAssessmentResults.length} tone={visibleAssessmentResults.length ? "success" : "muted"} description="รอบที่มีคะแนนหรือข้อเสนอแนะเผยแพร่แล้ว" />
+        </div>
+
+        <FigmaPanel title={scheduleAwareStudentNextAction.title} description={scheduleAwareStudentNextAction.description} tone={scheduleAwareStudentNextAction.tone === "warning" ? "warning" : scheduleAwareStudentNextAction.tone === "success" ? "success" : "action"}>
+          {scheduleAwareStudentNextAction.href && scheduleAwareStudentNextAction.actionLabel ? (
+            <Link className="button inline-flex" href={scheduleAwareStudentNextAction.href}>{scheduleAwareStudentNextAction.actionLabel}</Link>
+          ) : (
+            <FigmaStatusBadge tone="waiting">รอการดำเนินการจากผู้เกี่ยวข้อง</FigmaStatusBadge>
+          )}
+        </FigmaPanel>
+
+        {hasIncompleteAfterFinal ? (
+          <WarningAlert title="รอบสอบขั้นสุดท้ายปิดแล้ว แต่โครงงานยังไม่ครบถ้วน">
+            หากยังมีรายการค้างหลังปิดรอบ Final นักศึกษาอาจได้รับเกรด I กรุณาติดต่ออาจารย์ผู้รับผิดชอบและดำเนินการตามรายการที่ระบบแจ้งให้ครบถ้วน
+          </WarningAlert>
+        ) : null}
+
+        {lateRoundExceptions.length ? (
+          <WarningAlert title="มีรายการดำเนินการไม่ตรงรอบ">
+            <div className="space-y-1">
+              {lateRoundExceptions.map((exception) => (
+                <p key={exception.id}>
+                  {roundExceptionLabel(exception.assessmentRound.roundType)}: {requiresLateRoundPenalty([exception])
+                    ? "ติดป้ายส่ง/สอบหลังปิดรอบ และหักคะแนนรอบนี้ 10%"
+                    : "เปิดย้อนหลังเป็นกรณีพิเศษโดยไม่หักคะแนน"}
+                </p>
+              ))}
+            </div>
+          </WarningAlert>
+        ) : null}
+
+        <div className="figma-dashboard-grid">
+          <div className="space-y-4">
+            <FigmaPanel title="โครงงานของฉัน" description={project.currentTitleTh ?? "ยังไม่ได้ระบุชื่อหัวข้อ"}>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-line bg-paperSoft p-3">
+                  <div className="text-xs font-semibold uppercase text-muted">ที่ปรึกษา</div>
+                  <p className="mt-2 text-sm">{advisorRequest ? teacherDisplayName(advisorRequest.advisorTeacher) : "ยังไม่ได้เลือกที่ปรึกษา"}</p>
+                </div>
+                <div className="rounded-lg border border-line bg-paperSoft p-3">
+                  <div className="text-xs font-semibold uppercase text-muted">เอกสาร Proposal</div>
+                  <p className="mt-2 text-sm">{proposal ? "ส่งเอกสารเสนอหัวข้อแล้ว" : "ยังไม่ได้ส่งเอกสารเสนอหัวข้อ"}</p>
+                </div>
+                <div className="rounded-lg border border-line bg-paperSoft p-3">
+                  <div className="text-xs font-semibold uppercase text-muted">รายงาน</div>
+                  <p className="mt-2 text-sm">{latestReport ? `ฉบับที่ ${latestReport.versionNo}` : "ยังไม่มีรายงานที่ส่ง"}</p>
+                </div>
+                <div className="rounded-lg border border-line bg-paperSoft p-3">
+                  <div className="text-xs font-semibold uppercase text-muted">สถานะ</div>
+                  <div className="mt-2"><StatusBadge status={project.status} /></div>
+                </div>
+              </div>
+            </FigmaPanel>
+
+            <FigmaPanel title="งานตามสถานะ" description="แยกงานที่ทำได้ตอนนี้ออกจากสิ่งที่กำลังรอหรือเป็นประวัติ">
+              <div className="space-y-3">
+                <StudentWorkflowGroup
+                  title="ทำได้ตอนนี้"
+                  description="รายการที่นักศึกษาสามารถกดทำต่อได้ในสถานะปัจจุบัน"
+                  actions={workflowActions.available_now}
+                  tone="current"
+                  emptyText="ยังไม่มีรายการที่ต้องทำตอนนี้"
+                />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <StudentWorkflowGroup
+                    title="รอผู้อื่นดำเนินการ"
+                    description="สถานะที่ต้องรออาจารย์หรือผู้ดูแลระบบก่อน"
+                    actions={workflowActions.blocked_waiting_for}
+                    tone="waiting"
+                    emptyText="ยังไม่มีรายการที่ต้องรอ"
+                  />
+                  <StudentWorkflowGroup
+                    title="ขั้นตอนในอนาคต"
+                    description="ระบบล็อกไว้จนกว่าเงื่อนไขโครงงานจะพร้อม"
+                    actions={workflowActions.locked_future}
+                    tone="locked"
+                    emptyText="ไม่มีขั้นตอนที่ล็อกอยู่"
+                  />
+                </div>
+                <StudentWorkflowGroup
+                  title="ประวัติการดำเนินงาน"
+                  description="รายการที่ทำแล้วหรือดูย้อนหลังได้ ไม่ใช่งานหลักที่ต้องดำเนินการ"
+                  actions={workflowActions.read_only_history}
+                  tone="history"
+                  emptyText="ยังไม่มีประวัติในขั้นก่อนหน้า"
+                />
+              </div>
+            </FigmaPanel>
+          </div>
+
+          <div className="figma-side-stack">
+            <FigmaPanel title="สถานะกรรมการ วันสอบ และผลประเมิน" description="ข้อมูลเดียวกับหน้ารายละเอียดรอบสอบ แต่ย่อให้อ่านเร็ว">
+              <div className="space-y-3">
+                {project.committeeAssignments.length ? (
+                  project.committeeAssignments.map((assignment) => (
+                    <div key={assignment.id} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3 text-sm">
+                      <span>{teacherDisplayName(assignment.teacher)}</span>
+                      <FigmaStatusBadge>{assignment.role}</FigmaStatusBadge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted">ยังไม่มีการแต่งตั้งกรรมการสอบ</p>
+                )}
+                <div className="rounded-lg border border-line bg-paperSoft p-3 text-xs leading-5 text-muted">
+                  {latestSchedule ? (
+                    <p>
+                      <span className="font-semibold text-ink">วันสอบล่าสุด:</span> {latestScheduleRoundLabel} | {latestScheduleDateText || "ยังไม่ระบุวันเวลา"} | {scheduleStatusLabel(latestSchedule.status)} | อนุมัติ {latestScheduleApprovedCount}/{latestScheduleTotalCount}
+                      {latestScheduleRejectedCount ? ` | ไม่สะดวก ${latestScheduleRejectedCount}` : ""}
+                      {latestSchedulePendingCount ? ` | รอ ${latestSchedulePendingCount}` : ""}
+                    </p>
+                  ) : (
+                    <p>ยังไม่มีการเสนอวันสอบ Progress/Final</p>
+                  )}
+                </div>
+              </div>
+            </FigmaPanel>
+
+            <FigmaPanel title="ผลการประเมินรอบสอบ">
+              <div className="figma-action-list">
+                {assessmentResultCards.map((item) => (
+                  <Link key={item.roundType} className="figma-action-row" data-tone={item.result ? "success" : "muted"} href={item.href}>
+                    <div>
+                      <div className="figma-action-title">{item.label}</div>
+                      <p>{item.result ? `คะแนนเฉลี่ย ${formatScore(item.result.averageScore)} / 100` : "ยังไม่มีคะแนนหรือข้อเสนอแนะ"}</p>
+                    </div>
+                    <div className="figma-action-side">
+                      <span>{item.result ? `${item.result.submittedCount}/${item.result.evaluatorCount} คน` : "รอคะแนน"}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </FigmaPanel>
+
+            <TaskListCard title="รายการที่ต้องติดตาม" tasks={displayStudentTrackingTasks} />
+          </div>
+        </div>
+
+        <TimelineCard
+          title="หลักฐานการดำเนินงานล่าสุด"
+          events={project.timelineEvents.map((event) => ({
+            id: event.id,
+            occurredAt: event.occurredAt,
+            eventTitle: displayTimelineText(event.eventTitle) ?? event.eventTitle,
+            eventDescription: displayTimelineText(event.eventDescription),
+            actorName: event.actor?.name
+          }))}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
