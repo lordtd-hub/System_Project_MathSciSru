@@ -1977,3 +1977,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Feedback tabs and score/status content remained visible; no shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
 - Student pages now have non-mutating classic/figma verification coverage for `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback`.
 - Next step: summarize student mobile/regression coverage, then continue the broader Phase 7/8 redesign regression pass.
+
+## 2026-05-14 Figma visual redesign - Global non-mutating regression
+
+- Ran the Phase 7/8 global mobile and classic/figma non-mutating regression on QA preview `https://system-project-math-sci-jbdhfqgzt-lordtd-hubs-projects.vercel.app`.
+- Persistent Edge CDP verification passed:
+  - Teacher: 8 routes on desktop and 390px mobile.
+  - Admin: 6 routes on desktop and 390px mobile.
+  - Student: 6 routes on desktop and 390px mobile, including classic/figma renderer comparison.
+- QA login guard was preserved: each verifier explicitly selected the role dropdown before identity selection.
+- No shell-only page, digest/application error, login fallback, unauthorized guard page, or horizontal overflow was detected.
+- Current redesign status:
+  - visual/mobile/classic-vs-figma non-mutating regression is complete;
+  - Phase 9 mutating workflow regression is still pending because current Wave 1 QA state is already completed and should not be forced backward.
+- Recommended next step: run the mutating workflow regression in Wave 2 or another preserved QA offering with safe pending actions.

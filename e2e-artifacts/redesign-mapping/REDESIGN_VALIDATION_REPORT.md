@@ -739,6 +739,27 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `e2e-artifacts/redesign-mapping/screenshots/student-feedback-renderer-figma-mobile-muaccmm4j.png`
 - Result: `/student/feedback` is complete for non-mutating visual/regression verification in the current Wave 1 state.
 
+## 2026-05-14 Global Mobile And Classic/Figma Non-Mutating Regression
+
+- Phase: 7/8 - global mobile pass and classic-vs-figma non-mutating regression.
+- Preview URL: `https://system-project-math-sci-jbdhfqgzt-lordtd-hubs-projects.vercel.app`.
+- Tooling:
+  - `e2e-artifacts/redesign-mapping/verify-teacher-workload-cdp.js`;
+  - `e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js`;
+  - `e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js`.
+- Viewports:
+  - desktop 1440px;
+  - mobile 390px.
+- Live QA verification: passed.
+- Result:
+  - Teacher: 8 routes passed on desktop and mobile.
+  - Admin: 6 routes passed on desktop and mobile.
+  - Student: 6 routes passed on desktop and mobile in classic/figma comparison.
+  - No shell-only page, digest/application error, login fallback, unauthorized guard page, or horizontal overflow was detected.
+- Remaining validation:
+  - Phase 9 mutating workflow regression is still pending because the current Wave 1 QA state is already completed.
+  - The mutating pass should use Wave 2 or another preserved QA offering with safe pending actions.
+
 ### QA Deployment And Live Verification
 
 - Commit: `1ad318e`.

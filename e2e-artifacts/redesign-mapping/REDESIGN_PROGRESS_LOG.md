@@ -1391,3 +1391,59 @@ The patch is presentation-only and does not change auth, lifecycle, scoring, eli
 ### Next Phase
 
 Move to the student mobile/regression summary, then continue the broader Phase 7/8 redesign regression pass.
+
+## 2026-05-14 - Phase 7/8 Global Mobile And Classic/Figma Non-Mutating Regression
+
+### Scope
+
+Ran the full non-mutating visual regression pass against the latest QA preview after Student pages were completed.
+
+Verified route groups:
+
+- Teacher:
+  - `/teacher`
+  - `/teacher/schedules`
+  - `/teacher/proposals`
+  - `/teacher/progress1`
+  - `/teacher/progress2`
+  - `/teacher/final`
+  - `/teacher/reports`
+  - `/teacher/advisor-score`
+- Admin:
+  - `/admin`
+  - `/admin/rounds`
+  - `/admin/closeout`
+  - `/admin/proposals`
+  - `/admin/schedules`
+  - `/admin/evidence`
+- Student:
+  - `/student`
+  - `/student/project`
+  - `/student/proposal`
+  - `/student/schedule`
+  - `/student/report`
+  - `/student/feedback`
+
+### Live Verification
+
+- QA preview: `https://system-project-math-sci-jbdhfqgzt-lordtd-hubs-projects.vercel.app`.
+- Tooling: persistent Edge CDP verifiers.
+- Viewports:
+  - desktop 1440px;
+  - mobile 390px.
+- QA login guard:
+  - teacher verifier selected `#role = teacher`;
+  - admin verifier selected `#role = admin`;
+  - student verifier selected `#role = student`.
+- Result:
+  - teacher routes passed desktop and mobile;
+  - admin routes passed desktop and mobile;
+  - student routes passed desktop and mobile;
+  - no shell-only page, digest/application error, login fallback, unauthorized guard page, or horizontal overflow was detected.
+- Classic/Figma student comparison passed for all student routes now in the renderer split.
+
+### Remaining Gate
+
+The visual/mobile/classic-vs-figma non-mutating regression is complete.
+
+The full Figma redesign is not yet production-complete because Phase 9 mutating workflow regression still needs a safe QA action window with actionable schedule, scoring, report revision, advisor-score, round open/close, and closeout states. Current Wave 1 QA state is already completed, so the next mutating pass should be run in Wave 2 or a preserved test offering rather than forcing old Wave 1 state.
