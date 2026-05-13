@@ -1373,6 +1373,21 @@ The patch is presentation-only and does not change auth, lifecycle, scoring, eli
 - `cmd /c npm.cmd test` - passed, 82 files / 363 tests.
 - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 
+### QA Deployment And Live Verification
+
+- Commit: `67ce08a`.
+- QA preview: `https://system-project-math-sci-muaccmm4j-lordtd-hubs-projects.vercel.app`.
+- Live QA verification passed with the persistent Edge CDP session.
+- QA login guard: the verifier explicitly selected the `student` role dropdown before the student identity and used the QA secret only as a process-scoped environment value.
+- Desktop verification passed for `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback` in classic/figma mode.
+- 390px mobile verification passed for the same route set.
+- `/student/feedback` classic mode rendered no `.figma-role-shell`, no `.figma-student-feedback`, retained `student-feedback-page-content`, showed feedback tabs, and showed score/status content.
+- `/student/feedback` figma mode rendered `.figma-role-shell`, `.figma-student-feedback`, retained `student-feedback-page-content`, showed feedback tabs, and showed score/status content.
+- No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-feedback-renderer-figma-desktop-muaccmm4j.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-feedback-renderer-figma-mobile-muaccmm4j.png`
+
 ### Next Phase
 
-Push QA preview, live-verify `/student/feedback` classic/figma mode on desktop and 390px mobile, then move to the student mobile/regression summary.
+Move to the student mobile/regression summary, then continue the broader Phase 7/8 redesign regression pass.

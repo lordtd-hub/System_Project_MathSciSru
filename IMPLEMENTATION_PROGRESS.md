@@ -1973,4 +1973,7 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Extended the student Edge CDP verifier to check `/student/feedback` classic/figma rendering and feedback page-content presence.
-- Next step: push QA preview, live-verify `/student/feedback`, then summarize student mobile/regression coverage.
+- QA preview `https://system-project-math-sci-muaccmm4j-lordtd-hubs-projects.vercel.app` passed live Edge CDP verification for `/student/feedback` in classic and figma mode on desktop and 390px mobile.
+- Feedback tabs and score/status content remained visible; no shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Student pages now have non-mutating classic/figma verification coverage for `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback`.
+- Next step: summarize student mobile/regression coverage, then continue the broader Phase 7/8 redesign regression pass.
