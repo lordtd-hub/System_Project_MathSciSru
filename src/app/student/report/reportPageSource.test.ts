@@ -21,4 +21,12 @@ describe("student report page source", () => {
     expect(page).toContain("<InfoAlert title={reportActionLabel}>{reportSubmissionReasonLabel(gate.reason)}</InfoAlert>");
     expect(page).toContain("projectStatus: project.status");
   });
+
+  it("does not unlock report submission only because the Final course round is closed", () => {
+    const page = source();
+
+    expect(page).toContain("isPresentationAssessmentComplete({");
+    expect(page).not.toContain("roundStatus: project.courseOffering.assessmentRounds");
+    expect(page).not.toContain('assessmentRounds: { where: { roundType: "FINAL_PRESENTATION" }');
+  });
 });

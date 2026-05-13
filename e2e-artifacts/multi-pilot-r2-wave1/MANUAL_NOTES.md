@@ -289,3 +289,12 @@ Do not turn this into manual text yet.
 - After all required Final scores were submitted, Admin `/admin/rounds` briefly became misleading because projects moved to `FINAL_DONE` were no longer counted as historically eligible for Final.
 - The fix should keep completed lifecycle statuses in historical eligibility buckets so Admin sees completed work as completed, not as "not yet eligible".
 - Later manual/UX work should explain that Final-complete projects may move to a post-Final status, but the round summary should still retain them in the completed bucket for that round.
+
+## 2026-05-13 Final Report Readiness Note
+
+Do not turn this into manual text yet.
+
+- Final close should unlock report submission only for projects that actually completed required Final committee scoring.
+- Closing the Final course round is not sufficient by itself to unlock report submission for incomplete projects.
+- Student03 exposed the important edge case: the project was still `IN_PROGRESS` and Final-incomplete, but the report form appeared because the page treated the closed Final round as completion.
+- Manual wording later should say "after Final assessment is completed" rather than "after Final round is closed", unless the UI explicitly distinguishes incomplete/grade-I recovery.

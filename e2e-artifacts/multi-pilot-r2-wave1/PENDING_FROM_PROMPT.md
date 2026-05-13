@@ -941,3 +941,41 @@ Latest local validation:
 - `npm run typecheck`: PASS.
 - `npm test`: PASS, 77 files / 316 tests.
 - `npm run build`: PASS.
+
+## Final Report Readiness Stabilization Stop
+
+Status: Major patch validated locally; live QA push/verification still required.
+
+Completed after the previous patch:
+
+- New QA preview `https://system-project-math-sci-8tb6aov28-lordtd-hubs-projects.vercel.app` verified the Final bucket fix.
+- Admin `/admin/rounds` showed Final ready `3`, submitted `3`, completed `3`, eligible-but-incomplete `0`, not-yet-eligible `37`.
+- Admin closed Final successfully.
+
+Current Major:
+
+- Student03, which has not passed Progress 1 and never completed Final, incorrectly saw the report submission form after Final round closure.
+- Expected: Student01/04/05 report unlocked; Student03 locked with no submission form.
+- Root cause: student report readiness used the course-level Final round close status as completion evidence. Closed round status must not substitute for required committee Final scores.
+- Screenshot: `screenshots/final-multi-r2-student-03-report-readiness-8tb.png`.
+
+Patch now ready for next live QA cycle:
+
+- Student report page and student server action now use score-only Final completion checks for report readiness.
+- Source tests prevent reintroducing `roundStatus: project.courseOffering.assessmentRounds` into student completion gates.
+
+Required next actions:
+
+- Commit scoped report readiness patch.
+- Push `qa-preview` only.
+- Use the new Vercel QA preview URL after push.
+- Live verify:
+  - Student01/04/05 still show report submission form.
+  - Student03 no longer shows report submission form.
+  - Server-side report submit remains guarded by the same score-only gate.
+
+Latest local validation:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 77 files / 317 tests.
+- `npm run build`: PASS.

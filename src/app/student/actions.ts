@@ -44,11 +44,6 @@ async function hasCompletedPresentationScores(projectId: string, attemptType: Ex
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
-      courseOffering: {
-        select: {
-          assessmentRounds: { where: { roundType: attemptType }, select: { status: true }, take: 1 }
-        }
-      },
       committeeAssignments: { select: { teacherId: true, role: true, active: true } },
       attempts: {
         where: { attemptType },
@@ -66,7 +61,6 @@ async function hasCompletedPresentationScores(projectId: string, attemptType: Ex
   if (!project) return false;
 
   return isPresentationAssessmentComplete({
-    roundStatus: project.courseOffering.assessmentRounds[0]?.status,
     committeeAssignments: project.committeeAssignments,
     scoreSubmissions: project.attempts.flatMap((attempt) =>
       attempt.evaluatorAssignments.map((assignment) => ({

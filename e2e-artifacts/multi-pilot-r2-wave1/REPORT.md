@@ -1572,3 +1572,53 @@ Current stop:
   - Final scores are already saved on QA.
   - Verify `/admin/rounds` recalculates Final as completed `3`.
   - If correct, continue to Final close guard and report readiness check.
+
+## Live QA - Final Close and Report Readiness Major
+
+QA preview:
+
+- `https://system-project-math-sci-8tb6aov28-lordtd-hubs-projects.vercel.app`
+- Commit before report readiness patch: `e2e614d`
+
+Live verification after round bucket patch:
+
+- `/admin/rounds` recalculated Final correctly after required Final scores:
+  - ready/eligible: `3`
+  - submitted: `3`
+  - completed: `3`
+  - eligible-but-incomplete: `0`
+  - not-yet-eligible: `37`
+- Final close succeeded from the Admin UI.
+- Final close timestamp displayed in Thailand time: `13 พ.ค. 2569 13:09 น.`
+- Screenshot: `screenshots/final-admin-after-close-click-8tb.png`.
+
+Major stop during report readiness check:
+
+- Severity: Major.
+- Role: Student.
+- Route: `/student/report`.
+- Expected: Student01/04/05 can access report submission; Student03 remains locked because Progress 1/Final is incomplete.
+- Actual: Student03 also saw an enabled report submission form after Final round closed.
+- Root cause: the student report page and the shared student action helper passed the course-level Final round status into `isPresentationAssessmentComplete`. Since that helper treats a closed round status as complete, Student03 was incorrectly considered Final-complete even without required Final committee scores.
+- Screenshot: `screenshots/final-multi-r2-student-03-report-readiness-8tb.png`.
+
+Patch prepared:
+
+- `src/app/student/report/page.tsx`: calculate Final report readiness from required committee score submissions only; do not use course round close status as completion evidence.
+- `src/app/student/actions.ts`: apply the same score-only completion gate before accepting final report submissions or later-round schedule gates.
+- `src/app/student/report/reportPageSource.test.ts` and `src/app/scheduleProgressSource.test.ts`: add regression checks that course round close status is not reused for student-side Final completion gates.
+
+Validation for patch:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 77 files / 317 tests.
+- `npm run build`: PASS.
+
+Current stop:
+
+- Patch is validated locally.
+- Commit/push/live verification are still required.
+- Resume from saved state after the next QA preview is ready:
+  - Recheck Student01/04/05 report readiness remains unlocked.
+  - Recheck Student03 report readiness is locked and no report form is visible.
+  - If verified, Final round operational semantics are complete and report workflow testing can begin later.

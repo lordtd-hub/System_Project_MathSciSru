@@ -81,6 +81,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("assertPreviousPresentationRoundComplete");
     expect(actions).toContain("assessment_evidence_locked");
     expect(actions).toContain("schedule_previous_round_incomplete");
+    expect(actions).not.toContain("roundStatus: project.courseOffering.assessmentRounds");
   });
 
   it("shows assessment evidence to committee teachers before scoring", () => {

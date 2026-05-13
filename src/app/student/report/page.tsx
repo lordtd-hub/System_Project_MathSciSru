@@ -35,11 +35,6 @@ export default async function StudentReportPage({
       projects: {
         orderBy: { createdAt: "desc" },
         include: {
-          courseOffering: {
-            select: {
-              assessmentRounds: { where: { roundType: "FINAL_PRESENTATION" }, select: { status: true }, take: 1 }
-            }
-          },
           committeeAssignments: { select: { teacherId: true, role: true, active: true } },
           attempts: {
             where: { attemptType: "FINAL_PRESENTATION" },
@@ -83,7 +78,6 @@ export default async function StudentReportPage({
   const reportHistory = [...project.reportVersions].sort((a, b) => a.versionNo - b.versionNo);
   const finalPresentationCompleted = project.status === "IN_PROGRESS"
     ? isPresentationAssessmentComplete({
-        roundStatus: project.courseOffering.assessmentRounds[0]?.status,
         committeeAssignments: project.committeeAssignments,
         scoreSubmissions: project.attempts.flatMap((attempt) =>
           attempt.evaluatorAssignments.map((assignment) => ({
