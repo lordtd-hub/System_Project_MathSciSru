@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import {
+  courseGradeExportCsvRows,
+  courseGradeExportHeaders,
   getEvidenceDashboardData,
+  getCourseGradeExportRows,
   projectEvidenceCsvRows,
   projectEvidenceHeaders
 } from "@/lib/evidence/adminEvidence";
@@ -10,7 +13,7 @@ import { toXlsxBuffer } from "@/lib/evidence/xlsx";
 import { checkRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { requestSizeLimits, textByteLength } from "@/lib/security/requestSize";
 
-const exportKinds = ["projects", "timeline", "scores", "reports", "audit"] as const;
+const exportKinds = ["projects", "timeline", "scores", "reports", "audit", "grades"] as const;
 type ExportKind = (typeof exportKinds)[number];
 type ExportFormat = "csv" | "xlsx";
 
@@ -103,6 +106,11 @@ export async function GET(
 
   if (kind === "projects") {
     return exportResponse("evidence-projects", projectEvidenceHeaders, projectEvidenceCsvRows(data.projectRows), format);
+  }
+
+  if (kind === "grades") {
+    const rows = selectedOfferingId ? await getCourseGradeExportRows(selectedOfferingId) : [];
+    return exportResponse("grade-summary", courseGradeExportHeaders, courseGradeExportCsvRows(rows), format);
   }
 
   if (kind === "scores") {

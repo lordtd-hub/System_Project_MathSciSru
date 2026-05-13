@@ -11,9 +11,36 @@ type EvidenceAttempt = {
   evaluatorAssignments: Array<{
     scoreSubmission: {
       status: string;
+      totalScore?: unknown;
       submittedAt: Date | null;
     } | null;
   }>;
+};
+
+type GradeAttempt = {
+  officialScore: unknown;
+  assessmentRound: { roundType: AssessmentRoundType };
+  proposalResult?: { averageScore: unknown } | null;
+  evaluatorAssignments: Array<{
+    scoreSubmission: {
+      status: string;
+      totalScore: unknown;
+    } | null;
+  }>;
+};
+
+type GradeProject = {
+  id: string;
+  currentTitleTh: string | null;
+  status: ProjectStatus;
+  student: { studentCode: string; firstNameTh: string; lastNameTh: string };
+  attempts: GradeAttempt[];
+  advisorScore: { status: string; score: unknown } | null;
+};
+
+type GradeRoundWeight = {
+  roundType: AssessmentRoundType;
+  courseWeight: unknown;
 };
 
 type EvidenceProject = {
@@ -83,6 +110,23 @@ export type RubricEvidenceRow = {
   averageScore: number | null;
 };
 
+export type CourseGradeExportRow = {
+  projectId: string;
+  studentCode: string;
+  firstNameTh: string;
+  lastNameTh: string;
+  projectTitle: string;
+  statusLabel: string;
+  proposalWeightedScore: number | null;
+  progress1WeightedScore: number | null;
+  progress2WeightedScore: number | null;
+  finalWeightedScore: number | null;
+  presentationTotalScore: number;
+  advisorWeightedScore: number | null;
+  recordedTotalScore: number;
+  missingScoreComponents: string[];
+};
+
 export type EvidenceDashboardData = {
   offerings: Array<{ id: string; label: string }>;
   selectedOffering: { id: string; label: string } | null;
@@ -120,6 +164,81 @@ function hasSubmittedScoreForRound(attempts: EvidenceAttempt[], roundType: Asses
       attempt.assessmentRound.roundType === roundType &&
       (attempt.officialScore != null || attempt.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.status === "SUBMITTED"))
   );
+}
+
+const submittedScoreStatuses = new Set(["SUBMITTED", "LOCKED"]);
+
+const gradeRoundSpecs: Array<{
+  roundType: AssessmentRoundType;
+  defaultWeight: number;
+  missingLabel: string;
+  field: "proposalWeightedScore" | "progress1WeightedScore" | "progress2WeightedScore" | "finalWeightedScore";
+}> = [
+  { roundType: "PROPOSAL", defaultWeight: 10, missingLabel: "Proposal", field: "proposalWeightedScore" },
+  { roundType: "PROGRESS_1", defaultWeight: 10, missingLabel: "Progress 1", field: "progress1WeightedScore" },
+  { roundType: "PROGRESS_2", defaultWeight: 10, missingLabel: "Progress 2", field: "progress2WeightedScore" },
+  { roundType: "FINAL_PRESENTATION", defaultWeight: 10, missingLabel: "Final Presentation", field: "finalWeightedScore" }
+];
+
+function toNumber(value: unknown) {
+  if (value == null) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function roundGrade(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function scoreAverage(scores: number[]) {
+  if (!scores.length) return null;
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+}
+
+function rawScoreForRound(attempts: GradeAttempt[], roundType: AssessmentRoundType) {
+  const roundAttempts = attempts.filter((attempt) => attempt.assessmentRound.roundType === roundType);
+  const attemptsNewestFirst = [...roundAttempts].reverse();
+
+  if (roundType === "PROPOSAL") {
+    const proposalResultScore = attemptsNewestFirst
+      .map((attempt) => toNumber(attempt.proposalResult?.averageScore))
+      .find((score): score is number => score != null);
+    if (proposalResultScore != null) return proposalResultScore;
+  }
+
+  const officialScore = attemptsNewestFirst
+    .map((attempt) => toNumber(attempt.officialScore))
+    .find((score): score is number => score != null);
+  if (officialScore != null) return officialScore;
+
+  for (const attempt of attemptsNewestFirst) {
+    const submittedScores = attempt.evaluatorAssignments
+      .map((assignment) => assignment.scoreSubmission)
+      .filter((submission): submission is NonNullable<typeof submission> =>
+        Boolean(submission && submittedScoreStatuses.has(submission.status))
+      )
+      .map((submission) => toNumber(submission.totalScore))
+      .filter((score): score is number => score != null);
+
+    const average = scoreAverage(submittedScores);
+    if (average != null) return average;
+  }
+
+  return null;
+}
+
+function weightedScore(rawScore: number | null, weight: number) {
+  if (rawScore == null) return null;
+  return roundGrade((rawScore * weight) / 100);
+}
+
+function weightByRound(rounds: GradeRoundWeight[]) {
+  const weights = new Map<AssessmentRoundType, number>();
+  for (const round of rounds) {
+    const weight = toNumber(round.courseWeight);
+    if (weight != null) weights.set(round.roundType, weight);
+  }
+  return weights;
 }
 
 function latestDate(dates: Array<Date | null | undefined>) {
@@ -212,6 +331,109 @@ export function buildRubricEvidenceRows(rubrics: EvidenceRubric[], scoreSubmissi
       averageScore: submittedScores.length ? Math.round((totalScore / submittedScores.length) * 100) / 100 : null
     }];
   });
+}
+
+export function buildCourseGradeExportRows(projects: GradeProject[], rounds: GradeRoundWeight[]): CourseGradeExportRow[] {
+  const weights = weightByRound(rounds);
+
+  return [...projects]
+    .sort((a, b) => a.student.studentCode.localeCompare(b.student.studentCode))
+    .map((project) => {
+      const scores: Pick<CourseGradeExportRow, "proposalWeightedScore" | "progress1WeightedScore" | "progress2WeightedScore" | "finalWeightedScore"> = {
+        proposalWeightedScore: null,
+        progress1WeightedScore: null,
+        progress2WeightedScore: null,
+        finalWeightedScore: null
+      };
+      const missingScoreComponents: string[] = [];
+
+      for (const spec of gradeRoundSpecs) {
+        const weight = weights.get(spec.roundType) ?? spec.defaultWeight;
+        const rawScore = rawScoreForRound(project.attempts, spec.roundType);
+        scores[spec.field] = weightedScore(rawScore, weight);
+        if (scores[spec.field] == null) missingScoreComponents.push(spec.missingLabel);
+      }
+
+      const advisorRawScore = project.advisorScore?.status === "SUBMITTED" ? toNumber(project.advisorScore.score) : null;
+      const advisorWeightedScore = weightedScore(advisorRawScore, 25);
+      if (advisorWeightedScore == null) missingScoreComponents.push("Advisor 25%");
+
+      const presentationTotalScore = roundGrade(
+        (scores.proposalWeightedScore ?? 0) +
+        (scores.progress1WeightedScore ?? 0) +
+        (scores.progress2WeightedScore ?? 0) +
+        (scores.finalWeightedScore ?? 0)
+      );
+      const recordedTotalScore = roundGrade(presentationTotalScore + (advisorWeightedScore ?? 0));
+
+      return {
+        projectId: project.id,
+        studentCode: project.student.studentCode,
+        firstNameTh: project.student.firstNameTh,
+        lastNameTh: project.student.lastNameTh,
+        projectTitle: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+        statusLabel: projectStatusLabelTh(project.status),
+        ...scores,
+        presentationTotalScore,
+        advisorWeightedScore,
+        recordedTotalScore,
+        missingScoreComponents
+      };
+    });
+}
+
+export async function getCourseGradeExportRows(courseOfferingId: string): Promise<CourseGradeExportRow[]> {
+  const [projects, rounds] = await Promise.all([
+    prisma.project.findMany({
+      where: { courseOfferingId },
+      orderBy: { student: { studentCode: "asc" } },
+      select: {
+        id: true,
+        currentTitleTh: true,
+        status: true,
+        student: {
+          select: {
+            studentCode: true,
+            firstNameTh: true,
+            lastNameTh: true
+          }
+        },
+        attempts: {
+          select: {
+            officialScore: true,
+            assessmentRound: { select: { roundType: true } },
+            proposalResult: { select: { averageScore: true } },
+            evaluatorAssignments: {
+              select: {
+                scoreSubmission: {
+                  select: {
+                    status: true,
+                    totalScore: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: { attemptNo: "asc" }
+        },
+        advisorScore: {
+          select: {
+            status: true,
+            score: true
+          }
+        }
+      }
+    }),
+    prisma.assessmentRound.findMany({
+      where: { courseOfferingId },
+      select: {
+        roundType: true,
+        courseWeight: true
+      }
+    })
+  ]);
+
+  return buildCourseGradeExportRows(projects, rounds);
 }
 
 export async function getEvidenceDashboardData(courseOfferingId?: string): Promise<EvidenceDashboardData> {
@@ -468,5 +690,41 @@ export function projectEvidenceCsvRows(rows: ProjectEvidenceRow[]): CsvValue[][]
     row.timelineEventCount,
     row.statusHistoryCount,
     row.lastEvidenceUpdate
+  ]);
+}
+
+export const courseGradeExportHeaders = [
+  "student_code",
+  "first_name_th",
+  "last_name_th",
+  "project_title",
+  "proposal_10_percent",
+  "progress1_10_percent",
+  "progress2_10_percent",
+  "final_10_percent",
+  "presentation_total_40_percent",
+  "advisor_25_percent",
+  "recorded_total_65_percent",
+  "missing_score_components",
+  "project_status",
+  "project_id"
+];
+
+export function courseGradeExportCsvRows(rows: CourseGradeExportRow[]): CsvValue[][] {
+  return rows.map((row) => [
+    row.studentCode,
+    row.firstNameTh,
+    row.lastNameTh,
+    row.projectTitle,
+    row.proposalWeightedScore,
+    row.progress1WeightedScore,
+    row.progress2WeightedScore,
+    row.finalWeightedScore,
+    row.presentationTotalScore,
+    row.advisorWeightedScore,
+    row.recordedTotalScore,
+    row.missingScoreComponents.join("; "),
+    row.statusLabel,
+    row.projectId
   ]);
 }

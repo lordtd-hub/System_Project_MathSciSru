@@ -13,6 +13,7 @@ function percent(value: number, total: number) {
 }
 
 const exportItems = [
+  { kind: "grades", label: "สรุปคะแนนรายบุคคล" },
   { kind: "projects", label: "หลักฐานรายโครงงาน" },
   { kind: "timeline", label: "เหตุการณ์หลักฐาน" },
   { kind: "scores", label: "หลักฐานคะแนนตามเกณฑ์" },
@@ -106,7 +107,7 @@ export default async function AdminEvidencePage({
 
           <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="ส่งออกหลักฐาน" description="ดาวน์โหลดเป็น CSV หรือ Excel (.xlsx) โดยประวัติการดำเนินการเป็นข้อมูลภาพรวมทั้งระบบ" />
-            <div className="mt-3 grid gap-2 lg:grid-cols-5">
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-6">
               {exportItems.map((item) => (
                 <div key={item.kind} className="rounded-lg border border-line bg-paperSoft p-2">
                   <div className="mb-2 text-xs font-semibold text-ink">{item.label}</div>
