@@ -168,6 +168,105 @@ Wave 1 can continue into Progress 2 operational testing for Projects 01/04/05.
 
 Do not start Wave 2 yet. Wave 2 planning can begin later after Progress 2 schedule/evidence submission, teacher queue updates, scoring, and the Project03 recovery gap are either patched or explicitly accepted as out of scope for Wave 1.
 
+## 2026-05-13 Continuation Stop: Progress 2 Student Evidence Save
+
+- QA preview: `https://system-project-math-sci-f96db92qp-lordtd-hubs-projects.vercel.app`
+- Browser: Microsoft Edge CDP session on port `9333`
+- Mode: guarded operational workflow testing; no production action; no direct DB manipulation
+
+### Admin Start Guard
+
+`/admin/rounds` was checked as `MULTI-PILOT-R2 Admin` before student action.
+
+Progress 2 state at start:
+
+- Status: open
+- Eligible / ready: `3`
+- Submitted current-round evidence: `0`
+- Completed current-round assessment: `0`
+- Eligible but incomplete: `3`
+- Not yet eligible: `37`
+- Affected ready-but-incomplete list: Projects 05, 04, and 01
+- Project03 remained not eligible for Progress 2 and appeared under the readiness summary as Progress 1 incomplete.
+
+Screenshot:
+
+- `screenshots/progress2-continuation-admin-start-f96.png`
+
+### Phase 1 Action Attempt
+
+Role:
+
+- `MULTI-PILOT-R2 Student 01`
+
+Route:
+
+- `/student/schedule`
+
+Guard before action:
+
+- Correct student identity was visible.
+- Progress 2 evidence form was visible and enabled.
+- Progress 2 was the current actionable schedulable round.
+
+Screenshot before action:
+
+- `screenshots/progress2-student01-schedule-before-submit-f96.png`
+
+Action taken:
+
+- Student01 submitted Progress 2 evidence through the visible student schedule/evidence form.
+
+### Major Bug Found
+
+Severity: Major.
+
+Project:
+
+- Project01
+
+Role:
+
+- Student01
+
+Route:
+
+- `/student/schedule?success=assessment_evidence_saved`
+
+Expected:
+
+- The page should keep the normal schedule/evidence content after saving evidence.
+- The page should show the saved Progress 2 evidence state and allow the student to continue to the Progress 2 schedule proposal step.
+
+Actual:
+
+- After the save redirect, the page rendered only the application shell/header/footer/logout context.
+- The schedule/evidence content disappeared.
+- No Progress 2 schedule proposal form or saved evidence state was visible on the redirected page.
+
+Screenshot:
+
+- `screenshots/progress2-student01-evidence-submitted-f96.png`
+
+Stop decision:
+
+- Pilot continuation stopped immediately because this is a post-submit workflow state mismatch on the active Progress 2 path.
+- No Progress 2 schedule was proposed.
+- No teacher schedule approval, Progress 2 scoring, or Progress 2 close action was attempted.
+
+Recommendation:
+
+- Do not continue Progress 2 on this QA preview until the post-submit schedule page state is verified on an updated preview or patched for the current target.
+- This resembles the previously tracked post-submit blank-page issue for `/student/schedule?success=assessment_evidence_saved`; confirm that the preview used for continuation contains the post-submit stabilization fix before resuming.
+
+### Validation
+
+- `npm test`: PASS, 77 files / 312 tests
+
+### Current Status
+
+Progress 2 Wave 1 did not complete in this continuation. Final round testing should not begin yet.
+
 Wave 1 continued from the existing R2 state. The workflow did not deadlock, but the run found one important workflow/status risk: after Progress 1 receives the required committee scores, the student dashboard and schedule page start presenting Progress 2 as actionable even though Admin has not opened the Progress 2 round.
 
 Recommendation: patch stabilization before continuing deeper into Progress 2/Final or Wave 2.

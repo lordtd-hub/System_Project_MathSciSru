@@ -199,3 +199,13 @@ These notes should be carried into manual planning later, but no documentation/m
 - Add a broader reopen workflow panel for Progress 1, Progress 2, and Final, not only Proposal.
 - Add clearer late/excused management UI for non-Proposal rounds.
 - Keep improving Admin action hierarchy; open/close/reset controls are still dense in the round cards.
+
+## 2026-05-13 Progress 2 Continuation Note
+
+Do not turn this into manual content yet. This is an operational blocker note from the continued pilot.
+
+- Student01 could see and submit the Progress 2 evidence form.
+- After evidence save, `/student/schedule?success=assessment_evidence_saved` rendered only the app shell instead of returning to the full schedule/evidence page.
+- This blocks safe continuation because the next expected student action is proposing the Progress 2 schedule.
+- Before writing manuals or screenshots for Progress 2, verify the active QA preview keeps full page content after saving assessment evidence.
+- Screenshot: `screenshots/progress2-student01-evidence-submitted-f96.png`

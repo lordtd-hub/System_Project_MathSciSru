@@ -238,6 +238,49 @@ Recommended next step from current state:
 4. Verify Project03 remains locked unless a deliberate late/reopen workflow is added.
 5. Do not start Wave 2 until the Project03 recovery gap is decided.
 
+## 2026-05-13 Progress 2 Continuation Stop
+
+QA preview used:
+
+- `https://system-project-math-sci-f96db92qp-lordtd-hubs-projects.vercel.app`
+
+Completed before stop:
+
+- Verified Admin `/admin/rounds` showed Progress 2 open with:
+  - eligible / ready: `3`
+  - submitted: `0`
+  - completed: `0`
+  - eligible-but-incomplete: `3`
+  - not-yet-eligible: `37`
+- Verified Student01 could open `/student/schedule` and see the Progress 2 evidence form.
+- Student01 submitted Progress 2 evidence.
+
+Stop reason:
+
+- Major bug: after saving Progress 2 evidence, `/student/schedule?success=assessment_evidence_saved` rendered only the application shell/header/footer/logout context.
+- The normal schedule/evidence content disappeared, so the student could not safely continue to propose the Progress 2 schedule from the post-submit page.
+
+Screenshot evidence:
+
+- `screenshots/progress2-continuation-admin-start-f96.png`
+- `screenshots/progress2-student01-schedule-before-submit-f96.png`
+- `screenshots/progress2-student01-evidence-submitted-f96.png`
+
+Not completed:
+
+- Student01 schedule proposal was not submitted.
+- Student04/05 Progress 2 evidence/schedule flow was not attempted.
+- Teacher schedule approval flow was not attempted.
+- Progress 2 scoring was not attempted.
+- Progress 2 close guard was not attempted.
+
+Next required action:
+
+1. Confirm the active continuation preview contains the post-submit stabilization fix for `/student/schedule?success=assessment_evidence_saved`.
+2. If not, use the newest QA preview containing that fix or patch the current target before continuing.
+3. Resume from Student01 by verifying whether the saved Progress 2 evidence is present and whether the schedule proposal form is reachable.
+4. Continue Student04/05 only after Student01 post-submit state is stable.
+
 ## Latest Validation
 
 - `npm test`: PASS, 73 files / 285 tests
