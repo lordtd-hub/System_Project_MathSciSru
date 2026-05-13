@@ -115,6 +115,21 @@ describe("teacher workload UX source", () => {
     expect(source).toContain("MarkdownLatexEditor");
   });
 
+  it("adds figma review layout for Final without changing final scoring semantics", () => {
+    const source = readSource("src/app/teacher/final/page.tsx");
+
+    expect(source).toContain("getUiMode");
+    expect(source).toContain('uiMode === "figma"');
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-teacher-final");
+    expect(source).toContain("figma-final-row");
+    expect(source).toContain("submitFinalPresentationScore");
+    expect(source).toContain('name="project_id"');
+    expect(source).toContain("FinalEvidenceContinuityPanel");
+    expect(source).toContain("FinalQaRubricPanel");
+    expect(source).toContain("conditionCountForSavedScore");
+  });
+
   it("marks report and advisor score queues without changing unlock logic", () => {
     const reports = readSource("src/app/teacher/reports/page.tsx");
     const advisorScore = readSource("src/app/teacher/advisor-score/page.tsx");
