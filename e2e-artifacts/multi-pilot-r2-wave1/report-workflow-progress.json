@@ -1,0 +1,88 @@
+[
+  {
+    "step": "evidence",
+    "result": {
+      "screenshot": "e2e-artifacts\\multi-pilot-r2-wave1\\screenshots\\admin-evidence-export-check.png",
+      "state": {
+        "url": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence",
+        "hasGradeExport": true,
+        "links": 12,
+        "results": [
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/grades?course_offering_id=cmp26hn7m0007l804abhecnvq",
+            "status": 200,
+            "contentType": "text/csv; charset=utf-8",
+            "bytes": 10084
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/grades?course_offering_id=cmp26hn7m0007l804abhecnvq&format=xlsx",
+            "status": 200,
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bytes": 42315
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/projects?course_offering_id=cmp26hn7m0007l804abhecnvq",
+            "status": 200,
+            "contentType": "text/csv; charset=utf-8",
+            "bytes": 35325
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/projects?course_offering_id=cmp26hn7m0007l804abhecnvq&format=xlsx",
+            "status": 200,
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bytes": 72402
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/timeline?course_offering_id=cmp26hn7m0007l804abhecnvq",
+            "status": 200,
+            "contentType": "text/csv; charset=utf-8",
+            "bytes": 62757
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/timeline?course_offering_id=cmp26hn7m0007l804abhecnvq&format=xlsx",
+            "status": 200,
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bytes": 128727
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/scores?course_offering_id=cmp26hn7m0007l804abhecnvq",
+            "status": 200,
+            "contentType": "text/csv; charset=utf-8",
+            "bytes": 714
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/scores?course_offering_id=cmp26hn7m0007l804abhecnvq&format=xlsx",
+            "status": 200,
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bytes": 17537
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/reports?course_offering_id=cmp26hn7m0007l804abhecnvq",
+            "status": 200,
+            "contentType": "text/csv; charset=utf-8",
+            "bytes": 4524
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/reports?course_offering_id=cmp26hn7m0007l804abhecnvq&format=xlsx",
+            "status": 200,
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bytes": 24147
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/audit",
+            "status": 200,
+            "contentType": "text/csv; charset=utf-8",
+            "bytes": 10252
+          },
+          {
+            "href": "https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app/admin/evidence/exports/audit?format=xlsx",
+            "status": 200,
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "bytes": 42683
+          }
+        ],
+        "text": "ระบบประเมินการนำเสนอโครงงาน\nMATHEMATICS & STATISTICS, SRU\nMA\nMULTI-PILOT-R2 Admin\nmulti.pilot.r2.admin@sru.test\nADMIN\nผู้ดูแลระบบ\nกลับหน้า QA Login\nออกจากระบบ\nกลับไปดูภาพรวมงานของผู้ดูแลระบบ\nกลับหน้าผู้ดูแลระบบ\nระบบจัดการโครงงาน\nหลักฐานการดำเนินงานและ AUN-QA\n\nรวมหลักฐานการดำเนินโครงงาน การประเมิน ข้อเสนอแนะ การแก้ไขรายงาน และประวัติการดำเนินการสำหรับผู้ดูแลระบบ\n\nกลับแดชบอร์ด\nเลือกรายวิชา\n\nค่าเริ่มต้นคือรายวิชาที่เปิดล่าสุดในระบบ\n\nMULTI-PILOT-R2 Semester 1 BE 2570 · MULTI-PILOT-R2 Course Offering\nภาคเรียนที่ 1 ปีการศึกษา 2569 · Mathematical Project Course\nดูหลักฐาน\nภาพรวมหลักฐานรายวิชา\n\nMULTI-PILOT-R2 Semester 1 BE 2570 · MULTI-PILOT-R2 Course Offering\n\n40\nโครงงาน\n3\nเสร็จสมบูรณ์\n37\nหลักฐานยังไม่ครบ\n3\nหลักฐานรายงาน\n3\nคะแนนที่ปรึกษา\nยังมีโครงงานที่หลักฐานไม่ครบ 37 รายการ\nตรวจรายการหลักฐานที่ยังขาดก่อนใช้ข้อมูลนี้เป็นชุดหลักฐาน AUN-QA อย่างเป็นทางการ โดยช่องคะแนนหมายถึงมีหลักฐานคะแนนที่บันทึกแล้ว ไม่ใช่การคำนวณกฎการปิดโครงงานใหม่\nส่งออกหลักฐาน\n\nดาวน์โหลดเป็น CSV หรือ Excel (.xlsx) โดยประวัติการดำเนินการเป็นข้อมูลภาพรวมทั้งระบบ\n\nสรุปคะแนนรายบุคคล\nCSV\nExcel\nหลักฐานรายโครงงาน\nCSV\nExcel\nเหตุการณ์หลักฐาน\nCSV\nExcel\nหลักฐานคะแนนตามเกณฑ์\nCSV\nExcel\nผลตรวจรายงาน\nCSV\nExcel\nประวัติการดำเนินการทั้งระบบ\nCSV\nExcel\nสถานะหลักฐานรายโครงงาน\n\nมีหลักฐานคะแนนสอบความก้าวหน้าครั้งที่ 1 3/40 (8%) · ครั้งที่ 2 3/40 · สอบขั้นสุดท้าย 3/40\n\nนักศึกษา\tหัวข้อ\tที่ปรึกษา\tสถานะ\tหลักฐาน P1\tหลักฐาน P2\tหลักฐาน FINAL\tหลักฐานรายงาน\tคะแนนที่ปรึกษา\tประวัติ\tล่าสุด\n\nR2STU05\nMULTI-PILOT-R2 Student 05\n\t\nMULTI-PILOT-R2 Project 05 ระบบทดสอบการนัดสอบซ้อน\nID: cmp26hnbr001vl804m84028wh\n\tQA MULTI-PILOT-R2 Teacher 03\tโครงงานเสร็จสมบูรณ์\tมี\tมี\tมี\tมี\tมี\t48 / 12\t\n13 พ.ค. 2569 13:45 น.\n\n\nR2STU04\nMULTI-PILOT-R2 Student 04\n\t\nMULTI-PILOT-R2 Project 04 ระบบทดสอบการแก้รายงาน\nID: cmp26hnbd001pl804sub5gy0n\n\tQA MULTI-PILOT-R2 Teacher 03\t"
+      }
+    }
+  }
+]

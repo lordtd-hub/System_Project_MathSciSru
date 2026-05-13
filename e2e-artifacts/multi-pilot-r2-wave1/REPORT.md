@@ -1678,3 +1678,108 @@ Remaining UX/operational debt:
 - Admin round cards still have dense/duplicated open-close controls and awkward button hierarchy.
 - Student evidence-to-schedule transition should be made more explicit in a later UX pass.
 - Non-Proposal late/reopen recovery remains a dedicated UX/workflow design item, especially for Project03.
+
+## Live QA - Report Workflow and Closeout Completion
+
+QA preview:
+
+- `https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app`
+- Latest app commit in this preview: `c8a0c53`
+
+Scope:
+
+- Continued Wave 1 from the saved post-Final state.
+- Did not restart the pilot.
+- Did not start Wave 2.
+- Did not start documentation/manual screenshot capture.
+- Production was not touched.
+
+Student report submission:
+
+- Student01 / Project01 submitted report version 1.
+- Student04 / Project04 submitted report version 1.
+- Student05 / Project05 submitted report version 1.
+- No permanent `กำลังส่ง...` state was observed.
+- Report pages returned to normal waiting-for-review/history states after submit.
+- Student03 / Project03 stayed locked and did not show a report submission form.
+
+Report review:
+
+- Project01 report was approved by the required reviewers.
+- Project04 report was approved by the required reviewers.
+- Project05 revision loop was exercised:
+  - Teacher02 approved version 1.
+  - Teacher01 requested revision on version 1.
+  - Student05 submitted version 2.
+  - Required reviewers approved version 2.
+  - The older version-1 approval did not approve the latest version automatically; version 2 required its own review.
+
+Advisor score:
+
+- Project01 advisor score submitted by Teacher01.
+- Project04 advisor score submitted by Teacher03.
+- Project05 advisor score submitted by Teacher03.
+- Advisor score actions unlocked only after report approval for the completed projects.
+- Project03 did not unlock advisor scoring.
+
+Admin closeout:
+
+- Admin closed out Project01, Project04, and Project05 to completed status.
+- Student01/04/05 dashboards after closeout showed completed state with no misleading pending task count.
+- Project03 remains the incomplete/recovery case and was not completed accidentally.
+
+Evidence/export check:
+
+- `/admin/evidence` loaded normally after closeout.
+- Evidence table showed 40 projects, 3 completed projects, 37 projects with incomplete evidence.
+- Report evidence and advisor score evidence were visible for the three completed projects.
+- Export links returned successful responses:
+  - Grade summary CSV: HTTP 200, non-empty.
+  - Grade summary Excel: HTTP 200, non-empty.
+  - Project, timeline, scores, reports, and audit CSV/XLSX exports: HTTP 200, non-empty.
+
+Validation:
+
+- No application code patch was needed in this Report pass.
+- `npm test`: PASS, 77 files / 319 tests.
+- QA secret scan across `src` and `e2e-artifacts`: PASS, no matches.
+
+Screenshots:
+
+- `screenshots/report-R2STU01-v1-submitted.png`
+- `screenshots/report-R2STU04-v1-submitted.png`
+- `screenshots/report-R2STU05-v1-submitted.png`
+- `screenshots/report-R2STU05-v2-submitted.png`
+- `screenshots/report-student03-locked.png`
+- `screenshots/report-review-R2STU01-multi-r2-teacher-01-PASS.png`
+- `screenshots/report-review-R2STU01-multi-r2-teacher-02-PASS.png`
+- `screenshots/report-review-R2STU01-multi-r2-teacher-03-PASS.png`
+- `screenshots/report-review-R2STU04-multi-r2-teacher-01-PASS.png`
+- `screenshots/report-review-R2STU04-multi-r2-teacher-02-PASS.png`
+- `screenshots/report-review-R2STU04-multi-r2-teacher-03-PASS.png`
+- `screenshots/report-review-R2STU05-multi-r2-teacher-01-FAIL.png`
+- `screenshots/report-review-R2STU05-multi-r2-teacher-01-PASS.png`
+- `screenshots/report-review-R2STU05-multi-r2-teacher-02-PASS.png`
+- `screenshots/report-review-R2STU05-multi-r2-teacher-03-PASS.png`
+- `screenshots/advisor-score-R2STU01-multi-r2-teacher-01.png`
+- `screenshots/advisor-score-R2STU04-multi-r2-teacher-03.png`
+- `screenshots/advisor-score-R2STU05-multi-r2-teacher-03.png`
+- `screenshots/admin-closeout-R2STU01.png`
+- `screenshots/admin-closeout-R2STU04.png`
+- `screenshots/admin-closeout-R2STU05.png`
+- `screenshots/student-R2STU01-completed-dashboard.png`
+- `screenshots/student-R2STU04-completed-dashboard.png`
+- `screenshots/student-R2STU05-completed-dashboard.png`
+- `screenshots/admin-evidence-export-check.png`
+
+Bugs found in this Report pass:
+
+- Blocker: none.
+- Major: none in the application workflow.
+- Minor/automation: the local CDP evidence-check helper initially used an invalid async expression and stopped before reading the evidence page. The helper was patched and rerun; the app evidence/export check passed.
+
+Current result:
+
+- Wave 1 report workflow, advisor score unlock, Admin closeout, and evidence/export checks are operationally complete for Project01/04/05.
+- Final-complete projects can now proceed through report approval, advisor score, closeout, and evidence export.
+- Project03 remains locked/incomplete and is still the main recovery-path case for later non-Proposal late/reopen UX work.

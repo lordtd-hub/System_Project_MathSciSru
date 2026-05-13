@@ -1008,3 +1008,42 @@ Carry into next pass:
 - Project03 remains the main incomplete/recovery case.
 - Verify report review queues and reviewer permissions before accepting report workflow as stable.
 - Continue to watch queue density and Admin action hierarchy as UX debt, not a Wave 1 semantics blocker.
+
+## Report Workflow Completion State
+
+Status: Report workflow, advisor score unlock, Admin closeout, and evidence/export checks completed successfully for Wave 1 projects.
+
+Latest QA preview verified:
+
+- `https://system-project-math-sci-8jb32im2d-lordtd-hubs-projects.vercel.app`
+- App commit in preview: `c8a0c53`
+
+Completed:
+
+- Student01/04/05 submitted reports after Final completion.
+- Student03 remained locked and could not submit a report.
+- Project01/04 reports were approved by required reviewers.
+- Project05 revision loop was verified:
+  - version 1 received one PASS and one revision request,
+  - student submitted version 2,
+  - required reviewers approved version 2,
+  - old version-1 approval did not automatically approve version 2.
+- Advisor scores were submitted for Project01/04/05 only after report approval.
+- Admin completed closeout for Project01/04/05.
+- Completed student dashboards showed completed status without misleading pending task counts.
+- Admin evidence page loaded after closeout.
+- Grade summary CSV/XLSX and existing evidence exports returned HTTP 200 with non-empty content.
+
+No current Major/Blocker remains from the Report pass.
+
+Ready next:
+
+- Wave 1 operational semantics are complete enough to review accumulated Minor/UX debt.
+- Wave 2 should still wait for explicit user approval.
+- Documentation/manual screenshots should still wait for explicit user approval and the separate UX/readability decision.
+
+Carry into next pass:
+
+- Project03 recovery/reopen handling remains the main lifecycle edge case.
+- Teacher report/advisor queues should be redesigned later for scale; the workflow worked, but long-card density will become hard with 10+ projects.
+- Admin evidence/export now includes grade summary, but real registrar format decisions may still be needed before production use.

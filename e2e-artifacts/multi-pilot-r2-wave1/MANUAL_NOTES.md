@@ -303,3 +303,37 @@ Live follow-up:
 
 - After the report readiness patch, Student01/04/05 could see report submission readiness, while Student03 no longer saw the report form.
 - Keep this wording distinction for manuals later: "Final assessment completed by required committee scoring" is the gate; "Final round closed" is not enough for incomplete projects.
+
+## 2026-05-13 Report Workflow and Closeout Notes
+
+Do not turn this into polished manual text yet.
+
+### Student
+
+- Student01/04/05 report submission worked after Final completion.
+- After first report submission, students saw waiting-for-review/history state rather than a stale submit form.
+- Student05 revision flow was understandable enough for the pilot: revision feedback appeared, version 2 could be submitted, and report history remained visible.
+- Student03 correctly remained locked from report submission because Final scoring was incomplete.
+- Later student manual should explain report versions clearly: first complete report, reviewer revision request, new version, latest-version review.
+
+### Teacher
+
+- Report review queues worked with multiple reviewers and a revision loop.
+- The latest-version rule behaved correctly: a PASS on an old version did not approve the new version automatically.
+- Advisor score unlocked only after report approval and became read-only after submission.
+- Queue scale UX concern remains: report review and advisor score pages are functional, but long lists should become filterable inbox/table views before real high-volume operation.
+
+### Admin
+
+- Admin closeout worked for Project01/04/05 after Final complete, report approved, and advisor score submitted.
+- Completed student dashboards had no misleading pending task count.
+- `/admin/evidence` showed completed/incomplete separation after closeout: 3 complete, 37 incomplete.
+- Grade summary export is now visible under evidence export and returned non-empty CSV/XLSX files during QA.
+- Registrar/report-card format may still need a decision before production use, especially whether to include incomplete/blank/grade-I wording and exact column naming.
+
+### UI/Operational Debt
+
+- Keep Project03 as the recovery-path scenario for non-Proposal late/reopen design.
+- Teacher queues should later separate actionable inbox items from read-only history.
+- Admin closeout and evidence pages are operationally usable, but the final UX pass should improve hierarchy and scanning for 40+ projects.
+- Do not start Wave 2 or documentation screenshots until the user explicitly approves the next phase.

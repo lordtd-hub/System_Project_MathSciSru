@@ -22,6 +22,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 tmp-next-start.*.log
+test-results/
+
+# local browser automation profiles / session state
+.edgepilot-cdp/
+.playwright-cli/
+.qa-chrome-profile/
 
 # local databases / generated scratch files
 *.db
