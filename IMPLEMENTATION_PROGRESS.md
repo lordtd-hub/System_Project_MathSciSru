@@ -1557,5 +1557,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Added the first shared visual shell and surface primitives under `src/components/redesign/`.
 - Updated Admin, Teacher, and Student layouts so the page data fetching, guards, actions, and route semantics stay owned by the existing pages while the layout can switch presentation mode.
 - Added source-level tests covering production fallback, role layout switching, and the shared Figma shell/surface classes.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- figmaUiMode`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Pushed QA preview only at commit `a9de656`.
+- Live QA preview: `https://system-project-math-sci-mfn23sfkb-lordtd-hubs-projects.vercel.app`.
+- Live smoke verification passed:
+  - default `classic` mode remains available;
+  - `figma` mode renders the new role shell;
+  - switching back to `classic` removes the Figma shell;
+  - Admin route smoke checks rendered without shell-only/digest pages.
 - No lifecycle, auth, scoring, eligibility, Prisma schema, server action, API, or production config semantics were changed.
 - This is the visual-mode foundation only. Page-level `Classic...View` / `Figma...View` renderers remain the next implementation step before the app can be called visually aligned with Figma.

@@ -413,3 +413,18 @@ The patch does not change auth guards, lifecycle transitions, scoring, eligibili
 ### Next Phase
 
 Run a secret scan, then commit/push the fallback foundation. After that, continue with page-level `Classic...View` / `Figma...View` split starting from the teacher dashboard and teacher review pages.
+
+### QA Deployment And Live Verification
+
+- Commit: `a9de656`.
+- QA preview: `https://system-project-math-sci-mfn23sfkb-lordtd-hubs-projects.vercel.app`.
+- Classic/default Admin smoke passed using the existing Edge/CDP admin verifier.
+- The verifier selected the Admin role dropdown before selecting the Admin identity.
+- UI mode smoke passed:
+  - default `classic` had the mode switch and no `.figma-role-shell`;
+  - after selecting `figma`, `.figma-role-shell` and `.figma-role-sidebar` rendered;
+  - after switching back to `classic`, the Figma shell disappeared.
+
+### Next Phase
+
+Continue to page-level Figma renderers. Start with the teacher dashboard and teacher review/detail pages because Figma coverage is strongest there.

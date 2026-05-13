@@ -241,5 +241,15 @@ Tooling note: `.env.preview.local` did not match the active preview QA secret du
 - Secret scan:
   - searched touched source/redesign artifacts for the QA secret and known database fragments;
   - no matches found.
+- QA deployment:
+  - pushed to `qa-preview` at commit `a9de656`.
+  - Vercel preview ready: `https://system-project-math-sci-mfn23sfkb-lordtd-hubs-projects.vercel.app`.
+- Live QA verification:
+  - Admin classic/default route smoke passed on `/admin`, `/admin/rounds`, `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, and `/admin/evidence`.
+  - QA login verifier explicitly selected the `admin` role dropdown before identity selection.
+  - `classic` mode rendered without `.figma-role-shell`.
+  - `figma` mode switch rendered `.figma-role-shell` and `.figma-role-sidebar`.
+  - Switching back to `classic` removed the Figma shell again.
+  - No shell-only page, digest page, or detected desktop overflow appeared in this smoke check.
 - Logic touched: no business logic.
 - Production behavior: source test covers production fallback to `classic` unless explicitly allowed.
