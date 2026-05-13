@@ -348,8 +348,11 @@ Required production environment variables:
 - `AUTH_SECRET` and `NEXTAUTH_SECRET`
 - `AUTH_TRUST_HOST=true` on Vercel
 - `INITIAL_ADMIN_EMAIL`
+- `CRON_SECRET` for the guarded Vercel Cron heartbeat at `/api/cron/heartbeat`
 - `STUDENT_EMAIL_DOMAIN=student.sru.ac.th`
 - `TEACHER_EMAIL_DOMAIN=sru.ac.th`
+
+Supabase inactivity note: `vercel.json` registers `/api/cron/heartbeat` once per day at `0 2 * * *` UTC, which is 09:00 in Thailand. The route only runs a guarded read-only `SELECT 1` database query and returns `401` unless Vercel sends `Authorization: Bearer $CRON_SECRET`. Vercel Cron runs on production deployments, so set `CRON_SECRET` in the Vercel Production environment before relying on it to keep a Supabase Free project active.
 
 Google OAuth redirect URIs:
 
