@@ -49,13 +49,37 @@ Date: 2026-05-13
 - Production was not touched.
 - No schema changes.
 - No lifecycle/scoring/round eligibility/auth changes.
-- QA preview push and live verification still pending in this report until the QA deployment finishes.
+- QA preview was pushed from `qa-preview`.
+- QA preview URL verified: `https://system-project-math-sci-dq9ii313b-lordtd-hubs-projects.vercel.app`
 
-## Recommendation Before Live QA
+## Live QA Verification
 
-- Push this scoped UI patch to `qa-preview`.
-- Verify live with Teacher01/02/03 and Teacher04/Teacher Delta:
-  - actionable tasks appear before waiting/completed work
-  - no unauthorized actions appear
-  - completed/read-only items are visually separate
-  - report and advisor-score states remain correct after Wave 1 completion
+- Edge persistent CDP session used.
+- Checked identities:
+  - `multi-r2-teacher-01`
+  - `multi-r2-teacher-02`
+  - `multi-r2-teacher-03`
+  - `multi-r2-teacher-04`
+  - `teacher-delta`
+- Checked routes:
+  - `/teacher`
+  - `/teacher/schedules`
+  - `/teacher/proposals`
+  - `/teacher/progress1`
+  - `/teacher/progress2`
+  - `/teacher/final`
+  - `/teacher/reports`
+  - `/teacher/advisor-score`
+- Result:
+  - workload summary rendered on all patched teacher workload routes
+  - no shell-only page observed after waiting for streamed content
+  - no digest/application error observed
+  - Teacher Delta action button count: 0
+  - completed Advisor Score state remained read-only
+  - schedule page showed confirmed schedules separately from pending approvals
+
+## Recommendation
+
+- Teacher workload UX stabilization is ready for the next decision point.
+- Wave 2 can be planned later from a UX/workload-readability perspective.
+- Larger visual redesign should still be a later pass after admin/student readability debt is reviewed.
