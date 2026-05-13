@@ -1498,3 +1498,5 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 17 tests.
   - `cmd /c npm.cmd test` - passed, 81 files / 344 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Pushed QA preview only and live-verified teacher pages on `https://system-project-math-sci-9czostjk1-lordtd-hubs-projects.vercel.app`.
+- The teacher verifier now fails fast if QA login does not produce an authorized teacher dashboard, preventing the recurring role-dropdown mismatch from being mistaken for a valid page check.

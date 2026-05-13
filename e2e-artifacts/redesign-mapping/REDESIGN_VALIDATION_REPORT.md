@@ -63,5 +63,16 @@ cmd /c npm.cmd run build
 - `cmd /c npm.cmd test` - passed, 81 files / 344 tests.
 - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - Logic touched: no.
-- QA deploy: pending for this patch.
-- Live QA verification: pending for this patch.
+- QA deploy: passed on `https://system-project-math-sci-9czostjk1-lordtd-hubs-projects.vercel.app`.
+- Live QA verification: passed with Edge persistent CDP after the verifier selected the teacher role and confirmed authorized teacher dashboard access.
+
+Screenshots:
+
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-dashboard-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-progress2-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-final-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-redesign-9czostjk1.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-redesign-9czostjk1.png`

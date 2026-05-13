@@ -105,7 +105,22 @@ Existing queries, server actions, guards, scoring forms, report review forms, an
 
 ### Live Verification
 
-Pending after QA push for this Phase 2 patch.
+Passed on `https://system-project-math-sci-9czostjk1-lordtd-hubs-projects.vercel.app`.
+
+The Edge/CDP verifier was tightened after a QA-login guard failure: it now treats an unauthorized teacher page as a failure, checks for the redesigned workload summary after login, and keeps selecting `#role = teacher` before the teacher identity.
+
+Verified routes:
+
+- `/teacher`
+- `/teacher/schedules`
+- `/teacher/proposals`
+- `/teacher/progress1`
+- `/teacher/progress2`
+- `/teacher/final`
+- `/teacher/reports`
+- `/teacher/advisor-score`
+
+Screenshots were recorded under `e2e-artifacts/redesign-mapping/screenshots/` using the `9czostjk1` QA preview slug.
 
 ### Next Phase
 

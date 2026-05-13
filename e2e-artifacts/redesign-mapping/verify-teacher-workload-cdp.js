@@ -128,7 +128,12 @@ async function qaLoginTeacher(client, teacherKey) {
       const setSelect = (selector, value) => {
         const el = document.querySelector(selector);
         if (!el) throw new Error("Missing " + selector);
-        const option = Array.from(el.options).find((item) => item.value === value || item.textContent.includes(value));
+        const normalizedValue = String(value).toLowerCase();
+        const option = Array.from(el.options).find((item) => {
+          const optionValue = String(item.value || "").toLowerCase();
+          const optionText = String(item.textContent || "").toLowerCase();
+          return optionValue === normalizedValue || optionText.includes(normalizedValue);
+        });
         if (!option) throw new Error("Missing option " + value + " for " + selector);
         el.value = option.value;
         option.selected = true;
@@ -151,6 +156,14 @@ async function qaLoginTeacher(client, teacherKey) {
   `, `qa login teacher ${teacherKey}`);
   await sleep(2200);
   const text = await bodyText(client, `after qa login teacher ${teacherKey}`);
+  const url = await evaluate(client, "location.href", `after qa login teacher ${teacherKey} url`);
+  const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `after qa login teacher ${teacherKey} summary`);
+  if (url.includes("/qa-login")) {
+    throw new Error(`Expected teacher dashboard after QA login for ${teacherKey}; still on QA login: ${text.slice(0, 240).replace(/\s+/g, " ")}`);
+  }
+  if (/สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น/.test(text) || !hasSummary) {
+    throw new Error(`Expected authorized teacher dashboard after QA login for ${teacherKey}; url=${url}; hasSummary=${hasSummary}; body=${text.slice(0, 240).replace(/\s+/g, " ")}`);
+  }
   if (!text.includes("TEACHER") && !text.includes("อาจารย์")) {
     throw new Error(`Expected teacher dashboard after QA login for ${teacherKey}`);
   }
@@ -167,6 +180,13 @@ async function screenshot(client, name) {
 async function verifyTeacherPage(client, route, name) {
   await goto(client, `${baseUrl}${route}`);
   const text = await bodyText(client, name);
+  if (/สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น/.test(text)) throw new Error(`${route}: unauthorized teacher guard rendered`);
+  const hasSummaryBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class early`);
+  const hasQueueSurfaceBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-metric'))", `${route} metric class early`);
+  if (hasSummaryBeforeTextCheck && hasQueueSurfaceBeforeTextCheck) {
+    const filePath = await screenshot(client, `${name}.png`);
+    return { route, ok: true, screenshot: filePath };
+  }
   if (!text.includes("สรุปภาระงานอาจารย์")) {
     const url = await evaluate(client, "location.href", `${route} current url`);
     const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class probe`);
