@@ -1,6 +1,15 @@
 # Full UI Redesign Planning Pack
 
-Status: redesign loop completed through global non-mutating desktop/mobile verification.
+Status: UX/readability stabilization completed through global non-mutating desktop/mobile verification. Figma visual redesign is now starting with a safe `classic` / `figma` UI mode foundation.
+
+Important correction: this is not yet the full Figma visual redesign. The current QA UI is safer and easier to scan than before, but it has not been rebuilt to visually match the Figma mockup composition. See `FIGMA_VISUAL_REDESIGN_NEXT_PLAN.md`.
+
+Current visual-redesign foundation:
+
+- `classic` mode preserves the existing stabilized UI.
+- `figma` mode is feature-flag/cookie controlled and currently changes the shared role shell first.
+- Production remains `classic` unless explicitly enabled later.
+- Page-level Figma renderers are still the next implementation step.
 
 This folder is the source of truth for the new redesign work. It is intentionally separate from the older `WEBAPP_REDESIGN_PLAN.md`, because that file has encoding issues and also contains older visual-polish notes.
 
@@ -31,6 +40,7 @@ It must preserve:
 - `REDESIGN_VALIDATION_REPORT.md` - local and live QA validation evidence.
 - `REDESIGN_DEFERRED_ITEMS.md` - deferred redesign/workflow items.
 - `REDESIGN_COMPLETION_REPORT.md` - final readiness summary for the current redesign loop.
+- `FIGMA_VISUAL_REDESIGN_NEXT_PLAN.md` - correction note and concrete plan for the actual Figma-style visual redesign pass.
 
 ## Current Figma Evidence Captured
 
@@ -48,4 +58,4 @@ Captured reference screenshots:
 
 ## Current Recommendation
 
-Use the redesigned QA preview as the baseline for Wave 2 planning. Mutating workflow regression should still be exercised in a safe action window because the final redesign verification was intentionally non-mutating.
+Treat the current QA preview as a stable UX/readability baseline, not as the final Figma visual redesign. The work is moving in the right direction because workflow semantics stayed safe, but the next UI task should be a dedicated Figma Visual Redesign Implementation Pass before calling the redesign complete.

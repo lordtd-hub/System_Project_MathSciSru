@@ -223,3 +223,23 @@ Result:
 - QA login role selection was guarded before identity selection for each role.
 
 Tooling note: `.env.preview.local` did not match the active preview QA secret during this pass, so live verification used a process-scoped `QA_LIVE_SECRET` environment value. The secret was not written to source or artifact files.
+
+## 2026-05-13 Figma UI Mode Foundation Validation
+
+- Phase: Figma Visual Redesign Phase 0 - safe fallback foundation.
+- Scope:
+  - `classic` / `figma` UI mode utility.
+  - cookie-backed QA mode switch.
+  - Admin, Teacher, and Student role layout switching.
+  - shared Figma role shell and visual surface primitives.
+- Local validation completed so far:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- figmaUiMode` - passed, 1 file / 3 tests.
+- Full local validation:
+  - `cmd /c npm.cmd test` - passed, 82 files / 349 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Secret scan:
+  - searched touched source/redesign artifacts for the QA secret and known database fragments;
+  - no matches found.
+- Logic touched: no business logic.
+- Production behavior: source test covers production fallback to `classic` unless explicitly allowed.

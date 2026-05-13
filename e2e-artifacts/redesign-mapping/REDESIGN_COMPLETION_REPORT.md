@@ -1,4 +1,4 @@
-# Redesign Completion Report
+# UX Stabilization Completion Report
 
 ## Status
 
@@ -6,7 +6,11 @@ Completed through global non-mutating desktop/mobile verification on the QA prev
 
 `https://system-project-math-sci-66nqpox8d-lordtd-hubs-projects.vercel.app`
 
-This pass was UI-focused. It did not change lifecycle, auth, scoring, round eligibility, Prisma schema, server action semantics, API semantics, production config, department branding, or Thai workflow meaning.
+Important correction: this report covers the UX/readability stabilization baseline, not the final Figma visual redesign. The pass was UI-focused and preserved workflow safety, but the app does not yet visually match the Figma mockup. See `FIGMA_VISUAL_REDESIGN_NEXT_PLAN.md` for the next visual implementation pass.
+
+Update: the Figma visual redesign implementation has started with a safe `classic` / `figma` UI mode foundation. This keeps the stabilized UI as a fallback while the Figma visual layer is implemented page by page. This report still remains the completion report for the earlier readability baseline, not the final Figma visual redesign.
+
+This pass did not change lifecycle, auth, scoring, round eligibility, Prisma schema, server action semantics, API semantics, production config, department branding, or Thai workflow meaning.
 
 ## Completed Phases
 
@@ -82,11 +86,13 @@ Operational note: `.env.preview.local` may not contain the active preview secret
 
 ## Readiness Assessment
 
-The UI redesign is stable enough to carry forward into Wave 2 planning, with one boundary: Wave 2 execution should include a safe mutating regression pass because this redesign completion check intentionally avoided changing live Wave 1 state.
+The UX/readability baseline is stable enough to carry forward into Wave 2 planning, with one boundary: Wave 2 execution should include a safe mutating regression pass because this verification intentionally avoided changing live Wave 1 state.
+
+This should not be treated as the final visual redesign. If the goal is to match the Figma mockup, run the dedicated Figma Visual Redesign Implementation Pass before declaring the redesign complete.
 
 Recommended next step:
 
 1. Do not restart Wave 1 data.
 2. Preserve the QA preview evidence.
-3. Begin Wave 2 planning/execution using the redesigned UI as the baseline.
+3. Begin Wave 2 planning/execution using the stabilized UI as the baseline, or run the Figma visual pass first if visual alignment is the priority.
 4. Include mutating workflow checks early in Wave 2, especially schedule approve/reject, scoring submit, report revision approval, advisor score submit, and admin closeout.

@@ -1543,4 +1543,19 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Live QA verification passed on `https://system-project-math-sci-4pvh39ven-lordtd-hubs-projects.vercel.app` for `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback` at desktop and 390px mobile width.
 - Global non-mutating desktop/mobile regression passed on `https://system-project-math-sci-66nqpox8d-lordtd-hubs-projects.vercel.app` across Teacher, Admin, and Student route groups.
 - The teacher verifier was patched to clear existing QA sessions before selecting `#role = teacher`, matching the safer role-dropdown handling already used by the Admin and Student verifiers.
-- Next step: completion documentation and readiness assessment for the redesign loop; mutating workflow regression remains deferred to a safe action window.
+- Correction: this work should be described as a UX/readability stabilization baseline, not the final Figma visual redesign. The app is safer and clearer, but it does not yet visually match the Figma mockups.
+- Added `e2e-artifacts/redesign-mapping/FIGMA_VISUAL_REDESIGN_NEXT_PLAN.md` to define the real next visual pass.
+- Next step: decide whether to run the Figma Visual Redesign Implementation Pass before Wave 2, or use the stabilized UI as the Wave 2 baseline and keep visual alignment as a separate pass. Mutating workflow regression remains deferred to a safe action window.
+
+## 2026-05-13 Figma visual redesign - safe fallback foundation
+
+- Started the dedicated Figma Visual Redesign Implementation Pass.
+- Added a presentation-only `classic` / `figma` UI mode foundation:
+  - production remains `classic` unless explicitly allowed;
+  - QA can switch modes through a cookie-backed mode switch;
+  - the existing stabilized role navigation remains available as the classic fallback.
+- Added the first shared visual shell and surface primitives under `src/components/redesign/`.
+- Updated Admin, Teacher, and Student layouts so the page data fetching, guards, actions, and route semantics stay owned by the existing pages while the layout can switch presentation mode.
+- Added source-level tests covering production fallback, role layout switching, and the shared Figma shell/surface classes.
+- No lifecycle, auth, scoring, eligibility, Prisma schema, server action, API, or production config semantics were changed.
+- This is the visual-mode foundation only. Page-level `Classic...View` / `Figma...View` renderers remain the next implementation step before the app can be called visually aligned with Figma.

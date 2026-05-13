@@ -382,3 +382,34 @@ Passed for desktop and 390px mobile viewports.
 ### Next Phase
 
 Continue to completion documentation and readiness assessment for the redesign loop.
+
+## 2026-05-13 - Figma Visual Redesign Phase 0 Safe Fallback Foundation
+
+### Scope
+
+Implemented the safe `classic` / `figma` UI mode foundation requested before page-level Figma visual replacements.
+
+### Redesign Applied
+
+- Added a presentation-only UI mode utility with production-safe fallback to `classic`.
+- Added a cookie-backed QA mode switch that can select `classic` or `figma`.
+- Wrapped Admin, Teacher, and Student route groups with a new Figma-style role shell only when `figma` mode is active.
+- Preserved the existing role navigation and page bodies in `classic` mode.
+- Added shared Figma visual primitives for upcoming page-level renderers.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch does not change auth guards, lifecycle transitions, scoring, eligibility, schema, server action semantics, API contracts, or production configuration. The only server action added stores the UI mode cookie.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- figmaUiMode` - passed, 1 file / 3 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 349 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Run a secret scan, then commit/push the fallback foundation. After that, continue with page-level `Classic...View` / `Figma...View` split starting from the teacher dashboard and teacher review pages.
