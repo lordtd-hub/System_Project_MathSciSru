@@ -9,6 +9,7 @@ import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { allRequiredReportReviewersPassed, requiredReportReviewerIds } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
@@ -52,6 +53,41 @@ export default async function TeacherReportsPage({
     },
     orderBy: { updatedAt: "desc" }
   });
+  const reportQueueOrder = { action: 0, returned: 1, waiting: 2, completed: 3, locked: 4 } as const;
+  const reportQueueLabels = {
+    action: "ต้องดำเนินการ",
+    returned: "ส่งกลับ/รอแก้ไข",
+    waiting: "รอผู้อื่น",
+    completed: "เสร็จแล้ว",
+    locked: "ยังไม่พร้อม"
+  } as const;
+  const reportQueueTones = {
+    action: "action",
+    returned: "returned",
+    waiting: "waiting",
+    completed: "completed",
+    locked: "locked"
+  } as const;
+  const reportQueueItems = projects.map((project) => {
+    const latestReport = project.reportVersions[0];
+    if (!latestReport) return { projectId: project.id, state: "locked" as const };
+    const previousReview = latestReport.reviews.find((review) => review.reviewerTeacherId === teacher.id);
+    const requiredReviewerIds = requiredReportReviewerIds(project.committeeAssignments, project.advisorRequests);
+    const allPassed = allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReport.reviews });
+    const latestReportHasRevisionRequest = latestReport.reviews.some((review) => review.decision === "FAIL");
+    if (project.status === "REPORT_APPROVED" || allPassed) return { projectId: project.id, state: "completed" as const };
+    if (latestReportHasRevisionRequest) return { projectId: project.id, state: "returned" as const };
+    if (previousReview) return { projectId: project.id, state: "waiting" as const };
+    return { projectId: project.id, state: "action" as const };
+  });
+  const reportQueueStateByProjectId = new Map(reportQueueItems.map((item) => [item.projectId, item.state]));
+  const sortedProjects = [...projects].sort((a, b) => {
+    const stateA = reportQueueStateByProjectId.get(a.id) ?? "waiting";
+    const stateB = reportQueueStateByProjectId.get(b.id) ?? "waiting";
+    return reportQueueOrder[stateA] - reportQueueOrder[stateB];
+  });
+  const reportQueueCount = (state: (typeof reportQueueItems)[number]["state"]) =>
+    reportQueueItems.filter((item) => item.state === state).length;
 
   return (
     <div className="space-y-6">
@@ -66,10 +102,19 @@ export default async function TeacherReportsPage({
             next="ถ้าอาจารย์ที่ปรึกษาและกรรมการที่กำหนดอนุมัติครบ ระบบจะเปลี่ยนเป็นขั้นตอนบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา"
         actor="อาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการที่ได้รับแต่งตั้ง"
       />
+      <TeacherWorkloadSummary
+        metrics={[
+          { label: "ต้องดำเนินการ", count: reportQueueCount("action"), tone: "action", description: "รายงานฉบับล่าสุดที่รอผลตรวจของท่าน" },
+          { label: "รอ", count: reportQueueCount("waiting"), tone: "waiting", description: "ท่านตรวจแล้ว รอผู้ตรวจท่านอื่น" },
+          { label: "เสร็จแล้ว", count: reportQueueCount("completed"), tone: "completed", description: "ผ่านครบหรืออนุมัติแล้ว" },
+          { label: "ส่งกลับ", count: reportQueueCount("returned"), tone: "returned", description: "มีผู้ขอให้นักศึกษาแก้ไข" },
+          { label: "ยังไม่พร้อม", count: reportQueueCount("locked"), tone: "locked", description: "ยังไม่มีเล่มล่าสุดให้ตรวจ" }
+        ]}
+      />
 
       <div className="space-y-4">
         {projects.length ? (
-          projects.map((project) => {
+          sortedProjects.map((project) => {
             const latestReport = project.reportVersions[0];
             const previousReview = latestReport?.reviews.find((review) => review.reviewerTeacherId === teacher.id);
             const hasSubmittedCurrentReview = Boolean(previousReview);
@@ -80,6 +125,7 @@ export default async function TeacherReportsPage({
             const latestReportNote = latestReport
               ? project.timelineEvents.find((event) => event.relatedEntityId === latestReport.id)?.eventDescription
               : null;
+            const queueState = reportQueueStateByProjectId.get(project.id) ?? "waiting";
 
             return (
               <section key={project.id} className="panel">
@@ -90,7 +136,10 @@ export default async function TeacherReportsPage({
                       {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                     </p>
                   </div>
-                  <StatusBadge status={project.status} />
+                  <div className="flex flex-wrap gap-2">
+                    <TeacherQueueBadge tone={reportQueueTones[queueState]}>{reportQueueLabels[queueState]}</TeacherQueueBadge>
+                    <StatusBadge status={project.status} />
+                  </div>
                 </div>
 
                 {!latestReport ? (

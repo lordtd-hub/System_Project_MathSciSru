@@ -9,6 +9,7 @@ import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { advisorCriteria } from "@/lib/scoring/advisorScoring";
@@ -82,6 +83,35 @@ export default async function TeacherAdvisorScorePage({
     },
     orderBy: { updatedAt: "desc" }
   });
+  const advisorQueueOrder = { action: 0, waiting: 1, completed: 2, locked: 3 } as const;
+  const advisorQueueLabels = {
+    action: "ต้องดำเนินการ",
+    waiting: "รอเงื่อนไข",
+    completed: "เสร็จแล้ว",
+    locked: "ยังไม่พร้อม"
+  } as const;
+  const advisorQueueTones = {
+    action: "action",
+    waiting: "waiting",
+    completed: "completed",
+    locked: "locked"
+  } as const;
+  const advisorQueueItems = projects.map((project) => {
+    const submitted = project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null;
+    const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
+    if (submitted) return { projectId: project.id, state: "completed" as const };
+    if (editable) return { projectId: project.id, state: "action" as const };
+    if (project.status === "REPORT_REVIEW") return { projectId: project.id, state: "waiting" as const };
+    return { projectId: project.id, state: "locked" as const };
+  });
+  const advisorQueueStateByProjectId = new Map(advisorQueueItems.map((item) => [item.projectId, item.state]));
+  const sortedProjects = [...projects].sort((a, b) => {
+    const stateA = advisorQueueStateByProjectId.get(a.id) ?? "locked";
+    const stateB = advisorQueueStateByProjectId.get(b.id) ?? "locked";
+    return advisorQueueOrder[stateA] - advisorQueueOrder[stateB];
+  });
+  const advisorQueueCount = (state: (typeof advisorQueueItems)[number]["state"]) =>
+    advisorQueueItems.filter((item) => item.state === state).length;
 
   return (
     <div className="space-y-6">
@@ -96,14 +126,24 @@ export default async function TeacherAdvisorScorePage({
         next="เมื่อบันทึกแล้ว โครงงานจะรอผู้ดูแลระบบตรวจเงื่อนไขและยืนยันจบโครงงาน"
         actor="อาจารย์ที่ปรึกษาของโครงงานเท่านั้น"
       />
+      <TeacherWorkloadSummary
+        metrics={[
+          { label: "ต้องดำเนินการ", count: advisorQueueCount("action"), tone: "action", description: "พร้อมบันทึกคะแนนที่ปรึกษา" },
+          { label: "รอ", count: advisorQueueCount("waiting"), tone: "waiting", description: "รอรายงานผ่านครบก่อน" },
+          { label: "เสร็จแล้ว", count: advisorQueueCount("completed"), tone: "completed", description: "ส่งคะแนนแล้ว อ่านย้อนหลังได้" },
+          { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับคะแนนที่ปรึกษา" },
+          { label: "ยังไม่พร้อม", count: advisorQueueCount("locked"), tone: "locked", description: "ยังไม่ถึงขั้นตอนบันทึกคะแนน" }
+        ]}
+      />
 
       <div className="space-y-4">
         {projects.length ? (
-          projects.map((project) => {
+          sortedProjects.map((project) => {
             const previous = project.advisorScore;
             const submitted = previous?.status === "SUBMITTED" && previous.score != null;
             const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
             const latestReport = project.reportVersions[0];
+            const queueState = advisorQueueStateByProjectId.get(project.id) ?? "locked";
             return (
               <section key={project.id} className="panel">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -113,7 +153,10 @@ export default async function TeacherAdvisorScorePage({
                       {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                     </p>
                   </div>
-                  <StatusBadge status={project.status} />
+                  <div className="flex flex-wrap gap-2">
+                    <TeacherQueueBadge tone={advisorQueueTones[queueState]}>{advisorQueueLabels[queueState]}</TeacherQueueBadge>
+                    <StatusBadge status={project.status} />
+                  </div>
                 </div>
 
                 <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ConditionBasedRubricView } from "@/components/ui/ConditionBasedRubricView";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
@@ -96,6 +97,25 @@ export default async function TeacherProgress1Page({
         next="ระบบบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน โดยไม่เปลี่ยนขั้นตอนโครงงานอัตโนมัติ"
         actor="ประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้ง"
       />
+      <TeacherWorkloadSummary
+        metrics={[
+          { label: "ต้องดำเนินการ", count: projects.length, tone: "action", description: "พร้อมให้คะแนน Progress 1" },
+          { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
+          { label: "เสร็จแล้ว", count: 0, tone: "completed", description: "คะแนนที่ส่งแล้วถูกนำออกจากคิวนี้" },
+          { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
+          { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ยังไม่พร้อมไม่แสดง" }
+        ]}
+      />
+      <TeacherCompactQueueList
+        items={projects.map((project) => ({
+          id: project.id,
+          href: `#project-${project.id}`,
+          title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+          description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
+          meta: "Progress 1",
+          badges: [{ label: "ต้องให้คะแนน", tone: "action" }, { label: "กรรมการ", tone: "waiting" }]
+        }))}
+      />
 
       <div className="space-y-4">
         {projects.length ? projects.map((project) => {
@@ -108,7 +128,7 @@ export default async function TeacherProgress1Page({
             : "";
 
           return (
-            <section key={project.id} className="panel">
+            <section key={project.id} id={`project-${project.id}`} className="panel scroll-mt-24">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
@@ -116,9 +136,9 @@ export default async function TeacherProgress1Page({
                     {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                   </p>
                 </div>
-                <span className="rounded-full border border-line px-3 py-1 text-xs">
+                <TeacherQueueBadge tone={previous ? "completed" : "action"}>
                   {previous ? `บันทึกแล้ว ${Number(previous.totalScore)}/100` : "ยังไม่บันทึก"}
-                </span>
+                </TeacherQueueBadge>
               </div>
 
               {showQaProgressPlanCheck ? (

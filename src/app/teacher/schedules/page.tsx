@@ -7,6 +7,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { prisma } from "@/lib/db";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
@@ -110,7 +111,7 @@ export default async function TeacherSchedulesPage({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <PageHeader title="ตารางสอบที่เกี่ยวข้อง" description="รายการวันสอบที่นักศึกษาส่งภายใต้รอบสอบระดับรายวิชา" />
       <ActionFeedback success={params?.success} error={params?.error} />
       <GuidancePanel
@@ -119,7 +120,16 @@ export default async function TeacherSchedulesPage({
         next="พิจารณาอนุมัติหรือไม่อนุมัติวันสอบจากข้อมูลที่นักศึกษาเสนอ"
         actor="อาจารย์ที่ปรึกษา ประธานกรรมการ และกรรมการ"
       />
-      <section className="panel">
+      <TeacherWorkloadSummary
+        metrics={[
+          { label: "ต้องดำเนินการ", count: pendingReviewSchedules.length, tone: "action", description: "คำขอวันสอบที่รอท่านอนุมัติ" },
+          { label: "รอ", count: 0, tone: "waiting", description: "รายการที่รอคนอื่นไม่แสดงเป็นงานของท่าน" },
+          { label: "เสร็จแล้ว", count: confirmedScheduleCalendar.length, tone: "completed", description: "ตารางสอบที่ยืนยันแล้ว" },
+          { label: "ส่งกลับ", count: schedules.filter((schedule) => schedule.status === "REJECTED").length, tone: "returned", description: "คำขอที่มีผู้ไม่สะดวก" },
+          { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ปิดแล้วไม่ใช่งานอนุมัติ" }
+        ]}
+      />
+      <section className="panel order-3">
         <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
         <p className="mt-1 text-sm text-muted">
           อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วได้ เพื่อวางแผนเข้าร่วมฟังหรือหลีกเลี่ยงเวลาซ้อนกัน โดยส่วนนี้ไม่แสดงเอกสารหลักฐานของนักศึกษา
@@ -153,13 +163,13 @@ export default async function TeacherSchedulesPage({
           )}
         </div>
       </section>
-      <section className="panel">
+      <section className="panel order-1">
         <h2 className="text-lg font-semibold">รายการรออนุมัติวันสอบของท่าน</h2>
         <p className="mt-1 text-sm text-muted">
           แสดงเฉพาะคำขอที่ยังรอให้ท่านอนุมัติหรือไม่อนุมัติ ตารางที่ยืนยันแล้วอยู่ในส่วนด้านบน
         </p>
       </section>
-      <div className="space-y-3">
+      <div className="order-1 space-y-3">
         {pendingReviewSchedules.length ? pendingReviewSchedules.map((schedule) => {
           const submission = schedule.project.assessmentSubmissions.find((item) => item.kind === schedule.assessmentKind);
           const requiredApproverIds = uniqueIds([
@@ -188,7 +198,10 @@ export default async function TeacherSchedulesPage({
                 </p>
                 <p className="mt-1 text-sm text-muted">{schedule.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</p>
               </div>
-              <span className="rounded-full border border-line px-3 py-1 text-xs">{scheduleStatusLabel(schedule.status)}</span>
+              <div className="flex flex-wrap gap-2">
+                <TeacherQueueBadge tone="action">ต้องดำเนินการ</TeacherQueueBadge>
+                <TeacherQueueBadge tone="waiting">{scheduleStatusLabel(schedule.status)}</TeacherQueueBadge>
+              </div>
             </div>
             {schedule.status === "REJECTED" ? (
               <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">

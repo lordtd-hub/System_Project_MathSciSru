@@ -8,6 +8,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { isQaAunEvidenceAlignmentEnabled } from "@/lib/qa/finalRubricConfig";
 import { finalQaRubric, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
@@ -92,6 +93,29 @@ export default async function TeacherFinalPage({
       {!finalRound ? (
         <EmptyState title="ยังไม่มีรอบสอบนำเสนอขั้นสุดท้าย" description="ผู้ดูแลระบบต้องเปิดรอบสอบนำเสนอขั้นสุดท้ายระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
       ) : null}
+      {finalRound ? (
+        <>
+          <TeacherWorkloadSummary
+            metrics={[
+              { label: "ต้องดำเนินการ", count: projects.length, tone: "action", description: "พร้อมให้คะแนน Final" },
+              { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
+              { label: "เสร็จแล้ว", count: 0, tone: "completed", description: "คะแนนที่ส่งแล้วถูกนำออกจากคิวนี้" },
+              { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
+              { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ยังไม่พร้อมไม่แสดง" }
+            ]}
+          />
+          <TeacherCompactQueueList
+            items={projects.map((project) => ({
+              id: project.id,
+              href: `#project-${project.id}`,
+              title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+              description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
+              meta: "Final",
+              badges: [{ label: "ต้องให้คะแนน", tone: "action" }, { label: "กรรมการ", tone: "waiting" }]
+            }))}
+          />
+        </>
+      ) : null}
       <div className="space-y-4">
         {projects.length ? projects.map((project) => {
           const proposalContent = project.presentationSubmissions[0]?.contentJson as Record<string, unknown> | undefined;
@@ -118,7 +142,7 @@ export default async function TeacherFinalPage({
             }
           ];
           return (
-            <section key={project.id} className="panel">
+            <section key={project.id} id={`project-${project.id}`} className="panel scroll-mt-24">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
@@ -126,7 +150,9 @@ export default async function TeacherFinalPage({
                     {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                   </p>
                 </div>
-                <span className="rounded-full border border-line px-3 py-1 text-xs">{previous ? `บันทึกแล้ว ${Number(previous.totalScore).toFixed(2)}/100` : "ยังไม่บันทึก"}</span>
+                <TeacherQueueBadge tone={previous ? "completed" : "action"}>
+                  {previous ? `บันทึกแล้ว ${Number(previous.totalScore).toFixed(2)}/100` : "ยังไม่บันทึก"}
+                </TeacherQueueBadge>
               </div>
               {showQaEvidenceAlignment ? (
                 <div className="mt-4">

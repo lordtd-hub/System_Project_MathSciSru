@@ -1312,3 +1312,24 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - Login action validates production env before starting Google sign-in, preventing the previous blank `client_id` Google error path.
 - Updated `.env.example`, `README.md`, `PRODUCTION_CHECKLIST.md`, and `DEPLOYMENT_NOTES.md` with production env names, OAuth callback examples, Supabase/Vercel migration order, and smoke-test steps.
 - No schema or lifecycle workflow changes were made.
+
+## 2026-05-13 Teacher workload UX stabilization
+
+- Completed the post Wave 1 teacher workload audit and queue design notes.
+- Added a shared `TeacherWorkloadQueue` UI component for queue summaries, badges, grouped sections, and compact queue rows.
+- Patched teacher-facing workload pages without changing core business logic:
+  - `/teacher/schedules` now surfaces pending schedule approvals before confirmed calendar content.
+  - `/teacher/proposals` separates pending Proposal scoring from submitted/read-only work.
+  - `/teacher/progress1`, `/teacher/progress2`, and `/teacher/final` show compact queue summaries and jump links before long scoring forms.
+  - `/teacher/reports` orders report review work by actionable, returned, waiting, completed, and locked states.
+  - `/teacher/advisor-score` orders advisor-score work by actionable, waiting, completed, and locked states.
+- Added source coverage in `src/app/teacher/teacherWorkloadUxSource.test.ts`.
+- Validation:
+  - `cmd /c npm.cmd test -- src/app/teacher/teacherWorkloadUxSource.test.ts` - passed
+  - `cmd /c npm.cmd run typecheck` - passed
+  - `cmd /c npm.cmd test` - passed, 78 test files / 322 tests
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated
+- No auth, lifecycle, scoring, round eligibility, Prisma schema, or production changes were made.
+- Remaining before closing this stabilization pass:
+  - Push QA preview only.
+  - Live verify teacher workload pages with the existing Wave 1 QA state.
