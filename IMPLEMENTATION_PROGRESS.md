@@ -1805,3 +1805,31 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Remaining Phase 5 admin work:
   - `/admin/proposals` Figma renderer split.
   - No real `/admin/reports` route exists in the current repo, so that planning item remains deferred/mapping-only.
+
+## 2026-05-14 Figma visual redesign - Admin proposals and admin route verification
+
+- Completed the remaining real Admin route in Phase 5 with `/admin/proposals`.
+- Added a page-level `figma` renderer branch while keeping the existing proposal summary page as the `classic` fallback.
+- The Figma proposal view uses shared visual primitives for KPI cards, action-first proposal rows, operational warning panels, and a two-column Proposal review/action layout.
+- Preserved the existing proposal data query, Admin guard, score summary source, final decision form, feedback release form, Proposal round close acknowledgement, hidden fields, confirmation messages, Markdown+KaTeX rendering, and route behavior.
+- Added a reusable Edge CDP verifier for admin `classic`/`figma` renderer checks.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, Markdown+KaTeX, export, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- admin`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Pushed QA preview only at commit `056526f`.
+- Live QA preview: `https://system-project-math-sci-b4pwwud5y-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for Admin routes in both `classic` and `figma` mode:
+  - `/admin/rounds`
+  - `/admin/closeout`
+  - `/admin/proposals`
+  - `/admin/schedules`
+  - `/admin/evidence`
+- Desktop and 390px mobile checks passed:
+  - classic mode had no Figma shell and no route-specific Figma class;
+  - figma mode had the Figma shell and expected route-specific class;
+  - no shell-only page, digest/application error, login fallback, or horizontal overflow.
+- Admin redesign phase is complete for real routes in the current repo. `/admin/reports` remains a planning-only item because no real route exists.
+- Next step: Phase 6 Student redesign, starting with `/student`, then `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback`.

@@ -33,6 +33,15 @@
 
 ## Deferred After Admin Renderer Batch 1
 
-- `/admin/proposals` still needs a dedicated Figma renderer split. This page is higher risk than the other admin pages because it contains final decision forms, feedback release, proposal score summaries, and proposal round close acknowledgement.
+- `/admin/proposals` renderer split is complete and live-verified in classic/figma mode on desktop and 390px mobile.
 - Planning references `/admin/reports`, but the current repo has no real `src/app/admin/reports/page.tsx` route. Treat it as a mapping/deferred item until a real admin reports route exists.
 - Admin mutating regression for round open/close/reset and closeout confirmation remains deferred until a safe QA action window; current admin visual verification should be non-mutating first.
+
+## Deferred After Admin Route Verification
+
+- Admin mutating regression remains deferred:
+  - round open/close/reset;
+  - Proposal final decision submit;
+  - Proposal feedback release;
+  - closeout confirmation.
+- The next redesign phase should move to Student pages. Student has less direct Figma coverage, so use the shared visual system conservatively and keep the old workflow wording/forms intact.

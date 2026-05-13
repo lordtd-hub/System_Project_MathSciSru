@@ -575,3 +575,46 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - the warning was patched and the full validation cycle was rerun successfully.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Admin Proposal Renderer And Admin Route Verification
+
+- Phase: 5 - Admin redesign.
+- Scope:
+  - `/admin/proposals`;
+  - reusable admin renderer mode verifier;
+  - live re-verification of `/admin/rounds`, `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, and `/admin/evidence`.
+- Renderer status:
+  - classic fallback remains available for every checked admin route;
+  - figma branches now exist for all real admin operational routes in the current redesign scope;
+  - `/admin/reports` remains mapping-only because no real route exists in the repo.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- admin` - passed, 16 files / 64 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 357 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Secret scan:
+  - searched touched admin source, redesign components, redesign artifacts, and implementation progress for known QA/database secret fragments;
+  - no matches found.
+- QA deployment:
+  - pushed to `qa-preview` at commit `056526f`;
+  - Vercel preview ready: `https://system-project-math-sci-b4pwwud5y-lordtd-hubs-projects.vercel.app`.
+- Live QA verification:
+  - persistent Edge CDP session used;
+  - QA login verifier explicitly selected the `admin` role dropdown before identity selection;
+  - `classic` mode rendered no `.figma-role-shell` and no route-specific Figma page class;
+  - `figma` mode rendered `.figma-role-shell` plus the expected route-specific class on all checked admin pages;
+  - desktop verification showed no shell-only page, digest/application error, login fallback, or detected overflow;
+  - 390px mobile verification showed `docWidth = 390` on all checked admin pages with no horizontal overflow.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-rounds-renderer-figma-desktop-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-closeout-renderer-figma-desktop-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-renderer-figma-desktop-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-renderer-figma-desktop-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-renderer-figma-desktop-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-rounds-renderer-figma-mobile-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-closeout-renderer-figma-mobile-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-renderer-figma-mobile-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-renderer-figma-mobile-b4pwwud5y.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-renderer-figma-mobile-b4pwwud5y.png`
+- Result: Admin redesign phase is complete for real routes in the current repo, pending later mutating workflow regression.

@@ -965,3 +965,75 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 ### Next Phase
 
 Deploy/live-verify the first admin batch if a QA checkpoint is needed, then continue Phase 5 with `/admin/proposals`.
+
+## 2026-05-14 - Phase 5 Admin Proposals Figma Renderer
+
+### Scope
+
+Continued Phase 5 Admin redesign with the remaining real admin proposal route:
+
+- `/admin/proposals`
+
+### Patch
+
+- Added a page-level Figma renderer branch for `/admin/proposals`.
+- Kept the existing proposal summary page as the classic fallback.
+- Reused the shared Figma visual primitives for KPI cards, action-first proposal rows, warning panels, and a two-column review/action layout.
+- Preserved the existing proposal data query, admin guard, proposal score summary source, final decision form, feedback release form, Proposal round close acknowledgement, hidden fields, confirmation messages, Markdown+KaTeX viewers, and route behavior.
+- Added a reusable Edge CDP verifier for admin classic/figma renderer mode checks.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, export route behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed after escaping one JSX text `>=` marker.
+- `cmd /c npm.cmd test -- admin` - passed, 16 files / 64 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 357 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Secret scan over touched source/redesign artifacts returned no matches.
+
+### QA Deployment And Live Verification
+
+- Commit: `056526f`.
+- QA preview: `https://system-project-math-sci-b4pwwud5y-lordtd-hubs-projects.vercel.app`.
+- Live verification used the persistent Edge CDP session and explicitly selected the `admin` role dropdown before submitting QA login.
+- Checked `classic` and `figma` mode for:
+  - `/admin/rounds`;
+  - `/admin/closeout`;
+  - `/admin/proposals`;
+  - `/admin/schedules`;
+  - `/admin/evidence`.
+- Desktop result:
+  - classic mode rendered without `.figma-role-shell` and without page-specific Figma route classes;
+  - figma mode rendered `.figma-role-shell` and the expected page-specific route class;
+  - no shell-only page, digest/application error, login fallback, or detected overflow.
+- 390px mobile result:
+  - all checked routes had `docWidth = 390`;
+  - no horizontal overflow;
+  - classic/figma mode separation remained correct;
+  - no shell-only page, digest/application error, or login fallback.
+
+### Screenshots
+
+- `e2e-artifacts/redesign-mapping/screenshots/admin-rounds-renderer-figma-desktop-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-closeout-renderer-figma-desktop-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-renderer-figma-desktop-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-renderer-figma-desktop-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-renderer-figma-desktop-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-rounds-renderer-figma-mobile-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-closeout-renderer-figma-mobile-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-renderer-figma-mobile-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-renderer-figma-mobile-b4pwwud5y.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-renderer-figma-mobile-b4pwwud5y.png`
+
+### Phase Result
+
+Real Admin redesign routes in the current repo are complete for non-mutating visual/regression verification.
+
+### Next Phase
+
+Continue Phase 6 Student redesign, starting with `/student` and then `/student/project`, `/student/proposal`, `/student/schedule`, `/student/report`, and `/student/feedback`.
