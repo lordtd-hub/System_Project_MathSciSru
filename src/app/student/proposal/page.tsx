@@ -12,6 +12,7 @@ import { ProposalDraftForm } from "@/components/ui/ProposalDraftForm";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
@@ -78,6 +79,36 @@ export default async function ProposalSubmissionPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      <StudentReadabilitySummary
+        title="สรุปสถานะ Proposal"
+        description="แยกงานที่ต้องส่งตอนนี้ออกจากสถานะที่ส่งแล้วหรือกำลังรอรอบเปิด เพื่อให้นักศึกษาเห็นขั้นตอนถัดไปชัดเจนขึ้น"
+        items={[
+          {
+            label: "ต้องทำตอนนี้",
+            value: canSubmitProposal ? 1 : 0,
+            detail: "กรอกข้อมูล Proposal และส่งหลักฐานเมื่อรอบเปิดหรือได้รับสิทธิ์ส่งย้อนหลัง",
+            tone: canSubmitProposal ? "action" : "locked"
+          },
+          {
+            label: "รอรอบ/รออนุญาต",
+            value: !canSubmitProposal && canPrepareProposal ? 1 : 0,
+            detail: "ยังไม่เปิดให้ส่งตามรอบปกติ หรืออยู่ระหว่างรอผู้ดูแลระบบเปิดเป็นรายกรณี",
+            tone: !canSubmitProposal && canPrepareProposal ? "waiting" : "locked"
+          },
+          {
+            label: "ส่งแล้ว",
+            value: submission ? 1 : 0,
+            detail: "เมื่อส่งแล้วให้ติดตามผลการพิจารณาและความเห็นจากอาจารย์ในหน้านี้",
+            tone: submission ? "done" : "locked"
+          },
+          {
+            label: "ความเห็น",
+            value: proposalComments.length,
+            detail: "จำนวนความเห็น Proposal ที่เปิดให้นักศึกษาอ่านได้",
+            tone: proposalComments.length ? "info" : "locked"
+          }
+        ]}
+      />
       {showLateSubmittedNotice ? (
         <div data-testid="student-proposal-late-submitted-notice">
           <WarningAlert title="ส่ง Proposal หลังปิดรอบแล้ว">

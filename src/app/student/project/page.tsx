@@ -9,6 +9,7 @@ import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { selectableSourceTypes, sourceTypeLabelTh } from "@/lib/projects/sourceType";
@@ -53,6 +54,36 @@ export default async function StudentProjectPage({
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      <StudentReadabilitySummary
+        title="สรุปสถานะหัวข้อและที่ปรึกษา"
+        description="แยกสิ่งที่นักศึกษาต้องทำเองออกจากสถานะที่กำลังรออาจารย์หรือผู้ดูแลระบบ เพื่อไม่ให้เข้าใจว่าต้องส่งซ้ำระหว่างรอผล"
+        items={[
+          {
+            label: "ต้องทำตอนนี้",
+            value: canEditProject ? 1 : 0,
+            detail: latestAdvisorRejected ? "แก้ไขข้อมูลตามความเห็นอาจารย์ แล้วส่งคำขอที่ปรึกษาใหม่" : "กรอกข้อมูลหัวข้อและเลือกอาจารย์ที่ปรึกษาเมื่อยังอยู่ในสถานะร่าง",
+            tone: canEditProject ? "action" : "locked"
+          },
+          {
+            label: "รออาจารย์",
+            value: !canEditProject && advisorRequest?.status === "PENDING" ? 1 : 0,
+            detail: "ส่งคำขอแล้วให้รออาจารย์ที่ปรึกษาพิจารณา ยังไม่ต้องส่งซ้ำจากหน้านี้",
+            tone: advisorRequest?.status === "PENDING" ? "waiting" : "locked"
+          },
+          {
+            label: "อนุมัติแล้ว",
+            value: advisorRequest?.status === "APPROVED" ? 1 : 0,
+            detail: "เมื่อที่ปรึกษาอนุมัติแล้ว ขั้นตอนถัดไปจะไปตามลำดับของรายวิชา",
+            tone: advisorRequest?.status === "APPROVED" ? "done" : "locked"
+          },
+          {
+            label: "สถานะโครงงาน",
+            value: project.status,
+            detail: "ใช้ป้ายสถานะด้านบนประกอบกับกล่องสรุปนี้เพื่อตรวจว่าขั้นตอนถูกล็อกหรือเปิดให้ทำแล้ว",
+            tone: "info"
+          }
+        ]}
+      />
       {latestAdvisorRejected ? (
         <section className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-ink">
           <p className="font-semibold">คำขอที่ปรึกษาถูกปฏิเสธ</p>

@@ -24,6 +24,27 @@ describe("student readability stabilization", () => {
     expect(page).toContain("student-schedule-page-content");
   });
 
+  it("summarizes project-origin work before the long advisor request form", () => {
+    const page = source("src/app/student/project/page.tsx");
+
+    expect(page).toContain("StudentReadabilitySummary");
+    expect(page).toContain("สรุปสถานะหัวข้อและที่ปรึกษา");
+    expect(page).toContain("ต้องทำตอนนี้");
+    expect(page).toContain("รออาจารย์");
+    expect(page).toContain("อนุมัติแล้ว");
+    expect(page).toContain("saveProjectOrigin");
+  });
+
+  it("summarizes Proposal next-action state before the long submission form", () => {
+    const page = source("src/app/student/proposal/page.tsx");
+
+    expect(page).toContain("StudentReadabilitySummary");
+    expect(page).toContain("สรุปสถานะ Proposal");
+    expect(page).toContain("รอรอบ/รออนุญาต");
+    expect(page).toContain("proposalComments.length");
+    expect(page).toContain("saveProposalSubmission");
+  });
+
   it("separates report actions from waiting-for-review states and avoids raw PASS wording", () => {
     const page = source("src/app/student/report/page.tsx");
 

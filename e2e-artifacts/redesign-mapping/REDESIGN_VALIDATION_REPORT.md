@@ -152,3 +152,19 @@ Screenshots:
 - `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-redesign-mobile-1thdur8ic.png`
 - `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-redesign-mobile-1thdur8ic.png`
 - `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-redesign-mobile-1thdur8ic.png`
+
+## 2026-05-13 Student Redesign Local Validation
+
+- Phase: 4 - Student redesign entry patch.
+- Routes patched: `/student/project`, `/student/proposal`.
+- Shared component reused: `StudentReadabilitySummary`.
+- Verification helper added: `e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js`.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentReadability` - passed, 1 file / 6 tests.
+  - `cmd /c npm.cmd test` - passed, 81 files / 346 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+  - `node --check e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` - passed.
+- Logic touched: no.
+
+Live QA verification is pending until the student patch is pushed to a new QA preview URL.

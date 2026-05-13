@@ -1523,3 +1523,21 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Live QA verification passed on `https://system-project-math-sci-1thdur8ic-lordtd-hubs-projects.vercel.app` for `/admin`, `/admin/rounds`, `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, and `/admin/evidence` at desktop and 390px mobile width.
 - No lifecycle, auth, scoring, eligibility, schema, server action, API, or production changes were made.
 - Next phase: Student redesign audit and conservative student UI pass.
+
+## 2026-05-13 Full UI redesign loop - student entry patch
+
+- Continued into Phase 4 Student redesign after Admin entry verification.
+- Audited the real student pages and found that `/student`, `/student/schedule`, `/student/report`, and `/student/feedback` already have action/waiting/read-only summaries.
+- Added conservative `StudentReadabilitySummary` sections to the remaining long form-heavy student pages:
+  - `/student/project`
+  - `/student/proposal`
+- Added `e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` for non-mutating student route verification after QA deploy.
+- Updated `src/app/student/studentReadabilityStabilization.test.ts` to cover the new project/proposal summary surfaces.
+- Validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentReadability` - passed, 1 file / 6 tests.
+  - `cmd /c npm.cmd test` - passed, 81 files / 346 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+  - `node --check e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` - passed.
+- No lifecycle, auth, scoring, eligibility, schema, server action, API, or production changes were made.
+- Next step: push QA preview and live-verify student pages on the new preview URL.

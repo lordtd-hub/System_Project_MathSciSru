@@ -280,3 +280,53 @@ All checked routes rendered without shell-only pages, digest/error pages, or det
 ### Next Phase
 
 Continue to Student redesign audit and conservative student UI pass.
+
+## 2026-05-13 - Phase 4 Student Redesign Entry Patch
+
+### Routes / Components
+
+- `/student/project`
+- `/student/proposal`
+- `src/components/ui/StudentReadabilitySummary.tsx`
+- Verification helper: `e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js`
+
+### Detection Result
+
+The student dashboard, schedule, report, and feedback pages already had readability-oriented surfaces:
+
+- `/student` uses workflow groups and an action queue.
+- `/student/schedule`, `/student/report`, and `/student/feedback` use `StudentReadabilitySummary`.
+
+The remaining high-value student gaps were the long form-heavy pages:
+
+- `/student/project`
+- `/student/proposal`
+
+### Redesign Applied
+
+- Added a `StudentReadabilitySummary` before the long project-origin/advisor request form.
+- Added a `StudentReadabilitySummary` before the long Proposal submission form.
+- The summaries separate:
+  - work the student can do now.
+  - waiting states.
+  - completed/submitted states.
+  - status/history counters.
+- Added a non-mutating student Edge/CDP verifier for dashboard/project/proposal/schedule/report/feedback routes.
+
+### Logic Touched
+
+No.
+
+The patch only adds presentation summaries. It does not change form fields, server actions, lifecycle gates, auth guards, scoring, eligibility, schema, or API behavior.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentReadability` - passed, 1 file / 6 tests.
+- `cmd /c npm.cmd test` - passed, 81 files / 346 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- `node --check e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` - passed.
+
+### Next Phase
+
+Push QA preview and live-verify student routes on the new preview URL before moving to the global mobile/regression pass.
