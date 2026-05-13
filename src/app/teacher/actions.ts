@@ -258,7 +258,11 @@ export async function reviewExamSchedule(formData: FormData) {
       project: {
         include: {
           committeeAssignments: { where: { active: true } },
-          advisorRequests: { where: { status: "APPROVED" } }
+          advisorRequests: { where: { status: "APPROVED" } },
+          roundExceptions: {
+            where: { status: "OPEN" },
+            include: { assessmentRound: { select: { roundType: true } } }
+          }
         }
       }
     }
@@ -266,7 +270,14 @@ export async function reviewExamSchedule(formData: FormData) {
   if (schedule.status !== "PROPOSED") {
     redirectWithQuery("/teacher/schedules", { error: "schedule_already_reviewed" });
   }
-  if (schedule.assessmentRound && !isRoundOpen(schedule.assessmentRound.status)) {
+  const hasLateRoundOverride = schedule.assessmentRound
+    ? schedule.project.roundExceptions.some(
+        (exception) =>
+          exception.assessmentRound?.roundType === schedule.assessmentRound?.roundType &&
+          hasOpenLateRoundException([exception])
+      )
+    : false;
+  if (schedule.assessmentRound && !isRoundOpen(schedule.assessmentRound.status) && !hasLateRoundOverride) {
     redirectWithQuery("/teacher/schedules", { error: "schedule_round_not_open" });
   }
 

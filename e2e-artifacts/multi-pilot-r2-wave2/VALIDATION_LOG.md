@@ -23,9 +23,10 @@ Validation:
 
 Pending:
 
-- Secret scan before commit.
-- QA preview push.
-- Live QA verification and data preparation.
+- Secret scan before commit - passed; no QA secret found. One false positive came from `task-first`.
+- QA preview push - passed, commit `6d223c2`.
+- New QA preview - `https://system-project-math-sci-daaspquy0-lordtd-hubs-projects.vercel.app`.
+- Live QA verification and data preparation - passed.
 
 Validation requirement:
 
@@ -40,3 +41,25 @@ Additional checks:
 - Confirm QA secret is not written to artifacts.
 - Confirm production config is not changed.
 - Confirm unrelated dirty files are not staged.
+
+## 2026-05-13 - Phase 3 Progress Recovery Patch
+
+Code patch:
+
+- Student schedule round availability now treats an open late exception as available for the affected assessment round.
+- Teacher schedule queues now keep late-recovered schedules reviewable after the course-level round is closed.
+- Teacher schedule review action now permits approve/reject when the project has an open late exception for the schedule round.
+- Added source coverage for late-open Progress/Final recovery UI/action paths.
+
+Validation:
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test` - passed, 80 files / 335 tests.
+- `cmd /c npm.cmd run build` - passed.
+- `rg -n "<QA secret>" e2e-artifacts src` - passed; no match found.
+
+Pending:
+
+- Commit and push to `qa-preview`.
+- Verify on the new QA preview that W2-10 can submit Progress 1 evidence/schedule through the late exception.
+- Resume Wave 2 from W2-10 Progress 1 recovery.

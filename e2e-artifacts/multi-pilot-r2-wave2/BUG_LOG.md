@@ -1,6 +1,35 @@
 # MULTI-PILOT-R2 Wave 2 Bug Log
 
-No Wave 2 bugs recorded yet.
+## Active / Recorded Issues
+
+### W2-MAJOR-001 - Progress recovery late exception did not unlock student/teacher schedule flow
+
+- Severity: Major.
+- Area: `/student/schedule`, `/teacher/schedules`, `reviewExamSchedule`.
+- Role/project: Student10 / W2-10 and assigned committee teachers.
+- Route/state: Progress 1 was closed, then Admin opened a Progress 1 late exception for W2-10.
+- Expected: W2-10 should see Progress 1 evidence/schedule actions as late-open, and assigned teachers should be able to review the late-recovered schedule.
+- Actual: W2-10 still saw Progress 1 as locked/not open and had no evidence/schedule form. Teacher schedule queues/actions also depended only on the round `OPEN` status.
+- Root cause: UI/action guards used `isRoundOpen(round.status)` as the only availability source for non-Proposal schedule rounds, without considering an open project-level late exception.
+- Patch: student round availability now includes open late exceptions; teacher schedule queue filtering and schedule review action now allow the matching open late exception while keeping the normal closed-round guard for projects without an exception.
+- Validation: `typecheck`, `npm test`, `build`, and QA secret scan passed locally.
+- Live verification: pending on the next QA preview.
+
+### W2-TOOL-001 - QA login role dropdown guard can block or misroute pilot runners
+
+- Severity: Major for pilot execution tooling; not currently classified as an app lifecycle bug.
+- Area: `/qa-login`
+- Role/project: all QA identities, especially when switching between Admin / Student / Teacher.
+- Observed: the first `บทบาท` select can remain blank and the browser shows native validation: `Please select an item in the list.`
+- Risk: if automation does not explicitly select the role before identity submission, the loop can stop at login, or continue under the wrong assumed role/state.
+- Root cause in runner usage: earlier CDP runners used mismatched role values and did not always validate the role select before submit.
+- Current runner rule: always select the role dropdown first using the actual lowercase option values (`admin`, `student`, `teacher`), then select the matching identity key, then assert `form.checkValidity()` before submit.
+- Required guard for future scripts:
+  - confirm role option exists before submit;
+  - confirm identity option exists for that role;
+  - confirm current page after login matches the expected role route;
+  - stop immediately on mismatch.
+- Recommendation: keep this as a mandatory QA-login preflight for every Wave 2 CDP/browser script.
 
 ## Severity Policy
 

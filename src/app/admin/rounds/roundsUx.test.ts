@@ -53,7 +53,8 @@ describe("admin course round management UX", () => {
 
   it("gates student Progress 1 scheduling on the course-level round", () => {
     expect(scheduleSource).toContain("รอบสอบความก้าวหน้าครั้งที่ 1 ยังไม่เปิด");
-    expect(scheduleSource).toContain("isRoundOpen(progress1Round.status)");
+    expect(scheduleSource).toContain("isRoundAvailable(\"PROGRESS_1\")");
+    expect(scheduleSource).toContain("hasOpenLateRoundException");
     expect(scheduleSource).toContain("getProgress1Readiness(project)");
   });
   it("counts Progress and Final submissions from assessment evidence instead of Proposal submissions", () => {

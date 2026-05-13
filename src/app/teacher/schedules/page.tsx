@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { hasOpenLateRoundException } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
@@ -69,7 +70,11 @@ export default async function TeacherSchedulesPage({
             student: true,
             committeeAssignments: { where: { active: true }, include: { teacher: true } },
             advisorRequests: { where: { status: "APPROVED" }, include: { advisorTeacher: true } },
-            assessmentSubmissions: { orderBy: { submittedAt: "desc" } }
+            assessmentSubmissions: { orderBy: { submittedAt: "desc" } },
+            roundExceptions: {
+              where: { status: "OPEN" },
+              include: { assessmentRound: { select: { roundType: true } } }
+            }
           }
         },
         approvals: { include: { teacher: true } }
@@ -104,9 +109,16 @@ export default async function TeacherSchedulesPage({
       take: 100
     })
   ]);
+  const isScheduleRoundReviewable = (schedule: (typeof schedules)[number]) => {
+    if (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) return true;
+    const roundType = schedule.roundType ?? schedule.assessmentRound.roundType;
+    return schedule.project.roundExceptions.some(
+      (exception) => exception.assessmentRound?.roundType === roundType && hasOpenLateRoundException([exception])
+    );
+  };
   const pendingReviewSchedules = schedules.filter((schedule) =>
     schedule.status === "PROPOSED" &&
-    (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) &&
+    isScheduleRoundReviewable(schedule) &&
     schedule.approvals.some((approval) => approval.teacherId === teacher.id && approval.decision === "PENDING")
   );
 
@@ -181,7 +193,7 @@ export default async function TeacherSchedulesPage({
           const approvalForTeacher = schedule.approvals.find((approval) => approval.teacherId === teacher.id);
           const canReviewSchedule =
             schedule.status === "PROPOSED" &&
-            (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) &&
+            isScheduleRoundReviewable(schedule) &&
             requiredApproverIds.includes(teacher.id) &&
             approvalForTeacher?.decision !== "APPROVE" &&
             approvalForTeacher?.decision !== "REJECT";

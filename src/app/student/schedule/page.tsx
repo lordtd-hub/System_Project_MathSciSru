@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { hasOpenLateRoundException } from "@/lib/assessments/roundExceptions";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24, formatThaiScheduleRange } from "@/lib/format/dateTime";
@@ -168,7 +169,10 @@ export default async function StudentSchedulePage({
           },
           proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
           committeeAssignments: true,
-          roundExceptions: { where: { assessmentRound: { roundType: "PROGRESS_1" } } }
+          roundExceptions: {
+            where: { assessmentRound: { roundType: { in: [...scheduleRoundTypes] } } },
+            include: { assessmentRound: { select: { roundType: true } } }
+          }
         }
       }
     }
@@ -190,8 +194,17 @@ export default async function StudentSchedulePage({
   });
   const roundMap = new Map(rounds.map((round) => [round.roundType, round]));
   const progress1Round = roundMap.get("PROGRESS_1");
+  const openLateRoundTypes = new Set(
+    project.roundExceptions
+      .filter((exception) => hasOpenLateRoundException([exception]) && exception.assessmentRound)
+      .map((exception) => exception.assessmentRound.roundType)
+  );
+  const isRoundAvailable = (roundType: (typeof scheduleRoundTypes)[number]) => {
+    const round = roundMap.get(roundType);
+    return Boolean(round && (isRoundOpen(round.status) || openLateRoundTypes.has(roundType)));
+  };
   const progress1Readiness = getProgress1Readiness(project);
-  const progress1Open = progress1Round ? isRoundOpen(progress1Round.status) : false;
+  const progress1Open = progress1Round ? isRoundAvailable("PROGRESS_1") : false;
   const progress1BlockedText = !progress1Open
     ? "รอบสอบความก้าวหน้าครั้งที่ 1 ยังไม่เปิด"
     : progress1Readiness.reasons.map(reasonLabelTh)[0] ?? "ยังไม่พร้อมสำหรับการสอบความก้าวหน้าครั้งที่ 1";
@@ -216,7 +229,7 @@ export default async function StudentSchedulePage({
       if (!latestSubmissionByKind.has(submission.kind)) latestSubmissionByKind.set(submission.kind, submission);
     }
   }
-  const anyOpenRound = rounds.some((round) => isRoundOpen(round.status));
+  const anyOpenRound = scheduleRoundTypes.some((roundType) => isRoundAvailable(roundType));
   const activeScheduleByKind = new Map<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", (typeof project.scheduleProposals)[number]>();
   for (const proposal of project.scheduleProposals) {
     if ((proposal.status === "PROPOSED" || proposal.status === "CONFIRMED") && !activeScheduleByKind.has(proposal.assessmentKind)) {
@@ -225,7 +238,7 @@ export default async function StudentSchedulePage({
   }
   const visibleGuidanceRounds = scheduleRoundTypes.filter((roundType) => {
     const round = roundMap.get(roundType);
-    if (!round || !isRoundOpen(round.status)) return false;
+    if (!round || !isRoundAvailable(roundType)) return false;
     if (roundType === "PROGRESS_1") return progress1Readiness.eligible && !completed.PROGRESS_1;
     if (roundType === "PROGRESS_2") return completed.PROGRESS_1 && !completed.PROGRESS_2;
     if (roundType === "FINAL_PRESENTATION") return completed.PROGRESS_1 && completed.PROGRESS_2 && !completed.FINAL_PRESENT;
@@ -300,7 +313,7 @@ export default async function StudentSchedulePage({
         <div className="mt-3 flex flex-wrap gap-2">
           {scheduleRoundTypes.map((roundType) => {
             const round = roundMap.get(roundType);
-            const open = Boolean(round && isRoundOpen(round.status));
+            const open = Boolean(round && isRoundAvailable(roundType));
             const sequenceReady =
               roundType === "PROGRESS_1"
                 ? progress1Readiness.eligible
@@ -358,7 +371,7 @@ export default async function StudentSchedulePage({
           {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
             const roundType = assessmentKindToRoundType(kind);
             const round = roundMap.get(roundType);
-            const roundOpen = Boolean(round && isRoundOpen(round.status));
+            const roundOpen = Boolean(round && isRoundAvailable(roundType));
             const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
             const hasEvidence = project.assessmentSubmissions.some((item) => item.kind === kind);
             const activeSchedule = activeScheduleByKind.get(kind);
@@ -535,7 +548,7 @@ export default async function StudentSchedulePage({
                 const kind = roundTypeToScheduleKind(roundType);
                 const hasEvidence = latestSubmissionByKind.has(kind);
                 const hasActiveSchedule = activeScheduleByKind.has(kind);
-                const disabled = project.status !== "IN_PROGRESS" || !round || !isRoundOpen(round.status) || !hasEvidence || hasActiveSchedule || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
+                const disabled = project.status !== "IN_PROGRESS" || !round || !isRoundAvailable(roundType) || !hasEvidence || hasActiveSchedule || (roundType === "PROGRESS_1" && !progress1Readiness.eligible);
                 return (
                   <option key={roundType} value={roundType} disabled={disabled}>
                     {scheduleRoundLabel(roundType)} {disabled ? hasActiveSchedule ? "(ส่งขอนัดแล้ว)" : hasEvidence ? "(ยังไม่พร้อม)" : "(ยังไม่มีเอกสาร)" : ""}

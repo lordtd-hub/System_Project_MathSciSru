@@ -34,6 +34,18 @@ describe("late round policy source coverage", () => {
     expect(studentActions).toContain("await assertPreviousPresentationRoundComplete(project.id, roundType)");
   });
 
+  it("keeps late-open Progress/Final recovery actionable in student and teacher UI", () => {
+    const studentSchedule = read("src/app/student/schedule/page.tsx");
+    const teacherSchedules = read("src/app/teacher/schedules/page.tsx");
+    const teacherActions = read("src/app/teacher/actions.ts");
+    expect(studentSchedule).toContain("openLateRoundTypes");
+    expect(studentSchedule).toContain("isRoundAvailable");
+    expect(teacherSchedules).toContain("isScheduleRoundReviewable");
+    expect(teacherSchedules).toContain("hasOpenLateRoundException([exception])");
+    expect(teacherActions).toContain("hasLateRoundOverride");
+    expect(teacherActions).toContain("schedule_round_not_open");
+  });
+
   it("deducts late-round penalty at scoring submission time", () => {
     const teacherActions = read("src/app/teacher/actions.ts");
     expect(teacherActions).toContain("getLateRoundScoreAdjustment");
