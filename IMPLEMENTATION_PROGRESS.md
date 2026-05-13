@@ -1860,3 +1860,23 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - desktop and 390px mobile had no shell-only page, digest/application error, login fallback, or horizontal overflow.
 - Added a reusable Edge CDP verifier for student dashboard `classic`/`figma` checks.
 - Next step: continue Phase 6 with `/student/project`.
+
+## 2026-05-14 Figma visual redesign - Student project renderer
+
+- Continued Phase 6 Student redesign with `/student/project`.
+- Added a conservative page-level `figma` renderer branch while keeping the existing project/advisor request page as the `classic` fallback.
+- The Figma project page uses shared visual primitives for:
+  - student page header;
+  - project/advisor status KPI cards;
+  - action/waiting/approved separation;
+  - latest advisor request context;
+  - a two-column review/form layout.
+- Preserved the existing student guard, project/advisor request data query, `DraftPreservingForm`, `saveProjectOrigin` server action, draft-save behavior, material link field, Markdown+KaTeX editors/viewer, declaration checkbox, field names, submit button semantics, and route behavior.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Extended the student Edge CDP verifier to check `/student/project` classic/figma rendering and required form fields.
+- Next step: push QA preview, live-verify `/student/project`, then continue Phase 6 with `/student/proposal`.

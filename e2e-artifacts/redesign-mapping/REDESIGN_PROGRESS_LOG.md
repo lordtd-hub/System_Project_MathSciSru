@@ -1099,3 +1099,37 @@ Student dashboard renderer is complete and live-verified.
 ### Next Phase
 
 Continue Phase 6 with `/student/project`.
+
+## 2026-05-14 - Phase 6 Student Project Figma Renderer
+
+### Scope
+
+Continued Phase 6 Student redesign with:
+
+- `/student/project`
+
+### Patch
+
+- Added a conservative page-level Figma renderer branch for the project/advisor request page.
+- Kept the existing project page as the classic fallback.
+- Reused the same `DraftPreservingForm`, `saveProjectOrigin` action, material link field, Markdown+KaTeX editors/viewer, declaration checkbox, draft-save button, and submit button contract.
+- Extracted the project-origin field JSX into a shared in-page render block so classic and figma modes render the same form fields.
+- Added an action-first Figma layout with project/advisor status metrics, waiting/done separation, latest advisor request panel, and a right-side form panel.
+- Extended the student Edge CDP verifier to check `/student/project` in both classic and figma mode, including required form field presence.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 9 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 359 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Push QA preview, live-verify `/student/project` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/proposal`.

@@ -38,4 +38,26 @@ describe("student dashboard source", () => {
     expect(page).toContain("/student/report");
     expect(page).toContain("/student/feedback?round=progress-1#progress-1");
   });
+
+  it("adds a conservative Figma project renderer without changing the advisor request form contract", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/student/project/page.tsx"), "utf8");
+
+    expect(page).toContain("getUiMode");
+    expect(page).toContain("figma-student-project");
+    expect(page).toContain("FigmaReviewLayout");
+    expect(page).toContain("FigmaMetricCard");
+    expect(page).toContain("DraftPreservingForm action={saveProjectOrigin}");
+    expect(page).toContain("projectOriginFields");
+    expect(page).toContain('name="initial_project_title_th"');
+    expect(page).toContain('name="initial_project_title_en"');
+    expect(page).toContain('name="reason_for_topic"');
+    expect(page).toContain('name="expected_math_area"');
+    expect(page).toContain('name="consultation_summary"');
+    expect(page).toContain('name="tentative_advisor_id"');
+    expect(page).toContain('name="source_type"');
+    expect(page).toContain('name="initial_references"');
+    expect(page).toContain('name="student_declaration"');
+    expect(page).toContain("MaterialLinkField");
+    expect(page).toContain("MarkdownLatexViewer");
+  });
 });

@@ -233,12 +233,75 @@ async function inspectDashboard(client, mode) {
   return { ...state, screenshot: filePath };
 }
 
+async function inspectProject(client, mode) {
+  await setUiMode(client, mode);
+  await goto(client, `${baseUrl}/student/project`);
+  const state = await evaluate(
+    client,
+    `
+      (() => {
+        const text = document.body ? document.body.innerText : "";
+        const root = document.scrollingElement || document.documentElement;
+        const body = document.body;
+        const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+        const viewportWidth = window.innerWidth;
+        const fieldNames = [
+          "initial_project_title_th",
+          "initial_project_title_en",
+          "reason_for_topic",
+          "expected_math_area",
+          "consultation_summary",
+          "tentative_advisor_id",
+          "source_type",
+          "initial_references",
+          "student_declaration"
+        ];
+        const missingFields = fieldNames.filter((name) => !document.querySelector('[name="' + name + '"]'));
+        return {
+          url: location.href,
+          bodyLength: text.trim().length,
+          hasFigmaShell: Boolean(document.querySelector(".figma-role-shell")),
+          hasRouteClass: Boolean(document.querySelector(".figma-student-project")),
+          hasClassicSummary: Boolean(document.querySelector(".student-readability-summary")),
+          hasDraftSave: Boolean(document.querySelector("[data-draft-save]")),
+          hasSubmit: Boolean(document.querySelector('button[type="submit"]')),
+          missingFields,
+          hasDigest: /Application error|NEXT_REDIRECT|digest/i.test(text),
+          isLogin: location.pathname.includes("/qa-login"),
+          width,
+          viewportWidth,
+          overflow: width - viewportWidth
+        };
+      })()
+    `,
+    `${mode} student project inspect`
+  );
+  if (state.isLogin) throw new Error(`${mode}: redirected to QA login`);
+  if (state.hasDigest) throw new Error(`${mode}: digest/application error`);
+  if (state.bodyLength < 180) throw new Error(`${mode}: shell-only body`);
+  if (state.missingFields.length) throw new Error(`${mode}: missing form fields ${state.missingFields.join(", ")}`);
+  if (!state.hasDraftSave) throw new Error(`${mode}: missing draft-save button`);
+  if (!state.hasSubmit) throw new Error(`${mode}: missing submit button`);
+  if (viewportMode === "mobile" && state.overflow > 4) throw new Error(`${mode}: horizontal overflow ${state.overflow}px`);
+  if (mode === "classic") {
+    if (state.hasFigmaShell || state.hasRouteClass) throw new Error("classic: unexpected Figma student project renderer");
+    if (!state.hasClassicSummary) throw new Error("classic: expected classic student readability summary");
+    return { ...state, screenshot: null };
+  }
+  if (!state.hasFigmaShell) throw new Error("figma: missing Figma shell");
+  if (!state.hasRouteClass) throw new Error("figma: missing figma-student-project");
+  const filePath = await screenshot(client, `student-project-renderer-figma-${viewportMode}-${deploymentSlug}.png`);
+  return { ...state, screenshot: filePath };
+}
+
 async function main() {
   const client = await connectPage();
   await qaLoginStudent(client);
   const results = [
     { route: "/student", mode: "classic", result: await inspectDashboard(client, "classic") },
-    { route: "/student", mode: "figma", result: await inspectDashboard(client, "figma") }
+    { route: "/student", mode: "figma", result: await inspectDashboard(client, "figma") },
+    { route: "/student/project", mode: "classic", result: await inspectProject(client, "classic") },
+    { route: "/student/project", mode: "figma", result: await inspectProject(client, "figma") }
   ];
   client.ws.close();
   console.log(JSON.stringify({ baseUrl, viewportMode, viewport, studentKey, results }, null, 2));

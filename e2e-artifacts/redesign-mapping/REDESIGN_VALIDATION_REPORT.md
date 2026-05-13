@@ -653,3 +653,35 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Student Project Renderer Validation
+
+- Phase: 6 - Student redesign.
+- Scope:
+  - `/student/project`.
+- Renderer status:
+  - classic fallback remains available;
+  - figma branch added with `.figma-student-project`;
+  - the same in-page project-origin form field block is reused by both renderers.
+- Logic touched: no.
+- Form contract preserved:
+  - `DraftPreservingForm action={saveProjectOrigin}`;
+  - `initial_project_title_th`;
+  - `initial_project_title_en`;
+  - `reason_for_topic`;
+  - `expected_math_area`;
+  - `consultation_summary`;
+  - `tentative_advisor_id`;
+  - `source_type`;
+  - `initial_references`;
+  - `student_declaration`;
+  - `MaterialLinkField`;
+  - `data-draft-save`;
+  - submit button.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 9 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 359 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deployment: pending.
+- Live verification: pending.
