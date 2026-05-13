@@ -17,9 +17,11 @@
 
 - Teacher mobile screenshot pass completed at 390px width on the `g5enipsvz` QA preview with no detected horizontal overflow.
 - Teacher non-mutating role/render regression completed with `teacher-delta` on the `g5enipsvz` QA preview.
+- Admin redesign entry audit and non-mutating live verification completed on the `1thdur8ic` QA preview for desktop and 390px mobile routes.
 
 ## Known Design Gaps
 
 - Student dashboard has no Figma mockup yet.
-- Admin evidence/export and closeout pages need their own detailed mapping before major layout changes.
+- Admin evidence/export and closeout pages are operationally verified, but deeper table/filter redesign remains deferred until a larger visual pass.
 - Some Thai source files display as mojibake in terminal output, so UI copy should be reused from source and not retyped unless necessary.
+- Mutating admin actions such as round close/open/reset and closeout confirmation should only be exercised in a safe action window, not during non-mutating redesign verification.

@@ -118,3 +118,37 @@ Screenshots:
 - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-redesign-desktop-g5enipsvz.png`
 - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-redesign-desktop-g5enipsvz.png`
 - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-redesign-desktop-g5enipsvz.png`
+
+## 2026-05-13 Admin Redesign Entry Verification
+
+- Phase: 3 - Admin redesign entry audit.
+- Preview URL: `https://system-project-math-sci-1thdur8ic-lordtd-hubs-projects.vercel.app`.
+- Routes verified: `/admin`, `/admin/rounds`, `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, `/admin/evidence`.
+- Local validation:
+  - `cmd /c npm.cmd test -- admin` - passed, 16 files / 63 tests.
+  - `cmd /c npm.cmd test -- dashboardClarity` - passed, 1 file / 3 tests.
+  - `node --check e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js` - passed.
+  - `cmd /c npm.cmd test -- adminOperational dashboardClarity` - passed, 2 files / 8 tests.
+- Live QA verification: passed with Edge persistent CDP.
+- Viewports:
+  - desktop 1440px.
+  - mobile 390px.
+- Result: all checked admin routes rendered without shell-only/error pages and without detected horizontal overflow.
+- Logic touched: no.
+
+QA login note: the admin verifier now clears any existing QA session before switching roles, then explicitly selects `#role = admin` and the admin identity. This avoids the recurring role-dropdown/session mismatch during live verification.
+
+Screenshots:
+
+- `e2e-artifacts/redesign-mapping/screenshots/admin-dashboard-redesign-desktop-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-rounds-redesign-desktop-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-closeout-redesign-desktop-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-redesign-desktop-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-redesign-desktop-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-redesign-desktop-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-dashboard-redesign-mobile-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-rounds-redesign-mobile-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-closeout-redesign-mobile-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-proposals-redesign-mobile-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-schedules-redesign-mobile-1thdur8ic.png`
+- `e2e-artifacts/redesign-mapping/screenshots/admin-evidence-redesign-mobile-1thdur8ic.png`

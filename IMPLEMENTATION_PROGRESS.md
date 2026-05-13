@@ -1505,3 +1505,21 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Mobile live verification passed for `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score` with no detected horizontal overflow.
 - Added `TEACHER_VERIFY_KEY` support to the teacher verifier and completed a non-mutating teacher boundary check with `teacher-delta` on the same QA preview.
 - Teacher redesign can proceed to Admin redesign; mutating teacher workflow regression remains intentionally deferred to a safe action window.
+
+## 2026-05-13 Full UI redesign loop - admin entry audit
+
+- Continued the redesign loop into Phase 3 Admin redesign after teacher desktop/mobile verification.
+- Audited the current Admin implementation and confirmed that the previous operational UX stabilization already provides the main redesign patterns:
+  - `/admin` uses action-first dashboard queues and compact workflow counters.
+  - `/admin/rounds` uses operational round summaries, eligibility buckets, and separated danger-zone actions.
+  - `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, and `/admin/evidence` use admin operational summaries or grouped queue sections.
+- Added `e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js` for non-mutating Admin live verification.
+- The Admin verifier clears any existing QA session before switching roles, explicitly selects the role dropdown as admin, and verifies desktop/mobile route rendering without shell-only pages or horizontal overflow.
+- Validation:
+  - `cmd /c npm.cmd test -- admin` - passed, 16 files / 63 tests.
+  - `cmd /c npm.cmd test -- dashboardClarity` - passed, 1 file / 3 tests.
+  - `node --check e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js` - passed.
+  - `cmd /c npm.cmd test -- adminOperational dashboardClarity` - passed, 2 files / 8 tests.
+- Live QA verification passed on `https://system-project-math-sci-1thdur8ic-lordtd-hubs-projects.vercel.app` for `/admin`, `/admin/rounds`, `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, and `/admin/evidence` at desktop and 390px mobile width.
+- No lifecycle, auth, scoring, eligibility, schema, server action, API, or production changes were made.
+- Next phase: Student redesign audit and conservative student UI pass.

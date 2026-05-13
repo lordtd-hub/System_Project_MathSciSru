@@ -213,3 +213,70 @@ No.
 ### Next Phase
 
 Teacher redesign is complete enough to move to Admin redesign. Start Admin redesign with `/admin`, then `/admin/rounds`.
+
+## 2026-05-13 - Phase 3 Admin Redesign Entry Audit
+
+### Routes / Components
+
+- `/admin`
+- `/admin/rounds`
+- `/admin/closeout`
+- `/admin/proposals`
+- `/admin/schedules`
+- `/admin/evidence`
+- `src/components/ui/AdminOperationalQueue.tsx`
+- `src/components/ui/DashboardActionQueue.tsx`
+- Verification helper: `e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js`
+
+### Detection Result
+
+Admin redesign had already received the operational UX stabilization patterns from the previous Wave 1 work:
+
+- `/admin` uses `DashboardActionQueue`, compact workflow counters, dashboard console panels, and action-first queue cards.
+- `/admin/rounds` uses `AdminOperationalSummary`, eligibility buckets, and `AdminDangerZone` around open/close/reset actions.
+- `/admin/closeout`, `/admin/proposals`, `/admin/schedules`, and `/admin/evidence` use admin operational summaries or queue sections for scale-sensitive lists.
+
+Because the current source already matched the redesign principles, no app UI patch was required in this cycle.
+
+### Redesign / Tooling Applied
+
+- Added an Admin Edge/CDP verifier for non-mutating route checks.
+- The verifier explicitly clears any existing QA session, selects `#role = admin`, selects the admin identity, and then submits the QA login form.
+- The verifier checks for shell-only/error pages, admin operational surfaces, desktop/mobile overflow, and screenshot capture.
+
+### Logic Touched
+
+No.
+
+No route, guard, server action, lifecycle, scoring, eligibility, schema, API, or production behavior was changed.
+
+### Validation
+
+- `cmd /c npm.cmd test -- admin` - passed, 16 files / 63 tests.
+- `cmd /c npm.cmd test -- dashboardClarity` - passed, 1 file / 3 tests.
+- `node --check e2e-artifacts/redesign-mapping/verify-admin-redesign-cdp.js` - passed.
+- `cmd /c npm.cmd test -- adminOperational dashboardClarity` - passed, 2 files / 8 tests.
+
+### Live Verification
+
+Passed on `https://system-project-math-sci-1thdur8ic-lordtd-hubs-projects.vercel.app`.
+
+Verified desktop and 390px mobile render for:
+
+- `/admin`
+- `/admin/rounds`
+- `/admin/closeout`
+- `/admin/proposals`
+- `/admin/schedules`
+- `/admin/evidence`
+
+All checked routes rendered without shell-only pages, digest/error pages, or detected horizontal overflow. The QA login role mismatch issue was handled by selecting the role dropdown and clearing the previous QA session before switching roles.
+
+### Remaining Admin Debt
+
+- Deeper table/filter redesign for very large lists remains deferred.
+- Mutating admin workflow regression remains deferred to a safe action window because this cycle was intentionally non-mutating.
+
+### Next Phase
+
+Continue to Student redesign audit and conservative student UI pass.
