@@ -269,3 +269,13 @@ Do not turn this into polished manual content yet.
 
 - Continue to watch `/student/schedule` after every valid submit; post-submit routes must never require a user refresh.
 - The student evidence-to-schedule transition should later be made more visually explicit, but no redesign is included in the current patch.
+
+## 2026-05-13 Final Post-Submit Recovery Note
+
+Do not turn this into manual text yet.
+
+- The first cache/redirect patch was not sufficient for all Final evidence saves.
+- Student05 also hit a shell-only page after Final evidence save, even with a unique `submission_id` in the URL.
+- Reload restored the content and schedule form, so the data was saved but the soft post-submit transition was unreliable.
+- A small one-time recovery guard was added in the student layout for schedule success URLs only.
+- Later UX debt remains: the user should see an explicit "evidence saved, next propose schedule" state without ever needing to understand refresh/recovery behavior.

@@ -33,6 +33,8 @@ describe("post-submit stabilization source checks", () => {
   it("keeps assessment evidence success pages from rendering as shell-only for Progress and Final rounds", () => {
     const schedulePage = read("src/app/student/schedule/page.tsx");
     const studentActions = read("src/app/student/actions.ts");
+    const studentLayout = read("src/app/student/layout.tsx");
+    const postSubmitGuard = read("src/components/ui/StudentSchedulePostSubmitGuard.tsx");
 
     expect(studentActions).toContain('redirectWithQuery("/student/schedule", {');
     expect(studentActions).toContain('success: "assessment_evidence_saved"');
@@ -52,6 +54,12 @@ describe("post-submit stabilization source checks", () => {
     expect(schedulePage).toContain('roundType === "PROGRESS_2"');
     expect(schedulePage).toContain('roundType === "FINAL_PRESENTATION"');
     expect(studentActions).toContain('error: "schedule_previous_round_incomplete"');
+    expect(studentLayout).toContain("StudentSchedulePostSubmitGuard");
+    expect(postSubmitGuard).toContain('url.pathname !== "/student/schedule"');
+    expect(postSubmitGuard).toContain('"assessment_evidence_saved"');
+    expect(postSubmitGuard).toContain('"schedule_saved"');
+    expect(postSubmitGuard).toContain('document.querySelector(SCHEDULE_CONTENT_SELECTOR)');
+    expect(postSubmitGuard).toContain("window.location.reload()");
   });
 
   it("keeps locked or unsupported schedule states visible instead of blank after redirects", () => {

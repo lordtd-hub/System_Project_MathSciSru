@@ -877,12 +877,20 @@ Patch now staged for next live QA cycle:
 
 Required next actions:
 
-- Secret scan `e2e-artifacts` before commit/push.
-- Commit scoped patch.
+- Commit scoped post-submit guard patch.
 - Push `qa-preview` only.
 - Use the new Vercel QA preview URL after push.
-- Live verify Student01 can return to `/student/schedule` with full content after Final evidence save and can propose Final schedule.
+- Live verify Student05 can return from the existing Final evidence success URL with full content and propose Final schedule without manual reload.
 - Resume Final loop from saved state:
-  - complete student Final evidence/schedule for Project04 and Project05,
-  - verify Project03 remains locked,
-  - then move to teacher schedule queues and scoring.
+  - Student01 Final schedule is already proposed.
+  - Student04 Final evidence and schedule are already proposed.
+  - Student05 Final evidence is saved; Final schedule still needs to be proposed.
+  - Student03 remained locked in the live check.
+  - then move to accumulated teacher Final schedule queues and scoring.
+
+Latest local validation:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS.
+- `npm run build`: PASS.
+- QA secret scan across `src` and `e2e-artifacts`: PASS.

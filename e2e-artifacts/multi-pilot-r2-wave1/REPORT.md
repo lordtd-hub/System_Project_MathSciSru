@@ -1471,3 +1471,55 @@ Current stop:
 
 - Patch is validated locally but not yet pushed/live-verified in this section.
 - Resume from saved state after push/live verification; do not restart Wave 1.
+
+## Live QA - Final Post-Submit Guard Stabilization
+
+QA preview used before the repeated Major:
+
+- `https://system-project-math-sci-r11zr46ki-lordtd-hubs-projects.vercel.app`
+- Commit: `71feff0`
+
+Live verification after first patch:
+
+- Student01 / Project01 opened `/student/schedule` on the new QA preview.
+- Existing Final evidence state rendered with full schedule page content.
+- Student01 submitted the Final schedule proposal successfully.
+- Post-schedule URL rendered full content and was not shell-only:
+  - `/student/schedule?success=schedule_saved&round_type=FINAL_PRESENTATION&schedule_id=cmp3mi6h20001l204mzteazd7`
+
+Resumed student-first Final flow:
+
+- Student04 / Project04 submitted Final evidence and Final schedule.
+- Student05 / Project05 submitted Final evidence successfully.
+- Student03 remained locked from Final; no Final evidence form or schedule form was visible.
+
+Repeated Major found:
+
+- Severity: Major.
+- Project: Project05 / Student05.
+- Role: Student.
+- Route: `/student/schedule?success=assessment_evidence_saved&assessment_kind=FINAL_PRESENT&submission_id=cmp3mo9fz0002ic04py653s12`.
+- Expected: full schedule/evidence content remains visible after a valid Final evidence save and the schedule proposal form appears.
+- Actual: the page initially rendered only the student app shell/header/footer. Manual reload restored the full page and schedule form, confirming data was saved and the issue was a soft post-submit route transition failure.
+- Screenshot: `screenshots/final-student05-after-final-evidence-shell-only-major-r11.png`.
+
+Second patch:
+
+- `src/components/ui/StudentSchedulePostSubmitGuard.tsx`: adds a client-side one-time recovery guard for `/student/schedule` post-submit success URLs when the schedule content marker is missing.
+- `src/app/student/layout.tsx`: mounts the guard inside the student layout so it can recover even when the schedule page segment fails to render after a soft redirect.
+- `src/app/postSubmitStabilizationSource.test.ts`: verifies the guard is present and scoped to schedule success redirects.
+
+Validation for second patch:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 77 files / 315 tests.
+- `npm run build`: PASS.
+- Secret scan for the QA secret in `src` and `e2e-artifacts`: PASS, no matches.
+
+Current stop:
+
+- Second patch is validated locally.
+- Commit/push/live verification are still required.
+- Resume from saved state after the new QA preview is ready:
+  - Student05 has Final evidence saved and should be able to propose Final schedule.
+  - Then move to accumulated teacher Final schedule queues.
