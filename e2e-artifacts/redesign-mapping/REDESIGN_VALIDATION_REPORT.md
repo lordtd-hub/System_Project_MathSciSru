@@ -623,8 +623,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization postSubmitStabilizationSource scheduleProgressSource` - passed, 4 files / 26 tests.
   - `cmd /c npm.cmd test` - passed, 82 files / 361 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
-- QA deployment: pending.
-- Live verification: pending.
+- QA deployment: passed.
+- Live verification: passed.
+
+### QA Deployment And Live Verification
+
+- Commit: `f052895`.
+- QA preview: `https://system-project-math-sci-9ugiisk0v-lordtd-hubs-projects.vercel.app`.
+- Tooling: persistent Edge CDP verifier.
+- Viewports:
+  - desktop 1440px;
+  - mobile 390px.
+- QA login guard: selected `#role = student` before selecting the student identity.
+- Result:
+  - `/student/schedule` classic mode kept classic fallback rendering and `student-schedule-page-content`;
+  - `/student/schedule` figma mode rendered `.figma-role-shell`, `.figma-student-schedule`, and retained `student-schedule-page-content`;
+  - no shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-schedule-renderer-figma-desktop-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-schedule-renderer-figma-mobile-9ugiisk0v.png`
+- Result: `/student/schedule` is complete for non-mutating visual/regression verification in the current Wave 1 state.
 
 ### QA Deployment And Live Verification
 

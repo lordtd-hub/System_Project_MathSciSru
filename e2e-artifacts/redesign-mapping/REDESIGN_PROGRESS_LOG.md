@@ -1264,6 +1264,31 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 - `cmd /c npm.cmd test` - passed, 82 files / 361 tests.
 - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 
+### QA Deployment And Live Verification
+
+- Commit: `f052895`.
+- QA preview: `https://system-project-math-sci-9ugiisk0v-lordtd-hubs-projects.vercel.app`.
+- Live QA verification passed with the persistent Edge CDP session.
+- QA login guard: the verifier explicitly selected the `student` role dropdown before the student identity and used the QA secret only as a process-scoped environment value.
+- Desktop verification passed:
+  - `/student` classic/figma renderer comparison;
+  - `/student/project` classic/figma renderer comparison;
+  - `/student/proposal` classic/figma renderer comparison;
+  - `/student/schedule` classic/figma renderer comparison.
+- 390px mobile verification passed for the same route set.
+- `/student/schedule` classic mode rendered no `.figma-role-shell`, no `.figma-student-schedule`, retained `student-schedule-page-content`, and retained the classic readability summary.
+- `/student/schedule` figma mode rendered `.figma-role-shell`, `.figma-student-schedule`, and retained `student-schedule-page-content`.
+- No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-schedule-renderer-figma-desktop-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-schedule-renderer-figma-mobile-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-desktop-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-mobile-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-proposal-renderer-figma-desktop-9ugiisk0v.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-proposal-renderer-figma-mobile-9ugiisk0v.png`
+
 ### Next Phase
 
-Push QA preview, live-verify `/student/schedule` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/report`.
+Continue Phase 6 with `/student/report`.

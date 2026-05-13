@@ -1930,4 +1930,6 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Extended the student Edge CDP verifier to check `/student/schedule` classic/figma rendering and page-content presence.
-- Next step: push QA preview, live-verify `/student/schedule`, then continue Phase 6 with `/student/report`.
+- QA preview `https://system-project-math-sci-9ugiisk0v-lordtd-hubs-projects.vercel.app` passed live Edge CDP verification for `/student/schedule` in classic and figma mode on desktop and 390px mobile.
+- No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Next step: continue Phase 6 with `/student/report`.
