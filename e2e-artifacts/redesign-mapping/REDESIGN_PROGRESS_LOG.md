@@ -621,6 +621,58 @@ PowerShell output can render Thai text as mojibake or `?` even when the source f
 
 Commit/push to QA preview, live-verify `/teacher/progress1` in classic and figma modes, then continue with `/teacher/progress2`.
 
+### QA Deployment And Live Verification
+
+- Commit: `41f6967`.
+- QA preview: `https://system-project-math-sci-g80tv9wrj-lordtd-hubs-projects.vercel.app`.
+- Classic mode rendered the existing Progress 1 page with `.teacher-workload-summary`.
+- Figma mode rendered `.figma-role-shell`, `.figma-teacher-progress1`, and 5 KPI cards.
+- Current QA state had no Progress 1 scoring items, so the Figma empty state was expected.
+- No shell-only page, digest/application error, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-classic-g80tv9wrj.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-figma-g80tv9wrj.png`
+
+### Next Phase
+
+Continue Phase 4 with `/teacher/progress2` using the same safe renderer split pattern.
+
+## 2026-05-13 - Phase 4 Teacher Progress 2 Figma Renderer Local Patch
+
+### Scope
+
+Continued the teacher page-level renderer split with `/teacher/progress2`.
+
+### Redesign Applied
+
+- Kept the existing Progress 2 scoring page as the `classic` fallback.
+- Added a `figma` branch using shared visual primitives:
+  - Figma page header;
+  - KPI cards;
+  - action-first Progress 2 queue;
+  - Project Review Detail-style two-column layout;
+  - evidence/Markdown+KaTeX context on the left;
+  - existing scoring form on the right.
+- Preserved the existing "no Progress 2 round yet" empty-state behavior in Figma mode.
+- Preserved the same `submitProgress2Score` server action, hidden `project_id` field, rubric inputs, Markdown feedback editor, and confirmation submit button.
+
+### Logic Touched
+
+No.
+
+The patch is presentation-only. It does not change auth, lifecycle, scoring, eligibility, schema, server actions, API contracts, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 21 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 353 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Commit/push to QA preview, live-verify `/teacher/progress2` in classic and figma modes, then continue with `/teacher/final`.
+
 ### Live QA Regression Found And Patched
 
 - Live QA on `https://system-project-math-sci-lirwkespy-lordtd-hubs-projects.vercel.app` found a Major UI regression: switching UI modes could leave `/teacher` as a shell-only page.

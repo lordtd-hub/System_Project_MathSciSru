@@ -303,6 +303,43 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - QA deploy: pending.
 - Live QA verification: pending.
 
+## 2026-05-13 Figma Teacher Progress 1 Renderer Live QA Verification
+
+- Phase: Figma Visual Pass Phase 4 - Teacher Progress 1 renderer split.
+- Commit: `41f6967`.
+- QA preview: `https://system-project-math-sci-g80tv9wrj-lordtd-hubs-projects.vercel.app`.
+- Live route verified: `/teacher/progress1`.
+- Classic mode result:
+  - `.teacher-workload-summary` rendered.
+  - `.figma-role-shell` and `.figma-teacher-progress1` were absent.
+  - body text rendered normally and was not shell-only.
+- Figma mode result:
+  - `.figma-role-shell` rendered.
+  - `.figma-teacher-progress1` rendered.
+  - 5 `.figma-metric-card` elements rendered.
+  - current QA state had no Progress 1 items requiring action, so `.figma-progress-row` and `.figma-review-layout` counts were 0 and the empty state was expected.
+- No digest/application error was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-classic-g80tv9wrj.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-figma-g80tv9wrj.png`
+
+## 2026-05-13 Figma Teacher Progress 2 Renderer Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher Progress 2 renderer split.
+- Route patched: `/teacher/progress2`.
+- Logic touched: no.
+- Classic fallback: preserved in the existing page return.
+- Figma mode: added page-level renderer branch using shared Figma visual primitives and the same `submitProgress2Score` form/action fields.
+- Existing "no Progress 2 round yet" empty-state behavior is preserved in Figma mode.
+- Markdown+KaTeX evidence and feedback components remain in use.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 21 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 353 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deploy: pending.
+- Live QA verification: pending.
+
 ## 2026-05-13 Figma UI Mode Foundation Validation
 
 - Phase: Figma Visual Redesign Phase 0 - safe fallback foundation.

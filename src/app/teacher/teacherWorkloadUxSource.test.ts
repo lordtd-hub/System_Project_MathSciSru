@@ -100,6 +100,21 @@ describe("teacher workload UX source", () => {
     expect(source).toContain("MarkdownLatexEditor");
   });
 
+  it("adds figma review layout for Progress 2 while preserving round-open handling", () => {
+    const source = readSource("src/app/teacher/progress2/page.tsx");
+
+    expect(source).toContain("getUiMode");
+    expect(source).toContain('uiMode === "figma"');
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-teacher-progress2");
+    expect(source).toContain("figma-progress-row");
+    expect(source).toContain("submitProgress2Score");
+    expect(source).toContain('name="project_id"');
+    expect(source).toContain("progress2Round");
+    expect(source).toContain("MarkdownLatexViewer");
+    expect(source).toContain("MarkdownLatexEditor");
+  });
+
   it("marks report and advisor score queues without changing unlock logic", () => {
     const reports = readSource("src/app/teacher/reports/page.tsx");
     const advisorScore = readSource("src/app/teacher/advisor-score/page.tsx");
