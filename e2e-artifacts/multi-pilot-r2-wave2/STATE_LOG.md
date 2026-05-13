@@ -63,3 +63,22 @@ Phase 2 Proposal round execution is ready to start.
 - Stop reason: Major bug. W2-10 still saw Progress 1 as locked on `/student/schedule` after the late exception was opened.
 - First patch live check: Student10 remained not-ready because round eligibility counted the open late exception as a blocking exception.
 - Second patch status: local stabilization patch completed; live verification pending after QA preview deploy.
+
+## 2026-05-13 18:34 +07:00 - Progress 1 Recovery Verified
+
+- Commit `5e7f941` deployed to `https://system-project-math-sci-p060rlo5d-lordtd-hubs-projects.vercel.app`.
+- Student10 submitted Progress 1 late recovery evidence and schedule `W2-P1-10`.
+- Assigned teachers approved the W2-10 Progress 1 schedule.
+- Required Progress 1 reviewers submitted W2-10 scores.
+- Admin Progress 1 counters: ready 12 / submitted 12 / completed 12 / eligible-but-incomplete 0 / not-ready 0.
+- Next phase: open and run Progress 2 for all 12 Wave 2 projects.
+
+## 2026-05-13 18:39 +07:00 - Progress 2 Completed
+
+- Progress 2 opened for all 12 Wave 2 projects.
+- Students W2-01 to W2-12 submitted Progress 2 evidence and proposed schedules.
+- Assigned teachers approved W2-P2 schedules.
+- Required committee reviewers submitted Progress 2 scores.
+- Admin Progress 2 counters before close: ready 12 / submitted 12 / completed 12 / eligible-but-incomplete 0 / not-ready 0.
+- Admin closed Progress 2 at 13 May 2026 18:39 Bangkok time.
+- Final round is now openable for all 12 Wave 2 projects.

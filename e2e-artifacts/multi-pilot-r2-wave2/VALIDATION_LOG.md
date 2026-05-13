@@ -61,6 +61,23 @@ Validation:
 
 Pending:
 
-- Commit and push to `qa-preview`.
-- Verify on the new QA preview that W2-10 can submit Progress 1 evidence/schedule through the late exception.
-- Resume Wave 2 from W2-10 Progress 1 recovery.
+- Commit and push to `qa-preview` - passed as `0774cd6` and follow-up `5e7f941`.
+- Verify on the new QA preview that W2-10 can submit Progress 1 evidence/schedule through the late exception - passed.
+- Resume Wave 2 from W2-10 Progress 1 recovery - passed; Progress 1 now complete for all 12 Wave 2 projects.
+
+## 2026-05-13 - Phase 4 Progress 2 Live Verification
+
+No app code changes were required during Phase 4 after the late-exception patch.
+
+Live verification:
+
+- Progress 2 opened.
+- W2-01 to W2-12 submitted Progress 2 evidence and schedule proposals.
+- W2-P2 schedules were approved by assigned teachers.
+- Progress 2 scores were submitted by required reviewers.
+- Progress 2 closed successfully.
+
+Validation note:
+
+- Last app-code validation before this phase: `typecheck`, `npm test`, `npm run build` all passed.
+- Phase 4 changes after that point were pilot scripts and artifact notes only.

@@ -90,7 +90,7 @@ Additional Phase 2 completion:
 
 ### Phase 3 - Progress 1 Scale and Recovery
 
-Status: stabilization patch in progress after a Major recovery bug.
+Status: completed after stabilization patch.
 
 Completed before the stop:
 
@@ -124,6 +124,38 @@ Validation:
 - `cmd /c npm.cmd run build` - passed.
 - Secret scan for the QA secret in `src` and `e2e-artifacts` - passed; no match found.
 
+Live QA verification:
+
+- Patch commit `0774cd6` first deployed to `https://system-project-math-sci-gddt5b4jw-lordtd-hubs-projects.vercel.app`.
+- Follow-up eligibility patch commit `5e7f941` deployed to `https://system-project-math-sci-p060rlo5d-lordtd-hubs-projects.vercel.app`.
+- W2-10 opened `/student/schedule`, submitted Progress 1 late recovery evidence, and proposed schedule `W2-P1-10`.
+- Assigned teachers approved `W2-P1-10`.
+- Required Progress 1 reviewers submitted scores.
+- Admin Progress 1 counters after recovery: ready 12 / submitted 12 / completed 12 / eligible-but-incomplete 0 / not-ready 0.
+
+### Phase 4 - Progress 2
+
+Status: completed.
+
+Starting state:
+
+- Progress 1 is closed and complete for all 12 Wave 2 projects.
+- Progress 2 is expected to be openable for all 12 Wave 2 projects.
+
+Actions:
+
+- Opened Progress 2.
+- Students W2-01 to W2-12 submitted Progress 2 evidence.
+- Students W2-01 to W2-12 submitted Progress 2 schedule proposals.
+- Assigned teachers approved the W2-P2 schedules.
+- Required committee reviewers submitted Progress 2 scores.
+- Admin closed Progress 2 after counters reached ready 12 / submitted 12 / completed 12 / incomplete 0 / not-ready 0.
+
+Result:
+
+- Progress 2 operational flow completed with no new Major/Blocker.
+- Final round is now openable for all 12 Wave 2 projects.
+
 ## Current Recommendation
 
-Push the Progress 1 recovery patch to `qa-preview`, verify the new QA preview live, then resume from W2-10 late Progress 1 recovery without resetting Wave 2.
+Continue Phase 5 Final round from the current QA state on `https://system-project-math-sci-p060rlo5d-lordtd-hubs-projects.vercel.app`.
