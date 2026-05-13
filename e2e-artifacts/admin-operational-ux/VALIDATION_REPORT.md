@@ -41,4 +41,21 @@ Checks cover:
 
 ## Live QA
 
-Pending after QA preview push.
+- QA commit: `e3810a0`
+- QA preview: `https://system-project-math-sci-110mfor0c-lordtd-hubs-projects.vercel.app`
+- Vercel status: Ready
+- Login: MULTI-PILOT-R2 Admin via `/qa-login`
+- Browser method: existing Microsoft Edge CDP session
+
+Read-only pages verified:
+
+- `/admin` rendered with Admin identity and no auth mismatch.
+- `/admin/rounds` rendered operational round summary, eligibility buckets, and separated close/reset danger zone.
+- `/admin/proposals` rendered Proposal operational summary.
+- `/admin/schedules` rendered schedule summary and grouped queue sections.
+- `/admin/closeout` rendered closeout summary plus Needs admin action / Waiting / Completed buckets.
+- `/admin/evidence` rendered evidence readiness summary and clarified export labels.
+
+No lifecycle/scoring/eligibility actions were clicked during live QA.
+
+Result: passed. No unauthorized Admin state, application error, shell-only render, or route mismatch observed.

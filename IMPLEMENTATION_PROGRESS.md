@@ -28,7 +28,8 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd run typecheck`
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
-- Live QA validation pending QA preview push.
+- QA preview pushed and live-verified at `https://system-project-math-sci-110mfor0c-lordtd-hubs-projects.vercel.app`.
+- Live QA was read-only with MULTI-PILOT-R2 Admin through Edge CDP; `/admin`, `/admin/rounds`, `/admin/proposals`, `/admin/schedules`, `/admin/closeout`, and `/admin/evidence` rendered without auth mismatch, route mismatch, or application error.
 
 ## 2026-05-06 Production baseline seed
 
