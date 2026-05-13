@@ -41,4 +41,13 @@ describe("figma UI mode source", () => {
     expect(css).toContain(".figma-review-layout");
     expect(css).toContain("@apply grid gap-4 lg:grid-cols");
   });
+
+  it("redirects back to the current route after switching modes", () => {
+    const action = readSource("src/app/ui-mode/actions.ts");
+
+    expect(action).toContain("headers");
+    expect(action).toContain("redirect");
+    expect(action).toContain("uiModeRedirectPath");
+    expect(action).toContain('headerStore.get("referer")');
+  });
 });
