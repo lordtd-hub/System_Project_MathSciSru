@@ -830,4 +830,16 @@ The patch is presentation-only. It does not change auth, advisor-score unlock, s
 
 ### Next Phase
 
-Commit/push to QA preview, live-verify `/teacher/advisor-score` in classic and figma modes, then move to the teacher mobile/regression pass.
+Move to the teacher mobile/regression pass.
+
+### QA Deployment And Live Verification
+
+- Commit: `2a1c062`.
+- QA preview: `https://system-project-math-sci-2vcb55iii-lordtd-hubs-projects.vercel.app`.
+- Classic mode rendered the existing Advisor Score page with `.teacher-workload-summary`.
+- Figma mode rendered `.figma-role-shell`, `.figma-teacher-advisor-score`, 5 KPI cards, 3 advisor-score rows, and 3 review layouts.
+- Current QA state had no editable advisor-score forms for the signed-in teacher, so `project_id` and score input counts were 0 and the read-only/locked states were expected.
+- No shell-only page, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-classic-2vcb55iii.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-figma-2vcb55iii.png`

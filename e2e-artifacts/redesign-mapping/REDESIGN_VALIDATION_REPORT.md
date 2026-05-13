@@ -427,8 +427,17 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - Full validation:
   - `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
-- QA deploy: pending.
-- Live QA verification: pending.
+- QA deploy:
+  - commit `2a1c062`;
+  - preview `https://system-project-math-sci-2vcb55iii-lordtd-hubs-projects.vercel.app`.
+- Live QA verification:
+  - classic `/teacher/advisor-score` rendered `.teacher-workload-summary` and no Figma shell;
+  - figma `/teacher/advisor-score` rendered `.figma-role-shell`, `.figma-teacher-advisor-score`, 5 KPI cards, 3 advisor-score rows, and 3 review layouts;
+  - current QA state had no editable advisor-score forms for the signed-in teacher, so `project_id` and score input counts were 0 and read-only/locked states were expected;
+  - no shell-only, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-classic-2vcb55iii.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-figma-2vcb55iii.png`
 
 ## 2026-05-13 Figma UI Mode Foundation Validation
 

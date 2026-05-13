@@ -1740,4 +1740,12 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Full validation also passed:
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
-- Next step: push QA preview, live-verify `/teacher/advisor-score` in both classic and figma mode, then start the teacher mobile/regression pass.
+- Pushed QA preview only at commit `2a1c062`.
+- Live QA preview: `https://system-project-math-sci-2vcb55iii-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for `/teacher/advisor-score` in both `classic` and `figma` modes:
+  - classic fallback rendered the existing stabilized Advisor Score page;
+  - figma mode rendered the Figma shell, Advisor Score page surface, 5 KPI cards, 3 advisor-score rows, and 3 review layouts;
+  - current QA state had no editable advisor-score forms for the signed-in teacher, so read-only/locked states were expected;
+  - no shell-only, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Teacher subpage renderer split is now complete.
+- Next step: start the teacher mobile/regression pass.
