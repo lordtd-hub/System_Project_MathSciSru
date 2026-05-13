@@ -5,6 +5,10 @@ const path = require("node:path");
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-lsd4f1th3-lordtd-hubs-projects.vercel.app";
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const screenshotDir = path.join(process.cwd(), "e2e-artifacts", "redesign-mapping", "screenshots");
+const deploymentSlug =
+  new URL(baseUrl).hostname
+    .replace(/^system-project-math-sci-/, "")
+    .replace(/-.+$/, "") || "qa";
 
 function readPreviewSecret() {
   if (process.env.QA_LIVE_SECRET) return process.env.QA_LIVE_SECRET;
@@ -163,7 +167,11 @@ async function screenshot(client, name) {
 async function verifyTeacherPage(client, route, name) {
   await goto(client, `${baseUrl}${route}`);
   const text = await bodyText(client, name);
-  if (!text.includes("สรุปภาระงานอาจารย์")) throw new Error(`${route}: missing workload summary`);
+  if (!text.includes("สรุปภาระงานอาจารย์")) {
+    const url = await evaluate(client, "location.href", `${route} current url`);
+    const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class probe`);
+    throw new Error(`${route}: missing workload summary; url=${url}; hasSummaryClass=${hasSummary}; body=${text.slice(0, 320).replace(/\\s+/g, " ")}`);
+  }
   if (!text.includes("ต้องทำตอนนี้")) throw new Error(`${route}: missing action-first total`);
   const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class`);
   const hasQueueSurface = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-metric'))", `${route} metric class`);
@@ -177,14 +185,14 @@ async function main() {
   const results = [];
   await qaLoginTeacher(client, "multi-r2-teacher-01");
   for (const [route, name] of [
-    ["/teacher", "teacher-dashboard-redesign-lsd4f1th3"],
-    ["/teacher/schedules", "teacher-schedules-redesign-lsd4f1th3"],
-    ["/teacher/proposals", "teacher-proposals-redesign-lsd4f1th3"],
-    ["/teacher/progress1", "teacher-progress1-redesign-lsd4f1th3"],
-    ["/teacher/progress2", "teacher-progress2-redesign-lsd4f1th3"],
-    ["/teacher/final", "teacher-final-redesign-lsd4f1th3"],
-    ["/teacher/reports", "teacher-reports-redesign-lsd4f1th3"],
-    ["/teacher/advisor-score", "teacher-advisor-score-redesign-lsd4f1th3"]
+    ["/teacher", `teacher-dashboard-redesign-${deploymentSlug}`],
+    ["/teacher/schedules", `teacher-schedules-redesign-${deploymentSlug}`],
+    ["/teacher/proposals", `teacher-proposals-redesign-${deploymentSlug}`],
+    ["/teacher/progress1", `teacher-progress1-redesign-${deploymentSlug}`],
+    ["/teacher/progress2", `teacher-progress2-redesign-${deploymentSlug}`],
+    ["/teacher/final", `teacher-final-redesign-${deploymentSlug}`],
+    ["/teacher/reports", `teacher-reports-redesign-${deploymentSlug}`],
+    ["/teacher/advisor-score", `teacher-advisor-score-redesign-${deploymentSlug}`]
   ]) {
     results.push(await verifyTeacherPage(client, route, name));
   }

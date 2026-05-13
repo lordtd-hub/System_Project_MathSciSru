@@ -46,9 +46,24 @@ No auth, lifecycle, scoring, eligibility, server action, Prisma schema, or API s
 
 ### Live Verification
 
-Pending after QA deploy.
+Passed on `https://system-project-math-sci-gn79zo76m-lordtd-hubs-projects.vercel.app`.
 
-Added `verify-teacher-workload-cdp.js` for non-mutating Edge/CDP verification. It reads the QA login secret from `.env.preview.local` and does not write the secret to artifacts.
+Added `verify-teacher-workload-cdp.js` for non-mutating Edge/CDP verification. It can read the QA login secret from an environment variable or `.env.preview.local` and does not write the secret to artifacts.
+
+The verification script explicitly selects the teacher role dropdown before selecting the teacher identity. This guards against the repeated QA-login issue where the identity field is selected but the role dropdown remains blank.
+
+Verified routes:
+
+- `/teacher`
+- `/teacher/schedules`
+- `/teacher/proposals`
+- `/teacher/progress1`
+- `/teacher/progress2`
+- `/teacher/final`
+- `/teacher/reports`
+- `/teacher/advisor-score`
+
+Screenshots were recorded under `e2e-artifacts/redesign-mapping/screenshots/` using the `gn79zo76m` QA preview slug.
 
 ### Remaining Risk
 

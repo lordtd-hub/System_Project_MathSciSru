@@ -1477,6 +1477,9 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - Global CSS adds matching teacher workload/queue utility classes using the existing red/paper theme.
   - `/teacher` now uses the same shared workload summary before its existing action queue.
 - Added a non-mutating Edge/CDP verification helper for the redesigned teacher workload pages under `e2e-artifacts/redesign-mapping/`.
+- Pushed QA preview only and live-verified the teacher workload redesign on `https://system-project-math-sci-gn79zo76m-lordtd-hubs-projects.vercel.app`.
+- The live verification explicitly selects the teacher role dropdown before selecting the teacher identity, preventing the repeated QA-login role mismatch issue.
+- Verified `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score` render the shared workload summary without shell-only/error pages.
 - No lifecycle, auth, scoring, eligibility, schema, API, or production changes were made.
 - Validation for this redesign cycle passed:
   - `cmd /c npm.cmd run typecheck`
