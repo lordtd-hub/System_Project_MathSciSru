@@ -1609,4 +1609,24 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test -- teacher`
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
-- Next step: push QA preview, live-verify `/teacher/schedules` in both classic and figma mode, then continue the teacher subpage renderer split with `/teacher/proposals`.
+- Pushed QA preview only at commit `4a275d9`.
+- Live QA preview: `https://system-project-math-sci-hmhz7pteq-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for `/teacher/schedules` in both `classic` and `figma` modes:
+  - classic fallback rendered the existing stabilized schedule page;
+  - figma mode rendered the Figma shell, schedule KPI cards, and current confirmed schedule rows;
+  - no shell-only, digest/application error, or unauthorized teacher guard appeared.
+- Edge verification note: the Figma reference tab remains open. CDP checks should activate the QA tab before layout assertions because hidden tabs can temporarily keep streamed content in a hidden Suspense container.
+
+## 2026-05-13 Figma visual redesign - teacher proposals renderer
+
+- Continued Phase 4 Teacher redesign with `/teacher/proposals`.
+- Added a page-level `figma` renderer branch while keeping the existing Proposal review page as the `classic` fallback.
+- The Figma Proposal view uses shared visual primitives for KPI cards, action-first Proposal queue, completed/read-only queue, and Project Review Detail-style two-column rows.
+- Preserved the existing Proposal attempt query, teacher capability guard, scoring assignment links, `openProposalScoring` server action form, hidden `attempt_id` field, and route semantics.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, or production configuration semantics were changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- teacher`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: push QA preview, live-verify `/teacher/proposals` in both classic and figma mode, then continue the teacher subpage renderer split with `/teacher/progress1`.

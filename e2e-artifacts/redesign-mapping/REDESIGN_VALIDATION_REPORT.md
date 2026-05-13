@@ -231,13 +231,38 @@ Result:
   - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
   - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
-- QA deploy: pending.
-- Live QA verification: pending.
+- QA deploy:
+  - pushed to `qa-preview` at commit `4a275d9`.
+  - Vercel preview ready: `https://system-project-math-sci-hmhz7pteq-lordtd-hubs-projects.vercel.app`.
+- Live QA verification:
+  - `/teacher/schedules` classic mode passed with `.teacher-workload-summary` present and `.figma-role-shell` absent.
+  - `/teacher/schedules` figma mode passed with `.figma-role-shell`, `.figma-teacher-schedules`, 5 KPI cards, and 48 schedule/action rows visible.
+  - No shell-only, digest/application error, or unauthorized teacher guard page appeared.
+  - Screenshots:
+    - `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-classic-hmhz7pteq.png`
+    - `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-figma-hmhz7pteq.png`
 - No digest/application error pages detected.
 - No detected mobile horizontal overflow.
 - QA login role selection was guarded before identity selection for each role.
 
 Tooling note: `.env.preview.local` did not match the active preview QA secret during this pass, so live verification used a process-scoped `QA_LIVE_SECRET` environment value. The secret was not written to source or artifact files.
+
+Additional tooling note: Edge also has the Figma reference tab open. CDP verification should activate the QA tab before checking layout because hidden tabs can temporarily keep streamed content inside a hidden Suspense container.
+
+## 2026-05-13 Figma Teacher Proposals Renderer Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher proposals renderer split.
+- Route patched: `/teacher/proposals`.
+- Logic touched: no.
+- Classic fallback: preserved in the existing page return.
+- Figma mode: added page-level renderer branch using shared Figma visual primitives and the same Proposal scoring links/forms.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deploy: pending.
+- Live QA verification: pending.
 
 ## 2026-05-13 Figma UI Mode Foundation Validation
 

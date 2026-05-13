@@ -75,6 +75,11 @@ describe("teacher workload UX source", () => {
   it("adds compact proposal navigation before long proposal review cards", () => {
     const source = readSource("src/app/teacher/proposals/page.tsx");
 
+    expect(source).toContain("getUiMode");
+    expect(source).toContain('uiMode === "figma"');
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-teacher-proposals");
+    expect(source).toContain("figma-proposal-row");
     expect(source).toContain("TeacherCompactQueueList");
     expect(source).toContain("pendingAttempts.map");
     expect(source).toContain('href: `#proposal-${attempt.id}`');

@@ -6,8 +6,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
+import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaReviewLayout, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
+import { getUiMode } from "@/lib/uiMode";
 import { openProposalScoring } from "../actions";
 
 export default async function TeacherProposalsPage() {
@@ -43,6 +45,7 @@ export default async function TeacherProposalsPage() {
   });
   const pendingAttempts = attempts.filter((attempt) => attempt.evaluatorAssignments[0]?.scoreSubmission?.status !== "SUBMITTED");
   const completedAttempts = attempts.filter((attempt) => attempt.evaluatorAssignments[0]?.scoreSubmission?.status === "SUBMITTED");
+  const uiMode = await getUiMode();
 
   const renderAttempt = (attempt: (typeof attempts)[number], submitted: boolean) => {
     const assignment = attempt.evaluatorAssignments[0];
@@ -76,6 +79,156 @@ export default async function TeacherProposalsPage() {
       </section>
     );
   };
+
+  const renderFigmaAttempt = (attempt: (typeof attempts)[number], submitted: boolean) => {
+    const assignment = attempt.evaluatorAssignments[0];
+    const statusLabel = submitted ? "ประเมินแล้ว" : "รอประเมิน";
+    return (
+      <section key={`${attempt.id}-figma`} id={`proposal-${attempt.id}`} className="scroll-mt-24 rounded-lg border border-line bg-surface p-4 shadow-sm">
+        <FigmaReviewLayout
+          context={
+            <div className="space-y-4">
+              <div>
+                <div className="flex flex-wrap gap-2">
+                  <FigmaStatusBadge tone={submitted ? "success" : "action"}>{statusLabel}</FigmaStatusBadge>
+                  <FigmaStatusBadge tone="muted">Proposal</FigmaStatusBadge>
+                </div>
+                <h2 className="mt-3 text-lg font-semibold text-ink">{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  {attempt.project.student.studentCode} {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
+                </p>
+              </div>
+              <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="font-semibold text-ink">รอบ</dt>
+                  <dd className="text-muted">Proposal</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-ink">สถานะ</dt>
+                  <dd className="text-muted">{statusLabel}</dd>
+                </div>
+              </dl>
+              {attempt.presentationSubmission?.materialLink ? (
+                <a className="inline-flex text-sm font-semibold text-brand hover:underline" href={attempt.presentationSubmission.materialLink} target="_blank" rel="noreferrer">
+                  เปิดเอกสารแนบ
+                </a>
+              ) : (
+                <p className="text-sm text-muted">ยังไม่พบเอกสารแนบ</p>
+              )}
+            </div>
+          }
+          action={
+            <div className="rounded-lg border border-line bg-paperSoft p-4">
+              <h3 className="text-sm font-semibold text-ink">{submitted ? "ดูผลประเมิน" : "ดำเนินการประเมิน"}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {submitted
+                  ? "รายการนี้ส่งคะแนนแล้ว และแยกไว้เป็นงานอ่านย้อนหลัง"
+                  : "เปิดฟอร์มประเมินด้วย action เดิม โดยไม่เปลี่ยนสิทธิ์หรือขั้นตอน"}
+              </p>
+              <div className="mt-4">
+                {assignment ? (
+                  <Link className={submitted ? "button-secondary" : "button"} href={`/teacher/scoring/${assignment.id}`}>
+                    {submitted ? "ดูผลประเมินที่ส่งแล้ว" : "ประเมินการเสนอหัวข้อ"}
+                  </Link>
+                ) : (
+                  <form action={openProposalScoring}>
+                    <input type="hidden" name="attempt_id" value={attempt.id} />
+                    <button type="submit">เริ่มประเมิน</button>
+                  </form>
+                )}
+              </div>
+            </div>
+          }
+        />
+      </section>
+    );
+  };
+
+  if (uiMode === "figma") {
+    return (
+      <div className="figma-dashboard-page figma-teacher-proposals">
+        <FigmaPageHeader
+          eyebrow="Proposal"
+          title="ประเมินการเสนอหัวข้อ"
+          description="อ่านบทคัดย่อและเอกสารแนบก่อนประเมินตามเกณฑ์"
+        />
+
+        <div className="figma-kpi-grid">
+          <FigmaMetricCard label="ต้องดำเนินการ" value={pendingAttempts.length} description="ยังไม่ได้ส่งคะแนน Proposal" tone="action" />
+          <FigmaMetricCard label="รอ" value={0} description="ไม่มีสถานะรอในหน้านี้" tone="warning" />
+          <FigmaMetricCard label="เสร็จแล้ว" value={completedAttempts.length} description="ส่งคะแนนแล้ว ดูย้อนหลังได้" tone="success" />
+          <FigmaMetricCard label="รายการทั้งหมด" value={attempts.length} description="รวม Proposal ในขอบเขตการประเมินของท่าน" tone="muted" />
+          <FigmaMetricCard label="ยังไม่เปิด" value={0} description="รายการที่ไม่เกี่ยวข้องไม่แสดง" tone="muted" />
+        </div>
+
+        <div className="figma-dashboard-grid">
+          <FigmaPanel
+            title="คิว Proposal ที่ต้องประเมิน"
+            description="รายการที่อาจารย์ยังไม่ได้ส่งคะแนน แยกไว้ก่อนงานอ่านย้อนหลัง"
+            tone="action"
+          >
+            {pendingAttempts.length ? (
+              <div className="figma-action-list">
+                {pendingAttempts.map((attempt) => (
+                  <a key={`${attempt.id}-figma-queue`} className="figma-action-row figma-proposal-row" data-tone="action" href={`#proposal-${attempt.id}`}>
+                    <div>
+                      <strong>{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</strong>
+                      <p>
+                        {attempt.project.student.studentCode} {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
+                      </p>
+                      <small>Proposal</small>
+                    </div>
+                    <FigmaStatusBadge tone="action">รอประเมิน</FigmaStatusBadge>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="ไม่มี Proposal ที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วถูกแยกไปอยู่ในส่วนเสร็จแล้ว" />
+            )}
+          </FigmaPanel>
+
+          <FigmaPanel
+            title="เสร็จแล้ว / อ่านย้อนหลัง"
+            description="รายการที่ส่งคะแนนแล้วไม่ปนกับงานที่ต้องทำ"
+            tone="success"
+          >
+            {completedAttempts.length ? (
+              <div className="figma-action-list">
+                {completedAttempts.slice(0, 8).map((attempt) => (
+                  <a key={`${attempt.id}-figma-completed`} className="figma-action-row figma-proposal-row" data-tone="success" href={`#proposal-${attempt.id}`}>
+                    <div>
+                      <strong>{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</strong>
+                      <p>
+                        {attempt.project.student.studentCode} {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
+                      </p>
+                    </div>
+                    <FigmaStatusBadge tone="success">ประเมินแล้ว</FigmaStatusBadge>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted">ยังไม่มี Proposal ที่ประเมินเสร็จ</p>
+            )}
+          </FigmaPanel>
+        </div>
+
+        <FigmaPanel
+          title="รายละเอียดงานประเมิน"
+          description="ส่วนนี้ใช้ action/link เดิมทั้งหมด เปลี่ยนเฉพาะ layout ให้ใกล้ Project Review Detail"
+          tone={pendingAttempts.length ? "action" : "muted"}
+        >
+          {attempts.length ? (
+            <div className="space-y-4">
+              {pendingAttempts.map((attempt) => renderFigmaAttempt(attempt, false))}
+              {completedAttempts.map((attempt) => renderFigmaAttempt(attempt, true))}
+            </div>
+          ) : (
+            <EmptyState title="ยังไม่มีเอกสารเสนอหัวข้อที่ส่งแล้ว" description="เมื่อนักศึกษาส่งเอกสารเสนอหัวข้อ รายการจะปรากฏที่นี่" />
+          )}
+        </FigmaPanel>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -254,11 +254,59 @@ No auth, lifecycle, scoring, eligibility, Prisma schema, server action, API, rou
 
 ### Live Verification
 
+Passed on `https://system-project-math-sci-hmhz7pteq-lordtd-hubs-projects.vercel.app`.
+
+Verified `/teacher/schedules` in both modes with the existing Edge QA session:
+
+- `classic`: original stabilized schedule page rendered, `.teacher-workload-summary` present, `.figma-role-shell` absent.
+- `figma`: Figma role shell rendered, `.figma-teacher-schedules` present, 5 KPI cards rendered, and 48 schedule/action rows rendered from the current QA state.
+- No shell-only page, digest/application error page, or unauthorized teacher guard appeared.
+
+Operational note: because the user keeps the Figma reference tab open in Edge, the QA tab can be `document.hidden` during CDP checks. The verifier must activate the QA tab before evaluating layout, otherwise Next streaming content can appear temporarily in a hidden Suspense container.
+
+### Next Phase
+
+Continue teacher subpage renderer split with `/teacher/proposals`.
+
+## 2026-05-13 - Figma Visual Pass Phase 4 Teacher Proposals Renderer
+
+### Routes / Components
+
+- `/teacher/proposals`
+- `src/app/teacher/proposals/page.tsx`
+- `src/app/teacher/teacherWorkloadUxSource.test.ts`
+
+### Redesign Applied
+
+- Added a page-level `figma` renderer branch while keeping the existing Proposal review page as the `classic` fallback.
+- Preserved the existing Proposal attempt query, teacher capability guard, scoring assignment link, `openProposalScoring` form, hidden `attempt_id` field, and route semantics.
+- Figma mode now uses the shared visual system for:
+  - page header;
+  - Proposal KPI cards;
+  - action-first Proposal queue;
+  - completed/read-only Proposal queue;
+  - two-column Project Review Detail-style rows for each Proposal attempt.
+
+### Logic Touched
+
+No.
+
+No auth, lifecycle, scoring, eligibility, Prisma schema, server action, API, route, or production behavior was changed.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Live Verification
+
 Pending QA deploy for this page-level renderer patch.
 
 ### Next Phase
 
-Commit/push QA preview, live-verify `/teacher/schedules` in both classic and figma mode, then continue teacher subpage renderer split with `/teacher/proposals`.
+Commit/push QA preview, live-verify `/teacher/proposals` in both classic and figma mode, then continue teacher subpage renderer split with `/teacher/progress1`.
 
 - `/admin`
 - `/admin/rounds`
