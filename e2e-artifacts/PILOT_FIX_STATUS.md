@@ -206,3 +206,33 @@ Recommendation:
 - Wave 1 operational semantics are stabilized enough to stop the current pilot loop.
 - Before Wave 2, review accumulated Minor/UX debt and decide whether to patch the high-value readability issues first.
 - Do not start Wave 2 or documentation/manual screenshots until explicitly approved.
+
+## Multi-Pilot R2 Wave 1 Remaining Cleanup
+
+Primary plan file:
+
+- `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_REMAINING_FULL_LOOP_PLAN.md`
+
+Current recommendation:
+
+- Do not rerun the full Wave 1 lifecycle from scratch.
+- Do not start Wave 2 yet.
+- Do not start documentation/manual screenshots yet.
+- Run remaining Wave 1 cleanup as focused full-loop passes.
+
+Recommended order:
+
+1. Student readability stabilization.
+2. Project03 recovery UX and non-Proposal late/reopen decision.
+3. Evidence/export polish.
+4. Admin/Teacher UX debt triage.
+5. Artifact/worktree hygiene.
+6. Final Wave 1 readiness note.
+7. Wave 2 plan.
+
+Loop rule:
+
+- Minor/UX issues: record and continue.
+- Major/Blocker issues: stop, patch minimally, validate, push QA preview, live verify, resume from saved state.
+
+Do not change lifecycle, scoring, round eligibility, auth, or schema during these cleanup passes unless a true blocker proves it unavoidable.

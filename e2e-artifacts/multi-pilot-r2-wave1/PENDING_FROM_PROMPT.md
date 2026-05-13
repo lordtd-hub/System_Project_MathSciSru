@@ -1047,3 +1047,41 @@ Carry into next pass:
 - Project03 recovery/reopen handling remains the main lifecycle edge case.
 - Teacher report/advisor queues should be redesigned later for scale; the workflow worked, but long-card density will become hard with 10+ projects.
 - Admin evidence/export now includes grade summary, but real registrar format decisions may still be needed before production use.
+
+## 2026-05-13 Wave 1 Remaining Cleanup Plan
+
+Wave 1 has completed one full controlled lifecycle. Do not rerun the full lifecycle from scratch unless a later code change touches lifecycle/scoring/eligibility behavior.
+
+Primary plan file:
+
+- `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_REMAINING_FULL_LOOP_PLAN.md`
+
+Remaining cleanup before Wave 2:
+
+1. Student readability stabilization:
+   - `/student`
+   - `/student/schedule`
+   - `/student/report`
+   - `/student/feedback`
+   - Clarify current action, waiting state, locked state, submitted state, revision state, and completed state.
+2. Project03 recovery UX and non-Proposal late/reopen decision:
+   - Project03 remained correctly locked after missing Progress 1 completion.
+   - Admin still needs clearer recovery/incomplete visibility for Progress 1/2/Final cases.
+   - Prefer minimal UI/decision note first; avoid lifecycle changes unless a Major/Blocker is found.
+3. Evidence/export polish:
+   - Confirm grade CSV/XLSX columns are useful for real end-of-course review.
+   - Do not change scoring formulas without a policy decision.
+4. Admin/Teacher UX debt triage:
+   - Decide which table/filter/search/sticky-summary issues must be patched before Wave 2 and which move to redesign.
+5. Artifact/worktree hygiene:
+   - Preserve pilot evidence.
+   - Keep runtime/browser/test output ignored or uncommitted.
+
+Loop rule:
+
+- Minor/UX: record and continue.
+- Major/Blocker: stop, patch minimally, validate, push QA preview, live verify, resume from saved state.
+
+Recommended next full-loop prompt:
+
+- `MULTI-PILOT-R2 Wave 1 Remaining Cleanup - Student Readability and Recovery UX Stabilization`

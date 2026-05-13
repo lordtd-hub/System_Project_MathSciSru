@@ -31,6 +31,18 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - QA preview pushed and live-verified at `https://system-project-math-sci-110mfor0c-lordtd-hubs-projects.vercel.app`.
 - Live QA was read-only with MULTI-PILOT-R2 Admin through Edge CDP; `/admin`, `/admin/rounds`, `/admin/proposals`, `/admin/schedules`, `/admin/closeout`, and `/admin/evidence` rendered without auth mismatch, route mismatch, or application error.
 
+## 2026-05-13 Wave 1 remaining cleanup plan
+
+- Added `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_REMAINING_FULL_LOOP_PLAN.md`.
+- Updated Wave 1 pending/manual/fix-status artifacts with the remaining cleanup order before Wave 2:
+  - Student readability stabilization.
+  - Project03 recovery UX and non-Proposal late/reopen decision.
+  - Evidence/export polish.
+  - Admin/Teacher UX debt triage.
+  - Artifact/worktree hygiene.
+- The cleanup plan explicitly says not to rerun Wave 1 from scratch, not to start Wave 2, and not to start documentation/manual screenshots until approved.
+- The cleanup loop remains: Minor/UX issues are recorded and the pass continues; Major/Blocker issues stop the loop for minimal patch, validation, QA preview push, live verification, and resume.
+
 ## 2026-05-06 Production baseline seed
 
 - Added `prisma/seed-production-baseline.ts`.

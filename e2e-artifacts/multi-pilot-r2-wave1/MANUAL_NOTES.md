@@ -168,6 +168,32 @@ These are not ready for final manuals yet, but should be carried into manual pla
 - If `playwright-cli open` makes the browser flash and disappear, use the persistent Edge CDP method instead and keep the window open through the pilot.
 - Admin late/missed round handling should be explained as a dedicated operational list. The round overview page is now a summary/control page; detailed exception handling happens on `/admin/round-exceptions`.
 
+## Wave 1 Remaining Cleanup Notes
+
+The next pass should not become final manual writing yet. It should stabilize the user-facing explanations that manuals will later rely on.
+
+Primary plan:
+
+- `e2e-artifacts/multi-pilot-r2-wave1/WAVE1_REMAINING_FULL_LOOP_PLAN.md`
+
+Student readability items to carry into the next pass:
+
+- Student dashboard should make "what I need to do now" distinct from "waiting for Admin/teacher" and "locked because previous gate is incomplete".
+- Student schedule page should consistently explain evidence saved, schedule proposed, schedule rejected, schedule confirmed, waiting score, and completed scoring states.
+- Student report page should distinguish first report submission, waiting review, revision required, version history, approval, and post-approval advisor-score waiting.
+- Student feedback page should make completed scores/read-only feedback easy to find without implying there is a pending task.
+
+Admin recovery items to carry:
+
+- Project03 is the main Wave 1 recovery example: eligible for Progress 1, incomplete at close, correctly locked from later rounds.
+- Manuals will eventually need a clear explanation of how Admin handles incomplete-after-close cases for Progress 1/2/Final.
+- Do not write final manual instructions for non-Proposal late/reopen recovery until the UI decision is settled.
+
+Export/manual items to carry:
+
+- Grade summary CSV/XLSX exists and returned non-empty content in Wave 1.
+- Before manuals, confirm final column names and whether the registrar expects additional total/status columns.
+
 ## 2026-05-13 Operational Notes From Progress 1 Closure
 
 These notes should be carried into manual planning later, but no documentation/manual screenshot pass was started.
