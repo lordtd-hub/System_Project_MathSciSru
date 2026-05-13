@@ -1904,4 +1904,12 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Extended the student Edge CDP verifier to check `/student/proposal` classic/figma rendering and proposal form/submitted-summary state.
-- Next step: push QA preview, live-verify `/student/proposal`, then continue Phase 6 with `/student/schedule`.
+- Pushed QA preview only at commit `8222947`.
+- Live QA preview: `https://system-project-math-sci-oz0raz5on-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for `/student/proposal` in both `classic` and `figma` mode:
+  - current QA state rendered submitted-summary mode rather than editable form mode;
+  - classic mode had no Figma shell or `.figma-student-proposal`;
+  - figma mode rendered the Figma shell and `.figma-student-proposal`;
+  - submitted summary remained present in both modes;
+  - desktop and 390px mobile had no shell-only page, digest/application error, login fallback, or horizontal overflow.
+- Next step: continue Phase 6 with `/student/schedule`.

@@ -1199,3 +1199,38 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 ### Next Phase
 
 Push QA preview, live-verify `/student/proposal` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/schedule`.
+
+### QA Deployment And Live Verification
+
+- Commit: `8222947`.
+- QA preview: `https://system-project-math-sci-oz0raz5on-lordtd-hubs-projects.vercel.app`.
+- Live verification used the persistent Edge CDP session and explicitly selected the `student` role dropdown before submitting QA login.
+- Checked `/student`, `/student/project`, and `/student/proposal` in `classic` and `figma` mode.
+- `/student/proposal` desktop result:
+  - current QA state rendered the submitted-summary state rather than the editable form;
+  - classic mode rendered no `.figma-role-shell` and no `.figma-student-proposal`;
+  - figma mode rendered `.figma-role-shell` and `.figma-student-proposal`;
+  - submitted summary remained present;
+  - no shell-only page, digest/application error, login fallback, or detected overflow.
+- `/student/proposal` 390px mobile result:
+  - classic/figma mode separation remained correct;
+  - `docWidth = 390`;
+  - submitted summary remained present;
+  - no horizontal overflow, shell-only page, digest/application error, or login fallback.
+
+### Screenshots
+
+- `e2e-artifacts/redesign-mapping/screenshots/student-proposal-renderer-figma-desktop-oz0raz5on.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-proposal-renderer-figma-mobile-oz0raz5on.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-desktop-oz0raz5on.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-mobile-oz0raz5on.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-oz0raz5on.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-oz0raz5on.png`
+
+### Phase Result
+
+Student proposal renderer is complete and live-verified for the current submitted-summary state.
+
+### Next Phase
+
+Continue Phase 6 with `/student/schedule`.

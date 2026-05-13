@@ -578,6 +578,29 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 
 ### QA Deployment And Live Verification
 
+- Commit: `8222947`.
+- QA preview: `https://system-project-math-sci-oz0raz5on-lordtd-hubs-projects.vercel.app`.
+- Student verifier now checks `/student`, `/student/project`, and `/student/proposal` in both `classic` and `figma` mode.
+- Live QA verification:
+  - persistent Edge CDP session used;
+  - QA login verifier explicitly selected the `student` role dropdown before identity selection;
+  - current `/student/proposal` QA state rendered submitted-summary mode rather than editable form mode;
+  - `/student/proposal` classic mode rendered no `.figma-role-shell`, no `.figma-student-proposal`, and retained the classic readability summary;
+  - `/student/proposal` figma mode rendered `.figma-role-shell` and `.figma-student-proposal`;
+  - submitted summary remained present in both modes;
+  - desktop verification showed no shell-only page, digest/application error, login fallback, or detected overflow;
+  - 390px mobile verification showed `docWidth = 390` with no horizontal overflow.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-proposal-renderer-figma-desktop-oz0raz5on.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-proposal-renderer-figma-mobile-oz0raz5on.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-desktop-oz0raz5on.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-mobile-oz0raz5on.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-oz0raz5on.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-oz0raz5on.png`
+- Result: `/student/proposal` is complete for non-mutating visual/regression verification in the current submitted-summary state.
+
+### QA Deployment And Live Verification
+
 - Commit: `1ad318e`.
 - QA preview: `https://system-project-math-sci-8rztp26xw-lordtd-hubs-projects.vercel.app`.
 - Student verifier now checks `/student` and `/student/project` in both `classic` and `figma` mode.
