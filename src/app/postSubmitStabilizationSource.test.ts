@@ -20,6 +20,46 @@ describe("post-submit stabilization source checks", () => {
     expect(proposalPage).toContain("presentationSubmissions: { orderBy: { createdAt: \"desc\" }, take: 1 }");
     expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
     expect(schedulePage).toContain("บันทึกหลักฐานการประเมินแล้ว");
+    expect(schedulePage).toContain('data-testid="student-schedule-page-content"');
+    expect(schedulePage).toContain('data-testid="student-schedule-evidence-success-alert"');
+    expect(schedulePage).toContain('data-testid="student-schedule-round-status-cards"');
+    expect(schedulePage).toContain('data-testid="student-schedule-evidence-summary"');
+    expect(schedulePage).toContain('data-testid={`student-assessment-evidence-form-${kind}`}');
+    expect(schedulePage).toContain('data-testid="student-schedule-proposal-form-wrapper"');
+  });
+
+  it("keeps assessment evidence success pages from rendering as shell-only for Progress and Final rounds", () => {
+    const schedulePage = read("src/app/student/schedule/page.tsx");
+    const studentActions = read("src/app/student/actions.ts");
+
+    expect(studentActions).toContain('redirect("/student/schedule?success=assessment_evidence_saved")');
+    expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
+    expect(schedulePage).toContain('(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind)');
+    expect(schedulePage).toContain('latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind)');
+    expect(schedulePage).toContain('const schedulableRoundsWithEvidence');
+    expect(schedulePage).toContain('const editableEvidenceRounds');
+    expect(schedulePage).toContain('data-testid={`student-schedule-evidence-summary-${kind}`}');
+    expect(schedulePage).toContain('data-testid={`student-assessment-evidence-form-${kind}`}');
+    expect(schedulePage).toContain('data-testid="student-schedule-proposal-form-wrapper"');
+    expect(schedulePage).toContain('student-schedule-latest-proposals');
+    expect(schedulePage).toContain('roundType === "PROGRESS_2"');
+    expect(schedulePage).toContain('roundType === "FINAL_PRESENTATION"');
+    expect(studentActions).toContain('error: "schedule_previous_round_incomplete"');
+  });
+
+  it("keeps locked or unsupported schedule states visible instead of blank after redirects", () => {
+    const schedulePage = read("src/app/student/schedule/page.tsx");
+    const studentActions = read("src/app/student/actions.ts");
+
+    expect(studentActions).toContain('error: "schedule_round_invalid"');
+    expect(studentActions).toContain('error: "schedule_not_available"');
+    expect(studentActions).toContain('error: "assessment_evidence_required"');
+    expect(studentActions).toContain('error: "assessment_evidence_locked"');
+    expect(schedulePage).toContain("progress1BlockedText");
+    expect(schedulePage).toContain('data-testid="student-schedule-round-status-cards"');
+    expect(schedulePage).toContain('data-testid={`student-schedule-round-card-${kind}`}');
+    expect(schedulePage).toContain("ต้องบันทึกเอกสารก่อนเสนอวันสอบ");
+    expect(schedulePage).toContain("ส่งเสนอวันสอบแล้ว");
   });
 
   it("uses one report action label across the student dashboard and report page", () => {

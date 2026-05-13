@@ -236,7 +236,7 @@ export default async function StudentSchedulePage({
   const defaultScheduleRoundType = schedulableRoundsWithEvidence[0] ?? visibleGuidanceRounds[0] ?? "PROGRESS_1";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="student-schedule-page-content">
       <PageHeader
         title="เสนอวันสอบความก้าวหน้า/สอบขั้นสุดท้าย"
         description="เสนอหรือแก้ไขวัน เวลา และห้องสอบภายใต้รอบสอบระดับรายวิชาที่เปิดอยู่"
@@ -244,9 +244,11 @@ export default async function StudentSchedulePage({
       />
       <ActionFeedback success={params.success} error={params.error} />
       {params.success === "assessment_evidence_saved" ? (
-        <InfoAlert title="บันทึกหลักฐานการประเมินแล้ว">
-          ระบบบันทึกเอกสารและหลักฐานของรอบสอบแล้ว หากยังไม่ได้เสนอวันสอบ ให้ตรวจข้อมูลและเสนอวันสอบในส่วนถัดไป
-        </InfoAlert>
+        <div data-testid="student-schedule-evidence-success-alert">
+          <InfoAlert title="บันทึกหลักฐานการประเมินแล้ว">
+            ระบบบันทึกเอกสารและหลักฐานของรอบสอบแล้ว หากยังไม่ได้เสนอวันสอบ ให้ตรวจข้อมูลและเสนอวันสอบในส่วนถัดไป
+          </InfoAlert>
+        </div>
       ) : null}
       <GuidancePanel
         title="การนัดสอบ"
@@ -254,7 +256,7 @@ export default async function StudentSchedulePage({
         next="เมื่อส่งแล้ว กรรมการที่ได้รับแต่งตั้งจะเห็นรายการนี้ในหน้าตารางสอบ"
         actor="นักศึกษาส่งคำขอ ประธานและกรรมการเป็นผู้พิจารณาตามขั้นตอนปัจจุบัน"
       />
-      <section className="panel">
+      <section className="panel" data-testid="student-schedule-round-guidance">
         <h2 className="text-lg font-semibold">เกณฑ์และหลักฐานแยกตามรอบสอบ</h2>
         <p className="mt-1 text-sm text-muted">
           เลือกรอบสอบในแบบฟอร์มด้านล่างให้ตรงกับงานปัจจุบัน ระบบจะแยกเกณฑ์ประเมินของการสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้าย ไม่ใช้เกณฑ์เดียวกันปนกัน
@@ -316,7 +318,7 @@ export default async function StudentSchedulePage({
           </div>
         ))}
       </div>
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid gap-3 md:grid-cols-3" data-testid="student-schedule-round-status-cards">
           {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
             const roundType = assessmentKindToRoundType(kind);
             const round = roundMap.get(roundType);
@@ -343,7 +345,7 @@ export default async function StudentSchedulePage({
                 ? { label: progress1BlockedText, buttonLabel: "ยังไม่พร้อม", editable: false }
                 : evidenceReadyState;
           return (
-            <div key={kind} className="panel">
+            <div key={kind} className="panel" data-testid={`student-schedule-round-card-${kind}`} data-round-kind={kind}>
               <div className="text-sm text-muted">{scheduleKindLabel(kind)}</div>
               <h2 className="mt-1 text-lg font-semibold">{state.label}</h2>
               <p className="mt-2 text-sm text-muted">
@@ -360,13 +362,13 @@ export default async function StudentSchedulePage({
         title="1. บันทึกเอกสาร/หลักฐานสำหรับรอบสอบ"
         description="ให้นักศึกษาบันทึกลิงก์เอกสารและสรุปหลักฐานของรอบสอบก่อน ระบบจึงจะเปิดให้เสนอวันสอบรอบนั้นได้"
       >
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3" data-testid="student-schedule-evidence-summary">
           {(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind) => {
             const submission = latestSubmissionByKind.get(kind);
             const latestSchedule = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
             const lockedBySchedule = latestSchedule?.status === "PROPOSED" || latestSchedule?.status === "CONFIRMED";
             return (
-              <div key={kind} className="rounded-md border border-line bg-surface p-3 text-sm">
+              <div key={kind} className="rounded-md border border-line bg-surface p-3 text-sm" data-testid={`student-schedule-evidence-summary-${kind}`} data-round-kind={kind}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-semibold">{scheduleKindLabel(kind)}</div>
                   <span className={submission ? "rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700" : "rounded-full border border-line px-2 py-0.5 text-xs text-muted"}>
@@ -406,7 +408,7 @@ export default async function StudentSchedulePage({
             const submission = latestSubmissionByKind.get(kind);
             const content = (typeof submission?.contentJson === "object" && submission?.contentJson ? submission.contentJson : {}) as Record<string, unknown>;
             return (
-              <form key={kind} id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`} action={saveAssessmentEvidence} className="scroll-mt-24 rounded-md border border-line bg-surface p-4">
+              <form key={kind} id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`} action={saveAssessmentEvidence} className="scroll-mt-24 rounded-md border border-line bg-surface p-4" data-testid={`student-assessment-evidence-form-${kind}`} data-round-kind={kind}>
                 <input type="hidden" name="assessment_kind" value={kind} />
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -487,6 +489,7 @@ export default async function StudentSchedulePage({
           </WarningAlert>
         ) : null}
         {schedulableRoundsWithEvidence.length ? (
+        <div data-testid="student-schedule-proposal-form-wrapper">
         <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
@@ -545,9 +548,10 @@ export default async function StudentSchedulePage({
             </div>
           </div>
         </DraftPreservingForm>
+        </div>
         ) : null}
       </FormSection>
-      <section className="panel">
+      <section className="panel" data-testid="student-schedule-latest-proposals">
         <h2 className="text-lg font-semibold">ข้อเสนอวันสอบล่าสุด</h2>
         <div className="mt-3 space-y-3">
           {project.scheduleProposals.length ? (

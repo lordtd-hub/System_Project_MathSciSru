@@ -276,10 +276,24 @@ Not completed:
 
 Next required action:
 
-1. Confirm the active continuation preview contains the post-submit stabilization fix for `/student/schedule?success=assessment_evidence_saved`.
-2. If not, use the newest QA preview containing that fix or patch the current target before continuing.
-3. Resume from Student01 by verifying whether the saved Progress 2 evidence is present and whether the schedule proposal form is reachable.
+1. Push the scoped post-submit content guard patch to `qa-preview` and wait for the new Vercel QA preview URL.
+2. Live verify Student01 on the new preview:
+   - `/student/schedule?success=assessment_evidence_saved` is not shell-only.
+   - saved Progress 2 evidence is visible.
+   - the Progress 2 schedule proposal form is reachable if no schedule has been proposed yet.
+3. If live verification passes, resume from Student01 and propose the Progress 2 schedule.
 4. Continue Student04/05 only after Student01 post-submit state is stable.
+
+Patch status before push:
+
+- `/student/schedule` now exposes stable `data-testid` markers for the page content root, evidence success alert, round status cards, evidence summary, evidence forms, schedule proposal form wrapper, and latest proposal section.
+- Source regression checks cover Progress 1, Progress 2, and Final evidence-save success states; locked/unsupported schedule states must still render visible status content instead of a blank shell.
+- `wave1-continuation-cli.run-code.js` now has a guarded shell-only check for `/student/schedule`.
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm test`: PASS, 77 files / 314 tests
+  - `npm run build`: PASS
+  - `e2e-artifacts` secret scan: PASS
 
 ## Latest Validation
 

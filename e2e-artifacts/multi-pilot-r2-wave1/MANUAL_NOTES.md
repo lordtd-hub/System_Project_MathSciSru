@@ -209,3 +209,8 @@ Do not turn this into manual content yet. This is an operational blocker note fr
 - This blocks safe continuation because the next expected student action is proposing the Progress 2 schedule.
 - Before writing manuals or screenshots for Progress 2, verify the active QA preview keeps full page content after saving assessment evidence.
 - Screenshot: `screenshots/progress2-student01-evidence-submitted-f96.png`
+
+Patch note:
+
+- The current stabilization patch does not redesign the student schedule UI. It adds stable content markers and automated guards so the evidence-save success page must keep the normal schedule/evidence content visible.
+- UX/manual debt remains: after live verification, wording and hierarchy around evidence saved -> propose schedule should be reviewed for consistency before any documentation screenshot pass.

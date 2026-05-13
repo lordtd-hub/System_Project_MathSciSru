@@ -259,6 +259,18 @@ Recommendation:
 - Do not continue Progress 2 on this QA preview until the post-submit schedule page state is verified on an updated preview or patched for the current target.
 - This resembles the previously tracked post-submit blank-page issue for `/student/schedule?success=assessment_evidence_saved`; confirm that the preview used for continuation contains the post-submit stabilization fix before resuming.
 
+Stabilization patch:
+
+- Root cause assessment from current repo source: the active continuation preview that showed the shell-only page did not expose the current post-submit schedule content guards. The local `/student/schedule` source already renders normal content after `success=assessment_evidence_saved`; this patch hardens the page with stable content markers and expands the regression checks so the state cannot silently fall back to shell-only rendering.
+- Added stable markers for schedule page content, evidence success alert, round status cards, evidence summary, evidence forms, schedule proposal form wrapper, and latest proposal section.
+- Updated the Wave 1 continuation runner template to guard `/student/schedule` after navigation/evidence-save routes by checking the content root, evidence summary, round cards, latest-proposal section, and absence of digest/application-error text.
+- Validation after patch:
+  - `npm run typecheck`: PASS
+  - `npm test`: PASS, 77 files / 314 tests
+  - `npm run build`: PASS
+  - Secret scan in `e2e-artifacts`: PASS, no QA secret literal found
+- Live QA verification is pending until the scoped patch is pushed and Vercel produces the new QA preview URL.
+
 ### Validation
 
 - `npm test`: PASS, 77 files / 312 tests
