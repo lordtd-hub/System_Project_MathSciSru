@@ -5,6 +5,11 @@ const path = require("node:path");
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-lsd4f1th3-lordtd-hubs-projects.vercel.app";
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const screenshotDir = path.join(process.cwd(), "e2e-artifacts", "redesign-mapping", "screenshots");
+const viewportMode = process.env.TEACHER_VERIFY_VIEWPORT === "mobile" ? "mobile" : "desktop";
+const teacherKey = process.env.TEACHER_VERIFY_KEY || "multi-r2-teacher-01";
+const viewport = viewportMode === "mobile"
+  ? { width: 390, height: 900, deviceScaleFactor: 2, mobile: true }
+  : { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false };
 const deploymentSlug =
   new URL(baseUrl).hostname
     .replace(/^system-project-math-sci-/, "")
@@ -79,7 +84,7 @@ async function connectPage() {
   });
   await send("Page.enable");
   await send("Runtime.enable");
-  await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false });
+  await send("Emulation.setDeviceMetricsOverride", viewport);
   return { send, ws };
 }
 
@@ -184,8 +189,20 @@ async function verifyTeacherPage(client, route, name) {
   const hasSummaryBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class early`);
   const hasQueueSurfaceBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-metric'))", `${route} metric class early`);
   if (hasSummaryBeforeTextCheck && hasQueueSurfaceBeforeTextCheck) {
+    const overflow = await evaluate(client, `
+      (() => {
+        const root = document.scrollingElement || document.documentElement;
+        const body = document.body;
+        const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+        const viewportWidth = window.innerWidth;
+        return { width, viewportWidth, overflow: width - viewportWidth };
+      })()
+    `, `${route} overflow check`);
+    if (viewportMode === "mobile" && overflow.overflow > 4) {
+      throw new Error(`${route}: mobile horizontal overflow ${overflow.overflow}px (scrollWidth=${overflow.width}, viewport=${overflow.viewportWidth})`);
+    }
     const filePath = await screenshot(client, `${name}.png`);
-    return { route, ok: true, screenshot: filePath };
+    return { route, ok: true, screenshot: filePath, overflow };
   }
   if (!text.includes("สรุปภาระงานอาจารย์")) {
     const url = await evaluate(client, "location.href", `${route} current url`);
@@ -196,28 +213,40 @@ async function verifyTeacherPage(client, route, name) {
   const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class`);
   const hasQueueSurface = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-metric'))", `${route} metric class`);
   if (!hasSummary || !hasQueueSurface) throw new Error(`${route}: redesigned teacher workload classes missing`);
+  const overflow = await evaluate(client, `
+    (() => {
+      const root = document.scrollingElement || document.documentElement;
+      const body = document.body;
+      const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+      const viewportWidth = window.innerWidth;
+      return { width, viewportWidth, overflow: width - viewportWidth };
+    })()
+  `, `${route} overflow check`);
+  if (viewportMode === "mobile" && overflow.overflow > 4) {
+    throw new Error(`${route}: mobile horizontal overflow ${overflow.overflow}px (scrollWidth=${overflow.width}, viewport=${overflow.viewportWidth})`);
+  }
   const filePath = await screenshot(client, `${name}.png`);
-  return { route, ok: true, screenshot: filePath };
+  return { route, ok: true, screenshot: filePath, overflow };
 }
 
 async function main() {
   const client = await connectPage();
   const results = [];
-  await qaLoginTeacher(client, "multi-r2-teacher-01");
+  await qaLoginTeacher(client, teacherKey);
   for (const [route, name] of [
-    ["/teacher", `teacher-dashboard-redesign-${deploymentSlug}`],
-    ["/teacher/schedules", `teacher-schedules-redesign-${deploymentSlug}`],
-    ["/teacher/proposals", `teacher-proposals-redesign-${deploymentSlug}`],
-    ["/teacher/progress1", `teacher-progress1-redesign-${deploymentSlug}`],
-    ["/teacher/progress2", `teacher-progress2-redesign-${deploymentSlug}`],
-    ["/teacher/final", `teacher-final-redesign-${deploymentSlug}`],
-    ["/teacher/reports", `teacher-reports-redesign-${deploymentSlug}`],
-    ["/teacher/advisor-score", `teacher-advisor-score-redesign-${deploymentSlug}`]
+    ["/teacher", `teacher-dashboard-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/schedules", `teacher-schedules-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/proposals", `teacher-proposals-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/progress1", `teacher-progress1-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/progress2", `teacher-progress2-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/final", `teacher-final-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/reports", `teacher-reports-redesign-${viewportMode}-${deploymentSlug}`],
+    ["/teacher/advisor-score", `teacher-advisor-score-redesign-${viewportMode}-${deploymentSlug}`]
   ]) {
     results.push(await verifyTeacherPage(client, route, name));
   }
   client.ws.close();
-  console.log(JSON.stringify({ baseUrl, results }, null, 2));
+  console.log(JSON.stringify({ baseUrl, viewportMode, teacherKey, viewport, results }, null, 2));
 }
 
 main().catch((error) => {

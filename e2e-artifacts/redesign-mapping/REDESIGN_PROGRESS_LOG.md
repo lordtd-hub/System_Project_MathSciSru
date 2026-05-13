@@ -125,3 +125,91 @@ Screenshots were recorded under `e2e-artifacts/redesign-mapping/screenshots/` us
 ### Next Phase
 
 Continue with teacher mobile pass, then teacher regression verification before moving to Admin redesign.
+
+## 2026-05-13 - Phase 2.8 Teacher Mobile Pass
+
+### Routes / Components
+
+- `/teacher`
+- `/teacher/schedules`
+- `/teacher/proposals`
+- `/teacher/progress1`
+- `/teacher/progress2`
+- `/teacher/final`
+- `/teacher/reports`
+- `/teacher/advisor-score`
+- Verification helper: `e2e-artifacts/redesign-mapping/verify-teacher-workload-cdp.js`
+
+### Redesign Applied
+
+- No app UI patch was required.
+- Extended the teacher verifier with a mobile viewport mode (`TEACHER_VERIFY_VIEWPORT=mobile`) at 390px width.
+- Added a DOM-level horizontal overflow check for mobile teacher pages.
+
+### Logic Touched
+
+No.
+
+No route, guard, server action, scoring, lifecycle, eligibility, schema, API, or production behavior was changed.
+
+### Validation
+
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 18 tests.
+
+### Live Verification
+
+Passed on `https://system-project-math-sci-g5enipsvz-lordtd-hubs-projects.vercel.app`.
+
+All teacher routes rendered at 390px mobile width with no detected horizontal overflow:
+
+- `/teacher`
+- `/teacher/schedules`
+- `/teacher/proposals`
+- `/teacher/progress1`
+- `/teacher/progress2`
+- `/teacher/final`
+- `/teacher/reports`
+- `/teacher/advisor-score`
+
+Screenshots were recorded under `e2e-artifacts/redesign-mapping/screenshots/` using the `mobile-g5enipsvz` suffix.
+
+### Next Phase
+
+Continue with teacher regression verification, then move to Admin redesign starting with `/admin` and `/admin/rounds`.
+
+## 2026-05-13 - Phase 2.9 Teacher Regression Verification
+
+### Scope
+
+- Non-mutating teacher route verification.
+- QA login role dropdown guard.
+- Boundary teacher identity check with `teacher-delta`.
+
+### Result
+
+Passed on `https://system-project-math-sci-g5enipsvz-lordtd-hubs-projects.vercel.app`.
+
+The verifier now accepts `TEACHER_VERIFY_KEY`, so teacher pages can be checked with a specific QA identity without changing the app. `teacher-delta` rendered all teacher routes without shell-only pages, digest/error pages, or unauthorized teacher guard pages.
+
+Verified routes:
+
+- `/teacher`
+- `/teacher/schedules`
+- `/teacher/proposals`
+- `/teacher/progress1`
+- `/teacher/progress2`
+- `/teacher/final`
+- `/teacher/reports`
+- `/teacher/advisor-score`
+
+### Logic Touched
+
+No.
+
+### Remaining Teacher Regression Debt
+
+- Mutating workflow regression for approve/reject/score/report/advisor-score remains deferred until a dedicated safe QA action window, because current redesign changes are presentation-only and the latest live checks were intentionally non-mutating.
+
+### Next Phase
+
+Teacher redesign is complete enough to move to Admin redesign. Start Admin redesign with `/admin`, then `/admin/rounds`.

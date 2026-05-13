@@ -76,3 +76,45 @@ Screenshots:
 - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-redesign-9czostjk1.png`
 - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-redesign-9czostjk1.png`
 - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-redesign-9czostjk1.png`
+
+## 2026-05-13 Teacher Mobile Pass
+
+- Phase: 2.8 - Teacher mobile pass.
+- Preview URL: `https://system-project-math-sci-g5enipsvz-lordtd-hubs-projects.vercel.app`.
+- Viewport: 390px wide mobile emulation.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 18 tests.
+- Live QA verification: passed with Edge persistent CDP.
+- Result: `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score` rendered without shell-only/error pages and without detected horizontal overflow.
+- Logic touched: no.
+
+Screenshots:
+
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-dashboard-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-progress2-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-final-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-redesign-mobile-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-redesign-mobile-g5enipsvz.png`
+
+## 2026-05-13 Teacher Non-Mutating Regression
+
+- Phase: 2.9 - Teacher regression verification.
+- Preview URL: `https://system-project-math-sci-g5enipsvz-lordtd-hubs-projects.vercel.app`.
+- Identity: `teacher-delta`.
+- Viewport: desktop.
+- Live QA verification: passed with Edge persistent CDP.
+- Result: all teacher routes rendered without shell-only/error pages, without unauthorized teacher guard pages, and without horizontal overflow.
+- Logic touched: no.
+
+Screenshots:
+
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-dashboard-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-progress2-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-final-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-redesign-desktop-g5enipsvz.png`
+- `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-redesign-desktop-g5enipsvz.png`

@@ -1500,3 +1500,8 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - Pushed QA preview only and live-verified teacher pages on `https://system-project-math-sci-9czostjk1-lordtd-hubs-projects.vercel.app`.
 - The teacher verifier now fails fast if QA login does not produce an authorized teacher dashboard, preventing the recurring role-dropdown mismatch from being mistaken for a valid page check.
+- Continued with the teacher mobile pass on `https://system-project-math-sci-g5enipsvz-lordtd-hubs-projects.vercel.app`.
+- Extended the teacher verifier with a 390px mobile viewport mode and horizontal overflow guard.
+- Mobile live verification passed for `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score` with no detected horizontal overflow.
+- Added `TEACHER_VERIFY_KEY` support to the teacher verifier and completed a non-mutating teacher boundary check with `teacher-delta` on the same QA preview.
+- Teacher redesign can proceed to Admin redesign; mutating teacher workflow regression remains intentionally deferred to a safe action window.
