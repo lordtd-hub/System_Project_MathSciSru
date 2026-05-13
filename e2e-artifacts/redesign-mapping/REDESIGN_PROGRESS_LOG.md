@@ -1070,3 +1070,32 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 ### Next Phase
 
 Deploy/live-verify `/student` classic/figma mode, then continue Phase 6 with `/student/project`.
+
+### QA Deployment And Live Verification
+
+- Commit: `4174383`.
+- QA preview: `https://system-project-math-sci-844q8gqj9-lordtd-hubs-projects.vercel.app`.
+- Live verification used the persistent Edge CDP session and explicitly selected the `student` role dropdown before submitting QA login.
+- Checked `/student` in `classic` and `figma` mode.
+- Desktop result:
+  - classic mode rendered the classic action queue and no Figma dashboard class;
+  - figma mode rendered `.figma-role-shell` and `.figma-student-dashboard`;
+  - no shell-only page, digest/application error, login fallback, or detected overflow.
+- 390px mobile result:
+  - classic/figma mode separation remained correct;
+  - `docWidth = 390`;
+  - no horizontal overflow;
+  - no shell-only page, digest/application error, or login fallback.
+
+### Screenshots
+
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-844q8gqj9.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-844q8gqj9.png`
+
+### Phase Result
+
+Student dashboard renderer is complete and live-verified.
+
+### Next Phase
+
+Continue Phase 6 with `/student/project`.

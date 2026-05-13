@@ -576,6 +576,23 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - QA deployment: pending.
 - Live verification: pending.
 
+### QA Deployment And Live Verification
+
+- Commit: `4174383`.
+- QA preview: `https://system-project-math-sci-844q8gqj9-lordtd-hubs-projects.vercel.app`.
+- Added `e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js` for safe student dashboard classic/figma verification.
+- Live QA verification:
+  - persistent Edge CDP session used;
+  - QA login verifier explicitly selected the `student` role dropdown before identity selection;
+  - `classic` mode rendered no `.figma-role-shell`, no `.figma-student-dashboard`, and retained the classic action queue;
+  - `figma` mode rendered `.figma-role-shell` and `.figma-student-dashboard`;
+  - desktop verification showed no shell-only page, digest/application error, login fallback, or detected overflow;
+  - 390px mobile verification showed `docWidth = 390` with no horizontal overflow.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-844q8gqj9.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-844q8gqj9.png`
+- Result: `/student` dashboard is complete for non-mutating visual/regression verification.
+
 ## 2026-05-14 Admin Proposal Renderer And Admin Route Verification
 
 - Phase: 5 - Admin redesign.

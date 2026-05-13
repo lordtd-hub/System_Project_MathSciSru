@@ -1852,4 +1852,11 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization`
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
-- Next step: push QA preview, live-verify `/student` in classic/figma mode on desktop and 390px mobile, then continue with `/student/project`.
+- Pushed QA preview only at commit `4174383`.
+- Live QA preview: `https://system-project-math-sci-844q8gqj9-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for `/student` in both `classic` and `figma` mode:
+  - classic mode retained the classic action queue and no Figma dashboard class;
+  - figma mode rendered the Figma shell and `.figma-student-dashboard`;
+  - desktop and 390px mobile had no shell-only page, digest/application error, login fallback, or horizontal overflow.
+- Added a reusable Edge CDP verifier for student dashboard `classic`/`figma` checks.
+- Next step: continue Phase 6 with `/student/project`.
