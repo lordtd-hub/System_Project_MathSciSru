@@ -9,11 +9,19 @@ import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import {
+  FigmaMetricCard,
+  FigmaPageHeader,
+  FigmaPanel,
+  FigmaReviewLayout,
+  FigmaStatusBadge
+} from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
+import { getUiMode } from "@/lib/uiMode";
 import { closeProposalRound, releaseFeedback, saveFinalDecision } from "../actions";
 
 function decisionLabel(decision?: string | null) {
@@ -94,6 +102,306 @@ export default async function AdminProposalsPage({
   }).length;
   const releasedCount = allAttempts.filter((attempt) => attempt.scoreRelease).length;
   const decidedCount = allAttempts.filter((attempt) => attempt.proposalResult).length;
+  const uiMode = await getUiMode();
+
+  if (uiMode === "figma") {
+    return (
+      <div className="figma-dashboard-page figma-admin-proposals">
+        <FigmaPageHeader
+          eyebrow="Admin operations"
+          title="สรุปผลการสอบหัวข้อ"
+          description="ตรวจผลการเสนอหัวข้อ คะแนน ความเห็น มติสุดท้าย และการเปิดข้อเสนอแนะ โดยแยกงานที่ต้องทำออกจากประวัติให้สแกนง่ายขึ้น"
+        />
+        <ActionFeedback success={params.success} error={params.error} />
+
+        {hasProposalAttempts ? (
+          <>
+            <div className="figma-kpi-grid">
+              <FigmaMetricCard label="รอตัดสิน" value={waitingDecisionCount} tone={waitingDecisionCount ? "action" : "success"} description="มีคะแนนหรือเอกสารแล้วแต่ยังไม่มีมติสุดท้าย" />
+              <FigmaMetricCard label="คะแนนยังไม่ครบ" value={missingScoreCount} tone={missingScoreCount ? "warning" : "success"} description="ควรตรวจสอบก่อนปิดรอบ Proposal" />
+              <FigmaMetricCard label="FAIL >= 50%" value={failAlertCount} tone={failAlertCount ? "danger" : "success"} description="ต้องอ่านเหตุผลและมติประชุมอย่างระมัดระวัง" />
+              <FigmaMetricCard label="ตัดสินแล้ว" value={decidedCount} tone="success" description="มี final decision แล้ว" />
+              <FigmaMetricCard label="เปิดผลแล้ว" value={releasedCount} tone="success" description="นักศึกษาเห็นข้อเสนอแนะแล้ว" />
+            </div>
+
+            <div className="figma-dashboard-grid">
+              <FigmaPanel
+                title={waitingDecisionCount ? "Needs admin action" : "Proposal decision queue clear"}
+                description={waitingDecisionCount ? `มี ${waitingDecisionCount} รายการที่ยังต้องบันทึกผลตัดสินสุดท้าย` : "รายการ Proposal ที่มีอยู่ถูกตัดสินแล้ว ตรวจขั้นตอนถัดไปหรือเปิดข้อเสนอแนะตามสถานะ"}
+                tone={waitingDecisionCount ? "action" : "success"}
+              >
+                <div className="figma-action-list">
+                  {allAttempts.slice(0, 8).map((attempt) => {
+                    const summary = summarizeProposalScores(
+                      attempt.evaluatorAssignments.length,
+                      attempt.evaluatorAssignments
+                        .map((assignment) => assignment.scoreSubmission)
+                        .filter(Boolean)
+                        .map((score) => ({
+                          totalScore: Number(score!.totalScore),
+                          status: score!.status,
+                          decision: score!.proposalDecision?.decision,
+                          reason: score!.proposalDecision?.reason,
+                          overallComment: score!.overallComment
+                        }))
+                    );
+                    const failVotes = attempt.proposalVotes.filter((vote) => vote.vote === "FAIL").length;
+                    const totalVotes = attempt.proposalVotes.length;
+                    const failRatio = totalVotes ? Math.round((failVotes / totalVotes) * 100) : 0;
+                    const finalDecision = attempt.proposalResult?.finalDecision;
+                    const tone = !attempt.proposalResult ? "action" : failRatio >= 50 ? "danger" : attempt.scoreRelease ? "success" : "warning";
+
+                    return (
+                      <a key={`${attempt.id}-figma-admin-proposal-row`} className="figma-action-row" data-tone={tone} href={`#proposal-${attempt.id}`}>
+                        <div>
+                          <div className="figma-action-title">
+                            <span>{attempt.project.student.studentCode}</span>
+                            <FigmaStatusBadge tone={tone}>{decisionLabel(finalDecision)}</FigmaStatusBadge>
+                          </div>
+                          <p>{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</p>
+                          <small>
+                            ส่งคะแนน {summary.submittedCount}/{attempt.evaluatorAssignments.length} | FAIL {failVotes}/{totalVotes || 0}
+                          </small>
+                        </div>
+                        <div className="figma-action-side">
+                          <strong>{summary.averageScore}</strong>
+                          <span>{attempt.scoreRelease ? "เปิดผลแล้ว" : attempt.proposalResult ? "รอเปิดผล" : "ต้องตัดสิน"}</span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </FigmaPanel>
+
+              <div className="figma-side-stack">
+                {latestProposalRound && ["SCORING_CLOSED", "RELEASED"].includes(latestProposalRound.status) ? (
+                  <FigmaPanel title="ขั้นตอนถัดไป" tone={waitingDecisionCount || approvedWithoutCommitteeCount ? "warning" : "success"}>
+                    <div className="space-y-3 text-sm text-muted">
+                      <p>
+                        {waitingDecisionCount
+                          ? "ยังมีโครงการรอผู้ดูแลระบบตัดสินผลการเสนอหัวข้อ"
+                          : approvedWithoutCommitteeCount
+                            ? "มีโครงการที่ผ่านแล้วรอแต่งตั้งประธานและกรรมการ"
+                            : progress1Eligibility.eligible.length
+                              ? "มีโครงการพร้อมเข้าสู่รอบสอบความก้าวหน้าครั้งที่ 1"
+                              : "ตรวจสอบโครงการที่ยังไม่พร้อมก่อนเปิดรอบสอบความก้าวหน้าครั้งที่ 1"}
+                      </p>
+                      {!waitingDecisionCount && !approvedWithoutCommitteeCount && progress1Eligibility.eligible.length ? (
+                        <Link className="button-secondary inline-flex" href="/admin/rounds">ไปเปิดรอบสอบความก้าวหน้าครั้งที่ 1</Link>
+                      ) : null}
+                    </div>
+                  </FigmaPanel>
+                ) : null}
+
+                <FigmaPanel title="Operational warnings" tone={failAlertCount || missingScoreCount ? "warning" : "success"}>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3">
+                      <span>FAIL &gt;= 50%</span>
+                      <strong>{failAlertCount}</strong>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3">
+                      <span>คะแนนยังไม่ครบ</span>
+                      <strong>{missingScoreCount}</strong>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3">
+                      <span>รอ Admin ตัดสิน</span>
+                      <strong>{waitingDecisionCount}</strong>
+                    </div>
+                  </div>
+                </FigmaPanel>
+              </div>
+            </div>
+          </>
+        ) : (
+          <FigmaPanel title="ยังไม่มีรายการเสนอหัวข้อในรอบนี้" description={rounds.length ? "มีรอบการเสนอหัวข้อแล้ว แต่ยังไม่มีนักศึกษาส่งเอกสารเสนอหัวข้อเข้ามา" : "ยังไม่มีรอบการเสนอหัวข้อ"} tone="muted">
+            <EmptyState
+              title="ยังไม่มีรายการเสนอหัวข้อในรอบนี้"
+              description={rounds.length ? "เมื่อมีนักศึกษาส่งเอกสารเสนอหัวข้อ รายการสรุปผลจะแสดงที่นี่" : "เมื่อสร้างรอบการเสนอหัวข้อแล้ว รายการสรุปผลจะแสดงที่หน้านี้"}
+            />
+          </FigmaPanel>
+        )}
+
+        {rounds.length ? (
+          rounds.map((round) => {
+            const closed = round.status === "SCORING_CLOSED" || round.status === "RELEASED";
+            return (
+              <FigmaPanel
+                key={`${round.id}-figma-admin-proposal-round`}
+                title={round.name}
+                description={closed && round.closedAt ? `ปิดรอบเมื่อ: ${formatThaiDateTime24(round.closedAt)}` : closed ? "ปิดรอบแล้ว" : "ยังเปิดอยู่"}
+                tone={closed ? "success" : "warning"}
+              >
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <FigmaStatusBadge tone={closed ? "success" : "warning"}>{roundStatusLabel(round.status)}</FigmaStatusBadge>
+                  <form action={closeProposalRound} className="rounded-lg border border-line bg-paperSoft p-3">
+                    <input type="hidden" name="round_id" value={round.id} />
+                    {!closed && missingProposalProjects.length ? (
+                      <label className="mb-2 flex items-start gap-2 text-xs leading-5 text-muted">
+                        <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                        <span>รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว</span>
+                      </label>
+                    ) : null}
+                    <SubmitButton
+                      disabled={closed}
+                      pendingText="กำลังปิดรอบ..."
+                      confirmMessage="ยืนยันการปิดรอบการเสนอหัวข้อหรือไม่? หลังจากปิดรอบแล้ว อาจารย์จะไม่สามารถแก้คะแนนได้ เว้นแต่ผู้ดูแลระบบเปิดสิทธิ์ใหม่"
+                    >
+                      {closed ? "ปิดรอบแล้ว" : "ปิดรอบการเสนอหัวข้อ"}
+                    </SubmitButton>
+                  </form>
+                </div>
+
+                {!closed && missingProposalProjects.length ? (
+                  <div className="mb-4 rounded-lg border border-warn bg-warnSoft p-3 text-sm">
+                    <div className="font-semibold">มีนักศึกษายังไม่ส่ง Proposal {missingProposalProjects.length} ราย</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
+                      {missingProposalProjects.slice(0, 10).map((project) => (
+                        <li key={project.id}>{project.student?.studentCode} {project.student?.firstNameTh} {project.student?.lastNameTh}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {round.attempts.length ? (
+                  <div className="space-y-4">
+                    {round.attempts.map((attempt) => {
+                      const summary = summarizeProposalScores(
+                        attempt.evaluatorAssignments.length,
+                        attempt.evaluatorAssignments
+                          .map((assignment) => assignment.scoreSubmission)
+                          .filter(Boolean)
+                          .map((score) => ({
+                            totalScore: Number(score!.totalScore),
+                            status: score!.status,
+                            decision: score!.proposalDecision?.decision,
+                            reason: score!.proposalDecision?.reason,
+                            overallComment: score!.overallComment
+                          }))
+                      );
+                      const failVotes = attempt.proposalVotes.filter((vote) => vote.vote === "FAIL").length;
+                      const reviseVotes = attempt.proposalVotes.filter((vote) => vote.vote === "REVISE").length;
+                      const passVotes = attempt.proposalVotes.filter((vote) => vote.vote === "PASS").length;
+                      const totalVotes = attempt.proposalVotes.length;
+                      const failRatio = totalVotes ? Math.round((failVotes / totalVotes) * 100) : 0;
+                      const finalDecision = attempt.proposalResult?.finalDecision;
+                      const decided = Boolean(attempt.proposalResult);
+                      const tone = !attempt.proposalResult ? "action" : failRatio >= 50 ? "danger" : attempt.scoreRelease ? "success" : "warning";
+                      const decisionConfirm =
+                        finalDecision === "NOT_PASS" || finalDecision === "PASS"
+                          ? "ยืนยันการบันทึกผลการตัดสินหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานตามผลที่เลือกและบันทึกประวัติไว้"
+                          : "ยืนยันการบันทึกผลการตัดสินหรือไม่?";
+
+                      return (
+                        <article key={attempt.id} id={`proposal-${attempt.id}`} className="rounded-lg border border-line bg-paperSoft p-3">
+                          <FigmaReviewLayout
+                            context={
+                              <div className="space-y-4">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="text-lg font-semibold">{attempt.project.student.studentCode}</h3>
+                                    <StatusBadge status={attempt.project.status} />
+                                    <FigmaStatusBadge tone={tone}>{decisionLabel(finalDecision)}</FigmaStatusBadge>
+                                  </div>
+                                  <p className="mt-1 text-sm text-muted">
+                                    {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
+                                  </p>
+                                  <p className="mt-2 break-words font-medium">{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</p>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  <div className="rounded-lg border border-line bg-surface p-3">
+                                    <div className="text-xs font-semibold uppercase text-muted">คะแนน</div>
+                                    <div className="mt-2 text-sm">ส่งแล้ว {summary.submittedCount}</div>
+                                    <div className="text-sm">ขาด {summary.missingCount}</div>
+                                    <div className="text-sm font-semibold">เฉลี่ย {summary.averageScore}</div>
+                                  </div>
+                                  <div className="rounded-lg border border-line bg-surface p-3">
+                                    <div className="text-xs font-semibold uppercase text-muted">Vote</div>
+                                    <div className="mt-2 text-sm">PASS {passVotes}</div>
+                                    <div className="text-sm">REVISE {reviseVotes}</div>
+                                    <div className={failRatio >= 50 ? "text-sm font-semibold text-red-700" : "text-sm"}>FAIL {failVotes} ({failRatio}%)</div>
+                                  </div>
+                                  <div className="rounded-lg border border-line bg-surface p-3">
+                                    <div className="text-xs font-semibold uppercase text-muted">Feedback</div>
+                                    <div className="mt-2 text-sm">{attempt.scoreRelease ? "เปิดผลแล้ว" : attempt.proposalResult ? "รอเปิดผล" : "รอตัดสินก่อน"}</div>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border border-line bg-surface p-3 text-sm">
+                                  <div className="font-semibold">Final decision</div>
+                                  <div className="mt-1">{decisionLabel(finalDecision)}</div>
+                                  {attempt.proposalResult ? (
+                                    <div className="mt-1 text-xs leading-5 text-muted">
+                                      decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
+                                      <br />
+                                      decided_at: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
+                                    </div>
+                                  ) : null}
+                                  {attempt.proposalResult?.finalDecisionReason ? (
+                                    <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-xs text-muted" value={attempt.proposalResult.finalDecisionReason} />
+                                  ) : null}
+                                  <div className="mt-2 rounded-md border border-line bg-paper p-2 text-xs">{nextDecisionStep(finalDecision)}</div>
+                                </div>
+
+                                <details className="rounded-lg border border-line bg-surface p-3">
+                                  <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
+                                  <div className="mt-3 space-y-2 text-xs text-muted">
+                                    {attempt.evaluatorAssignments.map((assignment) => (
+                                      <div key={assignment.id} className="rounded border border-line p-2">
+                                        <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
+                                        <div>สถานะ: {assignment.scoreSubmission?.status === "SUBMITTED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                        <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
+                                        <div>ข้อเสนอแนะ:</div>
+                                        <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </details>
+                              </div>
+                            }
+                            action={
+                              <div className="rounded-lg border border-line bg-surface p-3">
+                                <h4 className="font-semibold">การทำงาน</h4>
+                                <p className="mt-1 text-xs leading-5 text-muted">บันทึกมติสุดท้ายและเปิดข้อเสนอแนะโดยใช้ action เดิมของระบบ</p>
+                                <form action={saveFinalDecision} className="mt-3 grid gap-2">
+                                  <input type="hidden" name="attempt_id" value={attempt.id} />
+                                  <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
+                                    <option value="PASS">PASS - ผ่าน</option>
+                                    <option value="PASS_WITH_REVISION">PASS_WITH_REVISION - แก้ไข</option>
+                                    <option value="NOT_PASS">NOT_PASS - ไม่ผ่าน</option>
+                                  </select>
+                                  <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
+                                  <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
+                                    {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
+                                  </SubmitButton>
+                                </form>
+                                <form action={releaseFeedback} className="mt-2">
+                                  <input type="hidden" name="attempt_id" value={attempt.id} />
+                                  <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
+                                    {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
+                                  </SubmitButton>
+                                </form>
+                              </div>
+                            }
+                          />
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState title="ยังไม่มีรายการเสนอหัวข้อในรอบนี้" description="เมื่อมีนักศึกษาส่งเอกสารเสนอหัวข้อ รายการคะแนน ผลพิจารณา และผลตัดสินสุดท้ายจะแสดงในรอบนี้" />
+                )}
+              </FigmaPanel>
+            );
+          })
+        ) : (
+          <FigmaPanel title="ยังไม่มีรอบการเสนอหัวข้อ" tone="muted">
+            <EmptyState title="ยังไม่มีรอบการเสนอหัวข้อ" description="เมื่อสร้างรอบการเสนอหัวข้อแล้ว รายการสรุปผลจะแสดงที่หน้านี้" />
+          </FigmaPanel>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

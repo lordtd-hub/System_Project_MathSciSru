@@ -67,4 +67,18 @@ describe("admin operational UX source", () => {
     expect(source).toContain("คะแนนแต่ละรอบและสถานะจบรายคน");
     expect(source).toContain("ไม่เปลี่ยนกฎการปิดโครงงานหรือการคำนวณคะแนน");
   });
+  it("adds a safe Figma proposal renderer while preserving proposal actions", () => {
+    const source = readSource("src/app/admin/proposals/page.tsx");
+
+    expect(source).toContain("getUiMode");
+    expect(source).toContain("figma-admin-proposals");
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("FigmaStatusBadge");
+    expect(source).toContain("saveFinalDecision");
+    expect(source).toContain("releaseFeedback");
+    expect(source).toContain("closeProposalRound");
+    expect(source).toContain('name="final_decision"');
+    expect(source).toContain('name="final_decision_reason"');
+    expect(source).toContain('name="acknowledge_missing_projects"');
+  });
 });
