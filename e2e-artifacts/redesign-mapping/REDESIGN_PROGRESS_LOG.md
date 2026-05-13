@@ -557,6 +557,70 @@ This patch only changes presentation rendering for `/teacher`. It does not chang
 
 Continue Phase 4 page-by-page with teacher subpages. `/teacher/schedules` already has compact workload stabilization, but it still needs the Figma/classic renderer split and closer Figma visual composition.
 
+## 2026-05-13 - Phase 4 Teacher Proposals Live QA Verification
+
+### Scope
+
+Completed QA deployment and live verification for the `/teacher/proposals` page-level Figma renderer.
+
+### Result
+
+- Commit: `0c4ae56`.
+- QA preview: `https://system-project-math-sci-2vdne1hl7-lordtd-hubs-projects.vercel.app`.
+- Classic fallback rendered the existing Proposal review page and did not render the Figma shell.
+- Figma mode rendered `.figma-role-shell`, `.figma-teacher-proposals`, and 5 KPI cards.
+- The current QA state had no Proposal items requiring action, so no `.figma-proposal-row` action rows were expected.
+- Screenshots were saved under `e2e-artifacts/redesign-mapping/screenshots/`.
+
+### Logic Touched
+
+No.
+
+The live check confirmed the Proposal renderer split remained presentation-only and did not change scoring links, server action semantics, auth guards, lifecycle, eligibility, schema, or route behavior.
+
+### Next Phase
+
+Continue Phase 4 with `/teacher/progress1`, preserving the existing scoring form and Markdown/KaTeX evidence rendering while adding a Figma-mode review/detail composition.
+
+## 2026-05-13 - Phase 4 Teacher Progress 1 Figma Renderer Local Patch
+
+### Scope
+
+Continued the teacher page-level renderer split with `/teacher/progress1`.
+
+### Redesign Applied
+
+- Kept the existing Progress 1 scoring page as the `classic` fallback.
+- Added a `figma` branch using shared visual primitives:
+  - Figma page header;
+  - KPI cards;
+  - action-first Progress 1 queue;
+  - Project Review Detail-style two-column layout;
+  - evidence/Markdown+KaTeX context on the left;
+  - existing scoring form on the right.
+- Preserved the same `submitProgress1Score` server action, hidden `project_id` field, rubric inputs, Markdown feedback editor, and confirmation submit button.
+
+### Logic Touched
+
+No.
+
+The patch is presentation-only. It does not change auth, lifecycle, scoring, eligibility, schema, server actions, API contracts, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 20 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 352 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Encoding Note
+
+PowerShell output can render Thai text as mojibake or `?` even when the source file is UTF-8. For redesign verification, rely on file diffs/browser rendering and avoid verifier scripts that embed Thai regex through PowerShell.
+
+### Next Phase
+
+Commit/push to QA preview, live-verify `/teacher/progress1` in classic and figma modes, then continue with `/teacher/progress2`.
+
 ### Live QA Regression Found And Patched
 
 - Live QA on `https://system-project-math-sci-lirwkespy-lordtd-hubs-projects.vercel.app` found a Major UI regression: switching UI modes could leave `/teacher` as a shell-only page.

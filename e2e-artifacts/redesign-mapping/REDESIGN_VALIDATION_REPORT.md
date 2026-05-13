@@ -264,6 +264,45 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - QA deploy: pending.
 - Live QA verification: pending.
 
+## 2026-05-13 Figma Teacher Proposals Renderer Live QA Verification
+
+- Phase: Figma Visual Pass Phase 4 - Teacher proposals renderer split.
+- Commit: `0c4ae56`.
+- QA preview: `https://system-project-math-sci-2vdne1hl7-lordtd-hubs-projects.vercel.app`.
+- Live route verified: `/teacher/proposals`.
+- Classic mode result:
+  - `.teacher-workload-summary` rendered.
+  - `.figma-role-shell` and `.figma-teacher-proposals` were absent.
+  - body text rendered normally and was not shell-only.
+- Figma mode result:
+  - `.figma-role-shell` rendered.
+  - `.figma-teacher-proposals` rendered.
+  - 5 `.figma-metric-card` elements rendered.
+  - current QA state had no Proposal items requiring action, so `.figma-proposal-row` count was 0 and the empty state was expected.
+- No digest/application error was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-classic-2vdne1hl7.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-figma-2vdne1hl7.png`
+- Edge verification note:
+  - A Figma reference tab remains open in Edge.
+  - CDP verification must activate the QA tab before DOM/layout assertions because hidden tabs can temporarily look shell-only while streamed content is suspended.
+
+## 2026-05-13 Figma Teacher Progress 1 Renderer Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher Progress 1 renderer split.
+- Route patched: `/teacher/progress1`.
+- Logic touched: no.
+- Classic fallback: preserved in the existing page return.
+- Figma mode: added page-level renderer branch using shared Figma visual primitives and the same `submitProgress1Score` form/action fields.
+- Markdown+KaTeX evidence and feedback components remain in use.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 20 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 352 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deploy: pending.
+- Live QA verification: pending.
+
 ## 2026-05-13 Figma UI Mode Foundation Validation
 
 - Phase: Figma Visual Redesign Phase 0 - safe fallback foundation.

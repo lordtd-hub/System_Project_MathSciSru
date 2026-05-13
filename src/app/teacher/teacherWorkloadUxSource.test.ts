@@ -86,6 +86,20 @@ describe("teacher workload UX source", () => {
     expect(source).toContain('id={`proposal-${attempt.id}`}');
   });
 
+  it("adds figma review layout for Progress 1 without changing the scoring action", () => {
+    const source = readSource("src/app/teacher/progress1/page.tsx");
+
+    expect(source).toContain("getUiMode");
+    expect(source).toContain('uiMode === "figma"');
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-teacher-progress1");
+    expect(source).toContain("figma-progress-row");
+    expect(source).toContain("submitProgress1Score");
+    expect(source).toContain('name="project_id"');
+    expect(source).toContain("MarkdownLatexViewer");
+    expect(source).toContain("MarkdownLatexEditor");
+  });
+
   it("marks report and advisor score queues without changing unlock logic", () => {
     const reports = readSource("src/app/teacher/reports/page.tsx");
     const advisorScore = readSource("src/app/teacher/advisor-score/page.tsx");

@@ -1630,3 +1630,26 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Next step: push QA preview, live-verify `/teacher/proposals` in both classic and figma mode, then continue the teacher subpage renderer split with `/teacher/progress1`.
+- Pushed QA preview only at commit `0c4ae56`.
+- Live QA preview: `https://system-project-math-sci-2vdne1hl7-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for `/teacher/proposals` in both `classic` and `figma` modes:
+  - classic fallback rendered the existing stabilized Proposal review page;
+  - figma mode rendered the Figma shell, Proposal page surface, and 5 KPI cards;
+  - current QA state had no Proposal action rows, so the Figma empty state was expected;
+  - no shell-only, digest/application error, or unauthorized teacher guard appeared.
+- Next step: continue Phase 4 with `/teacher/progress1`.
+
+## 2026-05-13 Figma visual redesign - teacher Progress 1 renderer
+
+- Continued Phase 4 Teacher redesign with `/teacher/progress1`.
+- Added a page-level `figma` renderer branch while keeping the existing Progress 1 scoring page as the `classic` fallback.
+- The Figma Progress 1 view uses shared visual primitives for KPI cards, action-first scoring queue, and a Project Review Detail-style two-column composition.
+- Preserved the existing Progress 1 project query, teacher capability guard, `submitProgress1Score` server action, hidden `project_id` field, rubric inputs, Markdown+KaTeX evidence viewer, Markdown feedback editor, and confirmation submit button.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- teacher`
+- Full validation also passed:
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: push QA preview, live-verify `/teacher/progress1` in both classic and figma mode, then continue with `/teacher/progress2`.
