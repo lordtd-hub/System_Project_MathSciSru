@@ -459,6 +459,43 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - QA deploy: pending.
 - Live QA verification: pending rerun of 390px teacher mobile audit.
 
+## 2026-05-14 Teacher Mobile Pass And Regression Smoke
+
+- Phase: Figma Visual Pass Phase 4 - Teacher mobile/regression pass.
+- QA preview: `https://system-project-math-sci-c2f2cvutx-lordtd-hubs-projects.vercel.app`.
+- Mobile width: 390px.
+- Routes checked:
+  - `/teacher`;
+  - `/teacher/schedules`;
+  - `/teacher/proposals`;
+  - `/teacher/progress1`;
+  - `/teacher/progress2`;
+  - `/teacher/final`;
+  - `/teacher/reports`;
+  - `/teacher/advisor-score`.
+- Figma mobile result:
+  - all routes rendered `.figma-role-shell`;
+  - all routes had `docWidth = 390`;
+  - no horizontal overflow;
+  - no clipped action elements;
+  - no shell-only page;
+  - no digest/application error;
+  - no login fallback.
+- Desktop classic/figma smoke:
+  - classic mode rendered `.teacher-workload-summary` and no Figma shell on all checked teacher routes;
+  - figma mode rendered `.figma-role-shell` and no classic workload summary on all checked teacher routes;
+  - no checked route showed digest/application error or login fallback.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-dashboard-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress2-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-mobile-c2f2cvutx.png`
+- Result: Teacher redesign phase is complete enough to move to Admin redesign.
+
 ## 2026-05-13 Figma UI Mode Foundation Validation
 
 - Phase: Figma Visual Redesign Phase 0 - safe fallback foundation.

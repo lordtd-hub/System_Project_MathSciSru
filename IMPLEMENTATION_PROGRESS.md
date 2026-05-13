@@ -1764,3 +1764,23 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd run typecheck` passed after rerun.
 - Note: one typecheck attempt failed while `next build` was simultaneously regenerating `.next/types`; rerunning after build completed passed.
 - Next step: push QA preview, rerun teacher 390px mobile audit, then continue teacher regression verification.
+
+## 2026-05-14 Figma visual redesign - teacher mobile/regression pass complete
+
+- Pushed QA preview only at commit `c142965`.
+- Live QA preview: `https://system-project-math-sci-c2f2cvutx-lordtd-hubs-projects.vercel.app`.
+- Re-ran the teacher Figma mobile audit at 390px after the shell overflow patch.
+- Checked `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score`.
+- All checked routes had:
+  - `docWidth = 390` at a 390px viewport;
+  - no horizontal overflow;
+  - no clipped actions;
+  - no shell-only page;
+  - no digest/application error;
+  - no login fallback.
+- Ran a non-mutating desktop classic/figma smoke check on the same teacher routes:
+  - classic mode rendered classic workload surfaces and no Figma shell;
+  - figma mode rendered Figma shell and no classic workload summary;
+  - no route showed digest/application error or login fallback.
+- Teacher redesign phase is complete.
+- Next step: Phase 5 Admin redesign, starting with `/admin/rounds` and `/admin/closeout`.

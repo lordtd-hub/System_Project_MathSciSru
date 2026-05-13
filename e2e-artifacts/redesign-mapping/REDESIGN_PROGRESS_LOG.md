@@ -876,3 +876,48 @@ The patch is CSS-only and does not change auth, lifecycle, scoring, eligibility,
 ### Next Phase
 
 Commit/push to QA preview, rerun the teacher 390px mobile audit, then continue teacher regression verification.
+
+### QA Deployment And Mobile Verification
+
+- Commit: `c142965`.
+- QA preview: `https://system-project-math-sci-c2f2cvutx-lordtd-hubs-projects.vercel.app`.
+- Re-ran the 390px Figma mobile audit on:
+  - `/teacher`;
+  - `/teacher/schedules`;
+  - `/teacher/proposals`;
+  - `/teacher/progress1`;
+  - `/teacher/progress2`;
+  - `/teacher/final`;
+  - `/teacher/reports`;
+  - `/teacher/advisor-score`.
+- Result:
+  - all checked pages had `docWidth = 390` at a 390px viewport;
+  - no horizontal overflow;
+  - no clipped actions;
+  - no shell-only page;
+  - no digest/application error;
+  - no login fallback.
+- Saved screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-dashboard-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-schedules-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-proposals-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress1-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-progress2-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-mobile-c2f2cvutx.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-mobile-c2f2cvutx.png`
+
+### Teacher Classic/Figma Regression Smoke
+
+- Ran a non-mutating desktop smoke check across the same teacher routes in both `classic` and `figma` modes.
+- Classic mode rendered `.teacher-workload-summary` and no Figma shell on all checked routes.
+- Figma mode rendered `.figma-role-shell` and no classic workload summary on all checked routes.
+- No checked route showed a digest/application error or login fallback.
+
+### Phase Result
+
+Teacher redesign, teacher mobile pass, and teacher non-mutating regression smoke are complete.
+
+### Next Phase
+
+Begin Phase 5 Admin redesign, starting with `/admin/rounds` and `/admin/closeout`.
