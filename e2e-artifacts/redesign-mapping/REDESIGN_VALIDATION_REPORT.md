@@ -258,7 +258,7 @@ Tooling note: `.env.preview.local` did not match the active preview QA secret du
 
 - Phase: 4 - Teacher redesign, `/teacher` page-level renderer entry.
 - Scope:
-  - `ClassicTeacherDashboardView` wrapper for existing fallback body.
+  - Direct classic fallback body for the existing dashboard.
   - `FigmaTeacherDashboardView` for figma mode.
   - Shared props contract from the existing server page.
   - Figma dashboard CSS for KPI cards, action rows, schedule rows, and proposal rows.
@@ -268,5 +268,15 @@ Tooling note: `.env.preview.local` did not match the active preview QA secret du
   - `cmd /c npm.cmd test` - passed, 82 files / 350 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - Logic touched: no.
-- QA deployment: pending for this page-level renderer patch.
-- Live verification: pending after QA push.
+- QA deployment:
+  - `908c910` deployed to `https://system-project-math-sci-lirwkespy-lordtd-hubs-projects.vercel.app`.
+  - Live verification found a Major shell-only regression after switching UI modes.
+- Stabilization patch:
+  - `setUiModeAction` now redirects back to the referer path after setting the mode cookie.
+  - `/teacher` classic fallback now returns the original dashboard JSX directly.
+- Local validation after stabilization:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- figmaUiMode teacherDashboardSource` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Live verification: pending on the post-fix preview.

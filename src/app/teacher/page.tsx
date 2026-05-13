@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 import type { AssessmentRoundType, AssessmentStatus, CommitteeRole, ScoreStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
@@ -219,10 +219,6 @@ type TeacherDashboardViewProps = {
   teacherActionableTaskCount: number;
   submittedScoreStatus: ScoreStatus;
 };
-
-function ClassicTeacherDashboardView({ children }: { children: ReactNode }) {
-  return <>{children}</>;
-}
 
 function figmaMetricTone(tone?: TeacherDashboardMetricCard["tone"]): ComponentProps<typeof FigmaMetricCard>["tone"] {
   if (tone === "urgent" || tone === "ready") return "action";
@@ -725,7 +721,6 @@ export default async function TeacherDashboardPage() {
   }
 
   return (
-    <ClassicTeacherDashboardView>
     <div className="space-y-4">
       <PageHeader
         title="แดชบอร์ดอาจารย์"
@@ -861,6 +856,5 @@ export default async function TeacherDashboardPage() {
         </div>
       </section>
     </div>
-    </ClassicTeacherDashboardView>
   );
 }

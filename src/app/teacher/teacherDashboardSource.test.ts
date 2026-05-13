@@ -34,8 +34,8 @@ describe("teacher dashboard source", () => {
     const page = source();
 
     expect(page).toContain("getUiMode");
-    expect(page).toContain("ClassicTeacherDashboardView");
     expect(page).toContain("FigmaTeacherDashboardView");
+    expect(page).toContain("return <FigmaTeacherDashboardView");
     expect(page).toContain('uiMode === "figma"');
     expect(page).toContain("FigmaPageHeader");
     expect(page).toContain("FigmaMetricCard");

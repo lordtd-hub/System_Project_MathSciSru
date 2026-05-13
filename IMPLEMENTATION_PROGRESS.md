@@ -1576,7 +1576,7 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 
 - Continued the Figma Visual Redesign Implementation Pass into Phase 4 Teacher redesign.
 - Added the first page-level renderer branch on `/teacher`:
-  - classic mode keeps the existing dashboard body as fallback;
+  - classic mode keeps the existing dashboard body as the direct fallback;
   - figma mode renders `FigmaTeacherDashboardView` with the same server-derived props.
 - The Figma teacher dashboard now uses the shared visual primitives for header, KPI cards, action-first queue rows, schedule rows, proposal review rows, and notification panels.
 - Page ownership remains unchanged: data fetching, auth/capability guards, links, forms, and server actions stay in `src/app/teacher/page.tsx`.
@@ -1587,3 +1587,12 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Next step: deploy this renderer patch to QA, live-verify `/teacher` in classic and figma mode, then continue the teacher subpage renderer split starting with `/teacher/schedules`.
+- Live QA on `https://system-project-math-sci-lirwkespy-lordtd-hubs-projects.vercel.app` found a Major shell-only regression after UI mode switching.
+- Stabilization patch:
+  - `setUiModeAction` redirects back to the current route after setting the UI mode cookie.
+  - `/teacher` classic fallback returns the original JSX directly.
+- Re-validation after stabilization passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- figmaUiMode teacherDashboardSource`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`

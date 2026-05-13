@@ -437,7 +437,7 @@ Started the first page-level `classic` / `figma` body split on `/teacher`.
 
 ### Redesign Applied
 
-- Kept the classic teacher dashboard body available as `ClassicTeacherDashboardView`.
+- Kept the classic teacher dashboard body as the direct fallback renderer.
 - Added `FigmaTeacherDashboardView` for `figma` mode.
 - Reused the existing server page as the owner of data fetching, auth guards, teacher capability checks, server actions, links, and queue source data.
 - Passed one shared `teacherDashboardViewProps` contract into the Figma renderer.
@@ -466,3 +466,16 @@ This patch only changes presentation rendering for `/teacher`. It does not chang
 ### Next Phase
 
 Continue Phase 4 page-by-page with teacher subpages. `/teacher/schedules` already has compact workload stabilization, but it still needs the Figma/classic renderer split and closer Figma visual composition.
+
+### Live QA Regression Found And Patched
+
+- Live QA on `https://system-project-math-sci-lirwkespy-lordtd-hubs-projects.vercel.app` found a Major UI regression: switching UI modes could leave `/teacher` as a shell-only page.
+- Root cause: the UI mode server action updated the cookie without redirecting back to the current route, and the first classic wrapper abstraction made fallback rendering harder to recover safely.
+- Patch:
+  - `setUiModeAction` now redirects back to the current referer path after setting the cookie.
+  - `/teacher` classic mode now returns the original dashboard JSX directly as the safest fallback.
+- Validation after patch:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- figmaUiMode teacherDashboardSource` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
