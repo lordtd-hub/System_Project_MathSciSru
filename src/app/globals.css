@@ -446,6 +446,16 @@
     border-left-width: 4px;
   }
 
+  .teacher-review-card {
+    background: linear-gradient(180deg, var(--surface), var(--paper-2));
+    border-left-width: 4px;
+    border-left-color: var(--red-700);
+  }
+
+  .teacher-review-card :where(form, .markdown-latex-viewer, .state-surface, .rounded-md.border.border-line) {
+    max-width: 100%;
+  }
+
   .panel > h2:first-child,
   .section-card > h2:first-child {
     @apply mb-4 border-b border-line pb-3 text-lg font-semibold text-ink;

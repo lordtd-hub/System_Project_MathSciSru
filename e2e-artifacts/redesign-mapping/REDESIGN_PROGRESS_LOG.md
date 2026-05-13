@@ -68,3 +68,45 @@ Screenshots were recorded under `e2e-artifacts/redesign-mapping/screenshots/` us
 ### Remaining Risk
 
 Low. The patch is presentation-only and uses existing component props.
+
+## 2026-05-13 - Phase 2 Teacher Subpage Redesign
+
+### Routes / Components
+
+- `/teacher/schedules`
+- `/teacher/proposals`
+- `/teacher/progress1`
+- `/teacher/progress2`
+- `/teacher/final`
+- `/teacher/reports`
+- `/teacher/advisor-score`
+- Shared stylesheet: `src/app/globals.css`
+
+### Redesign Applied
+
+- `/teacher/schedules` now separates schedule work into action, waiting, returned, and completed buckets.
+- Added a compact schedule approval queue before the long approval cards so teachers can scan many projects before opening details.
+- Added explicit returned/rejected schedule visibility without mixing those rows into the actionable approval queue.
+- `/teacher/proposals` now adds compact navigation for pending Proposal reviews before long review cards.
+- Long teacher review/detail cards across Proposal, schedule approvals, Progress 1, Progress 2, Final, reports, and advisor-score now share a `teacher-review-card` surface for visual consistency.
+
+### Logic Touched
+
+No.
+
+Existing queries, server actions, guards, scoring forms, report review forms, and advisor score forms were preserved.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - first run hit stale `.next/types` paths from the sandbox; rerun after `next build` passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 17 tests.
+- `cmd /c npm.cmd test` - passed, 81 files / 344 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Live Verification
+
+Pending after QA push for this Phase 2 patch.
+
+### Next Phase
+
+Continue with teacher mobile pass, then teacher regression verification before moving to Admin redesign.

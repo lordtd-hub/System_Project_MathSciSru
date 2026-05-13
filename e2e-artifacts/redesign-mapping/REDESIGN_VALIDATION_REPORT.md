@@ -53,3 +53,15 @@ cmd /c npm.cmd run build
 
 - Production deployment is out of scope.
 - No production configuration changes are allowed in this redesign loop.
+
+## 2026-05-13 Local Validation For Teacher Subpages
+
+- Phase: 2 - Teacher subpage redesign.
+- Routes touched: `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, `/teacher/advisor-score`.
+- `cmd /c npm.cmd run typecheck` - initial run failed because stale `.next/types` file paths referenced the sandbox cwd; after `next build` regenerated types, rerun passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 17 tests.
+- `cmd /c npm.cmd test` - passed, 81 files / 344 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Logic touched: no.
+- QA deploy: pending for this patch.
+- Live QA verification: pending for this patch.

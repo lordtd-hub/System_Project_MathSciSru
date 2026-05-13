@@ -145,7 +145,7 @@ export default async function TeacherAdvisorScorePage({
             const latestReport = project.reportVersions[0];
             const queueState = advisorQueueStateByProjectId.get(project.id) ?? "locked";
             return (
-              <section key={project.id} className="panel">
+              <section key={project.id} className="panel teacher-review-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>

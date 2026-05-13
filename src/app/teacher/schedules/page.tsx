@@ -7,7 +7,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
+import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { hasOpenLateRoundException } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
@@ -121,6 +121,13 @@ export default async function TeacherSchedulesPage({
     isScheduleRoundReviewable(schedule) &&
     schedule.approvals.some((approval) => approval.teacherId === teacher.id && approval.decision === "PENDING")
   );
+  const pendingReviewScheduleIds = new Set(pendingReviewSchedules.map((schedule) => schedule.id));
+  const waitingSchedules = schedules.filter((schedule) =>
+    schedule.status === "PROPOSED" &&
+    isScheduleRoundReviewable(schedule) &&
+    !pendingReviewScheduleIds.has(schedule.id)
+  );
+  const returnedSchedules = schedules.filter((schedule) => schedule.status === "REJECTED");
 
   return (
     <div className="flex flex-col gap-6">
@@ -135,12 +142,73 @@ export default async function TeacherSchedulesPage({
       <TeacherWorkloadSummary
         metrics={[
           { label: "ต้องดำเนินการ", count: pendingReviewSchedules.length, tone: "action", description: "คำขอวันสอบที่รอท่านอนุมัติ" },
-          { label: "รอ", count: 0, tone: "waiting", description: "รายการที่รอคนอื่นไม่แสดงเป็นงานของท่าน" },
+          { label: "รอ", count: waitingSchedules.length, tone: "waiting", description: "รายการที่รอกรรมการท่านอื่นหรือรอสรุปสถานะ" },
           { label: "เสร็จแล้ว", count: confirmedScheduleCalendar.length, tone: "completed", description: "ตารางสอบที่ยืนยันแล้ว" },
-          { label: "ส่งกลับ", count: schedules.filter((schedule) => schedule.status === "REJECTED").length, tone: "returned", description: "คำขอที่มีผู้ไม่สะดวก" },
+          { label: "ส่งกลับ", count: returnedSchedules.length, tone: "returned", description: "คำขอที่มีผู้ไม่สะดวก" },
           { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ปิดแล้วไม่ใช่งานอนุมัติ" }
         ]}
       />
+      <TeacherQueueSection
+        title="คิวอนุมัติวันสอบ"
+        description="สรุปรายการแบบย่อก่อนลงรายละเอียด เพื่อให้สแกนงานจำนวนมากได้เร็วขึ้น"
+        count={pendingReviewSchedules.length}
+        tone="action"
+        emptyState={<EmptyState title="ยังไม่มีรายการรออนุมัติวันสอบ" description="รายการที่อนุมัติแล้วหรือรอบที่ปิดแล้วจะไม่แสดงเป็นงานที่ต้องดำเนินการ" />}
+      >
+        <TeacherCompactQueueList
+          items={pendingReviewSchedules.map((schedule) => ({
+            id: schedule.id,
+            href: `#schedule-${schedule.id}`,
+            title: schedule.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+            description: `${schedule.project.student.studentCode} ${schedule.project.student.firstNameTh} ${schedule.project.student.lastNameTh}`,
+            meta: `${scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)} · ${formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}${schedule.room ? ` · ห้อง ${schedule.room}` : ""}`,
+            badges: [
+              { label: "ต้องดำเนินการ", tone: "action" },
+              { label: scheduleStatusLabel(schedule.status), tone: "waiting" }
+            ]
+          }))}
+        />
+      </TeacherQueueSection>
+      {waitingSchedules.length ? (
+        <TeacherQueueSection
+          title="รอกรรมการท่านอื่น / อ่านสถานะ"
+          description="รายการที่ท่านไม่ต้องกดอนุมัติตอนนี้ แยกออกจากงานหลักเพื่อลดความรกของคิว"
+          count={waitingSchedules.length}
+          tone="waiting"
+        >
+          <TeacherCompactQueueList
+            items={waitingSchedules.map((schedule) => ({
+              id: schedule.id,
+              title: schedule.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+              description: `${schedule.project.student.studentCode} ${schedule.project.student.firstNameTh} ${schedule.project.student.lastNameTh}`,
+              meta: `${scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)} · ${formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}`,
+              badges: [
+                { label: scheduleStatusLabel(schedule.status), tone: "waiting" }
+              ]
+            }))}
+          />
+        </TeacherQueueSection>
+      ) : null}
+      {returnedSchedules.length ? (
+        <TeacherQueueSection
+          title="ส่งกลับ / ต้องเสนอเวลาใหม่"
+          description="รายการที่มีผู้ไม่สะดวก แยกไว้เป็นหลักฐานสถานะโดยไม่ปนกับงานอนุมัติ"
+          count={returnedSchedules.length}
+          tone="returned"
+        >
+          <TeacherCompactQueueList
+            items={returnedSchedules.map((schedule) => ({
+              id: schedule.id,
+              title: schedule.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+              description: `${schedule.project.student.studentCode} ${schedule.project.student.firstNameTh} ${schedule.project.student.lastNameTh}`,
+              meta: `${scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)} · ${formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}`,
+              badges: [
+                { label: scheduleStatusLabel(schedule.status), tone: "returned" }
+              ]
+            }))}
+          />
+        </TeacherQueueSection>
+      ) : null}
       <section className="panel order-3">
         <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
         <p className="mt-1 text-sm text-muted">
@@ -201,7 +269,7 @@ export default async function TeacherSchedulesPage({
           const rejectedCount = schedule.approvals.filter((approval) => approval.decision === "REJECT").length;
           const pendingCount = Math.max(requiredApproverIds.length - approvedCount - rejectedCount, 0);
           return (
-          <section key={schedule.id} className="panel">
+          <section key={schedule.id} id={`schedule-${schedule.id}`} className="panel teacher-review-card scroll-mt-24">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="font-semibold">{scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)}</h2>

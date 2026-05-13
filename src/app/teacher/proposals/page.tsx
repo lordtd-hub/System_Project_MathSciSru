@@ -5,7 +5,7 @@ import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
+import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { openProposalScoring } from "../actions";
@@ -47,7 +47,7 @@ export default async function TeacherProposalsPage() {
   const renderAttempt = (attempt: (typeof attempts)[number], submitted: boolean) => {
     const assignment = attempt.evaluatorAssignments[0];
     return (
-      <section key={attempt.id} className="panel flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section key={attempt.id} id={`proposal-${attempt.id}`} className="panel teacher-review-card scroll-mt-24 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-semibold">{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
           <p className="mt-1 text-sm text-muted">
@@ -109,7 +109,22 @@ export default async function TeacherProposalsPage() {
             tone="action"
             emptyState={<EmptyState title="ไม่มี Proposal ที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วถูกแยกไปอยู่ในส่วนเสร็จแล้ว" />}
           >
-            <div className="space-y-3">{pendingAttempts.map((attempt) => renderAttempt(attempt, false))}</div>
+            <div className="space-y-3">
+              <TeacherCompactQueueList
+                items={pendingAttempts.map((attempt) => ({
+                  id: attempt.id,
+                  href: `#proposal-${attempt.id}`,
+                  title: attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ",
+                  description: `${attempt.project.student.studentCode} ${attempt.project.student.firstNameTh} ${attempt.project.student.lastNameTh}`,
+                  meta: "Proposal",
+                  badges: [
+                    { label: "รอประเมิน", tone: "action" },
+                    { label: "Proposal", tone: "waiting" }
+                  ]
+                }))}
+              />
+              {pendingAttempts.map((attempt) => renderAttempt(attempt, false))}
+            </div>
           </TeacherQueueSection>
           <TeacherQueueSection
             title="เสร็จแล้ว / อ่านย้อนหลัง"

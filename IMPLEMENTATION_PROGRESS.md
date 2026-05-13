@@ -1485,3 +1485,16 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd run typecheck`
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
+
+## 2026-05-13 Full UI redesign loop - teacher subpages
+
+- Continued Phase 2 teacher subpage redesign after the shared teacher workload foundation.
+- `/teacher/schedules` now separates action, waiting, returned, and completed schedule states, with a compact approval queue before long approval cards.
+- `/teacher/proposals` now adds compact navigation for pending Proposal review cards.
+- Progress 1, Progress 2, Final, Report review, Advisor score, Proposal review, and schedule approval detail cards now share the same `teacher-review-card` presentation surface.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, or production changes were made.
+- Validation:
+  - `cmd /c npm.cmd run typecheck` - passed after build regenerated `.next/types`.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 17 tests.
+  - `cmd /c npm.cmd test` - passed, 81 files / 344 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.

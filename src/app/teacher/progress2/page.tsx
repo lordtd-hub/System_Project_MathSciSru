@@ -143,7 +143,7 @@ export default async function TeacherProgress2Page({
             : "";
 
           return (
-            <section key={project.id} id={`project-${project.id}`} className="panel scroll-mt-24">
+            <section key={project.id} id={`project-${project.id}`} className="panel teacher-review-card scroll-mt-24">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>

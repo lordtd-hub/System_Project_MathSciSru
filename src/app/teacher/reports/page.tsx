@@ -128,7 +128,7 @@ export default async function TeacherReportsPage({
             const queueState = reportQueueStateByProjectId.get(project.id) ?? "waiting";
 
             return (
-              <section key={project.id} className="panel">
+              <section key={project.id} className="panel teacher-review-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
