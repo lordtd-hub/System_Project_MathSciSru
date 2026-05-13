@@ -294,6 +294,71 @@ async function inspectProject(client, mode) {
   return { ...state, screenshot: filePath };
 }
 
+async function inspectProposal(client, mode) {
+  await setUiMode(client, mode);
+  await goto(client, `${baseUrl}/student/proposal`);
+  const state = await evaluate(
+    client,
+    `
+      (() => {
+        const text = document.body ? document.body.innerText : "";
+        const root = document.scrollingElement || document.documentElement;
+        const body = document.body;
+        const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+        const viewportWidth = window.innerWidth;
+        const fieldNames = [
+          "project_title_th",
+          "project_title_en",
+          "abstract_of_talk",
+          "motivation_background",
+          "objectives",
+          "proposed_methods",
+          "expected_outcomes",
+          "questions_for_teachers",
+          "student_declaration"
+        ];
+        const hasForm = Boolean(document.querySelector('form [name="project_title_th"]'));
+        const missingFields = hasForm ? fieldNames.filter((name) => !document.querySelector('[name="' + name + '"]')) : [];
+        return {
+          url: location.href,
+          bodyLength: text.trim().length,
+          hasFigmaShell: Boolean(document.querySelector(".figma-role-shell")),
+          hasRouteClass: Boolean(document.querySelector(".figma-student-proposal")),
+          hasClassicSummary: Boolean(document.querySelector('[data-testid="student-readability-summary"]')),
+          hasSubmittedSummary: Boolean(document.querySelector('[data-testid="student-proposal-submitted-summary"]')),
+          hasDraftSave: Boolean(document.querySelector("[data-proposal-draft-save]")),
+          hasSubmit: Boolean(document.querySelector('button[type="submit"]')),
+          hasForm,
+          missingFields,
+          hasDigest: /Application error|NEXT_REDIRECT|digest/i.test(text),
+          isLogin: location.pathname.includes("/qa-login"),
+          width,
+          viewportWidth,
+          overflow: width - viewportWidth
+        };
+      })()
+    `,
+    `${mode} student proposal inspect`
+  );
+  if (state.isLogin) throw new Error(`${mode}: redirected to QA login`);
+  if (state.hasDigest) throw new Error(`${mode}: digest/application error`);
+  if (state.bodyLength < 180) throw new Error(`${mode}: shell-only body`);
+  if (!state.hasForm && !state.hasSubmittedSummary) throw new Error(`${mode}: missing proposal form/submitted summary`);
+  if (state.missingFields.length) throw new Error(`${mode}: missing form fields ${state.missingFields.join(", ")}`);
+  if (state.hasForm && !state.hasDraftSave) throw new Error(`${mode}: missing proposal draft-save button`);
+  if (state.hasForm && !state.hasSubmit) throw new Error(`${mode}: missing submit button`);
+  if (viewportMode === "mobile" && state.overflow > 4) throw new Error(`${mode}: horizontal overflow ${state.overflow}px`);
+  if (mode === "classic") {
+    if (state.hasFigmaShell || state.hasRouteClass) throw new Error("classic: unexpected Figma student proposal renderer");
+    if (!state.hasClassicSummary) throw new Error("classic: expected classic student readability summary");
+    return { ...state, screenshot: null };
+  }
+  if (!state.hasFigmaShell) throw new Error("figma: missing Figma shell");
+  if (!state.hasRouteClass) throw new Error("figma: missing figma-student-proposal");
+  const filePath = await screenshot(client, `student-proposal-renderer-figma-${viewportMode}-${deploymentSlug}.png`);
+  return { ...state, screenshot: filePath };
+}
+
 async function main() {
   const client = await connectPage();
   await qaLoginStudent(client);
@@ -301,7 +366,9 @@ async function main() {
     { route: "/student", mode: "classic", result: await inspectDashboard(client, "classic") },
     { route: "/student", mode: "figma", result: await inspectDashboard(client, "figma") },
     { route: "/student/project", mode: "classic", result: await inspectProject(client, "classic") },
-    { route: "/student/project", mode: "figma", result: await inspectProject(client, "figma") }
+    { route: "/student/project", mode: "figma", result: await inspectProject(client, "figma") },
+    { route: "/student/proposal", mode: "classic", result: await inspectProposal(client, "classic") },
+    { route: "/student/proposal", mode: "figma", result: await inspectProposal(client, "figma") }
   ];
   client.ws.close();
   console.log(JSON.stringify({ baseUrl, viewportMode, viewport, studentKey, results }, null, 2));

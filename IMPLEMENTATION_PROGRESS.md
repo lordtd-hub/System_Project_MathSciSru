@@ -1887,3 +1887,21 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - both modes kept required form fields, draft-save, and submit button;
   - desktop and 390px mobile had no shell-only page, digest/application error, login fallback, or horizontal overflow.
 - Next step: continue Phase 6 with `/student/proposal`.
+
+## 2026-05-14 Figma visual redesign - Student proposal renderer
+
+- Continued Phase 6 Student redesign with `/student/proposal`.
+- Added a conservative page-level `figma` renderer branch while keeping existing Proposal content and workflow behavior as the classic fallback contract.
+- The Figma Proposal page adds:
+  - student page header;
+  - status badge;
+  - KPI cards for actionable, waiting, submitted, and visible-comment states.
+- Preserved the existing student guard, Proposal round/open/late exception checks, submitted-summary behavior, `ProposalDraftForm`, `saveProposalSubmission` server action, draft-save behavior, material link field, timeline builder, Markdown+KaTeX editors/viewer, declaration checkbox, field names, rubric panel, visible teacher comments, and route behavior.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Extended the student Edge CDP verifier to check `/student/proposal` classic/figma rendering and proposal form/submitted-summary state.
+- Next step: push QA preview, live-verify `/student/proposal`, then continue Phase 6 with `/student/schedule`.

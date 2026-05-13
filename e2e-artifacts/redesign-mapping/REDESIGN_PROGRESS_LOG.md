@@ -1166,3 +1166,36 @@ Student project renderer is complete and live-verified.
 ### Next Phase
 
 Continue Phase 6 with `/student/proposal`.
+
+## 2026-05-14 - Phase 6 Student Proposal Figma Renderer
+
+### Scope
+
+Continued Phase 6 Student redesign with:
+
+- `/student/proposal`
+
+### Patch
+
+- Added a conservative page-level Figma renderer branch for the Proposal submission page.
+- Kept the existing Proposal page content, rubric, submitted summary, comments, late/exception warnings, and submission form behavior as the classic fallback contract.
+- Added Figma page header, status badge, and KPI cards for actionable, waiting, submitted, and visible-comment states.
+- Preserved `ProposalDraftForm`, `saveProposalSubmission`, proposal draft-save, submit button, material link field, timeline builder, Markdown+KaTeX editors/viewer, and every existing form field name.
+- Extended the student Edge CDP verifier to check `/student/proposal` in both classic and figma mode, accepting either the live form state or submitted-summary state.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 10 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 360 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Push QA preview, live-verify `/student/proposal` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/schedule`.

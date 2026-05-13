@@ -60,4 +60,27 @@ describe("student dashboard source", () => {
     expect(page).toContain("MaterialLinkField");
     expect(page).toContain("MarkdownLatexViewer");
   });
+
+  it("adds a conservative Figma proposal renderer while preserving proposal submission fields", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/student/proposal/page.tsx"), "utf8");
+
+    expect(page).toContain("getUiMode");
+    expect(page).toContain("figma-student-proposal");
+    expect(page).toContain("FigmaPageHeader");
+    expect(page).toContain("FigmaMetricCard");
+    expect(page).toContain("ProposalDraftForm action={saveProposalSubmission}");
+    expect(page).toContain('name="project_title_th"');
+    expect(page).toContain('name="project_title_en"');
+    expect(page).toContain('name="abstract_of_talk"');
+    expect(page).toContain('name="motivation_background"');
+    expect(page).toContain('name="objectives"');
+    expect(page).toContain('name="proposed_methods"');
+    expect(page).toContain('name="expected_outcomes"');
+    expect(page).toContain("ProposalTimelineBuilder");
+    expect(page).toContain('name="questions_for_teachers"');
+    expect(page).toContain('name="student_declaration"');
+    expect(page).toContain("data-proposal-draft-save");
+    expect(page).toContain("ProposalQaRubricPanel");
+    expect(page).toContain("MarkdownLatexViewer");
+  });
 });

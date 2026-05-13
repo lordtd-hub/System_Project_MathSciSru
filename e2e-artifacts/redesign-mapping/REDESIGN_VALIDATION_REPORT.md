@@ -596,6 +596,39 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-8rztp26xw.png`
 - Result: `/student/project` is complete for non-mutating visual/regression verification.
 
+## 2026-05-14 Student Proposal Renderer Validation
+
+- Phase: 6 - Student redesign.
+- Scope:
+  - `/student/proposal`.
+- Renderer status:
+  - classic fallback remains available;
+  - figma branch added with `.figma-student-proposal`;
+  - Proposal form/submitted-summary/comment/rubric behavior remains owned by the existing page.
+- Logic touched: no.
+- Form contract preserved:
+  - `ProposalDraftForm action={saveProposalSubmission}`;
+  - `project_title_th`;
+  - `project_title_en`;
+  - `abstract_of_talk`;
+  - `motivation_background`;
+  - `objectives`;
+  - `proposed_methods`;
+  - `expected_outcomes`;
+  - `ProposalTimelineBuilder`;
+  - `questions_for_teachers`;
+  - `student_declaration`;
+  - `MaterialLinkField`;
+  - `data-proposal-draft-save`;
+  - submit button.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 10 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 360 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deployment: pending.
+- Live verification: pending.
+
 ### QA Deployment And Live Verification
 
 - Commit: `4174383`.
