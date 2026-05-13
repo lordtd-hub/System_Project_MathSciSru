@@ -262,7 +262,7 @@ async function inspectProject(client, mode) {
           bodyLength: text.trim().length,
           hasFigmaShell: Boolean(document.querySelector(".figma-role-shell")),
           hasRouteClass: Boolean(document.querySelector(".figma-student-project")),
-          hasClassicSummary: Boolean(document.querySelector(".student-readability-summary")),
+          hasClassicSummary: Boolean(document.querySelector('[data-testid="student-readability-summary"]')),
           hasDraftSave: Boolean(document.querySelector("[data-draft-save]")),
           hasSubmit: Boolean(document.querySelector('button[type="submit"]')),
           missingFields,

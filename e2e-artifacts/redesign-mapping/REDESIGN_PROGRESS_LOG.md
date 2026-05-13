@@ -1133,3 +1133,36 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 ### Next Phase
 
 Push QA preview, live-verify `/student/project` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/proposal`.
+
+### QA Deployment And Live Verification
+
+- Commit: `1ad318e`.
+- QA preview: `https://system-project-math-sci-8rztp26xw-lordtd-hubs-projects.vercel.app`.
+- Live verification used the persistent Edge CDP session and explicitly selected the `student` role dropdown before submitting QA login.
+- Checked `/student` and `/student/project` in `classic` and `figma` mode.
+- `/student/project` desktop result:
+  - classic mode rendered no `.figma-role-shell` and no `.figma-student-project`;
+  - figma mode rendered `.figma-role-shell` and `.figma-student-project`;
+  - both modes kept draft-save, submit button, and required form fields;
+  - no shell-only page, digest/application error, login fallback, or detected overflow.
+- `/student/project` 390px mobile result:
+  - classic/figma mode separation remained correct;
+  - `docWidth = 390`;
+  - all required form fields remained present;
+  - no horizontal overflow, shell-only page, digest/application error, or login fallback.
+- Verifier note: the first live run revealed a selector mismatch in the verifier for the classic readability summary; the verifier was corrected to use the component's `data-testid` and then passed.
+
+### Screenshots
+
+- `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-desktop-8rztp26xw.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-mobile-8rztp26xw.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-8rztp26xw.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-8rztp26xw.png`
+
+### Phase Result
+
+Student project renderer is complete and live-verified.
+
+### Next Phase
+
+Continue Phase 6 with `/student/proposal`.

@@ -578,6 +578,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 
 ### QA Deployment And Live Verification
 
+- Commit: `1ad318e`.
+- QA preview: `https://system-project-math-sci-8rztp26xw-lordtd-hubs-projects.vercel.app`.
+- Student verifier now checks `/student` and `/student/project` in both `classic` and `figma` mode.
+- Live QA verification:
+  - persistent Edge CDP session used;
+  - QA login verifier explicitly selected the `student` role dropdown before identity selection;
+  - `/student/project` classic mode rendered no `.figma-role-shell`, no `.figma-student-project`, and retained the classic readability summary;
+  - `/student/project` figma mode rendered `.figma-role-shell` and `.figma-student-project`;
+  - both modes retained draft-save, submit button, and all required advisor request form fields;
+  - desktop verification showed no shell-only page, digest/application error, login fallback, or detected overflow;
+  - 390px mobile verification showed `docWidth = 390` with no horizontal overflow.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-desktop-8rztp26xw.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-project-renderer-figma-mobile-8rztp26xw.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-desktop-8rztp26xw.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-8rztp26xw.png`
+- Result: `/student/project` is complete for non-mutating visual/regression verification.
+
+### QA Deployment And Live Verification
+
 - Commit: `4174383`.
 - QA preview: `https://system-project-math-sci-844q8gqj9-lordtd-hubs-projects.vercel.app`.
 - Added `e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js` for safe student dashboard classic/figma verification.
