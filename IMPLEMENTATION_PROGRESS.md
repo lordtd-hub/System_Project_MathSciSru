@@ -1749,3 +1749,18 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - no shell-only, digest/application error, login fallback, or unauthorized teacher guard appeared.
 - Teacher subpage renderer split is now complete.
 - Next step: start the teacher mobile/regression pass.
+
+## 2026-05-14 Figma visual redesign - teacher mobile overflow patch
+
+- Started the teacher mobile pass on the latest QA preview at 390px in Figma mode.
+- Checked `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score`.
+- All checked pages rendered without shell-only pages, digest/application errors, login fallback, or clipped actions.
+- Found a shared 4px horizontal overflow caused by the base mobile negative horizontal margin on `.figma-role-shell`.
+- Patched `src/app/globals.css` to remove the base mobile negative horizontal margin while keeping the wider breakpoint margins.
+- Logic touched: no. CSS-only.
+- Validation:
+  - `cmd /c npm.cmd test` passed.
+  - `cmd /c npm.cmd run build` passed.
+  - `cmd /c npm.cmd run typecheck` passed after rerun.
+- Note: one typecheck attempt failed while `next build` was simultaneously regenerating `.next/types`; rerunning after build completed passed.
+- Next step: push QA preview, rerun teacher 390px mobile audit, then continue teacher regression verification.

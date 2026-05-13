@@ -439,6 +439,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-classic-2vcb55iii.png`
   - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-figma-2vcb55iii.png`
 
+## 2026-05-14 Teacher Mobile Overflow Patch Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher mobile pass.
+- Scope: shared Figma role shell CSS.
+- Logic touched: no.
+- Initial mobile audit:
+  - `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score` rendered in Figma mode at 390px;
+  - no shell-only page, digest/application error, login fallback, or clipped action appeared;
+  - shared shell had 4px horizontal overflow on all checked pages.
+- Patch:
+  - removed base mobile negative horizontal margin from `.figma-role-shell`;
+  - retained wider breakpoint margins.
+- Validation:
+  - `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+  - `cmd /c npm.cmd run typecheck` - passed after rerun.
+- Note: an earlier typecheck attempt failed while `next build` was simultaneously regenerating `.next/types`; rerunning typecheck after build completed passed.
+- QA deploy: pending.
+- Live QA verification: pending rerun of 390px teacher mobile audit.
+
 ## 2026-05-13 Figma UI Mode Foundation Validation
 
 - Phase: Figma Visual Redesign Phase 0 - safe fallback foundation.

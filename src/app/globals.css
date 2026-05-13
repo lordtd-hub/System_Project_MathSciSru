@@ -682,7 +682,7 @@
 
 @layer components {
   .figma-role-shell {
-    @apply -mx-4 -my-5 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[260px_minmax(0,1fr)];
+    @apply mx-0 -my-5 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[260px_minmax(0,1fr)];
   }
 
   .figma-role-sidebar {

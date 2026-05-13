@@ -843,3 +843,36 @@ Move to the teacher mobile/regression pass.
 - Screenshots:
   - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-classic-2vcb55iii.png`
   - `e2e-artifacts/redesign-mapping/screenshots/teacher-advisor-score-figma-2vcb55iii.png`
+
+## 2026-05-14 - Phase 4 Teacher Mobile Overflow Patch
+
+### Scope
+
+Started the teacher mobile pass on the latest QA preview and checked `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score` at 390px in Figma mode.
+
+### Finding
+
+- All checked teacher pages rendered without shell-only pages, digest/application errors, login fallback, or clipped actions.
+- The shared Figma role shell caused a small 4px horizontal overflow on mobile (`docWidth 394` at a 390px viewport).
+
+### Patch
+
+- Removed the base mobile negative horizontal margin from `.figma-role-shell`.
+- Kept the existing wider breakpoint margins for larger screens.
+
+### Logic Touched
+
+No.
+
+The patch is CSS-only and does not change auth, lifecycle, scoring, eligibility, schema, server actions, API contracts, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- `cmd /c npm.cmd run typecheck` - passed after rerun.
+- Note: one earlier typecheck attempt failed while `next build` was simultaneously regenerating `.next/types`; rerunning typecheck after build completed passed.
+
+### Next Phase
+
+Commit/push to QA preview, rerun the teacher 390px mobile audit, then continue teacher regression verification.
