@@ -1323,6 +1323,22 @@ The patch is presentation-only and does not change auth, lifecycle, scoring, eli
 - `cmd /c npm.cmd test` - passed, 82 files / 362 tests.
 - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 
+### QA Deployment And Live Verification
+
+- Commit: `42eda48`.
+- QA preview: `https://system-project-math-sci-cnjb5ikb1-lordtd-hubs-projects.vercel.app`.
+- Live QA verification passed with the persistent Edge CDP session.
+- QA login guard: the verifier explicitly selected the `student` role dropdown before the student identity and used the QA secret only as a process-scoped environment value.
+- Desktop verification passed for `/student`, `/student/project`, `/student/proposal`, `/student/schedule`, and `/student/report` in classic/figma mode.
+- 390px mobile verification passed for the same route set.
+- `/student/report` classic mode rendered no `.figma-role-shell`, no `.figma-student-report`, retained `student-report-page-content`, retained the classic readability summary, and showed report history/status content.
+- `/student/report` figma mode rendered `.figma-role-shell`, `.figma-student-report`, retained `student-report-page-content`, and showed report history/status content.
+- Current QA state does not show an active report form for Student01; the verifier checks form fields only when the report form is present, and the source test preserves the form contract.
+- No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-report-renderer-figma-desktop-cnjb5ikb1.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-report-renderer-figma-mobile-cnjb5ikb1.png`
+
 ### Next Phase
 
-Push QA preview, live-verify `/student/report` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/feedback`.
+Continue Phase 6 with `/student/feedback`.

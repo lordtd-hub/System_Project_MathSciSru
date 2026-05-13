@@ -1951,4 +1951,7 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Extended the student Edge CDP verifier to check `/student/report` classic/figma rendering and report page-content presence.
-- Next step: push QA preview, live-verify `/student/report`, then continue Phase 6 with `/student/feedback`.
+- QA preview `https://system-project-math-sci-cnjb5ikb1-lordtd-hubs-projects.vercel.app` passed live Edge CDP verification for `/student/report` in classic and figma mode on desktop and 390px mobile.
+- Current QA state showed report history/status content rather than an active report form, which is expected after Wave 1 report completion; source tests preserve the active form contract.
+- No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Next step: continue Phase 6 with `/student/feedback`.

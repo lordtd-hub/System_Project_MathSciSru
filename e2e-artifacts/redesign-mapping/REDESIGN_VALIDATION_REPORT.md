@@ -671,8 +671,27 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `node --check e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js` - passed.
   - `cmd /c npm.cmd test` - passed, 82 files / 362 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
-- QA deployment: pending.
-- Live verification: pending.
+- QA deployment: passed.
+- Live verification: passed.
+
+### QA Deployment And Live Verification
+
+- Commit: `42eda48`.
+- QA preview: `https://system-project-math-sci-cnjb5ikb1-lordtd-hubs-projects.vercel.app`.
+- Tooling: persistent Edge CDP verifier.
+- Viewports:
+  - desktop 1440px;
+  - mobile 390px.
+- QA login guard: selected `#role = student` before selecting the student identity.
+- Result:
+  - `/student/report` classic mode kept classic fallback rendering and `student-report-page-content`;
+  - `/student/report` figma mode rendered `.figma-role-shell`, `.figma-student-report`, and retained `student-report-page-content`;
+  - current QA state showed report history/status content rather than an active report form, which is expected after Wave 1 report completion;
+  - no shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/student-report-renderer-figma-desktop-cnjb5ikb1.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/student-report-renderer-figma-mobile-cnjb5ikb1.png`
+- Result: `/student/report` is complete for non-mutating visual/regression verification in the current Wave 1 state.
 
 ### QA Deployment And Live Verification
 

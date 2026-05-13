@@ -418,11 +418,11 @@ async function inspectReport(client, mode) {
         const body = document.body;
         const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
         const viewportWidth = window.innerWidth;
-        const form = document.querySelector('form[action]');
+        const form = document.querySelector('[name="report_drive_link"]')?.closest("form") || null;
         const reportFields = ["report_drive_link", "report_note"];
         const missingFields = form ? reportFields.filter((name) => !form.querySelector('[name="' + name + '"]')) : [];
-        const hasDraftSave = Boolean(document.querySelector("[data-draft-save]"));
-        const hasSubmit = Boolean(document.querySelector('button[type="submit"]'));
+        const hasDraftSave = Boolean(form?.querySelector("[data-draft-save]"));
+        const hasSubmit = Boolean(form?.querySelector('button[type="submit"]'));
         const hasHistory = text.includes("ประวัติ") || text.includes("ฉบับที่");
         return {
           url: location.href,
