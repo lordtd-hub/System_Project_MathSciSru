@@ -117,6 +117,7 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 ## 2026-05-13 Wave 2 12-project full-loop completion
 
 - Wave 2 12-project operational loop completed on QA preview `https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app`.
+- Post-push read-only verification passed on QA preview `https://system-project-math-sci-bl6w48tun-lordtd-hubs-projects.vercel.app`.
 - Wave 1 historical data was preserved.
 - Production was not touched during the Wave 2 execution loop.
 - Completed Wave 2 scope:

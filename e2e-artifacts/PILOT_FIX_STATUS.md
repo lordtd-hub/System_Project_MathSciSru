@@ -284,7 +284,7 @@ Status:
 
 Latest QA preview used:
 
-- `https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app`
+- `https://system-project-math-sci-bl6w48tun-lordtd-hubs-projects.vercel.app`
 
 Completed scope:
 
@@ -312,6 +312,11 @@ Major issue found and fixed:
 - Live verification passed with W2-10 Progress 1 recovery.
 
 No active Major/Blocker remains from the 12-project loop.
+
+Post-push verification:
+
+- Commit `1ef24ea` deployed to a new QA preview.
+- Read-only Admin evidence/export smoke passed on the new preview.
 
 Current recommendation:
 

@@ -243,6 +243,7 @@ Status: completed.
 QA preview:
 
 - `https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app`
+- Post-commit docs/scripts preview verified: `https://system-project-math-sci-bl6w48tun-lordtd-hubs-projects.vercel.app`
 
 Actions:
 
@@ -301,4 +302,4 @@ Recommendation:
 
 ## Current Recommendation
 
-Wave 2 12-project operational loop is complete. Prepare a focused 20-project expansion plan next, without resetting Wave 1 or Wave 2 data and without touching production.
+Wave 2 12-project operational loop is complete. Latest verified QA preview is `https://system-project-math-sci-bl6w48tun-lordtd-hubs-projects.vercel.app`. Prepare a focused 20-project expansion plan next, without resetting Wave 1 or Wave 2 data and without touching production.

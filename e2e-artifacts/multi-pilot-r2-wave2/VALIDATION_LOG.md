@@ -104,3 +104,13 @@ Validation before committing this no-app-code loop:
 - `cmd /c npm.cmd test` - passed, 81 files / 341 tests.
 - QA secret scan over `e2e-artifacts`, `src`, `IMPLEMENTATION_PROGRESS.md`, `README.md`, and `.env.example` - passed for real secrets.
 - Scan note: only placeholder `DIRECT_URL` references were found in `README.md` and `.env.example`; no real QA secret or pasted Supabase credential was found.
+
+Post-push QA preview verification:
+
+- Commit `1ef24ea` pushed to `qa-preview`.
+- New QA preview: `https://system-project-math-sci-bl6w48tun-lordtd-hubs-projects.vercel.app`.
+- Vercel status: Ready.
+- Read-only live smoke passed on the new preview:
+  - Admin evidence selected the Wave 2 course offering.
+  - Evidence summary remained 12 projects / 12 completed / 0 missing evidence / 12 report evidence / 12 advisor scores.
+  - CSV/XLSX exports for grades, projects, timeline, scores, reports, and audit returned HTTP 200.
