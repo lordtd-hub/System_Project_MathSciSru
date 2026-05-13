@@ -851,3 +851,38 @@ Carry into next pass:
 - Verify Final student visibility for Project01/04/05 after opening Final.
 - Keep Project03 locked/recoverable; it still has not passed Progress 1.
 - Watch teacher queue scale carefully; the current pages work but get visually dense as multiple pending and read-only items accumulate.
+
+## Final Round Continuation - Current Stabilization Stop
+
+Status: Major patch validated locally; live QA push/verification still required.
+
+Already completed in this Final pass:
+
+- Mandatory context files and listed logic/UI/test files were read before action.
+- Final was opened by Admin on `https://system-project-math-sci-5634jxgdt-lordtd-hubs-projects.vercel.app`.
+- `/admin/rounds` showed Final ready `3`, submitted `0`, completed `0`, eligible-but-incomplete `3`, not-yet-eligible `37`.
+- Final close guard listed Project01/04/05 and showed the grade-I warning.
+
+Current Major:
+
+- Student01 / Project01 saved Final evidence successfully, then `/student/schedule?success=assessment_evidence_saved` initially rendered shell-only.
+- Screenshot: `screenshots/final-student01-evidence-shell-only-major-5634.png`.
+- Refresh restored the schedule content, so saved data exists and the likely failure surface is post-submit route/cache transition.
+
+Patch now staged for next live QA cycle:
+
+- Make `/student/schedule` explicit dynamic/no-cache.
+- Add saved entity ids and round/kind query params to evidence/schedule post-submit redirects.
+- Keep UI scope unchanged; no dashboard redesign.
+
+Required next actions:
+
+- Secret scan `e2e-artifacts` before commit/push.
+- Commit scoped patch.
+- Push `qa-preview` only.
+- Use the new Vercel QA preview URL after push.
+- Live verify Student01 can return to `/student/schedule` with full content after Final evidence save and can propose Final schedule.
+- Resume Final loop from saved state:
+  - complete student Final evidence/schedule for Project04 and Project05,
+  - verify Project03 remains locked,
+  - then move to teacher schedule queues and scoring.

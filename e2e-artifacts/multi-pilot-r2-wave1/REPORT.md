@@ -1400,3 +1400,74 @@ Stop condition reached:
 - Progress 2 Wave 1 operational flow completed successfully.
 - Do not open Final in this pass.
 - Final round testing can safely begin later from this saved state.
+
+## Live QA - Final Round Continuation Started
+
+QA preview:
+
+- `https://system-project-math-sci-5634jxgdt-lordtd-hubs-projects.vercel.app`
+- Starting commit: `76342f0`
+- Browser: persistent Microsoft Edge CDP session on port `9333`
+
+Context read before action:
+
+- `e2e-artifacts/multi-pilot-r2-wave1/REPORT.md`
+- `e2e-artifacts/multi-pilot-r2-wave1/PENDING_FROM_PROMPT.md`
+- `e2e-artifacts/multi-pilot-r2-wave1/MANUAL_NOTES.md`
+- `e2e-artifacts/PILOT_FIX_STATUS.md`
+- `src/lib/assessments/roundEligibility.ts`
+- `src/lib/assessments/presentationCompletion.ts`
+- `src/lib/assessments/roundSequence.ts`
+- `src/lib/assessments/roundClosure.ts`
+- `src/lib/scheduling/scheduleRules.ts`
+- `src/app/admin/rounds/page.tsx`
+- `src/app/admin/actions.ts`
+- `src/app/student/schedule/page.tsx`
+- `src/app/student/actions.ts`
+- `src/app/student/feedback/page.tsx`
+- `src/app/student/report/page.tsx`
+- `src/app/teacher/final/page.tsx`
+- `src/app/teacher/actions.ts`
+- `src/app/teacher/schedules/page.tsx`
+- listed assessment, scheduling, date, final scoring, and final rubric tests
+
+Final round open result:
+
+- Admin opened Final successfully.
+- Progress 2 was already closed.
+- Final card after open:
+  - ready/eligible: `3`
+  - submitted: `0`
+  - completed: `0`
+  - eligible-but-incomplete: `3`
+  - not-yet-eligible: `37`
+  - exceptions: `0`
+- Final close guard showed Project01/04/05 as eligible-but-incomplete and included grade-I warning text.
+- Project03 remained outside Final eligibility as expected.
+
+Major stop during Final student flow:
+
+- Severity: Major.
+- Project: Project01 / Student01.
+- Role: Student.
+- Route: `/student/schedule?success=assessment_evidence_saved`.
+- Expected: after saving Final evidence, the normal schedule/evidence page remains visible and the Final schedule proposal form appears.
+- Actual: the page initially rendered only the app shell after the valid evidence save. Refreshing the URL later restored the content, which points to a post-submit route/cache transition issue rather than missing data.
+- Screenshot: `screenshots/final-student01-evidence-shell-only-major-5634.png`.
+
+Patch prepared:
+
+- `src/app/student/schedule/page.tsx`: marks the schedule page as `force-dynamic` with `revalidate = 0`.
+- `src/app/student/actions.ts`: redirects assessment evidence and schedule saves with explicit saved entity ids and round/kind query params to avoid stale shell-only route reuse after server actions and QA role switching.
+- `src/app/postSubmitStabilizationSource.test.ts`: updated source checks for the dynamic schedule page and cache-busting post-submit redirects.
+
+Validation for patch:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 77 files / 315 tests.
+- `npm run build`: PASS.
+
+Current stop:
+
+- Patch is validated locally but not yet pushed/live-verified in this section.
+- Resume from saved state after push/live verification; do not restart Wave 1.

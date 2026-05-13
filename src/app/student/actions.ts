@@ -530,7 +530,11 @@ export async function saveAssessmentEvidence(formData: FormData) {
   revalidatePath("/student");
   revalidatePath("/student/schedule");
   revalidatePath("/teacher/schedules");
-  redirect("/student/schedule?success=assessment_evidence_saved");
+  redirectWithQuery("/student/schedule", {
+    success: "assessment_evidence_saved",
+    assessment_kind: kind,
+    submission_id: submission.id
+  });
 }
 
 export async function submitExamSchedule(formData: FormData) {
@@ -657,7 +661,11 @@ export async function submitExamSchedule(formData: FormData) {
 
   revalidatePath("/student");
   revalidatePath("/student/schedule");
-  redirect("/student/schedule?success=schedule_saved");
+  redirectWithQuery("/student/schedule", {
+    success: "schedule_saved",
+    round_type: roundType,
+    schedule_id: schedule.id
+  });
 }
 
 export async function submitReportVersion(formData: FormData) {

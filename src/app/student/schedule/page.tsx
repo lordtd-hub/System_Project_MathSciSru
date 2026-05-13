@@ -30,6 +30,9 @@ import {
 } from "@/lib/qa/progressPlanCheckConfig";
 import { assessmentKindToRoundType } from "@/lib/scheduling/scheduleRules";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const scheduleRoundTypes = ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const;
 const scheduleTimeOptions = Array.from({ length: ((21 - 6) * 4) + 1 }, (_, index) => {
   const totalMinutes = (6 * 60) + (index * 15);

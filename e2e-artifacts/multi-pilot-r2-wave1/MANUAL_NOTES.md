@@ -248,3 +248,24 @@ Do not convert this into polished manual content yet.
 - After Progress 2 close, Final remained unopened and must be opened by Admin deliberately.
 - Admin action hierarchy still needs a redesign: duplicate open/close buttons and dense control placement make automation and human scanning harder.
 - During automation, direct `click()` on the Progress 2 close button did not change state, but submitting the same form via `requestSubmit()` closed the round. Verify real manual clicking during a later UI pass.
+
+## 2026-05-13 Final Round Early Notes
+
+Do not turn this into polished manual content yet.
+
+### Admin
+
+- Opening Final after Progress 2 close worked and preserved the eligibility separation.
+- Final guard wording is operationally important: eligible-but-incomplete Project01/04/05 are the current-round blockers, while 37 projects remain not-yet-eligible.
+- The grade-I warning appears in the Final close guard before any Final work is completed.
+
+### Student
+
+- Student01 could see the Final evidence form before submission.
+- After the valid Final evidence save, the first post-submit navigation briefly/initially showed shell-only content. Refreshing restored the schedule page with saved evidence, so the saved data was not lost.
+- This should be explained as an operational bug, not user behavior. The stabilization patch should prevent route/cache reuse from hiding schedule content after evidence or schedule saves.
+
+### UI/Operational Debt
+
+- Continue to watch `/student/schedule` after every valid submit; post-submit routes must never require a user refresh.
+- The student evidence-to-schedule transition should later be made more visually explicit, but no redesign is included in the current patch.

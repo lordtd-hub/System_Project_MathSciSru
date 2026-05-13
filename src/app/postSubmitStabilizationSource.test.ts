@@ -20,6 +20,8 @@ describe("post-submit stabilization source checks", () => {
     expect(proposalPage).toContain("presentationSubmissions: { orderBy: { createdAt: \"desc\" }, take: 1 }");
     expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
     expect(schedulePage).toContain("บันทึกหลักฐานการประเมินแล้ว");
+    expect(schedulePage).toContain('export const dynamic = "force-dynamic"');
+    expect(schedulePage).toContain("export const revalidate = 0");
     expect(schedulePage).toContain('data-testid="student-schedule-page-content"');
     expect(schedulePage).toContain('data-testid="student-schedule-evidence-success-alert"');
     expect(schedulePage).toContain('data-testid="student-schedule-round-status-cards"');
@@ -32,7 +34,12 @@ describe("post-submit stabilization source checks", () => {
     const schedulePage = read("src/app/student/schedule/page.tsx");
     const studentActions = read("src/app/student/actions.ts");
 
-    expect(studentActions).toContain('redirect("/student/schedule?success=assessment_evidence_saved")');
+    expect(studentActions).toContain('redirectWithQuery("/student/schedule", {');
+    expect(studentActions).toContain('success: "assessment_evidence_saved"');
+    expect(studentActions).toContain("assessment_kind: kind");
+    expect(studentActions).toContain("submission_id: submission.id");
+    expect(studentActions).toContain('success: "schedule_saved"');
+    expect(studentActions).toContain("schedule_id: schedule.id");
     expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
     expect(schedulePage).toContain('(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind)');
     expect(schedulePage).toContain('latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind)');
