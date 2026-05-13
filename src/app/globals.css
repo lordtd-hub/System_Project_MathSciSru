@@ -396,6 +396,56 @@
     border-left-color: var(--red-700);
   }
 
+  .teacher-workload-summary {
+    @apply rounded-lg border border-line bg-surface p-4 shadow-sm;
+    background: linear-gradient(180deg, var(--surface), var(--paper-2));
+  }
+
+  .teacher-workload-total {
+    @apply flex min-w-36 items-center justify-between gap-2 rounded-lg border border-line bg-paperSoft px-3 py-2 text-sm shadow-sm;
+  }
+
+  .teacher-workload-total strong {
+    @apply text-2xl font-semibold leading-none text-ink;
+    font-feature-settings: "tnum";
+  }
+
+  .teacher-workload-metric {
+    @apply rounded-lg border border-line bg-paperSoft p-3 shadow-sm;
+    border-left-width: 4px;
+  }
+
+  .teacher-workload-action {
+    border-left-color: var(--red-700);
+  }
+
+  .teacher-workload-waiting,
+  .teacher-workload-locked {
+    border-left-color: var(--lock-700);
+  }
+
+  .teacher-workload-completed {
+    border-left-color: var(--ok-700);
+  }
+
+  .teacher-workload-returned {
+    border-left-color: var(--warn-700);
+  }
+
+  .teacher-queue-section {
+    @apply rounded-lg border border-line bg-surface p-5 shadow-sm;
+    border-left-width: 4px;
+  }
+
+  .teacher-compact-queue-list {
+    @apply overflow-hidden rounded-lg border border-line bg-surface shadow-sm;
+  }
+
+  .teacher-compact-queue-item {
+    @apply flex flex-col gap-3 border-b border-line bg-paperSoft p-3 text-sm last:border-b-0 hover:bg-surface sm:flex-row sm:items-center sm:justify-between;
+    border-left-width: 4px;
+  }
+
   .panel > h2:first-child,
   .section-card > h2:first-child {
     @apply mb-4 border-b border-line pb-3 text-lg font-semibold text-ink;
@@ -601,5 +651,21 @@
 
   .responsive-table td + td {
     @apply border-t border-line;
+  }
+
+  .teacher-workload-summary {
+    @apply p-3;
+  }
+
+  .teacher-workload-total {
+    @apply w-full justify-start;
+  }
+
+  .teacher-queue-section {
+    @apply p-4;
+  }
+
+  .teacher-compact-queue-item {
+    @apply rounded-none;
   }
 }

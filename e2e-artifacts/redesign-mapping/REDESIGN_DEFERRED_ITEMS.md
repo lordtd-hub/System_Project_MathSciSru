@@ -1,0 +1,16 @@
+# Redesign Deferred Items
+
+## Deferred Until After Teacher Shared UI Validation
+
+- Full Admin redesign.
+- Full Student redesign.
+- Figma-style project review detail refactor for long scoring forms.
+- Live mobile screenshot pass.
+- Temporary comparison routes.
+
+## Known Design Gaps
+
+- Student dashboard has no Figma mockup yet.
+- Admin evidence/export and closeout pages need their own detailed mapping before major layout changes.
+- Some Thai source files display as mojibake in terminal output, so UI copy should be reused from source and not retyped unless necessary.
+

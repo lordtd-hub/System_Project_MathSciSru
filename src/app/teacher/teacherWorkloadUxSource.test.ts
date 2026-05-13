@@ -23,6 +23,20 @@ describe("teacher workload UX source", () => {
     }
   });
 
+  it("keeps teacher workload surfaces compact, action-first, and mobile-aware", () => {
+    const component = readSource("src/components/ui/TeacherWorkloadQueue.tsx");
+    const css = readSource("src/app/globals.css");
+
+    expect(component).toContain("teacher-workload-summary");
+    expect(component).toContain("teacher-workload-total");
+    expect(component).toContain("teacher-compact-queue-list");
+    expect(component).toContain("data-queue-tone");
+    expect(component).toContain('metric.tone === "action"');
+    expect(css).toContain(".teacher-workload-summary");
+    expect(css).toContain(".teacher-compact-queue-item");
+    expect(css).toContain("@media (max-width: 640px)");
+  });
+
   it("keeps actionable schedule approvals ahead of confirmed calendar content", () => {
     const source = readSource("src/app/teacher/schedules/page.tsx");
 

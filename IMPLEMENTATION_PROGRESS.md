@@ -1466,3 +1466,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Remaining before closing this stabilization pass:
   - Push QA preview only.
   - Live verify teacher workload pages with the existing Wave 1 QA state.
+
+## 2026-05-13 Full UI redesign loop started
+
+- Created/used the redesign planning pack under `e2e-artifacts/redesign-mapping/`.
+- Confirmed branch `qa-preview` at baseline commit `01ed9e2`.
+- Created local safety tag `wave2-stable-before-redesign` before code changes.
+- Started Phase 1 by refining the shared teacher workload UI surface:
+  - `TeacherWorkloadQueue` now has a stronger operational summary, action-total callout, tone rails, and denser compact queue rows.
+  - Global CSS adds matching teacher workload/queue utility classes using the existing red/paper theme.
+- No lifecycle, auth, scoring, eligibility, schema, API, or production changes were made.
+- Validation for this redesign cycle passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`

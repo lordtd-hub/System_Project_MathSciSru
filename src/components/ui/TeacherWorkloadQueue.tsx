@@ -10,6 +10,14 @@ const toneClassName: Record<QueueTone, string> = {
   locked: "badge-lock"
 };
 
+const toneSurfaceClassName: Record<QueueTone, string> = {
+  action: "teacher-workload-action",
+  waiting: "teacher-workload-waiting",
+  completed: "teacher-workload-completed",
+  returned: "teacher-workload-returned",
+  locked: "teacher-workload-locked"
+};
+
 export type TeacherWorkloadMetric = {
   label: string;
   count: number;
@@ -18,17 +26,26 @@ export type TeacherWorkloadMetric = {
 };
 
 export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMetric[] }) {
+  const total = metrics.reduce((sum, metric) => sum + metric.count, 0);
+  const actionCount = metrics.find((metric) => metric.tone === "action")?.count ?? 0;
+
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-2">
+    <section className="teacher-workload-summary" aria-labelledby="teacher-workload-summary-heading">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
         <div>
-          <h2 className="text-lg font-semibold">สรุปภาระงานอาจารย์</h2>
+          <p className="page-kicker">ภาระงานอาจารย์</p>
+          <h2 id="teacher-workload-summary-heading" className="mt-1 text-lg font-semibold">สรุปภาระงานอาจารย์</h2>
           <p className="mt-1 text-sm text-muted">แยกงานที่ต้องดำเนินการออกจากงานที่รอหรือเสร็จแล้ว เพื่อให้สแกนได้เร็วเมื่อมีหลายโครงงาน</p>
+        </div>
+        <div className="teacher-workload-total" aria-label={`งานที่ต้องดำเนินการ ${actionCount} จากทั้งหมด ${total} รายการ`}>
+          <span className="text-xs font-semibold text-muted">ต้องทำตอนนี้</span>
+          <strong>{actionCount}</strong>
+          <span className="text-xs text-muted">จาก {total}</span>
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-md border border-line bg-paper p-3">
+          <div key={metric.label} className={`teacher-workload-metric ${toneSurfaceClassName[metric.tone]}`}>
             <div className="flex items-center justify-between gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[metric.tone]}`}>{metric.label}</span>
               <span className="text-xl font-semibold">{metric.count}</span>
@@ -61,7 +78,7 @@ export function TeacherQueueSection({
   emptyState?: ReactNode;
 }) {
   return (
-    <section className="panel">
+    <section className={`teacher-queue-section ${toneSurfaceClassName[tone]}`} data-queue-tone={tone}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -89,8 +106,9 @@ export function TeacherCompactQueueList({
   if (!items.length) return null;
 
   return (
-    <div className="overflow-hidden rounded-md border border-line">
+    <div className="teacher-compact-queue-list">
       {items.map((item) => {
+        const primaryTone = item.badges?.[0]?.tone ?? "waiting";
         const content = (
           <>
             <div className="min-w-0">
@@ -109,11 +127,11 @@ export function TeacherCompactQueueList({
         );
 
         return item.href ? (
-          <a key={item.id} className="flex flex-col gap-3 border-b border-line bg-paper p-3 text-sm last:border-b-0 hover:bg-paperSoft sm:flex-row sm:items-center sm:justify-between" href={item.href}>
+          <a key={item.id} className={`teacher-compact-queue-item ${toneSurfaceClassName[primaryTone]}`} href={item.href}>
             {content}
           </a>
         ) : (
-          <div key={item.id} className="flex flex-col gap-3 border-b border-line bg-paper p-3 text-sm last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+          <div key={item.id} className={`teacher-compact-queue-item ${toneSurfaceClassName[primaryTone]}`}>
             {content}
           </div>
         );
