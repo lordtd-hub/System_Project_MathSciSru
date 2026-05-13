@@ -298,3 +298,8 @@ Do not turn this into manual text yet.
 - Closing the Final course round is not sufficient by itself to unlock report submission for incomplete projects.
 - Student03 exposed the important edge case: the project was still `IN_PROGRESS` and Final-incomplete, but the report form appeared because the page treated the closed Final round as completion.
 - Manual wording later should say "after Final assessment is completed" rather than "after Final round is closed", unless the UI explicitly distinguishes incomplete/grade-I recovery.
+
+Live follow-up:
+
+- After the report readiness patch, Student01/04/05 could see report submission readiness, while Student03 no longer saw the report form.
+- Keep this wording distinction for manuals later: "Final assessment completed by required committee scoring" is the gate; "Final round closed" is not enough for incomplete projects.

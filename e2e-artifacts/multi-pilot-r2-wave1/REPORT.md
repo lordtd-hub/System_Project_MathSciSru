@@ -1622,3 +1622,59 @@ Current stop:
   - Recheck Student01/04/05 report readiness remains unlocked.
   - Recheck Student03 report readiness is locked and no report form is visible.
   - If verified, Final round operational semantics are complete and report workflow testing can begin later.
+
+## Live QA - Final Round Operational Completion
+
+QA preview:
+
+- `https://system-project-math-sci-7zexh6fcz-lordtd-hubs-projects.vercel.app`
+- Commit: `f6913b1`
+
+Live verification after report readiness patch:
+
+- Student01 / Project01:
+  - `/student/report` shows report submission readiness.
+  - `report_drive_link` input is visible.
+  - Status wording says Final presentation is complete.
+- Student04 / Project04:
+  - `/student/report` shows report submission readiness.
+  - `report_drive_link` input is visible.
+  - Status wording says Final presentation is complete.
+- Student05 / Project05:
+  - `/student/report` shows report submission readiness.
+  - `report_drive_link` input is visible.
+  - Status wording says Final presentation is complete.
+- Student03 / Project03:
+  - `/student/report` no longer shows a report submission input.
+  - Wording says the report step is not available yet.
+  - Project03 remains locked/recoverable and did not incorrectly enter the report workflow.
+
+Screenshots:
+
+- `screenshots/final-admin-rounds-after-bucket-fix-8tb.png`
+- `screenshots/final-admin-before-close-8tb.png`
+- `screenshots/final-admin-after-close-click-8tb.png`
+- `screenshots/final-multi-r2-student-01-report-readiness-7z.png`
+- `screenshots/final-multi-r2-student-04-report-readiness-7z.png`
+- `screenshots/final-multi-r2-student-05-report-readiness-7z.png`
+- `screenshots/final-multi-r2-student-03-report-readiness-7z.png`
+
+Final round result:
+
+- Final round opened, student evidence/schedules completed, schedule approvals completed, required scoring completed, close guard passed, Final closed, and report readiness was verified.
+- Final operational semantics are stabilized for Wave 1.
+- Report workflow testing can begin later, but was not started in this pass.
+- Wave 2 planning should wait until the user explicitly starts it.
+
+Bugs found in this Final pass:
+
+- Major fixed: post-submit schedule page could render shell-only after Final evidence save.
+- Major fixed: Final completed projects moved to `FINAL_DONE` were incorrectly removed from Admin Final buckets.
+- Major fixed: report submission UI unlocked for Student03 after Final close even though required Final scoring was incomplete.
+
+Remaining UX/operational debt:
+
+- `/teacher/schedules` mixes pending approval work with confirmed history and becomes dense when several projects accumulate.
+- Admin round cards still have dense/duplicated open-close controls and awkward button hierarchy.
+- Student evidence-to-schedule transition should be made more explicit in a later UX pass.
+- Non-Proposal late/reopen recovery remains a dedicated UX/workflow design item, especially for Project03.
