@@ -8,6 +8,7 @@ import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TaskListCard } from "@/components/ui/TaskListCard";
+import { TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
@@ -356,6 +357,13 @@ export default async function TeacherDashboardPage() {
     { label: "งานตรวจรายงาน", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" as const : "quiet" as const },
     { label: "คะแนนที่ปรึกษา", value: advisorScoreProjectCount, href: "/teacher/advisor-score", tone: advisorScoreProjectCount ? "complete" as const : "quiet" as const }
   ];
+  const teacherWorkloadSummaryMetrics = [
+    { label: "ต้องดำเนินการ", count: teacherActionableTaskCount, tone: "action" as const, description: "งานที่รอให้อาจารย์ตอบรับ ตรวจ ประเมิน หรือให้คะแนน" },
+    { label: "รอ", count: 0, tone: "waiting" as const, description: "งานที่รอคนอื่นดำเนินการจะไม่ปนกับงานที่ต้องทำ" },
+    { label: "เสร็จแล้ว", count: confirmedScheduleCalendarCount, tone: "completed" as const, description: "รายการที่ยืนยันแล้วหรือใช้ดูประกอบการวางแผน" },
+    { label: "ส่งกลับ", count: 0, tone: "returned" as const, description: "รายการที่ต้องรอนักศึกษาส่งใหม่จะแยกจากงานหลัก" },
+    { label: "ล็อก/ไม่เกี่ยวข้อง", count: 0, tone: "locked" as const, description: "สิ่งที่ยังไม่เปิดหรือไม่ใช่บทบาทของท่านจะไม่แสดงเป็นงาน" }
+  ];
   const teacherActionQueue = [
     {
       title: "ตารางสอบที่ยืนยันแล้ว",
@@ -448,6 +456,7 @@ export default async function TeacherDashboardPage() {
         title="แดชบอร์ดอาจารย์"
         description="รวมคำขอที่ปรึกษา งานประเมินการเสนอหัวข้อ ตารางสอบ และงานตรวจรายงานที่เกี่ยวข้อง"
       />
+      <TeacherWorkloadSummary metrics={teacherWorkloadSummaryMetrics} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
         <DashboardActionQueue
           title="งานที่ต้องดำเนินการ"

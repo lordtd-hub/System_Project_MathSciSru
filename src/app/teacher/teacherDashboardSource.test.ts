@@ -21,6 +21,8 @@ describe("teacher dashboard source", () => {
     const page = source();
 
     expect(page).toContain("teacherActionableTaskCount");
+    expect(page).toContain("TeacherWorkloadSummary");
+    expect(page).toContain("teacherWorkloadSummaryMetrics");
     expect(page).toContain("มีงานที่ต้องดำเนินการ");
     expect(page).toContain("การแจ้งเตือน");
     expect(page).toContain("assignmentSubmitted");

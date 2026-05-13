@@ -3,12 +3,18 @@
 ## Current Cycle
 
 - Phase: 1 - Shared design system / UI components
-- Component handled: `TeacherWorkloadQueue`
-- Code validation: passed
+- Component handled: `TeacherWorkloadQueue` and `/teacher` dashboard integration
+- Code validation: passed after dashboard integration
 - QA deploy: pending
 - Live QA verification: pending
 
 ## 2026-05-13 Local Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test` - passed, 81 test files / 342 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+## 2026-05-13 Local Validation After Dashboard Integration
 
 - `cmd /c npm.cmd run typecheck` - passed.
 - `cmd /c npm.cmd test` - passed, 81 test files / 342 tests.

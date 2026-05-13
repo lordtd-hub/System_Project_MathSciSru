@@ -1475,6 +1475,8 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Started Phase 1 by refining the shared teacher workload UI surface:
   - `TeacherWorkloadQueue` now has a stronger operational summary, action-total callout, tone rails, and denser compact queue rows.
   - Global CSS adds matching teacher workload/queue utility classes using the existing red/paper theme.
+  - `/teacher` now uses the same shared workload summary before its existing action queue.
+- Added a non-mutating Edge/CDP verification helper for the redesigned teacher workload pages under `e2e-artifacts/redesign-mapping/`.
 - No lifecycle, auth, scoring, eligibility, schema, API, or production changes were made.
 - Validation for this redesign cycle passed:
   - `cmd /c npm.cmd run typecheck`
