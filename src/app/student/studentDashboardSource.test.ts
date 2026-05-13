@@ -118,4 +118,21 @@ describe("student dashboard source", () => {
     expect(page).toContain("getReportSubmissionGate");
     expect(page).toContain("latestReportHasRevisionRequest");
   });
+
+  it("adds a conservative Figma feedback renderer without changing score and comment display contracts", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/student/feedback/page.tsx"), "utf8");
+
+    expect(page).toContain("getUiMode");
+    expect(page).toContain("figma-student-feedback");
+    expect(page).toContain("FigmaPageHeader");
+    expect(page).toContain("FigmaMetricCard");
+    expect(page).toContain('data-testid="student-feedback-page-content"');
+    expect(page).toContain("feedbackTabs");
+    expect(page).toContain("scoreAverage");
+    expect(page).toContain("formatScore");
+    expect(page).toContain("MarkdownLatexViewer");
+    expect(page).toContain("scoreSubmission?.overallComment");
+    expect(page).toContain("scoreSubmission.scoreItems");
+    expect(page).toContain("evaluatorDisplayNameSnapshot");
+  });
 });

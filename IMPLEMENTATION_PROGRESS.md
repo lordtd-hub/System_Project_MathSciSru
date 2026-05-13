@@ -1955,3 +1955,22 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Current QA state showed report history/status content rather than an active report form, which is expected after Wave 1 report completion; source tests preserve the active form contract.
 - No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
 - Next step: continue Phase 6 with `/student/feedback`.
+
+## 2026-05-14 Figma visual redesign - Student feedback renderer
+
+- Continued Phase 6 Student redesign with `/student/feedback`.
+- Added a conservative page-level `figma` renderer branch while keeping existing score aggregation, round filtering, evaluator snapshot names, rubric score item display, and Markdown+KaTeX comment rendering as the classic fallback contract.
+- The Figma feedback page adds:
+  - read-only feedback page header;
+  - status badge;
+  - KPI cards for readable results, waiting rounds, current filter, and read-only state.
+- Preserved `feedbackTabs`, `scoreAverage`, `formatScore`, `MarkdownLatexViewer`, `scoreSubmission?.overallComment`, `scoreSubmission.scoreItems`, `evaluatorDisplayNameSnapshot`, and route behavior.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, feedback visibility, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization`
+  - `node --check e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Extended the student Edge CDP verifier to check `/student/feedback` classic/figma rendering and feedback page-content presence.
+- Next step: push QA preview, live-verify `/student/feedback`, then summarize student mobile/regression coverage.

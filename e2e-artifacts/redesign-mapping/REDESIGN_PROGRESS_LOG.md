@@ -1342,3 +1342,37 @@ The patch is presentation-only and does not change auth, lifecycle, scoring, eli
 ### Next Phase
 
 Continue Phase 6 with `/student/feedback`.
+
+## 2026-05-14 - Phase 6 Student Feedback Figma Renderer
+
+### Scope
+
+Continued Phase 6 Student redesign with:
+
+- `/student/feedback`
+
+### Patch
+
+- Added a conservative page-level Figma renderer branch for the read-only assessment results and feedback page.
+- Kept the existing score aggregation, round filtering, evaluator snapshot names, rubric score item display, and Markdown/KaTeX comment rendering as the classic fallback contract.
+- Added Figma page header, status badge, and KPI cards for readable results, waiting rounds, current filter, and read-only state.
+- Preserved `feedbackTabs`, `scoreAverage`, `formatScore`, `MarkdownLatexViewer`, `scoreSubmission?.overallComment`, `scoreSubmission.scoreItems`, and `evaluatorDisplayNameSnapshot`.
+- Extended the student Edge CDP verifier to check `/student/feedback` in both classic and figma mode.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change auth, lifecycle, scoring, eligibility, feedback visibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 13 tests.
+- `node --check e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js` - passed.
+- `cmd /c npm.cmd test` - passed, 82 files / 363 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Push QA preview, live-verify `/student/feedback` classic/figma mode on desktop and 390px mobile, then move to the student mobile/regression summary.

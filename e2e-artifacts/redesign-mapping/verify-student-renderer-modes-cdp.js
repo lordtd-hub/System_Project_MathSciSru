@@ -466,6 +466,54 @@ async function inspectReport(client, mode) {
   return { ...state, screenshot: filePath };
 }
 
+async function inspectFeedback(client, mode) {
+  await setUiMode(client, mode);
+  await goto(client, `${baseUrl}/student/feedback`);
+  const state = await evaluate(
+    client,
+    `
+      (() => {
+        const text = document.body ? document.body.innerText : "";
+        const root = document.scrollingElement || document.documentElement;
+        const body = document.body;
+        const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+        const viewportWidth = window.innerWidth;
+        return {
+          url: location.href,
+          bodyLength: text.trim().length,
+          hasFigmaShell: Boolean(document.querySelector(".figma-role-shell")),
+          hasRouteClass: Boolean(document.querySelector(".figma-student-feedback")),
+          hasPageContent: Boolean(document.querySelector('[data-testid="student-feedback-page-content"]')),
+          hasClassicSummary: Boolean(document.querySelector('[data-testid="student-readability-summary"]')),
+          tabLinks: document.querySelectorAll('a[href^="/student/feedback"]').length,
+          hasScoreText: text.includes("/ 100") || text.includes("คะแนน"),
+          hasEmptyState: text.includes("ยังไม่มีข้อเสนอแนะ") || text.includes("ยังไม่มีข้อมูล"),
+          hasDigest: /Application error|NEXT_REDIRECT|digest/i.test(text),
+          isLogin: location.pathname.includes("/qa-login"),
+          width,
+          viewportWidth,
+          overflow: width - viewportWidth
+        };
+      })()
+    `,
+    `${mode} student feedback inspect`
+  );
+  if (state.isLogin) throw new Error(`${mode}: redirected to QA login`);
+  if (state.hasDigest) throw new Error(`${mode}: digest/application error`);
+  if (state.bodyLength < 180) throw new Error(`${mode}: shell-only body`);
+  if (!state.hasPageContent) throw new Error(`${mode}: missing feedback page content`);
+  if (!state.hasScoreText && !state.hasEmptyState) throw new Error(`${mode}: missing feedback score/status content`);
+  if (viewportMode === "mobile" && state.overflow > 4) throw new Error(`${mode}: horizontal overflow ${state.overflow}px`);
+  if (mode === "classic") {
+    if (state.hasFigmaShell || state.hasRouteClass) throw new Error("classic: unexpected Figma student feedback renderer");
+    return { ...state, screenshot: null };
+  }
+  if (!state.hasFigmaShell) throw new Error("figma: missing Figma shell");
+  if (!state.hasRouteClass) throw new Error("figma: missing figma-student-feedback");
+  const filePath = await screenshot(client, `student-feedback-renderer-figma-${viewportMode}-${deploymentSlug}.png`);
+  return { ...state, screenshot: filePath };
+}
+
 async function main() {
   const client = await connectPage();
   await qaLoginStudent(client);
@@ -479,7 +527,9 @@ async function main() {
     { route: "/student/schedule", mode: "classic", result: await inspectSchedule(client, "classic") },
     { route: "/student/schedule", mode: "figma", result: await inspectSchedule(client, "figma") },
     { route: "/student/report", mode: "classic", result: await inspectReport(client, "classic") },
-    { route: "/student/report", mode: "figma", result: await inspectReport(client, "figma") }
+    { route: "/student/report", mode: "figma", result: await inspectReport(client, "figma") },
+    { route: "/student/feedback", mode: "classic", result: await inspectFeedback(client, "classic") },
+    { route: "/student/feedback", mode: "figma", result: await inspectFeedback(client, "figma") }
   ];
   client.ws.close();
   console.log(JSON.stringify({ baseUrl, viewportMode, viewport, studentKey, results }, null, 2));

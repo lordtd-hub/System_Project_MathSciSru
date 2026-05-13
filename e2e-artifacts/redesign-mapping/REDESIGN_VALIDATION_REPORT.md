@@ -693,6 +693,33 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `e2e-artifacts/redesign-mapping/screenshots/student-report-renderer-figma-mobile-cnjb5ikb1.png`
 - Result: `/student/report` is complete for non-mutating visual/regression verification in the current Wave 1 state.
 
+## 2026-05-14 Student Feedback Renderer Validation
+
+- Phase: 6 - Student redesign.
+- Scope:
+  - `/student/feedback`.
+- Renderer status:
+  - classic fallback remains available;
+  - figma branch added with `.figma-student-feedback`;
+  - score/result/comment behavior remains owned by the existing page.
+- Logic touched: no.
+- Contract preserved:
+  - `feedbackTabs`;
+  - `scoreAverage`;
+  - `formatScore`;
+  - `MarkdownLatexViewer`;
+  - `scoreSubmission?.overallComment`;
+  - `scoreSubmission.scoreItems`;
+  - `evaluatorDisplayNameSnapshot`.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 13 tests.
+  - `node --check e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 363 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deployment: pending.
+- Live verification: pending.
+
 ### QA Deployment And Live Verification
 
 - Commit: `1ad318e`.
