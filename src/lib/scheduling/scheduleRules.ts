@@ -18,15 +18,23 @@ export function assessmentKindToRoundType(kind: AssessmentSubmissionKind): Sched
 
 export function parseScheduleDateTime(dateValue: string, timeValue: string, endTimeValue?: string) {
   if (!dateValue || !timeValue) throw new Error("กรุณาระบุวันที่และเวลาเริ่มสอบ");
-  const start = new Date(`${dateValue}T${timeValue}:00`);
+  const start = parseBangkokCivilDateTime(dateValue, timeValue);
   if (Number.isNaN(start.getTime())) throw new Error("วันที่หรือเวลาเริ่มสอบไม่ถูกต้อง");
 
   let end: Date | null = null;
   if (endTimeValue) {
-    end = new Date(`${dateValue}T${endTimeValue}:00`);
+    end = parseBangkokCivilDateTime(dateValue, endTimeValue);
     if (Number.isNaN(end.getTime())) throw new Error("เวลาสิ้นสุดไม่ถูกต้อง");
     if (end <= start) throw new Error("เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มสอบ");
   }
 
   return { start, end };
+}
+
+function parseBangkokCivilDateTime(dateValue: string, timeValue: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue) || !/^\d{2}:\d{2}$/.test(timeValue)) {
+    return new Date(Number.NaN);
+  }
+
+  return new Date(`${dateValue}T${timeValue}:00+07:00`);
 }

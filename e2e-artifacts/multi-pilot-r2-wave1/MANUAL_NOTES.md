@@ -214,3 +214,12 @@ Patch note:
 
 - The current stabilization patch does not redesign the student schedule UI. It adds stable content markers and automated guards so the evidence-save success page must keep the normal schedule/evidence content visible.
 - UX/manual debt remains: after live verification, wording and hierarchy around evidence saved -> propose schedule should be reviewed for consistency before any documentation screenshot pass.
+
+## 2026-05-13 Progress 2 Schedule Timezone Note
+
+Do not turn this into final manual text yet.
+
+- Live QA showed schedule times shifted by +7 hours after student submission: a selected `09:00-10:00` appeared as `16:00-17:00`.
+- This must be fixed before teacher approvals continue because real users would misunderstand the appointment time.
+- Manual wording later should explicitly state that all round and schedule times are displayed in Thailand time.
+- Existing pending schedule requests created before the fix may need UI recovery by rejection/resubmission; do not correct them by direct database editing during the pilot.

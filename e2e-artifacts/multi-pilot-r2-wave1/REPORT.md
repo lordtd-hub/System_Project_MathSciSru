@@ -1294,3 +1294,32 @@ Wave 1 continuation recommendation:
 - Wave 1 can continue to the Admin decision point for closing Progress 1.
 - Admin should close Progress 1 only after confirming that Project 03 is intentionally incomplete or handled by policy.
 - After closing Progress 1 with the acknowledgement, Progress 2 can be opened for eligible projects.
+
+## Stabilization Patch - Progress 2 Evidence Success and Schedule Timezone
+
+Status: in progress.
+
+Major bug fixed and live-verified:
+
+- Old QA preview `https://system-project-math-sci-f96db92qp-lordtd-hubs-projects.vercel.app` rendered `/student/schedule?success=assessment_evidence_saved` as shell-only after Student01 saved Progress 2 evidence.
+- Patch commit `5f64eee` adds stable student schedule content markers and regression guards.
+- New QA preview `https://system-project-math-sci-4lkxybd8n-lordtd-hubs-projects.vercel.app` verified Student01 Progress 2 evidence state is visible and the page is not shell-only.
+- Screenshot: `screenshots/2026-05-13T04-14-39-282Z-progress2-student01-post-submit-guard-5f64eee.png`
+
+Pilot continuation before next stop:
+
+- Project01 Progress 2 schedule was proposed and approved by Teacher01, Teacher02, and Teacher03. Scoring has not been submitted yet.
+- Student04 Progress 2 evidence exists and the Progress 2 schedule proposal is pending.
+- Student05 Progress 2 evidence exists and the Progress 2 schedule proposal is pending.
+- Per latest operator instruction, student work is being completed before returning to teacher queues so accumulated teacher workload can be evaluated.
+
+New Major bug found:
+
+- While submitting Student04/Student05 Progress 2 schedules, the form value `09:00-10:00` displayed as `16:00-17:00` on the student schedule summary.
+- Root cause: schedule form input was parsed with `new Date("YYYY-MM-DDTHH:mm")`, which Vercel interprets as UTC, then the UI formats that instant in `Asia/Bangkok`, adding seven hours.
+- Patch direction: parse schedule form input as Bangkok civil time (`+07:00`) before storing the UTC instant.
+- Existing Project04/Project05 pending schedules created before this patch have wrong stored instants and should be recovered through the UI after the patch is deployed, most likely by rejecting/resubmitting the affected pending schedule requests.
+
+Validation so far:
+
+- `npm test -- src/lib/scheduling/scheduleRules.test.ts src/lib/format/dateTime.test.ts`: PASS.

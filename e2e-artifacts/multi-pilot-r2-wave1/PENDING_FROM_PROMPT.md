@@ -786,3 +786,34 @@ Live verification completed:
 - No close/open action was clicked.
 
 Wave 1 can continue only after Admin deliberately decides how to handle the one eligible-but-incomplete Project 03 before closing Progress 1.
+
+## Current Progress 2 Stabilization Queue
+
+Current QA preview after evidence-success patch:
+
+- `https://system-project-math-sci-4lkxybd8n-lordtd-hubs-projects.vercel.app`
+- Commit: `5f64eee`
+
+Completed before the current stop:
+
+- Student01 Progress 2 evidence success page is no longer shell-only.
+- Project01 Progress 2 schedule is confirmed after Teacher01/02/03 approvals.
+- Student04 and Student05 have Progress 2 evidence and pending Progress 2 schedule proposals.
+
+Current stop reason:
+
+- Major timezone bug: schedule form input `09:00-10:00` displays as `16:00-17:00` on live QA.
+- Patch is required before teacher queue approval continues.
+
+Required next actions:
+
+- Validate and push the timezone parse patch to `qa-preview`.
+- Use the new QA preview URL after push.
+- Live verify that a newly submitted schedule request displays the same Bangkok civil time selected in the form.
+- Recover Project04/Project05 pending schedule times through UI only; do not use direct DB manipulation.
+- Then continue the original loop:
+  - inspect teacher queues with Project04/Project05 accumulated,
+  - approve Project04,
+  - reject/resubmit/approve Project05,
+  - score required Progress 2 reviewers,
+  - verify Progress 2 close guard.

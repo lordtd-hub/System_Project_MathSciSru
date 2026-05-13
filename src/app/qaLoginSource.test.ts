@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
+const placeholderSecret = "do-not-hard-code-qa-secret";
 
 describe("QA login source guards", () => {
   it("keeps QA login off public homepage and only links it for active QA sessions", () => {
@@ -40,7 +41,7 @@ describe("QA login source guards", () => {
     expect(pageSource).toContain("MULTI-PILOT-R2 operational simulation");
     expect(pageSource).toContain("prepareMultiPilotR2Data");
     expect(pageSource).toContain("QA Mode");
-    expect(pageSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
+    expect(pageSource).not.toContain(placeholderSecret);
   });
 
   it("keeps the QA pilot setup guarded by QA login controls", () => {
@@ -53,6 +54,6 @@ describe("QA login source guards", () => {
     expect(actionSource).toContain("prisma.project.upsert");
     expect(actionSource).toContain("status: \"STUDENT_PROFILE\"");
     expect(actionSource).toContain("MULTI_PILOT_R2_COURSE_TITLE");
-    expect(actionSource).not.toContain("yDDla8ghlWmLuBsvVPXrhDVtV1i9aEjj");
+    expect(actionSource).not.toContain(placeholderSecret);
   });
 });
