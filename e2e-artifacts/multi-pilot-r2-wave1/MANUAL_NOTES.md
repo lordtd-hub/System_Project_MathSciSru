@@ -279,3 +279,13 @@ Do not turn this into manual text yet.
 - Reload restored the content and schedule form, so the data was saved but the soft post-submit transition was unreliable.
 - A small one-time recovery guard was added in the student layout for schedule success URLs only.
 - Later UX debt remains: the user should see an explicit "evidence saved, next propose schedule" state without ever needing to understand refresh/recovery behavior.
+
+## 2026-05-13 Final Scoring Counter Note
+
+Do not turn this into manual text yet.
+
+- Final scoring itself accepted the required reviewer submissions when the confirmation dialog was accepted.
+- A single Project05 reviewer score did not complete Final early, which confirms the reviewer-completion guard behaved correctly.
+- After all required Final scores were submitted, Admin `/admin/rounds` briefly became misleading because projects moved to `FINAL_DONE` were no longer counted as historically eligible for Final.
+- The fix should keep completed lifecycle statuses in historical eligibility buckets so Admin sees completed work as completed, not as "not yet eligible".
+- Later manual/UX work should explain that Final-complete projects may move to a post-Final status, but the round summary should still retain them in the completed bucket for that round.

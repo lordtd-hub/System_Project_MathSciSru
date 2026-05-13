@@ -894,3 +894,50 @@ Latest local validation:
 - `npm test`: PASS.
 - `npm run build`: PASS.
 - QA secret scan across `src` and `e2e-artifacts`: PASS.
+
+## Final Round Scoring Counter Stabilization Stop
+
+Status: Major patch validated locally; live QA push/verification still required.
+
+Already completed in this Final pass:
+
+- Student05 Final evidence post-submit recovery passed on the new QA preview.
+- Project01/04/05 Final schedules were submitted and approved.
+- Project05 reject -> resubmit -> approve flow was exercised again in Final.
+- Final scoring was submitted for required reviewers:
+  - Project01: Teacher02 + Teacher03
+  - Project04: Teacher01 + Teacher02
+  - Project05: Teacher01 + Teacher02
+- Teacher04 and Teacher Delta had no unauthorized Final scoring forms.
+- Single-reviewer completion guard passed: one Teacher01 score for Project05 did not mark Final completed.
+
+Current Major:
+
+- After all required Final scores were saved, Admin `/admin/rounds` incorrectly showed Final ready/submitted/completed as `0` and not-yet-eligible as `40`.
+- Expected: ready `3`, submitted `3`, completed `3`, eligible-but-incomplete `0`, not-yet-eligible `37`.
+- Root cause: `FINAL_DONE` projects were excluded from historical round eligibility because the topic/proposal gate status helper only accepted `TOPIC_APPROVED` and `IN_PROGRESS`.
+- Screenshot: `screenshots/final-admin-rounds-after-all-final-scores-qj.png`.
+
+Patch now ready for next live QA cycle:
+
+- Treat `FINAL_DONE` and `COMPLETED` as already past the topic/proposal gate for round bucket calculation.
+- Add regression test that a Final-completed `FINAL_DONE` project remains eligible/submitted/completed in the Final bucket.
+
+Required next actions:
+
+- Commit scoped round-eligibility patch.
+- Push `qa-preview` only.
+- Use the new Vercel QA preview URL after push.
+- Live verify `/admin/rounds` from saved QA state:
+  - Final ready `3`
+  - submitted `3`
+  - completed `3`
+  - eligible-but-incomplete `0`
+  - not-yet-eligible `37`
+- If verified, close Final via Admin and continue only to report readiness check.
+
+Latest local validation:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 77 files / 316 tests.
+- `npm run build`: PASS.

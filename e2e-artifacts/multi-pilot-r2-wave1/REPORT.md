@@ -1523,3 +1523,52 @@ Current stop:
 - Resume from saved state after the new QA preview is ready:
   - Student05 has Final evidence saved and should be able to propose Final schedule.
   - Then move to accumulated teacher Final schedule queues.
+
+## Live QA - Final Scoring Counter Major
+
+QA preview:
+
+- `https://system-project-math-sci-qjbbz40kv-lordtd-hubs-projects.vercel.app`
+- Commit before patch: `8d5fdb8`
+
+Final continuation completed before the stop:
+
+- Student05 post-submit recovery guard was live-verified; Final evidence save returned to usable schedule content.
+- Project05 Final schedule was resubmitted after Teacher01 rejection.
+- Final schedules for Project01/04/05 were approved by assigned committee teachers.
+- Teacher04 and Teacher Delta had no unauthorized Final schedule/scoring forms.
+- Final scoring forms were submitted with confirmation dialogs accepted:
+  - Project01: Teacher02 + Teacher03
+  - Project04: Teacher01 + Teacher02
+  - Project05: Teacher01 + Teacher02
+- Single-reviewer critical check passed before completing all scoring: after Teacher01 scored Project05 only, Admin still showed Final completed `0`, so a single reviewer did not complete the project early.
+
+Major stop after Final scoring:
+
+- Severity: Major.
+- Role: Admin.
+- Route: `/admin/rounds`.
+- Expected: after required Final scoring completes, Final buckets should show ready/eligible `3`, submitted `3`, completed `3`, eligible-but-incomplete `0`, not-yet-eligible `37`.
+- Actual: after projects moved to `FINAL_DONE`, Final buckets showed ready/eligible `0`, submitted `0`, completed `0`, eligible-but-incomplete `0`, not-yet-eligible `40`.
+- Root cause: round eligibility treated only `TOPIC_APPROVED` and `IN_PROGRESS` as having passed the topic/proposal gate. When Final scoring moved projects to `FINAL_DONE`, the historical Progress/Final gate checks no longer considered them eligible, so completed projects were incorrectly moved into not-yet-eligible.
+- Screenshot: `screenshots/final-admin-rounds-after-all-final-scores-qj.png`.
+
+Patch prepared:
+
+- `src/lib/assessments/roundEligibility.ts`: count `FINAL_DONE` and `COMPLETED` as statuses that have already passed the topic/proposal gate for round bucket calculations.
+- `src/lib/assessments/roundEligibility.test.ts`: add regression coverage that a `FINAL_DONE` project with Final evidence and required committee scores remains Final eligible/submitted/completed and is not counted as not-ready.
+
+Validation for patch:
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 77 files / 316 tests.
+- `npm run build`: PASS.
+
+Current stop:
+
+- Patch is validated locally.
+- Commit/push/live verification are still required.
+- Resume from saved state after the new QA preview is ready:
+  - Final scores are already saved on QA.
+  - Verify `/admin/rounds` recalculates Final as completed `3`.
+  - If correct, continue to Final close guard and report readiness check.

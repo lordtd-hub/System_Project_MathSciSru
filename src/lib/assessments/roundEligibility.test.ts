@@ -117,4 +117,51 @@ describe("round eligibility", () => {
 
     expect(getRoundReadiness(project, "FINAL_PRESENTATION").eligible).toBe(true);
   });
+
+  it("keeps FINAL_DONE projects in Final eligible and completed buckets", () => {
+    const project = {
+      ...baseProject,
+      status: "FINAL_DONE" as const,
+      assessmentSubmissions: [{ kind: "FINAL_PRESENT" as const }],
+      committeeAssignments: [
+        { role: "ADVISOR" as const, active: true, teacherId: "advisor" },
+        { role: "HEAD" as const, active: true, teacherId: "head" },
+        { role: "MEMBER" as const, active: true, teacherId: "member" }
+      ],
+      attempts: [
+        {
+          status: "SCORING_OPEN",
+          assessmentRound: { roundType: "PROGRESS_1" as const },
+          evaluatorAssignments: [
+            { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+            { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+          ]
+        },
+        {
+          status: "SCORING_OPEN",
+          assessmentRound: { roundType: "PROGRESS_2" as const },
+          evaluatorAssignments: [
+            { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+            { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+          ]
+        },
+        {
+          status: "SCORING_OPEN",
+          assessmentRound: { roundType: "FINAL_PRESENTATION" as const },
+          evaluatorAssignments: [
+            { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+            { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+          ]
+        }
+      ]
+    };
+
+    const buckets = buildRoundEligibilityBuckets([project], "FINAL_PRESENTATION");
+
+    expect(buckets.eligible.map((item) => item.project.id)).toEqual(["project-1"]);
+    expect(buckets.submitted.map((item) => item.project.id)).toEqual(["project-1"]);
+    expect(buckets.completed.map((item) => item.project.id)).toEqual(["project-1"]);
+    expect(buckets.eligibleButIncomplete).toEqual([]);
+    expect(buckets.notReady).toEqual([]);
+  });
 });

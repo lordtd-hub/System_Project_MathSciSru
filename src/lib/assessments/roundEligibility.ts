@@ -41,6 +41,10 @@ function hasCommittee(project: RoundEligibilityProject, role: CommitteeRole) {
   return project.committeeAssignments?.some((assignment) => assignment.active && assignment.role === role) ?? false;
 }
 
+function hasPassedTopicGateStatus(status: ProjectStatus) {
+  return ["TOPIC_APPROVED", "IN_PROGRESS", "FINAL_DONE", "COMPLETED"].includes(status);
+}
+
 export function getProgress1Readiness(project: RoundEligibilityProject): ProjectReadiness {
   const reasons: string[] = [];
   const finalDecision = project.proposalResults?.[0]?.finalDecision;
@@ -56,7 +60,7 @@ export function getProgress1Readiness(project: RoundEligibilityProject): Project
   if (!hasCommittee(project, "MEMBER")) reasons.push("missing MEMBER");
   if (hasBlockingException) reasons.push(project.roundExceptions?.find((exception) => exception.status !== "RESOLVED")?.reason ?? "project has blocking exception");
 
-  const eligible = ["TOPIC_APPROVED", "IN_PROGRESS"].includes(project.status) && finalDecision === "PASS" && reasons.length === 0;
+  const eligible = hasPassedTopicGateStatus(project.status) && finalDecision === "PASS" && reasons.length === 0;
   return { project, eligible, reasons };
 }
 
