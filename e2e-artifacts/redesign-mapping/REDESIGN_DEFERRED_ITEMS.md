@@ -18,7 +18,7 @@
 - Teacher mobile screenshot pass completed at 390px width on the `g5enipsvz` QA preview with no detected horizontal overflow.
 - Teacher non-mutating role/render regression completed with `teacher-delta` on the `g5enipsvz` QA preview.
 - Admin redesign entry audit and non-mutating live verification completed on the `1thdur8ic` QA preview for desktop and 390px mobile routes.
-- Student project/proposal readability summaries were added locally; live QA verification is pending after the next QA preview deploy.
+- Student project/proposal readability summaries were added and live-verified on the `4pvh39ven` QA preview for desktop and 390px mobile routes.
 
 ## Known Design Gaps
 

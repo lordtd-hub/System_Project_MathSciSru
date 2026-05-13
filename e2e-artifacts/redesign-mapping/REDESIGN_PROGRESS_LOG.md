@@ -329,4 +329,23 @@ The patch only adds presentation summaries. It does not change form fields, serv
 
 ### Next Phase
 
-Push QA preview and live-verify student routes on the new preview URL before moving to the global mobile/regression pass.
+Live-verify student routes on the new preview URL before moving to the global mobile/regression pass.
+
+### Live Verification
+
+Passed on `https://system-project-math-sci-4pvh39ven-lordtd-hubs-projects.vercel.app`.
+
+Verified desktop and 390px mobile render for:
+
+- `/student`
+- `/student/project`
+- `/student/proposal`
+- `/student/schedule`
+- `/student/report`
+- `/student/feedback`
+
+All checked routes rendered without shell-only pages, digest/error pages, or detected horizontal overflow. The verifier explicitly selects `#role = student` before selecting the student identity.
+
+### Next Phase
+
+Continue to global mobile/regression verification across redesigned Teacher, Admin, and Student surfaces.

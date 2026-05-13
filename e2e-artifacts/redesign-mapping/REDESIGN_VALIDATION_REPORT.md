@@ -167,4 +167,30 @@ Screenshots:
   - `node --check e2e-artifacts/redesign-mapping/verify-student-redesign-cdp.js` - passed.
 - Logic touched: no.
 
-Live QA verification is pending until the student patch is pushed to a new QA preview URL.
+Live QA verification passed on `https://system-project-math-sci-4pvh39ven-lordtd-hubs-projects.vercel.app`.
+
+Verified routes:
+
+- `/student`
+- `/student/project`
+- `/student/proposal`
+- `/student/schedule`
+- `/student/report`
+- `/student/feedback`
+
+Desktop and 390px mobile verification passed without shell-only pages, digest/error pages, or detected horizontal overflow.
+
+Screenshots:
+
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-redesign-desktop-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-project-redesign-desktop-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-proposal-redesign-desktop-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-schedule-redesign-desktop-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-report-redesign-desktop-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-feedback-redesign-desktop-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-redesign-mobile-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-project-redesign-mobile-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-proposal-redesign-mobile-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-schedule-redesign-mobile-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-report-redesign-mobile-4pvh39ven.png`
+- `e2e-artifacts/redesign-mapping/screenshots/student-feedback-redesign-mobile-4pvh39ven.png`
