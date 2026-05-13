@@ -16,6 +16,11 @@ import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import {
+  FigmaMetricCard,
+  FigmaPageHeader,
+  FigmaStatusBadge
+} from "@/components/redesign/VisualSurfaces";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { hasOpenLateRoundException } from "@/lib/assessments/roundExceptions";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
@@ -31,6 +36,7 @@ import {
   type PlanTaskClassification
 } from "@/lib/qa/progressPlanCheckConfig";
 import { assessmentKindToRoundType } from "@/lib/scheduling/scheduleRules";
+import { getUiMode } from "@/lib/uiMode";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -253,20 +259,65 @@ export default async function StudentSchedulePage({
   const completedScheduleRoundCount = scheduleRoundTypes.filter((roundType) => completed[roundTypeToScheduleKind(roundType)]).length;
   const notCurrentlyAvailableRoundCount = Math.max(scheduleRoundTypes.length - visibleGuidanceRounds.length - completedScheduleRoundCount, 0);
   const defaultScheduleRoundType = schedulableRoundsWithEvidence[0] ?? visibleGuidanceRounds[0] ?? "PROGRESS_1";
+  const uiMode = await getUiMode();
+  const scheduleTone = editableEvidenceRounds.length ? "action" : lockedScheduleRounds.length ? "waiting" : completedScheduleRoundCount ? "success" : "muted";
 
   return (
-    <div className="space-y-6" data-testid="student-schedule-page-content">
-      <PageHeader
-        title="เสนอวันสอบความก้าวหน้า/สอบขั้นสุดท้าย"
-        description="เสนอหรือแก้ไขวัน เวลา และห้องสอบภายใต้รอบสอบระดับรายวิชาที่เปิดอยู่"
-        actions={<StatusBadge status={project.status} />}
-      />
+    <div className={uiMode === "figma" ? "figma-dashboard-page figma-student-schedule" : "space-y-6"} data-testid="student-schedule-page-content">
+      {uiMode === "figma" ? (
+        <FigmaPageHeader
+          eyebrow="Student Schedule"
+          title="เสนอวันสอบความก้าวหน้า/สอบขั้นสุดท้าย"
+          description="เสนอหรือแก้ไขวัน เวลา และห้องสอบภายใต้รอบสอบระดับรายวิชาที่เปิดอยู่"
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge status={project.status} />
+              <FigmaStatusBadge tone={scheduleTone}>
+                {editableEvidenceRounds.length ? "ต้องทำตอนนี้" : lockedScheduleRounds.length ? "รอกรรมการ" : completedScheduleRoundCount ? "มีรอบเสร็จแล้ว" : "ยังไม่พร้อม"}
+              </FigmaStatusBadge>
+            </div>
+          }
+        />
+      ) : (
+        <PageHeader
+          title="เสนอวันสอบความก้าวหน้า/สอบขั้นสุดท้าย"
+          description="เสนอหรือแก้ไขวัน เวลา และห้องสอบภายใต้รอบสอบระดับรายวิชาที่เปิดอยู่"
+          actions={<StatusBadge status={project.status} />}
+        />
+      )}
       <ActionFeedback success={params.success} error={params.error} />
       {params.success === "assessment_evidence_saved" ? (
         <div data-testid="student-schedule-evidence-success-alert">
           <InfoAlert title="บันทึกหลักฐานการประเมินแล้ว">
             ระบบบันทึกเอกสารและหลักฐานของรอบสอบแล้ว หากยังไม่ได้เสนอวันสอบ ให้ตรวจข้อมูลและเสนอวันสอบในส่วนถัดไป
           </InfoAlert>
+        </div>
+      ) : null}
+      {uiMode === "figma" ? (
+        <div className="figma-kpi-grid">
+          <FigmaMetricCard
+            label="ต้องทำตอนนี้"
+            value={editableEvidenceRounds.length}
+            tone={editableEvidenceRounds.length ? "action" : "muted"}
+            description="รอบที่ยังบันทึกหลักฐานหรือเสนอวันสอบได้จากหน้านี้"
+          />
+          <FigmaMetricCard
+            label="รอกรรมการ"
+            value={lockedScheduleRounds.length}
+            tone={lockedScheduleRounds.length ? "waiting" : "muted"}
+            description="รอบที่ส่งคำขอนัดสอบแล้วและกำลังรอผลพิจารณา"
+          />
+          <FigmaMetricCard
+            label="เสร็จแล้ว"
+            value={completedScheduleRoundCount}
+            tone={completedScheduleRoundCount ? "success" : "muted"}
+            description="รอบที่กรรมการบันทึกคะแนนครบแล้ว"
+          />
+          <FigmaMetricCard
+            label="ล็อก/ยังไม่พร้อม"
+            value={notCurrentlyAvailableRoundCount}
+            description="รอบที่ยังไม่เปิดหรือยังไม่ผ่านเงื่อนไขก่อนหน้า"
+          />
         </div>
       ) : null}
       <StudentReadabilitySummary

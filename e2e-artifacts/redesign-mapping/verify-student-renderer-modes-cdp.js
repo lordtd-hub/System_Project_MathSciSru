@@ -359,6 +359,53 @@ async function inspectProposal(client, mode) {
   return { ...state, screenshot: filePath };
 }
 
+async function inspectSchedule(client, mode) {
+  await setUiMode(client, mode);
+  await goto(client, `${baseUrl}/student/schedule`);
+  const state = await evaluate(
+    client,
+    `
+      (() => {
+        const text = document.body ? document.body.innerText : "";
+        const root = document.scrollingElement || document.documentElement;
+        const body = document.body;
+        const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+        const viewportWidth = window.innerWidth;
+        return {
+          url: location.href,
+          bodyLength: text.trim().length,
+          hasFigmaShell: Boolean(document.querySelector(".figma-role-shell")),
+          hasRouteClass: Boolean(document.querySelector(".figma-student-schedule")),
+          hasPageContent: Boolean(document.querySelector('[data-testid="student-schedule-page-content"]')),
+          hasClassicSummary: Boolean(document.querySelector('[data-testid="student-readability-summary"]')),
+          evidenceForms: document.querySelectorAll("[data-testid^='student-assessment-evidence-form-']").length,
+          hasScheduleForm: Boolean(document.querySelector('form [name="round_type"]')),
+          hasDigest: /Application error|NEXT_REDIRECT|digest/i.test(text),
+          isLogin: location.pathname.includes("/qa-login"),
+          width,
+          viewportWidth,
+          overflow: width - viewportWidth
+        };
+      })()
+    `,
+    `${mode} student schedule inspect`
+  );
+  if (state.isLogin) throw new Error(`${mode}: redirected to QA login`);
+  if (state.hasDigest) throw new Error(`${mode}: digest/application error`);
+  if (state.bodyLength < 180) throw new Error(`${mode}: shell-only body`);
+  if (!state.hasPageContent) throw new Error(`${mode}: missing schedule page content`);
+  if (viewportMode === "mobile" && state.overflow > 4) throw new Error(`${mode}: horizontal overflow ${state.overflow}px`);
+  if (mode === "classic") {
+    if (state.hasFigmaShell || state.hasRouteClass) throw new Error("classic: unexpected Figma student schedule renderer");
+    if (!state.hasClassicSummary) throw new Error("classic: expected classic student readability summary");
+    return { ...state, screenshot: null };
+  }
+  if (!state.hasFigmaShell) throw new Error("figma: missing Figma shell");
+  if (!state.hasRouteClass) throw new Error("figma: missing figma-student-schedule");
+  const filePath = await screenshot(client, `student-schedule-renderer-figma-${viewportMode}-${deploymentSlug}.png`);
+  return { ...state, screenshot: filePath };
+}
+
 async function main() {
   const client = await connectPage();
   await qaLoginStudent(client);
@@ -368,7 +415,9 @@ async function main() {
     { route: "/student/project", mode: "classic", result: await inspectProject(client, "classic") },
     { route: "/student/project", mode: "figma", result: await inspectProject(client, "figma") },
     { route: "/student/proposal", mode: "classic", result: await inspectProposal(client, "classic") },
-    { route: "/student/proposal", mode: "figma", result: await inspectProposal(client, "figma") }
+    { route: "/student/proposal", mode: "figma", result: await inspectProposal(client, "figma") },
+    { route: "/student/schedule", mode: "classic", result: await inspectSchedule(client, "classic") },
+    { route: "/student/schedule", mode: "figma", result: await inspectSchedule(client, "figma") }
   ];
   client.ws.close();
   console.log(JSON.stringify({ baseUrl, viewportMode, viewport, studentKey, results }, null, 2));

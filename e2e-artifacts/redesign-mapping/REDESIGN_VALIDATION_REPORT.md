@@ -599,6 +599,33 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `e2e-artifacts/redesign-mapping/screenshots/student-dashboard-renderer-figma-mobile-oz0raz5on.png`
 - Result: `/student/proposal` is complete for non-mutating visual/regression verification in the current submitted-summary state.
 
+## 2026-05-14 Student Schedule Renderer Validation
+
+- Phase: 6 - Student redesign.
+- Scope:
+  - `/student/schedule`.
+- Renderer status:
+  - classic fallback remains available;
+  - figma branch added with `.figma-student-schedule`;
+  - schedule/evidence forms and success guard remain owned by the existing page.
+- Logic touched: no.
+- Contract preserved:
+  - `saveAssessmentEvidence`;
+  - `submitExamSchedule`;
+  - `data-testid="student-schedule-page-content"`;
+  - `params.success === "assessment_evidence_saved"`;
+  - `data-testid={\`student-assessment-evidence-form-${kind}\`}`;
+  - `DraftPreservingForm action={submitExamSchedule}`;
+  - `student-schedule-draft`;
+  - `scheduleRoundTypes`.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization postSubmitStabilizationSource scheduleProgressSource` - passed, 4 files / 26 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 361 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deployment: pending.
+- Live verification: pending.
+
 ### QA Deployment And Live Verification
 
 - Commit: `1ad318e`.

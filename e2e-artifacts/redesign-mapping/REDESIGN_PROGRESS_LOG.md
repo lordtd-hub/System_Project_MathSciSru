@@ -1234,3 +1234,36 @@ Student proposal renderer is complete and live-verified for the current submitte
 ### Next Phase
 
 Continue Phase 6 with `/student/schedule`.
+
+## 2026-05-14 - Phase 6 Student Schedule Figma Renderer
+
+### Scope
+
+Continued Phase 6 Student redesign with:
+
+- `/student/schedule`
+
+### Patch
+
+- Added a conservative page-level Figma renderer branch for the assessment evidence and schedule page.
+- Kept the existing schedule/evidence forms, round guidance, rubric panels, post-submit success branch, and schedule history behavior as the classic fallback contract.
+- Added Figma page header, status badge, and KPI cards for actionable, waiting, completed, and locked/not-ready round states.
+- Preserved `saveAssessmentEvidence`, `submitExamSchedule`, `DraftPreservingForm`, schedule draft storage key, round-specific evidence forms, `student-schedule-page-content`, and the `assessment_evidence_saved` success render branch.
+- Extended the student Edge CDP verifier to check `/student/schedule` in both classic and figma mode.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization postSubmitStabilizationSource scheduleProgressSource` - passed, 4 files / 26 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 361 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Push QA preview, live-verify `/student/schedule` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/report`.

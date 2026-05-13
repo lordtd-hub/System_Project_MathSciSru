@@ -83,4 +83,21 @@ describe("student dashboard source", () => {
     expect(page).toContain("ProposalQaRubricPanel");
     expect(page).toContain("MarkdownLatexViewer");
   });
+
+  it("adds a conservative Figma schedule renderer without changing evidence and schedule actions", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/student/schedule/page.tsx"), "utf8");
+
+    expect(page).toContain("getUiMode");
+    expect(page).toContain("figma-student-schedule");
+    expect(page).toContain("FigmaPageHeader");
+    expect(page).toContain("FigmaMetricCard");
+    expect(page).toContain("saveAssessmentEvidence");
+    expect(page).toContain("submitExamSchedule");
+    expect(page).toContain('data-testid="student-schedule-page-content"');
+    expect(page).toContain('params.success === "assessment_evidence_saved"');
+    expect(page).toContain('data-testid={`student-assessment-evidence-form-${kind}`}');
+    expect(page).toContain("DraftPreservingForm action={submitExamSchedule}");
+    expect(page).toContain("student-schedule-draft");
+    expect(page).toContain("scheduleRoundTypes");
+  });
 });

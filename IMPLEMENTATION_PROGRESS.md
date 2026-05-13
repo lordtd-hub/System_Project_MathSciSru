@@ -1913,3 +1913,21 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - submitted summary remained present in both modes;
   - desktop and 390px mobile had no shell-only page, digest/application error, login fallback, or horizontal overflow.
 - Next step: continue Phase 6 with `/student/schedule`.
+
+## 2026-05-14 Figma visual redesign - Student schedule renderer
+
+- Continued Phase 6 Student redesign with `/student/schedule`.
+- Added a conservative page-level `figma` renderer branch while keeping existing assessment evidence, scheduling, guidance, rubric, and schedule history behavior as the classic fallback contract.
+- The Figma schedule page adds:
+  - student page header;
+  - status badge;
+  - KPI cards for actionable, waiting, completed, and locked/not-ready round states.
+- Preserved the existing student guard, round/open/late exception checks, Progress/Final eligibility sources, `saveAssessmentEvidence`, `submitExamSchedule`, post-evidence-save success branch, `student-schedule-page-content` guard, evidence forms, schedule draft form, schedule history, rubric panels, Markdown+KaTeX rendering, and route behavior.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization postSubmitStabilizationSource scheduleProgressSource`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Extended the student Edge CDP verifier to check `/student/schedule` classic/figma rendering and page-content presence.
+- Next step: push QA preview, live-verify `/student/schedule`, then continue Phase 6 with `/student/report`.
