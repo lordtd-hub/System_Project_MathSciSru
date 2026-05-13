@@ -100,4 +100,22 @@ describe("student dashboard source", () => {
     expect(page).toContain("student-schedule-draft");
     expect(page).toContain("scheduleRoundTypes");
   });
+
+  it("adds a conservative Figma report renderer without changing report submission and history contracts", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/student/report/page.tsx"), "utf8");
+
+    expect(page).toContain("getUiMode");
+    expect(page).toContain("figma-student-report");
+    expect(page).toContain("FigmaPageHeader");
+    expect(page).toContain("FigmaMetricCard");
+    expect(page).toContain('data-testid="student-report-page-content"');
+    expect(page).toContain("DraftPreservingForm action={submitReportVersion}");
+    expect(page).toContain('name="report_drive_link"');
+    expect(page).toContain('name="report_note"');
+    expect(page).toContain("student-report-draft");
+    expect(page).toContain("MarkdownLatexViewer");
+    expect(page).toContain("teacherDisplayName");
+    expect(page).toContain("getReportSubmissionGate");
+    expect(page).toContain("latestReportHasRevisionRequest");
+  });
 });

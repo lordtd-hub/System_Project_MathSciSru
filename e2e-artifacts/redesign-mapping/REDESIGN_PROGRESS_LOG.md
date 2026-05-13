@@ -1292,3 +1292,37 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 ### Next Phase
 
 Continue Phase 6 with `/student/report`.
+
+## 2026-05-14 - Phase 6 Student Report Figma Renderer
+
+### Scope
+
+Continued Phase 6 Student redesign with:
+
+- `/student/report`
+
+### Patch
+
+- Added a conservative page-level Figma renderer branch for the report submission and revision page.
+- Kept the existing report gate, report submission form, revision note editor, report version history, reviewer comments, and Markdown/KaTeX rendering as the classic fallback contract.
+- Added Figma page header, status badge, and KPI cards for do-now, waiting-for-review, approved, and report-history states.
+- Preserved `submitReportVersion`, `DraftPreservingForm`, `report_drive_link`, `report_note`, `student-report-draft`, `getReportSubmissionGate`, latest-version/revision state display, reviewer display names, and report history.
+- Extended the student Edge CDP verifier to check `/student/report` in both classic and figma mode.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change auth, lifecycle, scoring, eligibility, report approval semantics, latest-version semantics, schema, server action semantics, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization` - passed, 2 files / 12 tests.
+- `node --check e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js` - passed.
+- `cmd /c npm.cmd test` - passed, 82 files / 362 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Push QA preview, live-verify `/student/report` classic/figma mode on desktop and 390px mobile, then continue Phase 6 with `/student/feedback`.

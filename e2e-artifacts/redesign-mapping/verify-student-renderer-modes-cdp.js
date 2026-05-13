@@ -406,6 +406,66 @@ async function inspectSchedule(client, mode) {
   return { ...state, screenshot: filePath };
 }
 
+async function inspectReport(client, mode) {
+  await setUiMode(client, mode);
+  await goto(client, `${baseUrl}/student/report`);
+  const state = await evaluate(
+    client,
+    `
+      (() => {
+        const text = document.body ? document.body.innerText : "";
+        const root = document.scrollingElement || document.documentElement;
+        const body = document.body;
+        const width = Math.max(root.scrollWidth, body ? body.scrollWidth : 0);
+        const viewportWidth = window.innerWidth;
+        const form = document.querySelector('form[action]');
+        const reportFields = ["report_drive_link", "report_note"];
+        const missingFields = form ? reportFields.filter((name) => !form.querySelector('[name="' + name + '"]')) : [];
+        const hasDraftSave = Boolean(document.querySelector("[data-draft-save]"));
+        const hasSubmit = Boolean(document.querySelector('button[type="submit"]'));
+        const hasHistory = text.includes("ประวัติ") || text.includes("ฉบับที่");
+        return {
+          url: location.href,
+          bodyLength: text.trim().length,
+          hasFigmaShell: Boolean(document.querySelector(".figma-role-shell")),
+          hasRouteClass: Boolean(document.querySelector(".figma-student-report")),
+          hasPageContent: Boolean(document.querySelector('[data-testid="student-report-page-content"]')),
+          hasClassicSummary: Boolean(document.querySelector('[data-testid="student-readability-summary"]')),
+          hasForm: Boolean(form),
+          hasDraftSave,
+          hasSubmit,
+          missingFields,
+          hasHistory,
+          hasDigest: /Application error|NEXT_REDIRECT|digest/i.test(text),
+          isLogin: location.pathname.includes("/qa-login"),
+          width,
+          viewportWidth,
+          overflow: width - viewportWidth
+        };
+      })()
+    `,
+    `${mode} student report inspect`
+  );
+  if (state.isLogin) throw new Error(`${mode}: redirected to QA login`);
+  if (state.hasDigest) throw new Error(`${mode}: digest/application error`);
+  if (state.bodyLength < 180) throw new Error(`${mode}: shell-only body`);
+  if (!state.hasPageContent) throw new Error(`${mode}: missing report page content`);
+  if (!state.hasHistory) throw new Error(`${mode}: missing report history/status content`);
+  if (state.hasForm && state.missingFields.length) throw new Error(`${mode}: missing report form fields ${state.missingFields.join(", ")}`);
+  if (state.hasForm && !state.hasDraftSave) throw new Error(`${mode}: missing report draft-save button`);
+  if (state.hasForm && !state.hasSubmit) throw new Error(`${mode}: missing report submit button`);
+  if (viewportMode === "mobile" && state.overflow > 4) throw new Error(`${mode}: horizontal overflow ${state.overflow}px`);
+  if (mode === "classic") {
+    if (state.hasFigmaShell || state.hasRouteClass) throw new Error("classic: unexpected Figma student report renderer");
+    if (!state.hasClassicSummary) throw new Error("classic: expected classic student readability summary");
+    return { ...state, screenshot: null };
+  }
+  if (!state.hasFigmaShell) throw new Error("figma: missing Figma shell");
+  if (!state.hasRouteClass) throw new Error("figma: missing figma-student-report");
+  const filePath = await screenshot(client, `student-report-renderer-figma-${viewportMode}-${deploymentSlug}.png`);
+  return { ...state, screenshot: filePath };
+}
+
 async function main() {
   const client = await connectPage();
   await qaLoginStudent(client);
@@ -417,7 +477,9 @@ async function main() {
     { route: "/student/proposal", mode: "classic", result: await inspectProposal(client, "classic") },
     { route: "/student/proposal", mode: "figma", result: await inspectProposal(client, "figma") },
     { route: "/student/schedule", mode: "classic", result: await inspectSchedule(client, "classic") },
-    { route: "/student/schedule", mode: "figma", result: await inspectSchedule(client, "figma") }
+    { route: "/student/schedule", mode: "figma", result: await inspectSchedule(client, "figma") },
+    { route: "/student/report", mode: "classic", result: await inspectReport(client, "classic") },
+    { route: "/student/report", mode: "figma", result: await inspectReport(client, "figma") }
   ];
   client.ws.close();
   console.log(JSON.stringify({ baseUrl, viewportMode, viewport, studentKey, results }, null, 2));

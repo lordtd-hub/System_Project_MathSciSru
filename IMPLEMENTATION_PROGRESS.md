@@ -1933,3 +1933,22 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - QA preview `https://system-project-math-sci-9ugiisk0v-lordtd-hubs-projects.vercel.app` passed live Edge CDP verification for `/student/schedule` in classic and figma mode on desktop and 390px mobile.
 - No shell-only page, digest/application error, login fallback, or horizontal overflow was detected.
 - Next step: continue Phase 6 with `/student/report`.
+
+## 2026-05-14 Figma visual redesign - Student report renderer
+
+- Continued Phase 6 Student redesign with `/student/report`.
+- Added a conservative page-level `figma` renderer branch while keeping existing report gate, report submission, revision note, report history, reviewer comments, and Markdown+KaTeX behavior as the classic fallback contract.
+- The Figma report page adds:
+  - student report page header;
+  - status badge;
+  - KPI cards for do-now, waiting-for-review, approved, and report-history states.
+- Preserved `submitReportVersion`, `DraftPreservingForm`, `report_drive_link`, `report_note`, `student-report-draft`, `getReportSubmissionGate`, latest report revision state, reviewer display names, version history, and route behavior.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, report latest-version, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- studentDashboardSource studentReadabilityStabilization`
+  - `node --check e2e-artifacts/redesign-mapping/verify-student-renderer-modes-cdp.js`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Extended the student Edge CDP verifier to check `/student/report` classic/figma rendering and report page-content presence.
+- Next step: push QA preview, live-verify `/student/report`, then continue Phase 6 with `/student/feedback`.
