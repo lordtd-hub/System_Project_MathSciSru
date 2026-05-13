@@ -278,25 +278,43 @@ Do not start manual documentation screenshots until Wave 2 scope is approved and
 
 Status:
 
-- Wave 2 execution has started.
-- Phase 0 artifacts were created under `e2e-artifacts/multi-pilot-r2-wave2/`.
-- Phase 1 has a QA-only setup patch for a separate Wave 2 course offering.
+- Wave 2 12-project operational loop is complete.
+- Wave 1 data remains preserved.
+- Production was not touched during the Wave 2 execution loop.
 
-Patch summary:
+Latest QA preview used:
 
-- Added `MULTI-PILOT-R2 Wave 2 Course Offering` setup through `/qa-login`.
-- Uses existing QA identities and creates 12 starter projects for QA students 01-12.
-- Preserves Wave 1 data.
-- Keeps course-level rounds only.
+- `https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app`
 
-Validation:
+Completed scope:
 
-- `cmd /c npm.cmd run typecheck` - passed.
-- `cmd /c npm.cmd test` - passed, 80 files / 334 tests.
-- `cmd /c npm.cmd run build` - passed.
+- Created a separate `MULTI-PILOT-R2 Wave 2 Course Offering`.
+- Ran 12 active projects through:
+  - Proposal,
+  - late Proposal recovery,
+  - Progress 1,
+  - Progress recovery,
+  - Progress 2,
+  - Final,
+  - Final schedule reject/resubmit,
+  - Report submission,
+  - Report revision/latest-version loop,
+  - Advisor score,
+  - Admin closeout,
+  - Evidence/export checks.
+- Preserved course-level `AssessmentRound` semantics only; no per-project rounds were created.
 
-Pending:
+Major issue found and fixed:
 
-- Commit/push QA setup patch.
-- Live verify on the new QA preview.
-- Prepare Wave 2 data through the QA UI.
+- Progress recovery late exception did not unlock the closed-round student/teacher schedule flow.
+- Patched in commits `0774cd6` and `5e7f941`.
+- Local validation passed with `typecheck`, `npm test`, and `build`.
+- Live verification passed with W2-10 Progress 1 recovery.
+
+No active Major/Blocker remains from the 12-project loop.
+
+Current recommendation:
+
+- Prepare a deliberate 20-project Wave 2 expansion plan next.
+- Do not jump directly to 40 projects.
+- Before or during the 20-project expansion, consider compact filters/collapsible history for teacher completed sections and admin evidence/history views.

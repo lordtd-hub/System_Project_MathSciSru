@@ -38,6 +38,33 @@ Follow-up root cause found during live verification:
   - stop immediately on mismatch.
 - Recommendation: keep this as a mandatory QA-login preflight for every Wave 2 CDP/browser script.
 
+### W2-UX-001 - Teacher completed/history sections become dense after repeated rounds
+
+- Severity: Minor/UX.
+- Area: `/teacher/schedules`, `/teacher/reports`, `/teacher/advisor-score`.
+- Role/project: teachers with multiple Wave 1 and Wave 2 historical assignments.
+- Observed: after Proposal, Progress 1, Progress 2, Final, Report, and Advisor Score complete, completed/read-only sections become long.
+- Workflow impact: none observed; actionable queues still cleared correctly and unauthorized actions were not shown.
+- Operational risk: at 20+ projects, teachers may need stronger filters/search/collapsible history to avoid scanning fatigue.
+- Recommendation: before scaling beyond 20, consider compact filters for round/status/course offering and collapsible completed-history sections.
+
+### W2-UX-002 - Student report page does not surface project title prominently enough for automation guard
+
+- Severity: Minor/UX.
+- Area: `/student/report`.
+- Role/project: Wave 2 students.
+- Observed: the report page was operationally correct, but the page body did not expose the project title in a way that the pilot script could reliably use as a guard.
+- Workflow impact: none; report submission, waiting state, history, revision, and approval worked.
+- Tooling response: the runner was adjusted to guard by role, report status, form availability, and history instead of project title.
+- Recommendation: in a later student readability pass, consider showing the active project title consistently on student workflow pages.
+
+## Resolved / Completed Loop Notes
+
+- W2-12 report revision/latest-version loop passed.
+- W2-11 Final schedule reject/resubmit loop passed.
+- W2-10 Progress recovery passed after the late-exception stabilization patch.
+- No active Major/Blocker remains from the 12-project Wave 2 loop.
+
 ## Severity Policy
 
 Blocker:

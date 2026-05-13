@@ -114,6 +114,35 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - Live verify the setup on the new QA preview.
   - Prepare Wave 2 data through the QA UI.
 
+## 2026-05-13 Wave 2 12-project full-loop completion
+
+- Wave 2 12-project operational loop completed on QA preview `https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app`.
+- Wave 1 historical data was preserved.
+- Production was not touched during the Wave 2 execution loop.
+- Completed Wave 2 scope:
+  - Proposal for 12 projects.
+  - W2-09 late Proposal recovery.
+  - Progress 1 for 12 projects.
+  - W2-10 Progress recovery after late-exception stabilization.
+  - Progress 2 for 12 projects.
+  - Final for 12 projects.
+  - W2-11 schedule reject/resubmit in Final.
+  - Report submission for 12 projects.
+  - W2-12 report revision/latest-version approval loop.
+  - Advisor score for 12 projects.
+  - Admin closeout for 12 projects.
+  - Evidence/export continuity for grades, projects, timeline, scores, reports, and audit in CSV/XLSX.
+- Major stabilization during Wave 2:
+  - Open late/excused round exceptions now unlock the affected closed-round student/teacher recovery path without making not-yet-eligible projects count as blockers.
+  - Related validation passed in commits `0774cd6` and `5e7f941`.
+- Operational result:
+  - No active Major/Blocker remains from the 12-project Wave 2 loop.
+  - Minor UX debt remains around dense completed/history sections for teachers and evidence/history scanning as project count grows.
+- Recommendation:
+  - Plan a controlled expansion from 12 to 20 projects next.
+  - Do not jump directly to 40 projects.
+  - Do not start manual documentation screenshots until the 20-project decision is made or explicitly deferred.
+
 ## 2026-05-06 Production baseline seed
 
 - Added `prisma/seed-production-baseline.ts`.

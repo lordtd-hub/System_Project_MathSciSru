@@ -81,3 +81,26 @@ Validation note:
 
 - Last app-code validation before this phase: `typecheck`, `npm test`, `npm run build` all passed.
 - Phase 4 changes after that point were pilot scripts and artifact notes only.
+
+## 2026-05-13 - Phases 5-9 Live Verification
+
+No app code changes were required during Phases 5-9.
+
+Live verification:
+
+- Final opened and completed for W2-01 to W2-12.
+- W2-11 Final schedule reject/resubmit passed.
+- Final scores were submitted by required reviewers.
+- Final closed with ready 12 / submitted 12 / completed 12 / incomplete 0 / not-ready 0.
+- W2-01 to W2-12 submitted report version 1.
+- W2-12 report revision/version 2/latest-version approval passed.
+- Advisor scores were submitted after report approval.
+- Admin closeout completed all 12 Wave 2 projects.
+- Evidence page showed Wave 2 readiness complete.
+- CSV/XLSX exports for grades, projects, timeline, scores, reports, and audit returned HTTP 200.
+
+Validation before committing this no-app-code loop:
+
+- `cmd /c npm.cmd test` - passed, 81 files / 341 tests.
+- QA secret scan over `e2e-artifacts`, `src`, `IMPLEMENTATION_PROGRESS.md`, `README.md`, and `.env.example` - passed for real secrets.
+- Scan note: only placeholder `DIRECT_URL` references were found in `README.md` and `.env.example`; no real QA secret or pasted Supabase credential was found.

@@ -156,6 +156,149 @@ Result:
 - Progress 2 operational flow completed with no new Major/Blocker.
 - Final round is now openable for all 12 Wave 2 projects.
 
+### Phase 5 - Final Round
+
+Status: completed.
+
+Starting state:
+
+- Progress 2 was closed and complete for all 12 Wave 2 projects.
+- Final was expected to be openable for all 12 Wave 2 projects.
+
+Actions:
+
+- Opened Final round.
+- Students W2-01 to W2-12 submitted Final evidence.
+- Students W2-01 to W2-12 submitted Final schedule proposals.
+- W2-11 exercised the required schedule reject/resubmit path:
+  - Teacher04 rejected the first Final schedule.
+  - Student11 resubmitted schedule `W2-FINAL-11B`.
+  - Assigned teachers approved the resubmitted schedule.
+- Assigned teachers approved all Wave 2 Final schedules.
+- Required committee reviewers submitted Final scores.
+- Admin Final counters before close: ready 12 / submitted 12 / completed 12 / eligible-but-incomplete 0 / not-ready 0.
+- Admin closed Final successfully.
+
+Result:
+
+- Final operational flow completed with no new Major/Blocker.
+- No unauthorized Final actions were observed during the guarded role checks.
+
+### Phase 6 - Report Workflow
+
+Status: completed.
+
+Actions:
+
+- Students W2-01 to W2-12 submitted final report version 1.
+- After each report submission, the student page showed the waiting-for-review state, no active submit form, and report history with `ฉบับที่ 1`.
+- W2-12 exercised the required report revision/latest-version loop:
+  - Teacher01 requested revision on version 1.
+  - Student12 saw the revision request and submitted version 2.
+  - Student12 report history retained both `ฉบับที่ 1` and `ฉบับที่ 2`.
+  - Teachers approved the latest version only.
+- Teachers approved Wave 2 reports after the latest-version state was verified.
+
+Result:
+
+- Report workflow completed with no Major/Blocker.
+- Latest-version approval behavior passed for W2-12.
+
+### Phase 7 - Advisor Score
+
+Status: completed.
+
+Actions:
+
+- Advisors submitted advisor score evidence for W2-01 to W2-12 after report approval.
+- Advisor score pages became read-only after submit and showed completed scoring state.
+- Advisor score queue cleared for completed Wave 2 items.
+
+Result:
+
+- Advisor score unlock behavior passed.
+- No advisor score was submitted before report approval.
+- No unauthorized advisor-score action was observed.
+
+### Phase 8 - Admin Closeout
+
+Status: completed.
+
+Actions:
+
+- Admin closeout page showed 12 Wave 2 projects ready for closeout.
+- Admin completed closeout for W2-01 to W2-12.
+- After closeout, Wave 2 projects showed `โครงงานเสร็จสมบูรณ์`.
+- Closeout checklist was complete for all 12 Wave 2 projects.
+
+Result:
+
+- Admin closeout passed with no Major/Blocker.
+- Completed list includes previous historical completed projects, so the total completed count is larger than 12 by design.
+
+### Phase 9 - Evidence / Export Continuity
+
+Status: completed.
+
+QA preview:
+
+- `https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app`
+
+Actions:
+
+- Opened Admin evidence for the Wave 2 course offering.
+- Verified evidence readiness summary: 12 projects / 12 completed / 0 missing evidence / 12 report evidence / 12 advisor scores.
+- Verified CSV and XLSX export routes for:
+  - grade summary,
+  - project evidence,
+  - timeline evidence,
+  - score evidence,
+  - report evidence,
+  - audit evidence.
+
+Grade export check:
+
+- Grade CSV returned `200`.
+- Grade XLSX returned `200`.
+- Grade CSV includes the required student-level columns:
+  - `student_code`
+  - `first_name_th`
+  - `last_name_th`
+  - `student_full_name_th`
+  - `project_title`
+  - `proposal_10_percent`
+  - `progress1_10_percent`
+  - `progress2_10_percent`
+  - `final_10_percent`
+  - `presentation_total_40_percent`
+  - `advisor_25_percent`
+  - `recorded_total_65_percent`
+  - `missing_score_components`
+  - `project_status`
+  - `project_id`
+
+Result:
+
+- Evidence/export continuity passed.
+- Grade CSV/XLSX supports the requested per-student score summary.
+- Wave 1 and Wave 2 course offerings remain separated on the evidence page.
+
+### Phase 10 - Scale Decision
+
+Status: 12-project loop completed; 20-project expansion not started.
+
+Assessment:
+
+- The 12-project Wave 2 loop passed Proposal, Progress 1 recovery, Progress 2, Final, Report revision, Advisor Score, Admin Closeout, and Evidence export.
+- No active Major/Blocker remains from the 12-project cycle.
+- Operational density is starting to show in completed teacher schedule/report/advisor lists, but it did not break workflow semantics.
+
+Recommendation:
+
+- Wave 2 is ready for a deliberate 20-project expansion plan.
+- Do not jump directly to 40 projects.
+- Before expanding, consider a compact filter/search pass for teacher completed/history sections and admin evidence lists, because completed historical records now accumulate quickly.
+
 ## Current Recommendation
 
-Continue Phase 5 Final round from the current QA state on `https://system-project-math-sci-p060rlo5d-lordtd-hubs-projects.vercel.app`.
+Wave 2 12-project operational loop is complete. Prepare a focused 20-project expansion plan next, without resetting Wave 1 or Wave 2 data and without touching production.
