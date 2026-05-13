@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { AdminDangerZone, AdminOperationalSummary, AdminQueueBadge } from "@/components/ui/AdminOperationalQueue";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
@@ -12,6 +13,7 @@ import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate, roundSequenceReasonLabelTh } from "@/lib/assessments/roundSequence";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
+import { getUiMode } from "@/lib/uiMode";
 import { closeCourseRound, openCourseRound, resetCourseRound, seedRubricBaselineFromAdmin } from "../actions";
 
 function formatDate(value?: Date | null) {
@@ -147,6 +149,256 @@ export default async function AdminRoundsPage({
   const waitingStudentCount = roundOperationalState.reduce((sum, item) => sum + item.waitingStudents, 0);
   const exceptionCount = roundOperationalState.reduce((sum, item) => sum + item.exceptionCount, 0);
   const notEligibleCount = roundOperationalState.reduce((sum, item) => sum + item.eligibility.notReady.length, 0);
+  const uiMode = await getUiMode();
+
+  if (uiMode === "figma") {
+    return (
+      <div className="figma-dashboard-page figma-admin-rounds">
+        <FigmaPageHeader
+          eyebrow="Admin operations"
+          title="รอบสอบของรายวิชา"
+          description={`${offering.term.displayName} · ${offering.courseTitle}`}
+        />
+        <ActionFeedback success={params.success} error={params.error} />
+
+        <div className="figma-kpi-grid">
+          <FigmaMetricCard label="เปิดรอบได้" value={openableRoundCount} tone={openableRoundCount ? "action" : "muted"} description="ผ่านเงื่อนไขลำดับรอบแล้ว แต่ยังไม่ได้เปิด" />
+          <FigmaMetricCard label="พร้อมปิดรอบ" value={readyToCloseRoundCount} tone={readyToCloseRoundCount ? "success" : "muted"} description="รอบที่เปิดอยู่และไม่มี eligible-but-incomplete" />
+          <FigmaMetricCard label="รออาจารย์" value={waitingTeacherCount} tone={waitingTeacherCount ? "waiting" : "success"} description="มีหลักฐานแล้ว แต่คะแนน/การประเมินยังไม่ครบ" />
+          <FigmaMetricCard label="รอนักศึกษา" value={waitingStudentCount} tone={waitingStudentCount ? "waiting" : "success"} description="เข้าเกณฑ์รอบนี้แล้ว แต่ขั้นตอนยังไม่ครบ" />
+          <FigmaMetricCard label="ข้อยกเว้น/ยังไม่เข้าเกณฑ์" value={`${exceptionCount}/${notEligibleCount}`} tone={exceptionCount ? "warning" : "muted"} description="แยกจากตัวบล็อกการปิดรอบปัจจุบัน" />
+        </div>
+
+        <FigmaPanel
+          title="เกณฑ์ประเมินมาตรฐาน"
+          description="ใช้ตั้งค่าเกณฑ์ประเมินมาตรฐานสำหรับ Proposal, Progress 1, Progress 2 และ Final Presentation"
+          tone={missingRubricCount ? "warning" : "success"}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="grid flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {baselineRubricDefinitions.map((definition) => {
+                const rubric = rubricMap.get(definition.roundType);
+                const isReady = Boolean(rubric?.active && rubric.items.length > 0);
+                return (
+                  <div key={definition.roundType} className="figma-action-row" data-tone={isReady ? "success" : "warning"}>
+                    <div>
+                      <div className="figma-action-title">
+                        {roundTypeLabelTh(definition.roundType)}
+                        <FigmaStatusBadge tone={isReady ? "success" : "warning"}>{isReady ? "พร้อมใช้งาน" : "ยังไม่พร้อม"}</FigmaStatusBadge>
+                      </div>
+                      <p>{rubric?.items.length ?? 0} รายการ{rubric ? ` · v${rubric.version}` : ""}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <form action={seedRubricBaselineFromAdmin}>
+              <SubmitButton className="button-secondary" pendingText="กำลังตั้งค่าเกณฑ์ประเมิน...">
+                ตั้งค่าเกณฑ์ประเมินมาตรฐาน
+              </SubmitButton>
+            </form>
+          </div>
+          {missingRubricCount ? (
+            <p className="mt-3 text-sm font-semibold text-[var(--warn-700)]">มีเกณฑ์ประเมินที่ยังไม่พร้อม {missingRubricCount} รอบ</p>
+          ) : (
+            <p className="mt-3 text-sm text-muted">เกณฑ์ประเมินมาตรฐานพร้อมสำหรับทุกรอบสอบแล้ว</p>
+          )}
+        </FigmaPanel>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          {roundOperationalState.map(({ roundType, round, eligibility, openGate, exceptionCount }) => {
+            const submittedCount = eligibility.submitted.length;
+            const completedCount = eligibility.completed.length;
+            const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];
+            const requireProposalCloseAck = roundType === "PROPOSAL" && Boolean(round && isRoundOpen(round.status) && missingProposalProjects.length);
+            const requireIncompleteCloseAck = roundType !== "PROPOSAL" && Boolean(round && isRoundOpen(round.status) && eligibility.eligibleButIncomplete.length);
+            const requiresCloseAck = requireProposalCloseAck || requireIncompleteCloseAck;
+            const resetState = round
+              ? getCourseRoundResetState(round.status, {
+                  attempts: round.attempts.length,
+                  projectExceptions: round.projectExceptions.length,
+                  scheduleProposals: round.scheduleProposals.length
+                })
+              : { canReset: false };
+            const roundIsOpen = Boolean(round && isRoundOpen(round.status));
+            const tone = roundIsOpen ? "action" : isRoundClosed(round?.status ?? "DRAFT") ? "success" : openGate.canOpen ? "warning" : "muted";
+
+            return (
+              <FigmaPanel key={roundType} title={round?.name ?? defaultCourseRoundName(roundType)} description={`รอบ ${roundTypeLabelTh(roundType)}`} tone={tone}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <FigmaStatusBadge tone={roundIsOpen ? "action" : isRoundClosed(round?.status ?? "DRAFT") ? "success" : "muted"}>
+                    {roundStatusLabelTh(round?.status ?? "DRAFT")}
+                  </FigmaStatusBadge>
+                  <FigmaStatusBadge tone={openGate.canOpen ? "action" : "muted"}>{openGate.canOpen ? "เปิดได้" : "ยังเปิดไม่ได้"}</FigmaStatusBadge>
+                  {exceptionCount ? <FigmaStatusBadge tone="warning">ข้อยกเว้น {exceptionCount}</FigmaStatusBadge> : null}
+                </div>
+
+                <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">เปิดเมื่อ</dt><dd className="font-semibold">{formatDate(round?.submissionOpenAt)}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">ปิดเมื่อ</dt><dd className="font-semibold">{formatDate(round?.closedAt)}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">พร้อมเข้ารอบนี้</dt><dd className="text-2xl font-semibold">{eligibility.eligible.length}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">ส่งหลักฐานแล้ว</dt><dd className="text-2xl font-semibold">{submittedCount}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">ประเมินครบ</dt><dd className="text-2xl font-semibold">{completedCount}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">พร้อมแต่ยังไม่ครบ</dt><dd className="text-2xl font-semibold">{eligibility.eligibleButIncomplete.length}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">ยังไม่พร้อมรอบนี้</dt><dd className="text-2xl font-semibold">{eligibility.notReady.length}</dd></div>
+                  <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="text-muted">เปิดส่งย้อนหลัง</dt><dd className="text-2xl font-semibold">{exceptionCount}</dd></div>
+                </dl>
+
+                <div className="figma-action-row mt-4" data-tone={openGate.canOpen ? "action" : "muted"}>
+                  <div>
+                    <div className="figma-action-title">ขั้นตอนถัดไป</div>
+                    <p>
+                      {openGate.canOpen
+                        ? `เปิดรอบ ${roundTypeLabelTh(roundType)}`
+                        : roundType === "PROGRESS_1" && openGate.reasonKey === "progress_1_not_ready" && firstNotReadyReason
+                          ? reasonLabelTh(firstNotReadyReason)
+                          : roundType === "PROPOSAL" && round && isRoundClosed(round.status)
+                            ? "ตัดสินผล Proposal / แต่งตั้งกรรมการ / เปิด Progress 1"
+                            : roundSequenceReasonLabelTh(openGate.reasonKey)}
+                    </p>
+                  </div>
+                </div>
+
+                {requireProposalCloseAck ? (
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="font-semibold">มีนักศึกษายังไม่ส่ง Proposal {missingProposalProjects.length} ราย</div>
+                    <p className="mt-1">ต้องรับทราบรายชื่อก่อนปิดรอบ Proposal และจัดการส่งย้อนหลังในหน้าข้อยกเว้นเมื่อจำเป็น</p>
+                  </div>
+                ) : null}
+
+                {requireIncompleteCloseAck ? (
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="font-semibold">มีโครงการที่พร้อมเข้ารอบนี้แต่ยังดำเนินการไม่ครบ {eligibility.eligibleButIncomplete.length} รายการ</div>
+                    {roundType === "FINAL_PRESENTATION" ? <p className="mt-1 font-semibold">หากปิดรอบ Final ตอนนี้ นักศึกษาอาจได้รับเกรด I</p> : null}
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {eligibility.eligibleButIncomplete.slice(0, 5).map((item) => (
+                        <li key={item.project.id}>
+                          {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}
+                          {item.project.currentTitleTh ? ` - ${item.project.currentTitleTh}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {roundType === "PROPOSAL" && round && isRoundClosed(round.status) && missingProposalProjects.length ? (
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="font-semibold">จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ</div>
+                    <p className="mt-1">ยังไม่ส่ง Proposal {missingProposalProjects.length} รายการ ใช้หน้าเฉพาะเพื่อค้นหา กรองสถานะ และเปิดส่งย้อนหลังรายกรณี</p>
+                    <a className="button-secondary mt-3" href="/admin/round-exceptions?round_type=PROPOSAL">
+                      จัดการผู้ส่งย้อนหลัง
+                    </a>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-lg border border-line bg-paperSoft p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="font-semibold">การเปิดรอบ</div>
+                        <p className="mt-1 text-xs text-muted">เปิดได้เมื่อผ่านเงื่อนไขลำดับรอบและความพร้อมที่ระบบคำนวณไว้</p>
+                      </div>
+                      <FigmaStatusBadge tone={openGate.canOpen ? "action" : "muted"}>{openGate.canOpen ? "เปิดได้" : "ยังเปิดไม่ได้"}</FigmaStatusBadge>
+                    </div>
+                    <form action={openCourseRound} className="mt-3">
+                      <input type="hidden" name="course_offering_id" value={offering.id} />
+                      <input type="hidden" name="round_type" value={roundType} />
+                      <SubmitButton disabled={!openGate.canOpen} pendingText="กำลังเปิดรอบ...">
+                        เปิดรอบ
+                      </SubmitButton>
+                    </form>
+                  </div>
+
+                  {round ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                      <div className="font-semibold text-red-900">การปิดหรือรีเซตรอบ</div>
+                      <p className="mt-1 text-xs leading-5 text-red-800">ตรวจ bucket และรายการที่ต้องรับทราบก่อนกดปิดรอบ การรีเซตใช้เฉพาะรอบที่ยังไม่มีหลักฐานผูกอยู่</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <form action={closeCourseRound} className={requiresCloseAck ? "basis-full space-y-2" : ""}>
+                          <input type="hidden" name="round_id" value={round.id} />
+                          {requireProposalCloseAck ? (
+                            <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                              <input className="mt-1" type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                              <span><span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว</span>
+                            </label>
+                          ) : null}
+                          {requireIncompleteCloseAck ? (
+                            <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                              <input className="mt-1" type="checkbox" name="acknowledge_incomplete_projects" value="yes" />
+                              <span><span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>รับทราบรายชื่อโครงการที่พร้อมเข้าสู่รอบนี้แต่ยังดำเนินการไม่ครบแล้ว</span>
+                            </label>
+                          ) : null}
+                          <SubmitButton disabled={!isRoundOpen(round.status)} pendingText="กำลังปิดรอบ..." confirmMessage={`ยืนยันการปิดรอบ ${roundTypeLabelTh(roundType)} หรือไม่?`}>
+                            ปิดรอบ
+                          </SubmitButton>
+                        </form>
+                        {resetState.canReset ? (
+                          <form action={resetCourseRound}>
+                            <input type="hidden" name="round_id" value={round.id} />
+                            <SubmitButton
+                              className="button-secondary"
+                              pendingText="กำลังรีเซต..."
+                              confirmMessage={`ยืนยันรีเซตรอบ ${roundTypeLabelTh(roundType)} หรือไม่? ใช้ได้เฉพาะรอบที่ยังไม่มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้น`}
+                            >
+                              รีเซตรอบ
+                            </SubmitButton>
+                          </form>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </FigmaPanel>
+            );
+          })}
+        </div>
+
+        <FigmaPanel
+          title={`ความพร้อมสำหรับรอบ ${roundTypeLabelTh(readinessFocusRoundType)}`}
+          description="ใช้ดูภาพรวมว่าโครงการที่ยังไม่พร้อมติดเงื่อนไขใด ไม่ใช่รายชื่อที่ต้องรับทราบก่อนปิดรอบปัจจุบัน"
+          tone={readinessFocusEligibility.notReady.length ? "warning" : "success"}
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            <FigmaMetricCard label="พร้อมเข้ารอบนี้" value={readinessFocusEligibility.eligible.length} tone="success" />
+            <FigmaMetricCard label="พร้อมแต่ยังไม่ครบ" value={readinessFocusEligibility.eligibleButIncomplete.length} tone={readinessFocusEligibility.eligibleButIncomplete.length ? "warning" : "success"} />
+            <FigmaMetricCard label="ยังไม่พร้อมรอบนี้" value={readinessFocusEligibility.notReady.length} tone={readinessFocusEligibility.notReady.length ? "warning" : "success"} />
+          </div>
+          <div className="mt-4 space-y-2">
+            {readinessFocusEligibility.notReady.length ? (
+              readinessReasonGroups.map((group) => {
+                const action = readinessActionForReason(group.key);
+                return (
+                  <div key={group.key} className="figma-action-row" data-tone="warning">
+                    <div>
+                      <div className="figma-action-title">{group.label}</div>
+                      <p>{group.count} รายการ</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted">
+                        {group.samples.map((item) => (
+                          <li key={`${group.key}-${item.project.id}`}>
+                            {item.project.student?.studentCode} {item.project.student?.firstNameTh} {item.project.student?.lastNameTh}
+                            {item.project.currentTitleTh ? ` - ${item.project.currentTitleTh}` : " - ยังไม่มีชื่อหัวข้อ"}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {action ? (
+                      <div className="figma-action-side">
+                        <a className="button-secondary min-h-9 px-3 py-1.5 text-xs" href={action.href}>{action.label}</a>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="figma-action-row" data-tone="success">
+                <div className="figma-action-title">ทุกโครงการที่เกี่ยวข้องพร้อมเข้าสู่รอบนี้</div>
+              </div>
+            )}
+          </div>
+        </FigmaPanel>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

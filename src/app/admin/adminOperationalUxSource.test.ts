@@ -27,6 +27,9 @@ describe("admin operational UX source", () => {
     expect(source).toContain("eligibleButIncomplete");
     expect(source).toContain("notReady");
     expect(source).toContain("AdminDangerZone");
+    expect(source).toContain("getUiMode");
+    expect(source).toContain("figma-admin-rounds");
+    expect(source).toContain("FigmaStatusBadge");
     expect(source).toContain("การปิดหรือรีเซตรอบ");
   });
 
@@ -36,6 +39,8 @@ describe("admin operational UX source", () => {
     expect(source).toContain("readyToClose");
     expect(source).toContain("waitingAdvisorScore");
     expect(source).toContain("AdminQueueSection");
+    expect(source).toContain("figma-admin-closeout");
+    expect(source).toContain("FigmaCloseoutCard");
     expect(source).toContain("Needs admin action");
     expect(source).toContain("Waiting");
     expect(source).toContain("Completed");
@@ -49,12 +54,16 @@ describe("admin operational UX source", () => {
     expect(source).toContain('schedule.status === "CONFIRMED"');
     expect(source).toContain('approval.decision === "PENDING"');
     expect(source).toContain("scheduleGroups");
+    expect(source).toContain("figma-admin-schedules");
+    expect(source).toContain("FigmaStatusBadge");
   });
 
   it("clarifies evidence exports including grade summary meaning", () => {
     const source = readSource("src/app/admin/evidence/page.tsx");
 
     expect(source).toContain('kind: "grades"');
+    expect(source).toContain("figma-admin-evidence");
+    expect(source).toContain("grade CSV");
     expect(source).toContain("คะแนนแต่ละรอบและสถานะจบรายคน");
     expect(source).toContain("ไม่เปลี่ยนกฎการปิดโครงงานหรือการคำนวณคะแนน");
   });

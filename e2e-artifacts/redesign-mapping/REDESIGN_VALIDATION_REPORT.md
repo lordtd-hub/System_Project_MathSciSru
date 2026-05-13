@@ -552,3 +552,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - Live verification: pending on the post-fix preview.
+
+## 2026-05-14 Admin Figma Renderer Batch 1 Validation
+
+- Phase: 5 - Admin redesign.
+- Scope:
+  - `/admin/rounds`
+  - `/admin/closeout`
+  - `/admin/schedules`
+  - `/admin/evidence`
+- Renderer status:
+  - classic fallback remains in each route;
+  - figma branches were added with `.figma-admin-rounds`, `.figma-admin-closeout`, `.figma-admin-schedules`, and `.figma-admin-evidence`.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- admin` - passed, 16 files / 63 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Follow-up:
+  - build initially reported an unused variable warning in `/admin/closeout`;
+  - the warning was patched and the full validation cycle was rerun successfully.
+- QA deployment: pending.
+- Live verification: pending.

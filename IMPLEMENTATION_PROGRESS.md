@@ -1784,3 +1784,24 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - no route showed digest/application error or login fallback.
 - Teacher redesign phase is complete.
 - Next step: Phase 5 Admin redesign, starting with `/admin/rounds` and `/admin/closeout`.
+
+## 2026-05-14 Figma visual redesign - Admin renderer batch 1
+
+- Continued Phase 5 Admin redesign.
+- Added page-level Figma renderer branches for:
+  - `/admin/rounds`
+  - `/admin/closeout`
+  - `/admin/schedules`
+  - `/admin/evidence`
+- Classic UI remains available as the fallback for all patched admin pages.
+- The new Figma admin views use the shared visual system for page headers, KPI cards, panels, status badges, action rows, and warning/action hierarchy.
+- Preserved existing data fetching, auth guards, server actions, route behavior, permissions, lifecycle semantics, scoring semantics, eligibility semantics, export route behavior, Markdown/KaTeX behavior, schema, API semantics, and production configuration.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- admin`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Build initially emitted one unused-variable warning in `/admin/closeout`; it was patched and the full validation cycle was rerun successfully.
+- Remaining Phase 5 admin work:
+  - `/admin/proposals` Figma renderer split.
+  - No real `/admin/reports` route exists in the current repo, so that planning item remains deferred/mapping-only.

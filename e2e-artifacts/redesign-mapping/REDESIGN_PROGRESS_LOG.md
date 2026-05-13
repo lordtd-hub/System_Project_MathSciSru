@@ -921,3 +921,47 @@ Teacher redesign, teacher mobile pass, and teacher non-mutating regression smoke
 ### Next Phase
 
 Begin Phase 5 Admin redesign, starting with `/admin/rounds` and `/admin/closeout`.
+
+## 2026-05-14 - Phase 5 Admin Figma Renderer Batch 1
+
+### Scope
+
+Continued Phase 5 Admin redesign with the first admin operational batch:
+
+- `/admin/rounds`
+- `/admin/closeout`
+- `/admin/schedules`
+- `/admin/evidence`
+
+### Patch
+
+- Added page-level Figma renderer branches for the four routes above.
+- Kept the existing classic renderers as the fallback path.
+- Preserved all existing data fetching, auth guards, server actions, route behavior, and permissions in the page/server components.
+- `/admin/rounds` now shows a Figma-mode operational shell with KPI cards, round bucket panels, ready/not-ready separation, and visually separated open/close/reset actions.
+- `/admin/closeout` now shows a Figma-mode closeout queue with Needs admin action, Waiting, Completed, and per-project closeout details.
+- `/admin/schedules` now shows a Figma-mode schedule queue separated into action, returned/revision, and completed groups.
+- `/admin/evidence` now shows a Figma-mode evidence/export dashboard with clearer export cards, grade CSV labeling, project evidence table, timeline, and audit summaries.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, server action semantics, route behavior, Markdown/KaTeX behavior, export route behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- admin` - passed, 16 files / 63 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Build initially emitted one unused-variable lint warning in `/admin/closeout`; it was patched and the full validation cycle was rerun successfully.
+
+### Remaining Admin Work
+
+- `/admin/proposals` still needs the same page-level Figma renderer split. It is intentionally left as the next careful admin page because it combines proposal final decision, feedback release, and proposal round close forms.
+- `/admin/reports` is listed in planning artifacts but no real `src/app/admin/reports/page.tsx` route exists in the current repo; report operational evidence is currently surfaced through teacher/student report pages and `/admin/evidence`.
+
+### Next Phase
+
+Deploy/live-verify the first admin batch if a QA checkpoint is needed, then continue Phase 5 with `/admin/proposals`.

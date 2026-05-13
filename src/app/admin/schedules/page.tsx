@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { AdminOperationalSummary, AdminQueueBadge } from "@/components/ui/AdminOperationalQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuidancePanel } from "@/components/ui/GuidancePanel";
@@ -7,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
+import { getUiMode } from "@/lib/uiMode";
 
 function scheduleRoundLabel(kind?: string | null) {
   if (kind === "PROGRESS_1") return "ความก้าวหน้าครั้งที่ 1";
@@ -60,6 +62,111 @@ export default async function AdminSchedulesPage() {
     { title: "Returned / Needs revision", description: "รายการที่ถูกปฏิเสธและรอนักศึกษาส่งเวลาใหม่", tone: "exception" as const, items: rejectedSchedules },
     { title: "Completed", description: "รายการที่ยืนยันเวลาแล้ว เก็บไว้เป็นประวัติการสอบ", tone: "completed" as const, items: confirmedSchedules }
   ];
+
+  const uiMode = await getUiMode();
+
+  if (uiMode === "figma") {
+    return (
+      <div className="figma-dashboard-page figma-admin-schedules">
+        <FigmaPageHeader
+          eyebrow="Admin schedules"
+          title="ตารางสอบของรายวิชา"
+          description="รายการวันที่นักศึกษาส่งสำหรับการสอบความก้าวหน้าและการสอบนำเสนอขั้นสุดท้าย"
+        />
+        <div className="figma-kpi-grid">
+          <FigmaMetricCard label="รอยืนยัน" value={proposedSchedules.length} tone={proposedSchedules.length ? "action" : "success"} description={`${pendingApprovalCount} การตอบรับจากกรรมการยังค้างอยู่`} />
+          <FigmaMetricCard label="ให้แก้ไขเวลา" value={rejectedSchedules.length} tone={rejectedSchedules.length ? "warning" : "success"} description="นักศึกษาต้องส่งเวลาสอบใหม่" />
+          <FigmaMetricCard label="ยืนยันแล้ว" value={confirmedSchedules.length} tone="success" description="เก็บเป็นประวัติการสอบ" />
+          <FigmaMetricCard label="ทั้งหมด" value={schedules.length} description="รายการ schedule proposal ทุกสถานะ" />
+        </div>
+
+        <section className="figma-dashboard-grid">
+          <div className="space-y-4">
+            {schedules.length ? scheduleGroups.map((group) => {
+              const tone = group.tone === "action" ? "action" : group.tone === "exception" ? "warning" : "success";
+              return (
+                <FigmaPanel key={group.title} title={group.title} description={group.description} tone={tone}>
+                  {group.items.length ? (
+                    <div className="figma-action-list">
+                      {group.items.map((schedule) => (
+                        <a key={`${schedule.id}-figma-admin-schedule-row`} className="figma-action-row" data-tone={tone} href={`#schedule-${schedule.id}`}>
+                          <div>
+                            <div className="figma-action-title">
+                              {scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)}
+                              <FigmaStatusBadge tone={tone}>{scheduleStatusLabel(schedule.status)}</FigmaStatusBadge>
+                            </div>
+                            <p>
+                              {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
+                            </p>
+                            <small>{formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}</small>
+                          </div>
+                          <div className="figma-action-side">
+                            <strong>{schedule.approvals.filter((approval) => approval.decision === "APPROVE").length}/{schedule.approvals.length}</strong>
+                            <span>approvals</span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState title="ไม่มีรายการในกลุ่มนี้" />
+                  )}
+                </FigmaPanel>
+              );
+            }) : (
+              <FigmaPanel title="ยังไม่มีข้อเสนอวันสอบ" description="เมื่อมีนักศึกษาส่งวันสอบ รายการจะปรากฏที่นี่">
+                <EmptyState title="ยังไม่มีข้อเสนอวันสอบ" />
+              </FigmaPanel>
+            )}
+          </div>
+
+          <aside className="figma-side-stack">
+            <FigmaPanel title="ภาพรวมตารางสอบ" description="ผู้ดูแลระบบเห็นรายการของทุกโครงการในรายวิชา" tone="muted">
+              <div className="space-y-2 text-sm text-muted">
+                <p>ใช้หน้านี้เพื่อติดตามรายการที่ส่งแล้วและสถานะการพิจารณา</p>
+                <p>รายการที่ยืนยันแล้วแยกออกจากงานที่ยังต้องตาม เพื่อให้สแกนงานจำนวนมากได้เร็วขึ้น</p>
+              </div>
+            </FigmaPanel>
+          </aside>
+        </section>
+
+        <div className="space-y-4">
+          {schedules.map((schedule) => {
+            const tone = schedule.status === "PROPOSED" ? "action" : schedule.status === "REJECTED" ? "warning" : "success";
+            return (
+              <FigmaPanel key={`${schedule.id}-figma-admin-schedule-detail`} title={scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)} description={schedule.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"} tone={tone}>
+                <section id={`schedule-${schedule.id}`} className="scroll-mt-24">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-muted">
+                        {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
+                      </p>
+                      <p className="mt-1 text-sm text-muted">{schedule.courseOffering?.term.displayName ?? "-"}</p>
+                    </div>
+                    <FigmaStatusBadge tone={tone}>{scheduleStatusLabel(schedule.status)}</FigmaStatusBadge>
+                  </div>
+                  <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+                    <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="font-semibold">รอบ</dt><dd className="text-muted">{schedule.assessmentRound?.name ?? scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)}</dd></div>
+                    <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="font-semibold">วันเวลา</dt><dd className="text-muted">{formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}</dd></div>
+                    <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="font-semibold">ห้อง</dt><dd className="text-muted">{schedule.room ?? "-"}</dd></div>
+                    <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="font-semibold">ที่ปรึกษา</dt><dd className="text-muted">{schedule.project.advisorRequests[0]?.advisorTeacher ? teacherDisplayName(schedule.project.advisorRequests[0].advisorTeacher) : "-"}</dd></div>
+                    <div className="rounded-lg border border-line bg-paperSoft p-3"><dt className="font-semibold">อนุมัติ</dt><dd className="text-muted">{schedule.approvals.filter((approval) => approval.decision === "APPROVE").length}/{schedule.approvals.length}</dd></div>
+                  </dl>
+                  {schedule.note ? <MarkdownLatexViewer className="mt-3" value={schedule.note} /> : null}
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                    {schedule.project.committeeAssignments.map((assignment) => (
+                      <span key={assignment.id} className="rounded-full border border-line px-3 py-1">
+                        {committeeRoleLabel(assignment.role)}: {teacherDisplayName(assignment.teacher)}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              </FigmaPanel>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

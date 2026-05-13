@@ -30,3 +30,9 @@
 - Some Thai source files display as mojibake in terminal output, especially through PowerShell. Source files should remain UTF-8, verifier scripts should avoid embedding Thai regex through PowerShell, CSV/export routes should keep UTF-8/BOM handling, and UI copy should be reused from source/browser rendering rather than trusted from terminal output alone.
 - Mutating admin actions such as round close/open/reset and closeout confirmation should only be exercised in a safe action window, not during non-mutating redesign verification.
 - `.env.preview.local` may not always contain the active QA preview secret. Live verification should prefer a process-scoped `QA_LIVE_SECRET` and must never write the secret to artifacts.
+
+## Deferred After Admin Renderer Batch 1
+
+- `/admin/proposals` still needs a dedicated Figma renderer split. This page is higher risk than the other admin pages because it contains final decision forms, feedback release, proposal score summaries, and proposal round close acknowledgement.
+- Planning references `/admin/reports`, but the current repo has no real `src/app/admin/reports/page.tsx` route. Treat it as a mapping/deferred item until a real admin reports route exists.
+- Admin mutating regression for round open/close/reset and closeout confirmation remains deferred until a safe QA action window; current admin visual verification should be non-mutating first.
