@@ -23,7 +23,7 @@
 
 ## Known Design Gaps
 
-- Page bodies are only partially split into `Classic...View` and `Figma...View` renderers. `/teacher` now has the first page-level Figma renderer entry; teacher subpages, admin pages, and student pages still need the same safe renderer pattern.
+- Page bodies are only partially split into `Classic...View` and `Figma...View` renderers. `/teacher` and `/teacher/schedules` now have page-level Figma renderer entries; remaining teacher subpages, admin pages, and student pages still need the same safe renderer pattern.
 - Student dashboard has no Figma mockup yet, but the real dashboard already has an action/waiting/locked workflow grouping. Larger visual changes remain deferred.
 - Admin evidence/export and closeout pages are operationally verified, but deeper table/filter redesign remains deferred until a larger visual pass.
 - Figma-style two-column review/detail layouts for scoring, schedule review, report review, and advisor score pages remain the next high-value visual implementation area.

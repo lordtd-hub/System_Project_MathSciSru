@@ -57,6 +57,11 @@ describe("teacher workload UX source", () => {
   it("keeps actionable schedule approvals ahead of confirmed calendar content", () => {
     const source = readSource("src/app/teacher/schedules/page.tsx");
 
+    expect(source).toContain("getUiMode");
+    expect(source).toContain('uiMode === "figma"');
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-teacher-schedules");
+    expect(source).toContain("figma-schedule-row");
     expect(source).toContain('className="panel order-1"');
     expect(source).toContain('className="panel order-3"');
     expect(source).toContain("pendingReviewSchedules");

@@ -218,6 +218,48 @@ Teacher redesign is complete enough to move to Admin redesign. Start Admin redes
 
 ### Routes / Components
 
+## 2026-05-13 - Figma Visual Pass Phase 4 Teacher Schedules Renderer
+
+### Routes / Components
+
+- `/teacher/schedules`
+- `src/app/teacher/schedules/page.tsx`
+- `src/app/teacher/teacherWorkloadUxSource.test.ts`
+
+### Redesign Applied
+
+- Added a `figma` renderer branch while keeping the existing `classic` schedule page as fallback.
+- Preserved the existing schedule data fetching, permission guard, review forms, `reviewExamSchedule` server action, Markdown/KaTeX schedule note rendering, and all route semantics.
+- Figma mode now uses the shared visual system for:
+  - page header;
+  - schedule KPI cards;
+  - action-first approval queue;
+  - waiting/returned status panel;
+  - two-column review detail layout;
+  - read-only confirmed schedule list.
+- The approve/reject forms are still the original server-action forms with the same hidden fields and required rejection comment.
+
+### Logic Touched
+
+No.
+
+No auth, lifecycle, scoring, eligibility, Prisma schema, server action, API, route, or production behavior was changed.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Live Verification
+
+Pending QA deploy for this page-level renderer patch.
+
+### Next Phase
+
+Commit/push QA preview, live-verify `/teacher/schedules` in both classic and figma mode, then continue teacher subpage renderer split with `/teacher/proposals`.
+
 - `/admin`
 - `/admin/rounds`
 - `/admin/closeout`

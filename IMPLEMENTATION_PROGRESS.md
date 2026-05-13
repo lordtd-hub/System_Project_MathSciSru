@@ -1596,3 +1596,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test -- figmaUiMode teacherDashboardSource`
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
+
+## 2026-05-13 Figma visual redesign - teacher schedules renderer
+
+- Continued Phase 4 Teacher redesign with `/teacher/schedules`.
+- Added a page-level `figma` renderer branch while keeping the existing schedule page body as the `classic` fallback.
+- The Figma schedules view uses the shared visual primitives for KPI cards, action-first approval queue, waiting/returned grouping, two-column review detail, and confirmed schedule list.
+- Preserved the existing schedule query, authorization guard, `reviewExamSchedule` server action, approve/reject form fields, rejection comment requirement, and Markdown/KaTeX note rendering.
+- No auth, lifecycle, scoring, eligibility, schema, server action, API, route, or production configuration semantics were changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- teacher`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: push QA preview, live-verify `/teacher/schedules` in both classic and figma mode, then continue the teacher subpage renderer split with `/teacher/proposals`.

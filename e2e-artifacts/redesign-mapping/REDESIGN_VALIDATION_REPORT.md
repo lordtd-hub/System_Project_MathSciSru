@@ -218,6 +218,21 @@ Verified route groups:
 Result:
 
 - No shell-only pages detected.
+
+## 2026-05-13 Figma Teacher Schedules Renderer Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher schedules renderer split.
+- Route patched: `/teacher/schedules`.
+- Logic touched: no.
+- Classic fallback: preserved in the existing page return.
+- Figma mode: added page-level renderer branch using shared Figma visual primitives.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deploy: pending.
+- Live QA verification: pending.
 - No digest/application error pages detected.
 - No detected mobile horizontal overflow.
 - QA login role selection was guarded before identity selection for each role.
