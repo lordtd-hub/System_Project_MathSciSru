@@ -65,6 +65,21 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Secret scan over cleanup artifacts and changed source files passed for the QA secret; only a historical `AUTH_SECRET` documentation mention was found in `IMPLEMENTATION_PROGRESS.md`.
 - QA push and live QA verification are still required before marking this cleanup pass complete.
 
+## 2026-05-13 Wave 2 full-loop planning
+
+- Added `e2e-artifacts/multi-pilot-r2-wave2/WAVE2_FULL_LOOP_PLAN.md`.
+- The plan defines Wave 2 as a QA-only scale, exception, queue-density, recovery, export, and operational-safety pilot.
+- The plan keeps Wave 1 data preserved and recommends creating a separate isolated Wave 2 QA course offering for active workflow scale testing.
+- Recommended initial Wave 2 target:
+  - 12 active projects.
+  - 8 normal projects.
+  - 1 late Proposal recovery.
+  - 1 Progress recovery.
+  - 1 schedule rejection/resubmission loop.
+  - 1 report revision/latest-version loop.
+- The plan includes a copy/paste full-loop execution prompt, severity policy, validation requirements, live QA guard rules, artifact outputs, and stop conditions.
+- Wave 2 execution has not started.
+
 ## 2026-05-06 Production baseline seed
 
 - Added `prisma/seed-production-baseline.ts`.

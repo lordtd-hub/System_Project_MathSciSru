@@ -242,3 +242,34 @@ Loop rule:
 - Major/Blocker issues: stop, patch minimally, validate, push QA preview, live verify, resume from saved state.
 
 Do not change lifecycle, scoring, round eligibility, auth, or schema during these cleanup passes unless a true blocker proves it unavoidable.
+
+## Multi-Pilot R2 Wave 2 Planning
+
+Primary plan file:
+
+- `e2e-artifacts/multi-pilot-r2-wave2/WAVE2_FULL_LOOP_PLAN.md`
+
+Status:
+
+- Wave 2 execution has not started.
+- Wave 1 data must remain preserved as historical evidence.
+- Production must not be touched.
+
+Recommended before execution:
+
+- Confirm the Wave 2 data strategy.
+- Recommended default is to create an isolated QA-only Wave 2 course offering while preserving Wave 1.
+- Recommended first scale target is 12 active projects.
+- Recommended exception mix is 8 normal projects, 1 late Proposal recovery, 1 Progress recovery, 1 schedule rejection/resubmission loop, and 1 report revision/latest-version loop.
+
+Wave 2 should run as a full loop:
+
+- audit,
+- execute,
+- patch Major/Blocker issues minimally,
+- validate,
+- push QA preview only,
+- live verify,
+- resume from the same state.
+
+Do not start manual documentation screenshots until Wave 2 scope is approved and either completed or explicitly paused.

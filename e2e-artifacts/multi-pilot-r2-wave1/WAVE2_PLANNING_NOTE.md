@@ -73,3 +73,15 @@ Avoid during Wave 2:
 ## Recommendation
 
 After the cleanup patch is validated and live-verified, Wave 2 planning can begin. Wave 2 execution should be a separate prompt/run with explicit scope, stop conditions, and QA state guard rules.
+
+## Full-Loop Plan Artifact
+
+The detailed execution plan and copy/paste prompt have been moved to:
+
+- `e2e-artifacts/multi-pilot-r2-wave2/WAVE2_FULL_LOOP_PLAN.md`
+
+Do not start Wave 2 execution until the decision questions in that file are answered, especially:
+
+- whether Wave 2 should create an isolated QA course offering or reuse only the completed Wave 1 state,
+- the active project scale target,
+- the exception mix for late/reopen/revision cases.
