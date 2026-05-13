@@ -723,7 +723,19 @@ The patch is presentation-only. It does not change auth, lifecycle, scoring, req
 
 ### Next Phase
 
-Commit/push to QA preview, live-verify `/teacher/final` in classic and figma modes, then continue with `/teacher/reports`.
+Continue Phase 4 with `/teacher/reports`.
+
+### QA Deployment And Live Verification
+
+- Commit: `202d825`.
+- QA preview: `https://system-project-math-sci-hm6cz5z28-lordtd-hubs-projects.vercel.app`.
+- Classic mode rendered the existing Final scoring page with `.teacher-workload-summary`.
+- Figma mode rendered `.figma-role-shell`, `.figma-teacher-final`, and 5 KPI cards.
+- Current QA state had no Final scoring items, so `.figma-final-row` and `.figma-review-layout` counts were 0 and the empty state was expected.
+- No shell-only page, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-classic-hm6cz5z28.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-figma-hm6cz5z28.png`
 
 ### Live QA Regression Found And Patched
 
@@ -737,3 +749,38 @@ Commit/push to QA preview, live-verify `/teacher/final` in classic and figma mod
   - `cmd /c npm.cmd test -- figmaUiMode teacherDashboardSource` - passed.
   - `cmd /c npm.cmd test` - passed, 82 files / 351 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+## 2026-05-14 - Phase 4 Teacher Reports Figma Renderer Local Patch
+
+### Scope
+
+Continued the teacher page-level renderer split with `/teacher/reports`.
+
+### Redesign Applied
+
+- Kept the existing report review page as the `classic` fallback.
+- Added a `figma` branch using shared visual primitives:
+  - Figma page header;
+  - KPI cards for action/waiting/completed/returned/locked report states;
+  - compact report queue rows;
+  - Project Review Detail-style two-column layout;
+  - report version, revision note, review history, and report history context on the left;
+  - existing latest-version review form on the right.
+- Preserved the same `reviewReportVersion` server action, hidden `report_version_id` field, PASS/FAIL decision buttons, Markdown feedback editor/viewer, latest-version checks, required reviewer completion checks, and revision request waiting state.
+
+### Logic Touched
+
+No.
+
+The patch is presentation-only. It does not change auth, report latest-version semantics, reviewer authorization, advisor-score unlock, lifecycle, schema, server actions, API contracts, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 23 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 355 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Commit/push to QA preview, live-verify `/teacher/reports` in classic and figma modes, then continue with `/teacher/advisor-score`.

@@ -1696,4 +1696,26 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Full validation also passed:
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
-- Next step: push QA preview, live-verify `/teacher/final` in both classic and figma mode, then continue with `/teacher/reports`.
+- Pushed QA preview only at commit `202d825`.
+- Live QA preview: `https://system-project-math-sci-hm6cz5z28-lordtd-hubs-projects.vercel.app`.
+- Live verification passed for `/teacher/final` in both `classic` and `figma` modes:
+  - classic fallback rendered the existing stabilized Final scoring page;
+  - figma mode rendered the Figma shell, Final page surface, and 5 KPI cards;
+  - current QA state had no Final scoring rows, so the Figma empty state was expected;
+  - no shell-only, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Next step: continue Phase 4 with `/teacher/reports`.
+
+## 2026-05-14 Figma visual redesign - teacher Reports renderer
+
+- Continued Phase 4 Teacher redesign with `/teacher/reports`.
+- Added a page-level `figma` renderer branch while keeping the existing report review page as the `classic` fallback.
+- The Figma Reports view uses shared visual primitives for KPI cards, action-first report queue, and a Project Review Detail-style two-column composition.
+- Preserved the existing report query, teacher capability guard, latest-version review logic, required reviewer checks, revision request state, `reviewReportVersion` server action, hidden `report_version_id` field, PASS/FAIL decision buttons, Markdown+KaTeX history viewer, Markdown feedback editor, and confirmation submit buttons.
+- No auth, lifecycle, report latest-version semantics, advisor-score unlock, schema, server action, API, route, Markdown+KaTeX, or production configuration semantics were changed.
+- Local validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- teacher`
+- Full validation also passed:
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: push QA preview, live-verify `/teacher/reports` in both classic and figma mode, then continue with `/teacher/advisor-score`.

@@ -375,6 +375,32 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - Full validation:
   - `cmd /c npm.cmd test` - passed, 82 files / 354 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deploy:
+  - commit `202d825`;
+  - preview `https://system-project-math-sci-hm6cz5z28-lordtd-hubs-projects.vercel.app`.
+- Live QA verification:
+  - classic `/teacher/final` rendered `.teacher-workload-summary` and no Figma shell;
+  - figma `/teacher/final` rendered `.figma-role-shell`, `.figma-teacher-final`, and 5 KPI cards;
+  - current QA state had no Final scoring rows, so empty state was expected;
+  - no shell-only, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-classic-hm6cz5z28.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-final-figma-hm6cz5z28.png`
+
+## 2026-05-14 Figma Teacher Reports Renderer Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher Reports renderer split.
+- Route patched: `/teacher/reports`.
+- Logic touched: no.
+- Classic fallback: preserved in the existing page return.
+- Figma mode: added page-level renderer branch using shared Figma visual primitives and the same latest-version report review form/action fields.
+- Latest-version approval/revision semantics remain owned by `reviewReportVersion`, `latestReportHasRevisionRequest`, and `allRequiredReportReviewersPassed`.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 23 tests.
+- Full validation:
+  - `cmd /c npm.cmd test` - passed, 82 files / 355 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - QA deploy: pending.
 - Live QA verification: pending.
 
