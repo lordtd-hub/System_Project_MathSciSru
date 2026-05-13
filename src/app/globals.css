@@ -830,4 +830,100 @@
     @apply inline-flex rounded-full border border-line bg-paperSoft px-2.5 py-1 text-xs font-semibold text-muted;
     border-left-width: 3px;
   }
+
+  .figma-dashboard-page {
+    @apply space-y-5;
+  }
+
+  .figma-kpi-grid {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-5;
+  }
+
+  .figma-dashboard-grid {
+    @apply grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)] xl:items-start;
+  }
+
+  .figma-side-stack {
+    @apply space-y-4;
+  }
+
+  .figma-action-list,
+  .figma-schedule-list,
+  .figma-attempt-list,
+  .figma-notification-list {
+    @apply space-y-2;
+  }
+
+  .figma-action-row {
+    @apply grid gap-3 rounded-lg border border-line border-l-4 bg-surface p-3 text-sm transition hover:border-brand hover:bg-paperSoft sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center;
+  }
+
+  .figma-action-row[data-tone="action"] {
+    border-left-color: var(--red-700);
+  }
+
+  .figma-action-row[data-tone="warning"] {
+    border-left-color: var(--warn-700);
+  }
+
+  .figma-action-row[data-tone="success"] {
+    border-left-color: var(--ok-700);
+  }
+
+  .figma-action-row[data-tone="muted"] {
+    border-left-color: var(--ink-300);
+  }
+
+  .figma-action-title {
+    @apply flex flex-wrap items-center gap-2 font-semibold text-ink;
+  }
+
+  .figma-action-row p {
+    @apply mt-1 text-xs leading-5 text-muted;
+  }
+
+  .figma-action-row small {
+    @apply mt-1 block text-xs font-semibold uppercase text-muted;
+    letter-spacing: 0.06em;
+  }
+
+  .figma-action-side {
+    @apply flex items-center justify-between gap-3 sm:justify-end;
+  }
+
+  .figma-action-side strong {
+    @apply text-2xl font-semibold tabular-nums text-ink;
+  }
+
+  .figma-action-side span {
+    @apply inline-flex min-h-8 items-center justify-center rounded-md border border-lineStrong bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm;
+  }
+
+  .figma-schedule-row,
+  .figma-attempt-row {
+    @apply grid gap-3 rounded-lg border border-line bg-surface p-3 text-sm transition hover:border-brand hover:bg-paperSoft md:grid-cols-[minmax(0,1fr)_auto] md:items-center;
+  }
+
+  .figma-schedule-row strong,
+  .figma-attempt-row strong {
+    @apply text-ink;
+  }
+
+  .figma-schedule-row p,
+  .figma-attempt-row p {
+    @apply mt-1 text-sm text-muted;
+  }
+
+  .figma-schedule-row small,
+  .figma-attempt-row small {
+    @apply mt-1 block text-xs leading-5 text-muted;
+  }
+
+  .figma-schedule-meta {
+    @apply flex flex-col gap-2 text-left text-sm font-semibold text-ink md:text-right;
+  }
+
+  .figma-schedule-meta > div {
+    @apply flex flex-wrap gap-1.5 md:justify-end;
+  }
 }

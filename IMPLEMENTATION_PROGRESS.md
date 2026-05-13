@@ -1571,3 +1571,19 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - Admin route smoke checks rendered without shell-only/digest pages.
 - No lifecycle, auth, scoring, eligibility, Prisma schema, server action, API, or production config semantics were changed.
 - This is the visual-mode foundation only. Page-level `Classic...View` / `Figma...View` renderers remain the next implementation step before the app can be called visually aligned with Figma.
+
+## 2026-05-13 Figma visual redesign - teacher dashboard renderer entry
+
+- Continued the Figma Visual Redesign Implementation Pass into Phase 4 Teacher redesign.
+- Added the first page-level renderer branch on `/teacher`:
+  - classic mode keeps the existing dashboard body as fallback;
+  - figma mode renders `FigmaTeacherDashboardView` with the same server-derived props.
+- The Figma teacher dashboard now uses the shared visual primitives for header, KPI cards, action-first queue rows, schedule rows, proposal review rows, and notification panels.
+- Page ownership remains unchanged: data fetching, auth/capability guards, links, forms, and server actions stay in `src/app/teacher/page.tsx`.
+- No auth, lifecycle, scoring, eligibility, schema, API, server action, route, or production configuration semantics were changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- teacher`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: deploy this renderer patch to QA, live-verify `/teacher` in classic and figma mode, then continue the teacher subpage renderer split starting with `/teacher/schedules`.

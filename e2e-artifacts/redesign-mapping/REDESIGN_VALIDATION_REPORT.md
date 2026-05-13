@@ -253,3 +253,20 @@ Tooling note: `.env.preview.local` did not match the active preview QA secret du
   - No shell-only page, digest page, or detected desktop overflow appeared in this smoke check.
 - Logic touched: no business logic.
 - Production behavior: source test covers production fallback to `classic` unless explicitly allowed.
+
+## 2026-05-13 Teacher Dashboard Figma Renderer Validation
+
+- Phase: 4 - Teacher redesign, `/teacher` page-level renderer entry.
+- Scope:
+  - `ClassicTeacherDashboardView` wrapper for existing fallback body.
+  - `FigmaTeacherDashboardView` for figma mode.
+  - Shared props contract from the existing server page.
+  - Figma dashboard CSS for KPI cards, action rows, schedule rows, and proposal rows.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 350 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- Logic touched: no.
+- QA deployment: pending for this page-level renderer patch.
+- Live verification: pending after QA push.

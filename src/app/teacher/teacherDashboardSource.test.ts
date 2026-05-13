@@ -29,4 +29,16 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("ดูผลประเมินที่ส่งแล้ว");
     expect(page).toContain("pendingProposalScores.length");
   });
+
+  it("supports safe classic and figma dashboard renderers", () => {
+    const page = source();
+
+    expect(page).toContain("getUiMode");
+    expect(page).toContain("ClassicTeacherDashboardView");
+    expect(page).toContain("FigmaTeacherDashboardView");
+    expect(page).toContain('uiMode === "figma"');
+    expect(page).toContain("FigmaPageHeader");
+    expect(page).toContain("FigmaMetricCard");
+    expect(page).toContain("teacherDashboardViewProps");
+  });
 });

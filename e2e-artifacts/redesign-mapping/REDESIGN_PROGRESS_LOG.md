@@ -428,3 +428,41 @@ Run a secret scan, then commit/push the fallback foundation. After that, continu
 ### Next Phase
 
 Continue to page-level Figma renderers. Start with the teacher dashboard and teacher review/detail pages because Figma coverage is strongest there.
+
+## 2026-05-13 - Phase 4 Teacher Dashboard Figma Renderer Entry
+
+### Scope
+
+Started the first page-level `classic` / `figma` body split on `/teacher`.
+
+### Redesign Applied
+
+- Kept the classic teacher dashboard body available as `ClassicTeacherDashboardView`.
+- Added `FigmaTeacherDashboardView` for `figma` mode.
+- Reused the existing server page as the owner of data fetching, auth guards, teacher capability checks, server actions, links, and queue source data.
+- Passed one shared `teacherDashboardViewProps` contract into the Figma renderer.
+- Added Figma-style dashboard surfaces:
+  - page header;
+  - KPI cards;
+  - action-first queue rows;
+  - schedule list;
+  - proposal review list;
+  - notification/action panels.
+- Added responsive CSS for the new dashboard rows and queue layout.
+
+### Logic Touched
+
+No.
+
+This patch only changes presentation rendering for `/teacher`. It does not change auth, lifecycle, scoring, eligibility, schema, server actions, API contracts, or route behavior.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 19 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 350 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Continue Phase 4 page-by-page with teacher subpages. `/teacher/schedules` already has compact workload stabilization, but it still needs the Figma/classic renderer split and closer Figma visual composition.
