@@ -147,6 +147,22 @@ describe("teacher workload UX source", () => {
     expect(source).toContain("MarkdownLatexEditor");
   });
 
+  it("adds figma advisor-score layout without changing unlock and score field semantics", () => {
+    const source = readSource("src/app/teacher/advisor-score/page.tsx");
+
+    expect(source).toContain("getUiMode");
+    expect(source).toContain('uiMode === "figma"');
+    expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-teacher-advisor-score");
+    expect(source).toContain("figma-advisor-score-row");
+    expect(source).toContain("submitAdvisorScore");
+    expect(source).toContain('name="project_id"');
+    expect(source).toContain('project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING"');
+    expect(source).toContain('previous?.status === "SUBMITTED"');
+    expect(source).toContain("advisorCriteria.map");
+    expect(source).toContain("fieldName(criterion.key)");
+  });
+
   it("marks report and advisor score queues without changing unlock logic", () => {
     const reports = readSource("src/app/teacher/reports/page.tsx");
     const advisorScore = readSource("src/app/teacher/advisor-score/page.tsx");

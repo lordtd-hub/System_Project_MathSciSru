@@ -401,6 +401,32 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - Full validation:
   - `cmd /c npm.cmd test` - passed, 82 files / 355 tests.
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
+- QA deploy:
+  - commit `ce29c9d`;
+  - preview `https://system-project-math-sci-525grp3qo-lordtd-hubs-projects.vercel.app`.
+- Live QA verification:
+  - classic `/teacher/reports` rendered `.teacher-workload-summary` and no Figma shell;
+  - figma `/teacher/reports` rendered `.figma-role-shell`, `.figma-teacher-reports`, and 5 KPI cards;
+  - current QA state had no report review rows/forms, so empty state was expected;
+  - no shell-only, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-classic-525grp3qo.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-figma-525grp3qo.png`
+
+## 2026-05-14 Figma Teacher Advisor Score Renderer Local Validation
+
+- Phase: Figma Visual Pass Phase 4 - Teacher Advisor Score renderer split.
+- Route patched: `/teacher/advisor-score`.
+- Logic touched: no.
+- Classic fallback: preserved in the existing page return.
+- Figma mode: added page-level renderer branch using shared Figma visual primitives and the same advisor score form/action fields.
+- Advisor-score unlock semantics remain owned by the existing `editable` condition: `project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING"`.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- teacher` - passed, 5 files / 24 tests.
+- Full validation:
+  - `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
+  - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - QA deploy: pending.
 - Live QA verification: pending.
 

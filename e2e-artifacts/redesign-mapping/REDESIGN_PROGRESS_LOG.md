@@ -783,4 +783,51 @@ The patch is presentation-only. It does not change auth, report latest-version s
 
 ### Next Phase
 
-Commit/push to QA preview, live-verify `/teacher/reports` in classic and figma modes, then continue with `/teacher/advisor-score`.
+Continue Phase 4 with `/teacher/advisor-score`.
+
+### QA Deployment And Live Verification
+
+- Commit: `ce29c9d`.
+- QA preview: `https://system-project-math-sci-525grp3qo-lordtd-hubs-projects.vercel.app`.
+- Classic mode rendered the existing report review page with `.teacher-workload-summary`.
+- Figma mode rendered `.figma-role-shell`, `.figma-teacher-reports`, and 5 KPI cards.
+- Current QA state had no report review items, so `.figma-report-row`, `.figma-review-layout`, and `report_version_id` form counts were 0 and the empty state was expected.
+- No shell-only page, digest/application error, login fallback, or unauthorized teacher guard appeared.
+- Screenshots:
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-classic-525grp3qo.png`
+  - `e2e-artifacts/redesign-mapping/screenshots/teacher-reports-figma-525grp3qo.png`
+
+## 2026-05-14 - Phase 4 Teacher Advisor Score Figma Renderer Local Patch
+
+### Scope
+
+Continued the teacher page-level renderer split with `/teacher/advisor-score`.
+
+### Redesign Applied
+
+- Kept the existing Advisor Score page as the `classic` fallback.
+- Added a `figma` branch using shared visual primitives:
+  - Figma page header;
+  - KPI cards for action/waiting/completed/locked advisor score states;
+  - compact advisor-score queue rows;
+  - Project Review Detail-style two-column layout;
+  - latest report and submitted advisor score context on the left;
+  - existing advisor score form or read-only/waiting state on the right.
+- Preserved the same `submitAdvisorScore` server action, hidden `project_id` field, `advisorCriteria` score fields, `fieldName` mapping, existing unlock condition, Markdown feedback editor/viewer, and confirmation submit button.
+
+### Logic Touched
+
+No.
+
+The patch is presentation-only. It does not change auth, advisor-score unlock, score calculation, lifecycle, schema, server actions, API contracts, route behavior, Markdown/KaTeX behavior, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- teacher` - passed, 5 files / 24 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 356 tests.
+- `cmd /c npm.cmd run build` - passed, 35 routes generated.
+
+### Next Phase
+
+Commit/push to QA preview, live-verify `/teacher/advisor-score` in classic and figma modes, then move to the teacher mobile/regression pass.
