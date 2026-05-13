@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   getMultiPilotR2ScenarioCounts,
   getMultiPilotR2TeacherRoleSummary,
+  getMultiPilotR2Wave2ScenarioCounts,
   multiPilotR2Projects,
   multiPilotR2Students,
-  multiPilotR2Teachers
+  multiPilotR2Teachers,
+  multiPilotR2Wave2Projects
 } from "./multiPilotR2";
 
 describe("MULTI-PILOT-R2 QA data design", () => {
@@ -25,8 +27,26 @@ describe("MULTI-PILOT-R2 QA data design", () => {
     });
   });
 
+  it("defines the approved Wave 2 first-cycle scale and exception mix", () => {
+    expect(multiPilotR2Wave2Projects).toHaveLength(12);
+    expect(getMultiPilotR2Wave2ScenarioCounts()).toEqual({
+      "Normal": 8,
+      "Late Proposal Recovery": 1,
+      "Progress Recovery": 1,
+      "Schedule Reject/Resubmit": 1,
+      "Report Revision Loop": 1
+    });
+  });
+
   it("avoids assigning one teacher to multiple roles in the same project", () => {
     for (const project of multiPilotR2Projects) {
+      const roles = [project.advisorLabel, project.headLabel, project.memberLabel];
+      expect(new Set(roles).size).toBe(3);
+    }
+  });
+
+  it("keeps Wave 2 teacher roles distinct per project", () => {
+    for (const project of multiPilotR2Wave2Projects) {
       const roles = [project.advisorLabel, project.headLabel, project.memberLabel];
       expect(new Set(roles).size).toBe(3);
     }

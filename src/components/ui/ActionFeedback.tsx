@@ -79,6 +79,7 @@ successMessages.rubric_baseline_seeded = "ตั้งค่าเกณฑ์�
 successMessages.qa_teachers_prepared = "เตรียม Teacher profiles สำหรับ QA เรียบร้อยแล้ว";
 successMessages.qa_pilot_identities_prepared = "เตรียมบัญชีทดสอบสำหรับ Multi-User Pilot เรียบร้อยแล้ว";
 successMessages.multi_pilot_r2_prepared = "Prepared MULTI-PILOT-R2 QA data.";
+successMessages.multi_pilot_r2_wave2_prepared = "Prepared MULTI-PILOT-R2 Wave 2 QA data.";
 successMessages.late_round_opened = "เปิดให้ดำเนินการย้อนหลังเป็นรายกรณีแล้ว";
 errorMessages.round_close_missing_ack_required = "ยังมีนักศึกษาค้างส่งในรอบนี้ กรุณาตรวจรายชื่อและยืนยันก่อนปิดรอบ";
 errorMessages.late_round_requires_closed_round = "เปิดส่งย้อนหลังได้เฉพาะรอบที่ปิดแล้ว";

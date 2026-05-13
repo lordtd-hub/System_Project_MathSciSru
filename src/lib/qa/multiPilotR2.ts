@@ -2,6 +2,10 @@ export const MULTI_PILOT_R2_PREFIX = "MULTI-PILOT-R2";
 export const MULTI_PILOT_R2_COURSE_TITLE = "MULTI-PILOT-R2 Course Offering";
 export const MULTI_PILOT_R2_YEAR_BE = 2570;
 export const MULTI_PILOT_R2_TERM_TYPE = "SEMESTER_1" as const;
+export const MULTI_PILOT_R2_WAVE2_COURSE_TITLE = "MULTI-PILOT-R2 Wave 2 Course Offering";
+export const MULTI_PILOT_R2_WAVE2_YEAR_BE = 2571;
+export const MULTI_PILOT_R2_WAVE2_TERM_TYPE = "SEMESTER_1" as const;
+export const MULTI_PILOT_R2_WAVE2_PROJECT_COUNT = 12;
 
 export type MultiPilotR2Student = {
   index: number;
@@ -46,6 +50,18 @@ export type MultiPilotR2TeacherRoleSummary = {
   advisorCount: number;
   headCount: number;
   memberCount: number;
+};
+
+export type MultiPilotR2Wave2Scenario =
+  | "Normal"
+  | "Late Proposal Recovery"
+  | "Progress Recovery"
+  | "Schedule Reject/Resubmit"
+  | "Report Revision Loop";
+
+export type MultiPilotR2Wave2Project = MultiPilotR2Project & {
+  wave2Code: string;
+  wave2Scenario: MultiPilotR2Wave2Scenario;
 };
 
 function pad2(value: number) {
@@ -115,6 +131,23 @@ export const multiPilotR2Projects: MultiPilotR2Project[] = multiPilotR2Students.
   };
 });
 
+export function getMultiPilotR2Wave2Scenario(projectIndex: number): MultiPilotR2Wave2Scenario {
+  if (projectIndex <= 8) return "Normal";
+  if (projectIndex === 9) return "Late Proposal Recovery";
+  if (projectIndex === 10) return "Progress Recovery";
+  if (projectIndex === 11) return "Schedule Reject/Resubmit";
+  return "Report Revision Loop";
+}
+
+export const multiPilotR2Wave2Projects: MultiPilotR2Wave2Project[] = multiPilotR2Projects
+  .slice(0, MULTI_PILOT_R2_WAVE2_PROJECT_COUNT)
+  .map((project) => ({
+    ...project,
+    wave2Code: `W2-${pad2(project.index)}`,
+    projectTitle: `${MULTI_PILOT_R2_PREFIX} Wave 2 Project ${pad2(project.index)}`,
+    wave2Scenario: getMultiPilotR2Wave2Scenario(project.index)
+  }));
+
 export const multiPilotR2WavePlan = [
   { wave: "Wave 1", students: 5, teachers: 4, projects: 5, goal: "workflow and role-overlap bugs" },
   { wave: "Wave 2", students: 15, teachers: 8, projects: 15, goal: "queue/dashboard/performance realism" },
@@ -142,5 +175,18 @@ export function getMultiPilotR2ScenarioCounts() {
     "Schedule Rejection": 0,
     "Report Revision Loop": 0,
     "Queue/Conflict Stress": 0
+  });
+}
+
+export function getMultiPilotR2Wave2ScenarioCounts() {
+  return multiPilotR2Wave2Projects.reduce<Record<MultiPilotR2Wave2Scenario, number>>((counts, project) => {
+    counts[project.wave2Scenario] = (counts[project.wave2Scenario] ?? 0) + 1;
+    return counts;
+  }, {
+    "Normal": 0,
+    "Late Proposal Recovery": 0,
+    "Progress Recovery": 0,
+    "Schedule Reject/Resubmit": 0,
+    "Report Revision Loop": 0
   });
 }

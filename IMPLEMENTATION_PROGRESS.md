@@ -80,6 +80,31 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - The plan includes a copy/paste full-loop execution prompt, severity policy, validation requirements, live QA guard rules, artifact outputs, and stop conditions.
 - Wave 2 execution has not started.
 
+## 2026-05-13 Wave 2 full-loop start
+
+- Wave 2 execution started after the user approved:
+  - new isolated QA course offering,
+  - 12 active projects first,
+  - later expansion to 20 only if 12 passes,
+  - exception mix of late Proposal, Progress recovery, schedule reject/resubmit, and report revision/latest-version loop.
+- Created Wave 2 artifact logs:
+  - `e2e-artifacts/multi-pilot-r2-wave2/REPORT.md`
+  - `e2e-artifacts/multi-pilot-r2-wave2/MANUAL_NOTES.md`
+  - `e2e-artifacts/multi-pilot-r2-wave2/STATE_LOG.md`
+  - `e2e-artifacts/multi-pilot-r2-wave2/BUG_LOG.md`
+  - `e2e-artifacts/multi-pilot-r2-wave2/VALIDATION_LOG.md`
+- Added a QA-only `/qa-login` setup action for a separate `MULTI-PILOT-R2 Wave 2 Course Offering`.
+- The Wave 2 setup creates or reuses 12 starter projects at `STUDENT_PROFILE` for QA students 01-12 and preserves Wave 1 data.
+- The setup keeps assessment rounds course-level only and does not create per-project rounds.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test` - 80 files / 334 tests
+  - `cmd /c npm.cmd run build`
+- Pending:
+  - Commit and push the Wave 2 setup patch to `qa-preview`.
+  - Live verify the setup on the new QA preview.
+  - Prepare Wave 2 data through the QA UI.
+
 ## 2026-05-06 Production baseline seed
 
 - Added `prisma/seed-production-baseline.ts`.

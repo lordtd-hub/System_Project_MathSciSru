@@ -273,3 +273,30 @@ Wave 2 should run as a full loop:
 - resume from the same state.
 
 Do not start manual documentation screenshots until Wave 2 scope is approved and either completed or explicitly paused.
+
+## Multi-Pilot R2 Wave 2 Execution
+
+Status:
+
+- Wave 2 execution has started.
+- Phase 0 artifacts were created under `e2e-artifacts/multi-pilot-r2-wave2/`.
+- Phase 1 has a QA-only setup patch for a separate Wave 2 course offering.
+
+Patch summary:
+
+- Added `MULTI-PILOT-R2 Wave 2 Course Offering` setup through `/qa-login`.
+- Uses existing QA identities and creates 12 starter projects for QA students 01-12.
+- Preserves Wave 1 data.
+- Keeps course-level rounds only.
+
+Validation:
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test` - passed, 80 files / 334 tests.
+- `cmd /c npm.cmd run build` - passed.
+
+Pending:
+
+- Commit/push QA setup patch.
+- Live verify on the new QA preview.
+- Prepare Wave 2 data through the QA UI.

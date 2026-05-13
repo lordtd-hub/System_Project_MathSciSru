@@ -14,14 +14,16 @@ import {
 } from "@/lib/auth/qaLogin";
 import {
   MULTI_PILOT_R2_PREFIX,
+  MULTI_PILOT_R2_WAVE2_COURSE_TITLE,
   getMultiPilotR2ScenarioCounts,
   getMultiPilotR2TeacherRoleSummary,
   multiPilotR2Projects,
   multiPilotR2Students,
   multiPilotR2Teachers,
+  multiPilotR2Wave2Projects,
   multiPilotR2WavePlan
 } from "@/lib/qa/multiPilotR2";
-import { clearQaUser, prepareMultiPilotR2Data, prepareQaPilotIdentities, prepareQaTeacherProfiles, selectQaUser } from "./actions";
+import { clearQaUser, prepareMultiPilotR2Data, prepareMultiPilotR2Wave2Data, prepareQaPilotIdentities, prepareQaTeacherProfiles, selectQaUser } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +168,18 @@ export default async function QaLoginPage({
           </button>
           <p className="text-xs text-muted">
             Creates or reuses the {MULTI_PILOT_R2_PREFIX} course offering, prepares synthetic roster/teacher profiles, and creates starter student projects at STUDENT_PROFILE. It does not delete old pilot history.
+          </p>
+        </form>
+        <form action={prepareMultiPilotR2Wave2Data} className="space-y-3 rounded-md border border-line bg-paper p-3">
+          <div>
+            <label htmlFor="prepare_r2_wave2_secret">QA login secret</label>
+            <input id="prepare_r2_wave2_secret" name="secret" type="password" required autoComplete="off" />
+          </div>
+          <button type="submit" className="button-secondary" disabled={!secretConfigured}>
+            Prepare MULTI-PILOT-R2 Wave 2
+          </button>
+          <p className="text-xs text-muted">
+            Creates or reuses the isolated {MULTI_PILOT_R2_WAVE2_COURSE_TITLE} with {multiPilotR2Wave2Projects.length} starter projects at STUDENT_PROFILE. Wave 1 data is preserved.
           </p>
         </form>
         <div className="grid gap-3 md:grid-cols-4">

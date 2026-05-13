@@ -40,6 +40,7 @@ describe("QA login source guards", () => {
     expect(pageSource).toContain("Multi-User Pilot");
     expect(pageSource).toContain("MULTI-PILOT-R2 operational simulation");
     expect(pageSource).toContain("prepareMultiPilotR2Data");
+    expect(pageSource).toContain("prepareMultiPilotR2Wave2Data");
     expect(pageSource).toContain("QA Mode");
     expect(pageSource).not.toContain(placeholderSecret);
   });
@@ -49,11 +50,14 @@ describe("QA login source guards", () => {
 
     expect(actionSource).toContain("prepareQaPilotIdentities");
     expect(actionSource).toContain("prepareMultiPilotR2Data");
+    expect(actionSource).toContain("prepareMultiPilotR2Wave2Data");
     expect(actionSource).toContain("verifyQaLoginSecret");
     expect(actionSource).toContain("isQaLoginEnabled");
     expect(actionSource).toContain("prisma.project.upsert");
     expect(actionSource).toContain("status: \"STUDENT_PROFILE\"");
     expect(actionSource).toContain("MULTI_PILOT_R2_COURSE_TITLE");
+    expect(actionSource).toContain("MULTI_PILOT_R2_WAVE2_COURSE_TITLE");
+    expect(actionSource).not.toContain("deleteMany");
     expect(actionSource).not.toContain(placeholderSecret);
   });
 });

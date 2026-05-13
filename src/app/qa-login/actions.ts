@@ -26,10 +26,14 @@ import { teacherDisplayName } from "@/lib/teachers/displayName";
 import {
   MULTI_PILOT_R2_COURSE_TITLE,
   MULTI_PILOT_R2_TERM_TYPE,
+  MULTI_PILOT_R2_WAVE2_COURSE_TITLE,
+  MULTI_PILOT_R2_WAVE2_TERM_TYPE,
+  MULTI_PILOT_R2_WAVE2_YEAR_BE,
   MULTI_PILOT_R2_YEAR_BE,
   multiPilotR2Admin,
   multiPilotR2Students,
-  multiPilotR2Teachers
+  multiPilotR2Teachers,
+  multiPilotR2Wave2Projects
 } from "@/lib/qa/multiPilotR2";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight } from "@/lib/assessments/courseRounds";
 
@@ -82,6 +86,101 @@ async function upsertMultiPilotR2Teacher(teacher: (typeof multiPilotR2Teachers)[
       isInternal: true
     }
   });
+}
+
+async function prepareMultiPilotCourseData({
+  courseTitle,
+  yearBe,
+  termType,
+  termDisplayName,
+  projectStudents
+}: {
+  courseTitle: string;
+  yearBe: number;
+  termType: typeof MULTI_PILOT_R2_TERM_TYPE;
+  termDisplayName: string;
+  projectStudents: typeof multiPilotR2Students;
+}) {
+  await prisma.user.upsert({
+    where: { email: multiPilotR2Admin.email },
+    update: { globalRole: "ADMIN", active: true, name: multiPilotR2Admin.displayName },
+    create: {
+      email: multiPilotR2Admin.email,
+      emailDomain: multiPilotR2Admin.email.split("@")[1] ?? null,
+      globalRole: "ADMIN",
+      active: true,
+      name: multiPilotR2Admin.displayName,
+      googleSub: `qa-admin-${multiPilotR2Admin.email}`
+    }
+  });
+
+  const academicYear = await prisma.academicYear.upsert({
+    where: { yearBe },
+    update: { active: true },
+    create: { yearBe, active: true }
+  });
+  const term = await prisma.term.upsert({
+    where: { academicYearId_termType: { academicYearId: academicYear.id, termType } },
+    update: { displayName: termDisplayName, status: "ACTIVE" },
+    create: {
+      academicYearId: academicYear.id,
+      termType,
+      displayName: termDisplayName,
+      status: "ACTIVE"
+    }
+  });
+
+  const existingOffering = await prisma.courseOffering.findFirst({
+    where: { termId: term.id, courseTitle },
+    select: { id: true }
+  });
+  const offering = existingOffering
+    ? await prisma.courseOffering.update({ where: { id: existingOffering.id }, data: { status: "ACTIVE" }, select: { id: true } })
+    : await prisma.courseOffering.create({ data: { termId: term.id, courseTitle, status: "ACTIVE" }, select: { id: true } });
+
+  for (const roundType of courseLevelRoundTypes) {
+    await prisma.assessmentRound.upsert({
+      where: { courseOfferingId_roundType: { courseOfferingId: offering.id, roundType } },
+      update: { name: defaultCourseRoundName(roundType), courseWeight: defaultCourseRoundWeight(roundType), rawScoreMax: 100 },
+      create: {
+        courseOfferingId: offering.id,
+        roundType,
+        name: defaultCourseRoundName(roundType),
+        courseWeight: defaultCourseRoundWeight(roundType),
+        rawScoreMax: 100,
+        showEvaluatorNameToStudent: false
+      }
+    });
+  }
+
+  const students = await Promise.all(projectStudents.map((student) => prisma.student.upsert({
+    where: { generatedEmail: student.email },
+    update: {
+      studentCode: student.studentCode,
+      firstNameTh: student.firstNameTh,
+      lastNameTh: student.lastNameTh,
+      active: true
+    },
+    create: {
+      studentCode: student.studentCode,
+      firstNameTh: student.firstNameTh,
+      lastNameTh: student.lastNameTh,
+      generatedEmail: student.email,
+      active: true
+    }
+  })));
+
+  await Promise.all(students.map((student) => prisma.project.upsert({
+    where: { courseOfferingId_studentId: { courseOfferingId: offering.id, studentId: student.id } },
+    update: {},
+    create: {
+      courseOfferingId: offering.id,
+      studentId: student.id,
+      status: "STUDENT_PROFILE"
+    }
+  })));
+
+  await Promise.all(multiPilotR2Teachers.map(upsertMultiPilotR2Teacher));
 }
 
 async function setQaSession(payload: DevSessionPayload) {
@@ -322,88 +421,34 @@ export async function prepareMultiPilotR2Data(formData: FormData) {
   if (!hasQaLoginSecret()) qaError("QA_LOGIN_SECRET is not configured.");
   if (!verifyQaLoginSecret(String(formData.get("secret") ?? ""))) qaError("QA login secret is incorrect.");
 
-  await prisma.user.upsert({
-    where: { email: multiPilotR2Admin.email },
-    update: { globalRole: "ADMIN", active: true, name: multiPilotR2Admin.displayName },
-    create: {
-      email: multiPilotR2Admin.email,
-      emailDomain: multiPilotR2Admin.email.split("@")[1] ?? null,
-      globalRole: "ADMIN",
-      active: true,
-      name: multiPilotR2Admin.displayName,
-      googleSub: `qa-admin-${multiPilotR2Admin.email}`
-    }
+  await prepareMultiPilotCourseData({
+    courseTitle: MULTI_PILOT_R2_COURSE_TITLE,
+    yearBe: MULTI_PILOT_R2_YEAR_BE,
+    termType: MULTI_PILOT_R2_TERM_TYPE,
+    termDisplayName: "MULTI-PILOT-R2 Semester 1 BE 2570",
+    projectStudents: multiPilotR2Students
   });
-
-  const academicYear = await prisma.academicYear.upsert({
-    where: { yearBe: MULTI_PILOT_R2_YEAR_BE },
-    update: { active: true },
-    create: { yearBe: MULTI_PILOT_R2_YEAR_BE, active: true }
-  });
-  const term = await prisma.term.upsert({
-    where: { academicYearId_termType: { academicYearId: academicYear.id, termType: MULTI_PILOT_R2_TERM_TYPE } },
-    update: { displayName: "MULTI-PILOT-R2 Semester 1 BE 2570", status: "ACTIVE" },
-    create: {
-      academicYearId: academicYear.id,
-      termType: MULTI_PILOT_R2_TERM_TYPE,
-      displayName: "MULTI-PILOT-R2 Semester 1 BE 2570",
-      status: "ACTIVE"
-    }
-  });
-
-  const existingOffering = await prisma.courseOffering.findFirst({
-    where: { termId: term.id, courseTitle: MULTI_PILOT_R2_COURSE_TITLE },
-    select: { id: true }
-  });
-  const offering = existingOffering
-    ? await prisma.courseOffering.update({ where: { id: existingOffering.id }, data: { status: "ACTIVE" }, select: { id: true } })
-    : await prisma.courseOffering.create({ data: { termId: term.id, courseTitle: MULTI_PILOT_R2_COURSE_TITLE, status: "ACTIVE" }, select: { id: true } });
-
-  for (const roundType of courseLevelRoundTypes) {
-    await prisma.assessmentRound.upsert({
-      where: { courseOfferingId_roundType: { courseOfferingId: offering.id, roundType } },
-      update: { name: defaultCourseRoundName(roundType), courseWeight: defaultCourseRoundWeight(roundType), rawScoreMax: 100 },
-      create: {
-        courseOfferingId: offering.id,
-        roundType,
-        name: defaultCourseRoundName(roundType),
-        courseWeight: defaultCourseRoundWeight(roundType),
-        rawScoreMax: 100,
-        showEvaluatorNameToStudent: false
-      }
-    });
-  }
-
-  const students = await Promise.all(multiPilotR2Students.map((student) => prisma.student.upsert({
-    where: { generatedEmail: student.email },
-    update: {
-      studentCode: student.studentCode,
-      firstNameTh: student.firstNameTh,
-      lastNameTh: student.lastNameTh,
-      active: true
-    },
-    create: {
-      studentCode: student.studentCode,
-      firstNameTh: student.firstNameTh,
-      lastNameTh: student.lastNameTh,
-      generatedEmail: student.email,
-      active: true
-    }
-  })));
-
-  await Promise.all(students.map((student) => prisma.project.upsert({
-    where: { courseOfferingId_studentId: { courseOfferingId: offering.id, studentId: student.id } },
-    update: {},
-    create: {
-      courseOfferingId: offering.id,
-      studentId: student.id,
-      status: "STUDENT_PROFILE"
-    }
-  })));
-
-  await Promise.all(multiPilotR2Teachers.map(upsertMultiPilotR2Teacher));
 
   redirectWithQuery("/qa-login", { success: "multi_pilot_r2_prepared" });
+}
+
+export async function prepareMultiPilotR2Wave2Data(formData: FormData) {
+  assertRateLimit("qa-login:prepare-multi-pilot-r2-wave2", pilotRateLimits.devLogin);
+
+  if (!isQaLoginEnabled()) qaError("QA login is disabled for this environment.");
+  if (!hasQaLoginSecret()) qaError("QA_LOGIN_SECRET is not configured.");
+  if (!verifyQaLoginSecret(String(formData.get("secret") ?? ""))) qaError("QA login secret is incorrect.");
+
+  const wave2Students = multiPilotR2Wave2Projects.map((project) => multiPilotR2Students[project.index - 1]);
+  await prepareMultiPilotCourseData({
+    courseTitle: MULTI_PILOT_R2_WAVE2_COURSE_TITLE,
+    yearBe: MULTI_PILOT_R2_WAVE2_YEAR_BE,
+    termType: MULTI_PILOT_R2_WAVE2_TERM_TYPE,
+    termDisplayName: "MULTI-PILOT-R2 Wave 2 Semester 1 BE 2571",
+    projectStudents: wave2Students
+  });
+
+  redirectWithQuery("/qa-login", { success: "multi_pilot_r2_wave2_prepared" });
 }
 
 export async function clearQaUser() {
