@@ -15,6 +15,13 @@
 - Validation: `typecheck`, `npm test`, `build`, and QA secret scan passed locally.
 - Live verification: pending on the next QA preview.
 
+Follow-up root cause found during live verification:
+
+- After the first patch, W2-10 still appeared in the Progress 1 `not ready` bucket.
+- Cause: `roundEligibility.ts` treated any non-resolved round exception as a readiness blocker, including the open late exception itself.
+- Fix: open late/excused round exceptions no longer reduce eligibility; non-late open exceptions still block readiness.
+- Added tests that late-open projects remain eligible/incomplete while administrative hold exceptions still block.
+
 ### W2-TOOL-001 - QA login role dropdown guard can block or misroute pilot runners
 
 - Severity: Major for pilot execution tooling; not currently classified as an app lifecycle bug.

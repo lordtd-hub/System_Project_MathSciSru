@@ -49,12 +49,13 @@ Code patch:
 - Student schedule round availability now treats an open late exception as available for the affected assessment round.
 - Teacher schedule queues now keep late-recovered schedules reviewable after the course-level round is closed.
 - Teacher schedule review action now permits approve/reject when the project has an open late exception for the schedule round.
+- Round eligibility no longer treats open late/excused exceptions as readiness blockers.
 - Added source coverage for late-open Progress/Final recovery UI/action paths.
 
 Validation:
 
 - `cmd /c npm.cmd run typecheck` - passed.
-- `cmd /c npm.cmd test` - passed, 80 files / 335 tests.
+- `cmd /c npm.cmd test` - passed, 80 files / 337 tests.
 - `cmd /c npm.cmd run build` - passed.
 - `rg -n "<QA secret>" e2e-artifacts src` - passed; no match found.
 

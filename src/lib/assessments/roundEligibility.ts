@@ -1,6 +1,7 @@
 import type { AssessmentRoundType, CommitteeRole, Decision, ProjectStatus, ScoreStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isPresentationAssessmentComplete } from "./presentationCompletion";
+import { hasOpenLateRoundException } from "./roundExceptions";
 
 export type RoundEligibilityProject = {
   id: string;
@@ -9,7 +10,7 @@ export type RoundEligibilityProject = {
   currentTitleTh?: string | null;
   proposalResults?: Array<{ finalDecision: Decision }>;
   committeeAssignments?: Array<{ role: CommitteeRole; active: boolean; teacherId?: string | null }>;
-  roundExceptions?: Array<{ status: string; reason: string }>;
+  roundExceptions?: Array<{ status: string; reason: string; exceptionType?: string | null }>;
   assessmentSubmissions?: Array<{ kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT" }>;
   attempts?: Array<{
     status: string;
@@ -48,7 +49,9 @@ function hasPassedTopicGateStatus(status: ProjectStatus) {
 export function getProgress1Readiness(project: RoundEligibilityProject): ProjectReadiness {
   const reasons: string[] = [];
   const finalDecision = project.proposalResults?.[0]?.finalDecision;
-  const hasBlockingException = project.roundExceptions?.some((exception) => exception.status !== "RESOLVED") ?? false;
+  const blockingException = project.roundExceptions?.find(
+    (exception) => exception.status !== "RESOLVED" && !hasOpenLateRoundException([exception])
+  );
 
   if (["DRAFT", "STUDENT_PROFILE"].includes(project.status)) reasons.push("project in DRAFT");
   if (project.status === "PENDING_ADVISOR") reasons.push("project still PENDING_ADVISOR");
@@ -58,7 +61,7 @@ export function getProgress1Readiness(project: RoundEligibilityProject): Project
   if (!hasCommittee(project, "ADVISOR")) reasons.push("committee not assigned");
   if (!hasCommittee(project, "HEAD")) reasons.push("missing HEAD");
   if (!hasCommittee(project, "MEMBER")) reasons.push("missing MEMBER");
-  if (hasBlockingException) reasons.push(project.roundExceptions?.find((exception) => exception.status !== "RESOLVED")?.reason ?? "project has blocking exception");
+  if (blockingException) reasons.push(blockingException.reason ?? "project has blocking exception");
 
   const eligible = hasPassedTopicGateStatus(project.status) && finalDecision === "PASS" && reasons.length === 0;
   return { project, eligible, reasons };
@@ -204,7 +207,7 @@ export async function getRoundEligibility(courseOfferingId: string, roundType: A
       },
       roundExceptions: {
         where: { assessmentRound: { roundType } },
-        select: { status: true, reason: true },
+        select: { status: true, reason: true, exceptionType: true },
         orderBy: { createdAt: "desc" }
       }
     },

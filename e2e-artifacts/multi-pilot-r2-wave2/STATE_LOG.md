@@ -61,4 +61,5 @@ Phase 2 Proposal round execution is ready to start.
 - Progress 1 closure: completed with acknowledgement.
 - W2-10 Progress 1 late exception: opened by Admin after round close.
 - Stop reason: Major bug. W2-10 still saw Progress 1 as locked on `/student/schedule` after the late exception was opened.
-- Patch status: local stabilization patch completed; live verification pending after QA preview deploy.
+- First patch live check: Student10 remained not-ready because round eligibility counted the open late exception as a blocking exception.
+- Second patch status: local stabilization patch completed; live verification pending after QA preview deploy.

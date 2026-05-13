@@ -44,6 +44,39 @@ describe("round eligibility", () => {
     expect(buckets.eligibleButIncomplete.map((item) => item.project.id)).toEqual(["project-1"]);
   });
 
+  it("keeps open late-round exceptions eligible instead of moving them to not-ready", () => {
+    const lateRecoveryProject = {
+      ...baseProject,
+      id: "late-recovery",
+      roundExceptions: [{
+        status: "OPEN",
+        reason: "late Progress 1 recovery",
+        exceptionType: "LATE_ASSESSMENT_ROUND"
+      }]
+    };
+    const buckets = buildRoundEligibilityBuckets([lateRecoveryProject], "PROGRESS_1");
+
+    expect(buckets.eligible.map((item) => item.project.id)).toEqual(["late-recovery"]);
+    expect(buckets.eligibleButIncomplete.map((item) => item.project.id)).toEqual(["late-recovery"]);
+    expect(buckets.notReady).toEqual([]);
+  });
+
+  it("still treats non-late open exceptions as readiness blockers", () => {
+    const blockedProject = {
+      ...baseProject,
+      id: "blocked-exception",
+      roundExceptions: [{
+        status: "OPEN",
+        reason: "manual administrative hold",
+        exceptionType: "ADMIN_HOLD"
+      }]
+    };
+    const readiness = getProgress1Readiness(blockedProject);
+
+    expect(readiness.eligible).toBe(false);
+    expect(readiness.reasons).toContain("manual administrative hold");
+  });
+
   it("marks Progress 2 eligible only after required Progress 1 committee scoring is complete", () => {
     const project = {
       ...baseProject,

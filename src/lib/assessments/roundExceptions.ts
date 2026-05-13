@@ -16,13 +16,13 @@ export function roundExceptionLabel(roundType: AssessmentRoundType) {
 }
 
 export function hasOpenLateProposalException(
-  exceptions?: Array<{ exceptionType: string; status: string }> | null
+  exceptions?: Array<{ exceptionType?: string | null; status: string }> | null
 ) {
   return hasOpenLateRoundException(exceptions);
 }
 
 export function hasOpenLateRoundException(
-  exceptions?: Array<{ exceptionType: string; status: string }> | null
+  exceptions?: Array<{ exceptionType?: string | null; status: string }> | null
 ) {
   return Boolean(
     exceptions?.some(
@@ -35,7 +35,7 @@ export function hasOpenLateRoundException(
 }
 
 export function requiresLateRoundPenalty(
-  exceptions?: Array<{ exceptionType: string; status: string }> | null
+  exceptions?: Array<{ exceptionType?: string | null; status: string }> | null
 ) {
   return Boolean(
     exceptions?.some(
