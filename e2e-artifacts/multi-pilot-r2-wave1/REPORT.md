@@ -1323,3 +1323,80 @@ New Major bug found:
 Validation so far:
 
 - `npm test -- src/lib/scheduling/scheduleRules.test.ts src/lib/format/dateTime.test.ts`: PASS.
+
+## Live QA - Progress 2 Operational Completion
+
+QA preview:
+
+- `https://system-project-math-sci-da1lofaxb-lordtd-hubs-projects.vercel.app`
+- Code commit used for live continuation: `395bbe0` (`Fix schedule input timezone handling`)
+- Browser: persistent Microsoft Edge CDP session on port `9333`
+
+Validation before live continuation:
+
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 77 files / 315 tests
+- `npm run build`: PASS
+- Secret scan for `e2e-artifacts`: PASS, no QA secret found
+
+Major bug stabilization:
+
+- Fixed schedule form parsing so student-selected `09:00-10:00` is stored as Bangkok civil time and displays back as `09:00-10:00`.
+- Removed the real QA secret literal from source-test assertions and replaced it with a placeholder guard.
+- Live verification used Project05 reject/resubmit and Project04 reject/resubmit through UI only.
+- Project04 latest Progress 2 schedule after recovery: `21 พ.ค. 2569 09:00 - 10:00 น. · ห้อง MS-302`.
+- Project05 latest Progress 2 schedule after recovery: `22 พ.ค. 2569 09:00 - 10:00 น. · ห้อง MS-303`.
+
+Progress 2 schedule approval:
+
+- Teacher01/02/03 saw Project04 and Project05 as accumulated actionable schedule work after the student-side submissions were completed first.
+- Teacher04 and Teacher Delta had no actionable schedule forms for Project04/05.
+- Project04 and Project05 schedules were approved by Teacher01, Teacher02, and Teacher03 after timezone recovery.
+- Project01 schedule had already been approved earlier by Teacher01/02/03.
+
+Progress 2 scoring:
+
+- Teacher01 saw and scored only Project04 and Project05.
+- Teacher02 saw and scored Project01, Project04, and Project05.
+- Teacher03 saw and scored only Project01.
+- Teacher04 and Teacher Delta saw no Progress 2 scoring forms.
+- After each teacher submitted, that teacher's Progress 2 queue cleared and no stale editable score form remained.
+- Student01/04/05 saw Progress 2 feedback/score after scoring. Student03 remained locked out of Progress 2.
+
+Admin Progress 2 close guard:
+
+- Before close, `/admin/rounds` showed Progress 2:
+  - ready/eligible: `3`
+  - submitted: `3`
+  - completed: `3`
+  - eligible-but-incomplete: `0`
+  - not-yet-eligible: `37`
+  - exceptions: `0`
+- Progress 2 was closed successfully.
+- After close, Final remained `ยังไม่เปิด`; no automatic Final unlock occurred.
+- `/admin/rounds` now shows Final ready count `3`, submitted `0`, completed `0`, eligible-but-incomplete `3`, not-yet-eligible `37`, which is expected because Final has not been opened or run yet.
+
+Screenshots from this continuation:
+
+- `screenshots/2026-05-13T04-40-46-324Z-progress2-project05-student-resubmitted-timezone-fixed-395bbe0.png`
+- `screenshots/2026-05-13T04-41-40-119Z-progress2-project04-student-resubmitted-timezone-fixed-395bbe0.png`
+- `screenshots/2026-05-13T04-43-48-605Z-progress2-teacher01-schedules-accumulated-queue-395bbe0.png`
+- `screenshots/2026-05-13T04-43-55-189Z-progress2-teacher02-schedules-accumulated-queue-395bbe0.png`
+- `screenshots/2026-05-13T04-44-01-622Z-progress2-teacher03-schedules-accumulated-queue-395bbe0.png`
+- `screenshots/2026-05-13T04-51-22-776Z-progress2-teacher01-queue-after-all-scores-395bbe0.png`
+- `screenshots/2026-05-13T04-51-42-842Z-progress2-teacher02-queue-after-all-scores-395bbe0.png`
+- `screenshots/2026-05-13T04-51-51-995Z-progress2-teacher03-queue-after-all-scores-395bbe0.png`
+- `screenshots/2026-05-13T04-58-03-002Z-progress2-admin-rounds-after-close-final-still-closed-395bbe0.png`
+
+Bugs/observations:
+
+- Major fixed: evidence-save shell-only page after Progress 2 evidence save.
+- Major fixed: schedule time parsing treated local form time as UTC and displayed +7 hours in Bangkok.
+- Minor/UX: teacher schedule queue becomes visually dense when confirmed history and pending actionable cards share one page.
+- Minor/UX: Admin round close/open controls remain duplicated/dense. During automation, direct Playwright `click()` on the Progress 2 close button did not change state, while submitting the same form with `requestSubmit()` worked and closed the round. Treat as a UI/action hierarchy debt to verify in a later manual pass, not a lifecycle blocker because the server action and form submission path are valid.
+
+Stop condition reached:
+
+- Progress 2 Wave 1 operational flow completed successfully.
+- Do not open Final in this pass.
+- Final round testing can safely begin later from this saved state.

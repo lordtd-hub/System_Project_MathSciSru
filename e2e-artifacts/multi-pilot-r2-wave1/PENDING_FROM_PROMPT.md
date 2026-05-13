@@ -817,3 +817,37 @@ Required next actions:
   - reject/resubmit/approve Project05,
   - score required Progress 2 reviewers,
   - verify Progress 2 close guard.
+
+## Progress 2 Loop Result
+
+Status: completed successfully.
+
+Completed:
+
+- Timezone patch validated and pushed.
+- New QA preview used: `https://system-project-math-sci-da1lofaxb-lordtd-hubs-projects.vercel.app`.
+- Project04 and Project05 pending schedule times were recovered through UI rejection/resubmission only.
+- Project04 and Project05 resubmitted schedules now display `09:00-10:00` Bangkok time.
+- Teacher queues were inspected with multiple pending schedule jobs before approvals.
+- Project04/Project05 schedule approvals completed.
+- Required Progress 2 scores completed:
+  - Project01: Teacher02 + Teacher03
+  - Project04: Teacher01 + Teacher02
+  - Project05: Teacher01 + Teacher02
+- Teacher01/02/03 Progress 2 scoring queues cleared after submission.
+- Teacher04 and Teacher Delta had no unauthorized Progress 2 scoring forms.
+- Admin closed Progress 2.
+- Final remained unopened.
+
+Ready next:
+
+- Final round testing can begin later from this saved state.
+- Do not start Wave 2 yet.
+- Do not start documentation/manual screenshots yet.
+
+Carry into next pass:
+
+- Open Final via Admin only when the next prompt explicitly starts Final testing.
+- Verify Final student visibility for Project01/04/05 after opening Final.
+- Keep Project03 locked/recoverable; it still has not passed Progress 1.
+- Watch teacher queue scale carefully; the current pages work but get visually dense as multiple pending and read-only items accumulate.

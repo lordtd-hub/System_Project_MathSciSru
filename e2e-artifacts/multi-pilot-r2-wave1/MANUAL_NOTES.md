@@ -223,3 +223,28 @@ Do not turn this into final manual text yet.
 - This must be fixed before teacher approvals continue because real users would misunderstand the appointment time.
 - Manual wording later should explicitly state that all round and schedule times are displayed in Thailand time.
 - Existing pending schedule requests created before the fix may need UI recovery by rejection/resubmission; do not correct them by direct database editing during the pilot.
+
+## 2026-05-13 Notes From Completed Progress 2 Loop
+
+Do not convert this into polished manual content yet.
+
+### Student
+
+- Students should understand that after a Progress round closes, the schedule page may show history/status but no new schedule form until Admin opens the next round.
+- Progress 2 feedback/score is visible for Student01/04/05 after required committee scoring completed.
+- Student03 correctly remains without Progress 2 visibility because Progress 1 was not completed.
+- Later student manual should state that all schedule times are Thailand time.
+
+### Teacher
+
+- Teacher01/02/03 queues behaved correctly with multiple pending Progress 2 schedule approvals and scoring items.
+- Teacher04 and Teacher Delta had no unauthorized actionable Progress 2 work.
+- Queue scale UX concern remains: `/teacher/schedules` mixes confirmed read-only history with pending action cards, so at 10+ projects it should become an inbox/table with filters rather than long cards.
+- Recommended later UX pattern: separate actionable inbox from read-only agenda/history, with filters by round, action type, role, and status.
+
+### Admin
+
+- Progress 2 close guard was understandable because eligible-but-incomplete was `0` and not-yet-eligible was separate.
+- After Progress 2 close, Final remained unopened and must be opened by Admin deliberately.
+- Admin action hierarchy still needs a redesign: duplicate open/close buttons and dense control placement make automation and human scanning harder.
+- During automation, direct `click()` on the Progress 2 close button did not change state, but submitting the same form via `requestSubmit()` closed the round. Verify real manual clicking during a later UI pass.
