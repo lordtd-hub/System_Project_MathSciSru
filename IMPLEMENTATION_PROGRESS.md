@@ -11,6 +11,15 @@
 
 Historical note: The original Task 01-10 checklist below is retained as the initial MVP sequence. Later 2026-05-06 sections supersede early Proposal-only limitations.
 
+## 2026-05-13 Supabase heartbeat cron
+
+- Added a guarded Vercel Cron endpoint at `/api/cron/heartbeat`.
+- The heartbeat checks `Authorization: Bearer $CRON_SECRET` and returns `401` when the secret is missing or invalid.
+- The endpoint uses a read-only Prisma `SELECT 1` query so it keeps the hosted database active without changing lifecycle, scoring, auth, or pilot data.
+- Registered the cron in `vercel.json` for daily execution at `0 2 * * *` UTC, equal to 09:00 Thailand time.
+- Documented `CRON_SECRET` in `.env.example` and README production environment guidance.
+- Production was not deployed by this change; Vercel Cron runs only from a production deployment after the production `CRON_SECRET` is configured.
+
 ## 2026-05-13 Admin operational UX stabilization
 
 - Started after MULTI-PILOT-R2 Wave 1 completed Proposal through Admin closeout.
