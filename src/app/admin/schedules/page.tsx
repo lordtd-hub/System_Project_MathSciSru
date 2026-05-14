@@ -89,7 +89,9 @@ export default async function AdminSchedulesPage() {
               </div>
               <AdminQueueBadge tone={group.tone}>{group.items.length} รายการ</AdminQueueBadge>
             </div>
-            {group.items.length ? group.items.map((schedule) => (
+            {group.items.length ? (
+              <div className={group.items.length > 8 ? "admin-scroll-list space-y-2" : "space-y-2"}>
+                {group.items.map((schedule) => (
               <article key={schedule.id} className="admin-compact-schedule-row">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -123,7 +125,9 @@ export default async function AdminSchedulesPage() {
                   </details>
                 </div>
               </article>
-            )) : (
+                ))}
+              </div>
+            ) : (
               <div className="rounded-md border border-line bg-paper p-3 text-sm text-muted">ไม่มีรายการในกลุ่มนี้</div>
             )}
           </section>

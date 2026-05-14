@@ -11,6 +11,7 @@ describe("admin operational UX source", () => {
       "src/app/admin/closeout/page.tsx",
       "src/app/admin/proposals/page.tsx",
       "src/app/admin/schedules/page.tsx",
+      "src/app/admin/reports/page.tsx",
       "src/app/admin/evidence/page.tsx"
     ];
 
@@ -51,6 +52,15 @@ describe("admin operational UX source", () => {
     expect(source).toContain("scheduleGroups");
     expect(source).toContain("admin-compact-schedule-row");
     expect(source).toContain("admin-compact-schedule-details");
+    expect(source).toContain("admin-scroll-list");
+  });
+
+  it("keeps admin report entrypoint read-only and evidence-oriented", () => {
+    const source = readSource("src/app/admin/reports/page.tsx");
+
+    expect(source).toContain("AdminOperationalSummary");
+    expect(source).toContain('href="/admin/evidence"');
+    expect(source).toContain('href="/admin/closeout"');
   });
 
   it("clarifies evidence exports including grade summary meaning", () => {

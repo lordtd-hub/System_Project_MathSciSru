@@ -214,7 +214,7 @@ export default async function TeacherSchedulesPage({
         <p className="mt-1 text-sm text-muted">
           อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วได้ เพื่อวางแผนเข้าร่วมฟังหรือหลีกเลี่ยงเวลาซ้อนกัน โดยส่วนนี้ไม่แสดงเอกสารหลักฐานของนักศึกษา
         </p>
-        <div className="mt-3 space-y-2">
+        <div className="teacher-scroll-list mt-3 space-y-2">
           {confirmedScheduleCalendar.length ? confirmedScheduleCalendar.map((schedule) => (
             <div key={schedule.id} className="rounded-md border border-line bg-surface p-3 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">

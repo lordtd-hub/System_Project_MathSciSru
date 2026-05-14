@@ -34,6 +34,8 @@ describe("teacher workload UX source", () => {
     expect(component).toContain('metric.tone === "action"');
     expect(css).toContain(".teacher-workload-summary");
     expect(css).toContain(".teacher-compact-queue-item");
+    expect(css).toContain(".teacher-scroll-list");
+    expect(css).toContain(".teacher-compact-badge-stack");
     expect(css).toContain(".teacher-review-card");
     expect(css).toContain("@media (max-width: 640px)");
   });
@@ -63,6 +65,7 @@ describe("teacher workload UX source", () => {
     expect(source).toContain("waitingSchedules");
     expect(source).toContain("returnedSchedules");
     expect(source).toContain("TeacherCompactQueueList");
+    expect(source).toContain("teacher-scroll-list");
     expect(source).toContain("คิวอนุมัติวันสอบ");
     expect(source).toContain('approval.teacherId === teacher.id && approval.decision === "PENDING"');
   });

@@ -1,60 +1,39 @@
 # Screen Inventory
 
-Date: 2026-05-14
+Baseline: Classic UI. Browser: visible Playwright Microsoft Edge session `edgepilot-visible`.
 
-Baseline: classic UI on QA preview `https://system-project-math-sci-6tx0bev1p-lordtd-hubs-projects.vercel.app`
+## Student
 
-## Student Screens
+| Route | Desktop | 390px | 430px | Notes |
+|---|---|---|---|---|
+| `/student` | Checked | Smoke checked through mobile dashboard | Checked | Next-action/status grouping is clear. English evidence text remains. |
+| `/student/proposal` | Checked | Checked | Not separately checked | Proposal scores hidden; comments visible. Raw `PASS` and English QA text remain. |
+| `/student/schedule` | Checked | Not separately checked | Not separately checked | Desktop inspected through dashboard link; clear do/wait/done/locked separation. |
+| `/student/report` | Checked after role session | Checked | Not separately checked | Locked state is understandable for current Student01 state. No form shown because not eligible yet. |
+| `/student/feedback` | Checked | Not separately checked | Not separately checked | Read-only result/rubric page is functional but dense and partly bilingual. |
 
-| Route | Desktop | Mobile 390px | Primary UX Job | Audit Result |
-|---|---:|---:|---|---|
-| `/student` | checked | checked | show next valid action and lifecycle state | usable; action grouping clear |
-| `/student/project` | checked | checked | project origin/profile editing and status | usable; form should stay spacious |
-| `/student/proposal` | checked | checked | proposal evidence submission/history | usable; no overflow |
-| `/student/schedule` | checked | checked | assessment evidence and schedule proposal | correct but long on mobile |
-| `/student/report` | checked | checked | report submission/revision state | usable; history can be collapsed later |
-| `/student/feedback` | checked | checked | read feedback/scores | usable; mostly read-only |
-| `/student/profile` | source/inventory only | not live checked | student profile data entry | include in later form audit |
-| `/student/origin` | source/inventory only | not live checked | older project origin path | verify if still user-facing before manuals |
+## Teacher
 
-## Teacher Screens
+| Route | Desktop | 390px | 430px | Notes |
+|---|---|---|---|---|
+| `/teacher` | Checked | Checked | Checked | Workload summary usable; duplicate widgets remain; dashboard queue/history can grow. |
+| `/teacher/schedules` | Checked | Checked | Not separately checked | Confirmed schedule history is very long; should cap/scroll/filter. |
+| `/teacher/proposals` | Checked | Not separately checked | Not separately checked | Empty/current state clear; warning text useful. |
+| `/teacher/progress1` | Checked | Not separately checked | Not separately checked | Route loads and empty state is clear; discoverability is weak when zero tasks. |
+| `/teacher/progress2` | Checked | Not separately checked | Not separately checked | Route loads and empty state is clear; progress labels remain distinct. |
+| `/teacher/final` | Checked | Not separately checked | Not separately checked | Empty/current state clear; no unauthorized action observed. |
+| `/teacher/reports` | Checked | Checked | Not separately checked | Empty state clear; latest-version wording understandable. |
+| `/teacher/advisor-score` | Checked | Checked | Not separately checked | Completed score cards readable but too tall for high-volume history. |
 
-| Route | Desktop | Mobile 390px | Primary UX Job | Audit Result |
-|---|---:|---:|---|---|
-| `/teacher` | checked | checked | workload dashboard | usable; duplicated navigation/workload widgets remain |
-| `/teacher/schedules` | checked | checked | approve/reject schedules | usable; high-volume queue scan still important |
-| `/teacher/proposals` | checked | checked | Proposal review queue | usable; detail-heavy when many items |
-| `/teacher/progress1` | checked | checked | Progress 1 scoring queue | usable |
-| `/teacher/progress2` | checked | checked | Progress 2 scoring queue | usable |
-| `/teacher/final` | checked | checked | Final scoring queue | usable |
-| `/teacher/reports` | checked | checked | report review/revision | usable; latest-version language should stay prominent |
-| `/teacher/advisor-score` | checked | checked | advisor score entry/read-only summary | usable; form mode should remain full-width/comfortable |
-| `/teacher/advisor-requests` | source/inventory only | not live checked | approve/reject advisor requests | should be included in next teacher UX pass |
-| `/teacher/scoring/[assignmentId]` | source/inventory only | not live checked | Proposal scoring form | must be checked before manual screenshots |
-| `/teacher/claim` | source/inventory only | not live checked | teacher profile claim | lower priority for Wave 2 |
+## Admin
 
-## Admin Screens
-
-| Route | Desktop | Mobile 390px | Primary UX Job | Audit Result |
-|---|---:|---:|---|---|
-| `/admin` | checked | checked | operational dashboard | usable; shortcut density still high |
-| `/admin/rounds` | checked | checked | open/close rounds and inspect buckets | stable; dangerous actions should remain visually separated |
-| `/admin/closeout` | checked | checked | complete eligible projects | stable; keep ready vs waiting clear |
-| `/admin/proposals` | checked | checked | final decision/release | correct but too dense at scale |
-| `/admin/schedules` | checked | checked | schedule overview | correct but badge/list density high |
-| `/admin/evidence` | checked | checked | evidence/export | works; technical event labels need wording pass |
-| `/admin/round-exceptions` | source/inventory only | not live checked | late/reopen recovery | high priority before larger scale |
-| `/admin/committee` | source/inventory only | not live checked | committee assignment | high priority for real operation |
-| `/admin/import-students` | source/inventory only | not live checked | course/student setup | admin-only form audit needed before production roster |
-| `/admin/students` | source/inventory only | not live checked | student list | medium priority |
-| `/admin/teachers` | source/inventory only | not live checked | teacher management | medium priority |
-| `/admin/claims` | source/inventory only | not live checked | teacher account claim review | medium priority |
-| `/admin/reports` | not applicable | not applicable | admin report management | no route currently exists in repo |
-
-## Screenshot Set
-
-Selected audit screenshots were copied to:
-
-- `e2e-artifacts/frontend-ux-audit/screenshots/`
-
-The larger temporary redesign screenshot set was removed with the decommissioned redesign artifacts.
+| Route | Desktop | 390px | 430px | Notes |
+|---|---|---|---|---|
+| `/admin` | Checked | Checked | Not separately checked | Operationally usable; dashboard has QA/noise/duplicate shortcuts and English evidence text. |
+| `/admin/rounds` | Checked | Checked | Not separately checked | Buckets clear; open/close action hierarchy still deserves safer visual separation. |
+| `/admin/proposals` | Checked | Not separately checked | Not separately checked | Dense table; raw audit fields and English/enum labels visible. |
+| `/admin/schedules` | Checked | Not separately checked | Not separately checked | 72 confirmed schedules appear as long history list. |
+| `/admin/reports` | 404 | Not checked | Not checked | Route does not exist in current QA preview. Decide whether this route is required. |
+| `/admin/closeout` | Checked | Smoke checked via mobile requirement context | Not separately checked | Ready/waiting/completed separation is clear; completed list can grow. |
+| `/admin/evidence` | Checked | Checked | Not separately checked | Exports are discoverable; table exposes IDs/raw labels; no document-level horizontal overflow at 390px. |
+| `/admin/evidence/exports/*` | Links discovered | Not checked | Not checked | CSV/XLSX links exist for grades, projects, timeline, scores, reports, and audit. No download was triggered during audit. |

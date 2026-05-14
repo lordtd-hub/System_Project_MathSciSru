@@ -1,158 +1,137 @@
-# Frontend UX Audit
+# Frontend UX Audit Before Wave 2
 
-Date: 2026-05-14
+## Audit Metadata
 
-Branch: `qa-preview`
+- Branch: `qa-preview`
+- Commit at audit start: `e55c624`
+- QA preview: `https://system-project-math-sci-dh62wk9k0-lordtd-hubs-projects.vercel.app`
+- Audit date: 14 May 2026
+- Browser/session: Playwright CLI visible session `edgepilot-visible`, Microsoft Edge
+- Baseline UI: Classic UI
+- Production touched: No
+- QA data reset: No
+- Workflow mutations: No
+- Code changes: No
 
-QA preview audited: `https://system-project-math-sci-6tx0bev1p-lordtd-hubs-projects.vercel.app`
+## Scope Completed
 
-UI baseline: classic UI. The previous Figma-mode implementation has been decommissioned and was not treated as the production-ready interface.
+Checked core Student, Teacher, and Admin pages on desktop and mobile smoke/device views. The audit used visible Playwright and started from `/qa-login` with the role dropdown selected before identity switching.
 
 ## Executive Summary
 
-The current classic UI is operationally usable enough to continue QA planning, but it still needs a focused UX cleanup before a larger real-user rollout. The core workflow semantics are much stronger than earlier pilot rounds: users can usually tell whether work is actionable, waiting, completed, or locked. The main remaining problem is not missing logic; it is information hierarchy at scale.
+The classic UI is usable enough to continue controlled Wave 2 work, but it should not be treated as polished for real users yet.
 
-The most important finding is that the app now has many correct signals, but some pages show too many signals at once. At 12-40 projects, Admin and Teacher pages can feel like they require visual searching instead of guiding the user to the next decision. Student pages are closer to acceptable because they already use action/waiting/completed summaries, but long schedule/report states can still feel heavy on mobile.
+The workflow states are mostly understandable. The strongest parts are next-action separation on Student pages, teacher workload buckets, admin round buckets, and closeout readiness separation. The main risk is not lifecycle correctness; it is information density and user-facing language.
 
-No production environment was touched. No lifecycle, scoring, eligibility, auth, schema, or server action logic was changed during this audit.
+Highest UX risks before Wave 2:
 
-## Audit Method
+- Teacher/Admin schedule history lists are too long at scale. Confirmed/history items dominate pages even when no action is required.
+- Admin proposal and evidence pages expose raw technical details such as IDs, internal actor fields, English audit labels, and enum-like labels.
+- Student and Teacher pages still show English QA/programmer text in evidence, comments, and status history.
+- Some queue/status cards and badges take more space than their value. Repeated same-kind badges/status chips should be compact and scrollable when long.
+- `/admin/reports` returns 404 in the current QA preview. This is only a blocker if the route is expected to be part of admin navigation for Wave 2; otherwise document it as non-existent/deferred.
 
-- Read existing project, UX, responsive, pilot, Wave 1, Wave 2, and redesign notes.
-- Used the classic UI baseline for all route checks.
-- Used the existing Edge CDP session on the QA preview.
-- Verified login role selection through the QA role dropdown before role identity selection.
-- Performed non-mutating page verification only.
-- Captured desktop and 390px mobile screenshots for Admin, Teacher, and Student routes.
-- Did not submit forms, close rounds, reset data, approve/reject records, or mutate workflow state.
+## Role Summary
 
-## Live Verification Summary
+### Student
 
-All audited role route groups rendered without shell-only pages, digest/error pages, or detected horizontal overflow at 390px mobile width.
+Student pages are generally understandable. The student can see what is available now, what is waiting, what is completed, and what is locked. Mobile views at 390px and 430px are usable for the checked states.
 
-Teacher verified routes:
+Main student debt:
 
-- `/teacher`
-- `/teacher/schedules`
-- `/teacher/proposals`
-- `/teacher/progress1`
-- `/teacher/progress2`
-- `/teacher/final`
-- `/teacher/reports`
-- `/teacher/advisor-score`
+- English/QA text appears in evidence and comments.
+- Raw `PASS` labels appear in proposal-related content.
+- Feedback/rubric content is dense and partly bilingual; it is not a workflow blocker but is heavy for students.
 
-Student verified routes:
+### Teacher
 
-- `/student`
-- `/student/project`
-- `/student/proposal`
-- `/student/schedule`
-- `/student/report`
-- `/student/feedback`
+Teacher pages are usable and permissions looked consistent in the checked state. The dashboard and subpages separate action/waiting/completed reasonably well.
 
-Admin verified routes:
+Main teacher debt:
 
-- `/admin`
-- `/admin/rounds`
-- `/admin/closeout`
-- `/admin/proposals`
-- `/admin/schedules`
-- `/admin/evidence`
+- Confirmed schedule history is too long and should be capped, filtered, or scroll-contained.
+- Completed advisor-score cards can grow vertically; high-volume history should become compact.
+- Dashboard still has duplicated workload summaries and secondary widgets.
+- Some routes such as progress queues are less discoverable when there are zero tasks.
 
-Admin `/admin/reports` was not audited as a live route because the repo currently does not contain `src/app/admin/reports/page.tsx`.
+### Admin
 
-## Highest-Impact UX Findings
+Admin operational pages are mostly understandable and safer than earlier iterations. Round buckets and closeout readiness are clear.
 
-### 1. Teacher dashboard is usable, but still has duplicated navigation/workload concepts
+Main admin debt:
 
-Severity: Should fix before Wave 2 expansion
+- `/admin/schedules` shows 72 confirmed schedules as a long history list.
+- `/admin/proposals` table is dense and contains raw decision/audit wording in cells.
+- `/admin/evidence` has useful exports, including grades CSV/XLSX, but evidence tables expose raw IDs and English audit labels.
+- Admin dashboard has operational noise: QA reset warning, duplicated shortcuts, `now` English marker, and latest evidence English text.
+- `/admin/reports` is 404.
 
-The teacher dashboard now has a compact workload summary and the right-hand agenda list is scroll-limited, which is an improvement. However, the page still has multiple zones that answer similar questions: workload summary, next action, agenda, account/role shortcuts, and work guide cards. This creates a sense of "where should I look first?" even though the underlying data is correct.
+## Mobile Result
 
-Recommendation:
+No critical mobile blocker was found in the checked Student/Teacher/Admin routes. At 390px and 430px, pages render and important content is reachable.
 
-- Keep "งานที่ต้องดำเนินการ" as the primary teacher workspace.
-- Keep the agenda list compact and scrollable.
-- Move account/role details lower or collapse them.
-- Avoid dashboard shortcut widgets that duplicate the left/top navigation.
+Mobile debt:
 
-Screenshot references:
+- Long queues/history lists create excessive vertical scrolling.
+- Admin pages are acceptable only as smoke-check mobile pages, not primary mobile workflows.
+- Badge groups and summary cards need compact treatment to avoid consuming too much vertical space.
 
-- `e2e-artifacts/frontend-ux-audit/screenshots/teacher-dashboard-redesign-desktop-6tx0bev1p.png`
-- `e2e-artifacts/frontend-ux-audit/screenshots/teacher-dashboard-redesign-mobile-6tx0bev1p.png`
+## Screenshots
 
-### 2. Admin proposal and schedule pages are correct but too dense at scale
+Key evidence screenshots are stored under:
 
-Severity: Should fix before Wave 2 expansion
+- `e2e-artifacts/frontend-ux-audit/screenshots/`
 
-Admin proposal and schedule pages can show many badges, buttons, and repeated project sections. The live mobile check did not detect horizontal overflow, but the pages are very long and visually noisy. This is especially visible on `/admin/proposals`, where the verifier counted 70 admin badges and 131 button/link-like controls.
+Important examples:
 
-Recommendation:
+- `student-feedback-desktop-bilingual-rubric-density.png`
+- `teacher-dashboard-desktop-queue-density.png`
+- `teacher-schedules-desktop-confirmed-list-scale.png`
+- `teacher-schedules-mobile-390-confirmed-list.png`
+- `admin-dashboard-desktop-operational-noise.png`
+- `admin-rounds-desktop-action-hierarchy.png`
+- `admin-proposals-desktop-table-density.png`
+- `admin-schedules-desktop-confirmed-history-scale.png`
+- `admin-evidence-desktop-export-labels-raw-ids.png`
+- `admin-reports-route-404.png`
 
-- Add stronger grouping by "Needs admin action", "Waiting", "Completed", and "Exception".
-- Keep completed/history sections collapsed by default or lower on the page.
-- Prefer compact table/list rows for large lists and full detail only after opening a project section.
-- Preserve current actions and permissions exactly.
+## Final Recommendation
 
-Screenshot reference:
+**PATCH_UX_BEFORE_WAVE_2**
 
-- `e2e-artifacts/frontend-ux-audit/screenshots/admin-proposals-redesign-mobile-6tx0bev1p.png`
+Wave 2 can continue after a small UX stabilization patch focused on density and text cleanup. No lifecycle/scoring/auth/schema blocker was found from this audit, but the high-volume pages should be made less noisy before adding more pilot load.
 
-### 3. Student pages communicate the workflow better than before, but mobile schedule/report pages are still long
+Recommended pre-Wave-2 patch scope:
 
-Severity: Can defer for minor polish; fix before real student manual screenshots
+1. Cap/scroll long confirmed/history lists on Teacher/Admin schedules.
+2. Make repeated badges/status chips compact and scroll-contained when they become long.
+3. Clean user-facing English/QA/programmer text on Student/Teacher/Admin surfaces.
+4. Reduce dashboard duplication where navigator/summary widgets repeat the same function.
+5. Decide whether `/admin/reports` should exist; if not, remove it from audit/navigation expectations.
 
-Student pages now clearly separate current/waiting/completed/locked states. The mobile schedule page is readable and has no horizontal overflow, but it stacks many correct sections vertically: summary, round guide, rubrics, confirmed schedules, evidence, proposal, and latest history. This is accurate but tiring on a phone.
+Items that can wait:
 
-Recommendation:
+- Full visual redesign.
+- Figma implementation.
+- Deep mobile-first admin redesign.
+- Advanced filters/table redesign across every admin page.
 
-- Keep the current next-action summary.
-- Add collapsible sections for history and completed/locked rounds.
-- Keep active forms full width and near the top when editable.
-- Do not reduce form size; data entry should remain spacious.
+## Post-Audit Stabilization Patch - 2026-05-14
 
-Screenshot references:
+Applied the first small UX stabilization patch from this audit without changing lifecycle/auth/scoring/eligibility/schema/API semantics.
 
-- `e2e-artifacts/frontend-ux-audit/screenshots/student-dashboard-redesign-mobile-6tx0bev1p.png`
-- `e2e-artifacts/frontend-ux-audit/screenshots/student-schedule-redesign-mobile-6tx0bev1p.png`
+Completed:
 
-### 4. Text mostly uses Thai user-facing wording, but raw technical labels still appear in evidence/history contexts
+- Added a minimal read-only `/admin/reports` entrypoint so the expected admin report route no longer returns 404.
+- Capped long confirmed schedule/history lists with internal vertical scrolling on teacher/admin schedule views.
+- Reduced badge/status chip padding and font size so repeated badges take less space.
+- Added capped scrolling for repeated teacher queue badge stacks.
+- Added/updated source tests for the admin report entrypoint and schedule-scroll presentation rules.
 
-Severity: Should fix before manuals
+Validation:
 
-Most primary actions now use Thai wording. Remaining technical-feeling labels are concentrated in evidence/history areas where event types or status constants appear close to user content. This is not a blocker for workflow correctness, but it will hurt trust when real users read exports or evidence pages.
+- `npm run typecheck`: passed.
+- `npm test`: passed, 81 files / 350 tests.
+- `npm run build`: passed.
 
-Recommendation:
-
-- Run a user-facing language pass after the next UX patch.
-- Map event/status constants to Thai labels in evidence/history display.
-- Keep enum names internal; do not expose raw status codes unless explicitly meant as audit metadata for Admin.
-
-Screenshot reference:
-
-- `e2e-artifacts/frontend-ux-audit/screenshots/admin-evidence-redesign-desktop-6tx0bev1p.png`
-
-### 5. Mobile layout passes basic overflow checks, but long pages need better section strategy
-
-Severity: Should fix before broader real-user testing
-
-At 390px width, audited pages did not show horizontal overflow. The problem is vertical fatigue: users can scroll for a long time before reaching the part they need. Teacher and Student mobile experiences are acceptable for quick checks, but not yet ideal for repeated daily use.
-
-Recommendation:
-
-- Keep important "do now" cards above long details.
-- Put long queues in internal scroll areas only when they are repeated queue items.
-- Do not globally lock page height; pages must still scroll normally.
-- Use collapsed history/detail sections where the content is correct but not immediately actionable.
-
-## Recommendation
-
-Do not resume the removed visual redesign implementation yet. The safer next step is a small classic UI cleanup pass before Wave 2 expansion:
-
-1. Reduce duplicate dashboard navigation/widgets.
-2. Collapse or compact completed/history-heavy sections.
-3. Add stronger queue grouping for Admin high-density pages.
-4. Run a Thai user-facing wording pass on evidence/status/history labels.
-5. Preserve all lifecycle, scoring, eligibility, auth, and schema behavior.
-
-After that cleanup, Wave 2 can continue toward a controlled 20-project expansion. Any larger redesign should wait until the mockup and component rules are re-planned page by page.
+Updated recommendation after patch: the system is closer to `READY_FOR_WAVE_2`, but final decision should wait for QA preview deployment/live smoke check of `/teacher/schedules`, `/admin/schedules`, and `/admin/reports`.

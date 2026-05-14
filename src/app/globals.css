@@ -446,7 +446,7 @@
   }
 
   .teacher-workload-metric {
-    @apply min-w-[7.25rem] snap-start rounded-md border border-line bg-paperSoft px-2 py-1 shadow-sm lg:min-w-0;
+    @apply min-w-[6.75rem] snap-start rounded-md border border-line bg-paperSoft px-2 py-1 shadow-sm lg:min-w-0;
     border-left-width: 3px;
   }
 
@@ -480,9 +480,21 @@
     @apply overflow-hidden rounded-lg border border-line bg-surface shadow-sm;
   }
 
+  .teacher-scroll-list {
+    @apply max-h-[24rem] overflow-y-auto pr-2;
+  }
+
+  .teacher-compact-badge-stack {
+    @apply flex max-h-12 shrink-0 flex-wrap justify-end gap-1 overflow-y-auto pr-1;
+  }
+
   .teacher-compact-queue-item {
     @apply flex flex-col gap-3 border-b border-line bg-paperSoft p-3 text-sm last:border-b-0 hover:bg-surface sm:flex-row sm:items-center sm:justify-between;
     border-left-width: 4px;
+  }
+
+  .admin-scroll-list {
+    @apply max-h-[32rem] overflow-y-auto pr-2;
   }
 
   .teacher-review-card {

@@ -2169,3 +2169,18 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - preview `https://system-project-math-sci-no3lka8tn-lordtd-hubs-projects.vercel.app`;
   - teacher route verifier passed for all teacher routes with no detected horizontal overflow.
 - Recommendation: pause visual redesign work, keep using classic UI, and restart redesign later from a cleaner page-by-page mockup and interaction plan.
+
+## 2026-05-14 Frontend UX audit stabilization patch before Wave 2
+
+- Completed the audit-first frontend UX pass under `e2e-artifacts/frontend-ux-audit/` and used classic UI as the baseline.
+- Applied a small UI-only stabilization patch for the highest-value pre-Wave-2 findings:
+  - added a read-only `/admin/reports` entrypoint to avoid a dead admin route expectation;
+  - capped long confirmed schedule/history lists on teacher/admin schedule pages with internal vertical scroll;
+  - compacted teacher/admin queue badges and project status badges;
+  - capped repeated teacher queue badge stacks so long same-kind badges do not grow the page.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route semantics, server action, QA data, or production behavior was changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Next step: push QA preview, live-smoke `/teacher/schedules`, `/admin/schedules`, and `/admin/reports`, then decide if Wave 2 can start or whether one more small UX cleanup pass is needed.

@@ -1,103 +1,61 @@
-# Priority Fix List
+# Priority Fix List Before Wave 2
 
-Date: 2026-05-14
+## Must Fix Before Wave 2
 
-This list is for UX stabilization only. It does not propose lifecycle, scoring, eligibility, auth, schema, or API changes.
+| Route | Role | Device | Issue | Suggested fix | Reason |
+|---|---|---|---|---|---|
+| `/admin/reports` | Admin | Desktop | Route returns 404 while it was part of the expected audit inventory. | Decide whether the route should exist. If not required, remove it from Wave 2 expectations/navigation notes. If required, add a minimal admin report overview. | Avoids dead navigation/expectation mismatch during Wave 2. |
 
-## Must Fix
+## Should Fix Before Wave 2
 
-None found during this non-mutating UX audit.
+| Route | Role | Device | Issue | Suggested fix | Reason |
+|---|---|---|---|---|---|
+| `/teacher/schedules` | Teacher | Desktop/mobile | Confirmed schedule history is too long. | Show only 2-5 recent/important schedules on dashboard/queue, then use vertical scroll or a full detail page. | High-volume history hides actual work. |
+| `/admin/schedules` | Admin | Desktop | 72 confirmed schedules render as a long history list. | Add filters by round/status and cap confirmed/history list height. | Admin cannot scan large schedule history efficiently. |
+| `/admin/proposals` | Admin | Desktop | Dense table exposes controls, raw audit fields, and long comments in each row. | Use compact rows with expandable full details; keep action controls visually separated. | Reduces misclick and scanning fatigue. |
+| `/admin/evidence` | Admin | Desktop/mobile | Raw IDs and English audit labels are visible. | Translate display labels and move IDs to expandable technical details. | Evidence page should be understandable to academic/admin users. |
+| `/student`, `/student/proposal`, `/student/schedule` | Student | Desktop/mobile | English QA/programmer text appears in user-facing evidence/comments. | Use Thai seed/display text or map event descriptions to Thai. | Students should not see internal test/programmer wording. |
+| `/student/proposal`, `/admin/proposals` | Student/Admin | Desktop/mobile | Raw `PASS`/`REVISE`/`FAIL` labels appear. | Display Thai labels while preserving enum values internally. | Avoids programmer language. |
+| Teacher/Admin queue pages | Teacher/Admin | Desktop/mobile | Badges/status chips can become bulky or stack vertically. | Make badges compact; cap repeated same-kind badge groups with a vertical scrollbar. | Matches user observation and improves dense queues. |
+| `/teacher` | Teacher | Desktop/mobile | Dashboard has duplicated workload summaries/widgets. | Keep actionable queue first; demote or remove duplicate shortcuts/widgets. | Reduces noise before Wave 2 scale. |
+| `/teacher/advisor-score` | Teacher | Desktop/mobile | Completed cards are tall history items. | Use compact completed/history rows with expandable full detail. | A teacher with many advisees will otherwise scroll heavily. |
 
-No audited route showed shell-only rendering, digest/application error, unauthorized guard mismatch, or mobile horizontal overflow.
+## Can Defer
 
-## Should Fix Before Wave 2 Expansion
-
-### UX-001 Teacher dashboard duplicate surfaces
-
-- Role: Teacher
-- Routes: `/teacher`
-- Device: desktop and mobile
-- Issue: dashboard still has workload summary, action workspace, next card, agenda, account/role panel, and shortcut widgets competing for attention.
-- Impact: teachers may scan the wrong area first when workload grows.
-- Recommendation: keep current workload/action area first; minimize shortcut/account panels; avoid duplicated navigation widgets.
-
-### UX-002 Admin proposal/schedule density
-
-- Role: Admin
-- Routes: `/admin/proposals`, `/admin/schedules`
-- Device: desktop and mobile
-- Issue: many badges, buttons, and project sections create visual noise at scale.
-- Impact: Admin may miss the actual pending decision or exception case.
-- Recommendation: introduce compact scan rows, group by operational bucket, and collapse completed/history sections.
-
-### UX-003 Round exception/recovery visibility
-
-- Role: Admin
-- Routes: `/admin/round-exceptions`, `/admin/rounds`
-- Device: desktop primarily
-- Issue: late/reopen recovery is operationally important but still easy to miss if Admin only looks at round overview.
-- Impact: Project03-style recovery may be understood by the system but not by the operator.
-- Recommendation: make exception/recovery entrypoints and wording more explicit before higher-scale pilots.
-
-### UX-004 Evidence/history technical language
-
-- Role: Admin, Student, Teacher
-- Routes: `/admin/evidence`, student feedback/report history, teacher review history
-- Device: all
-- Issue: raw event/status wording can still appear near user-facing evidence.
-- Impact: users may read audit metadata as system errors or programmer language.
-- Recommendation: map visible constants/event types to Thai user-facing labels.
-
-## Can Defer To Redesign / Manual Phase
-
-### UX-005 Full visual redesign
-
-- Role: all
-- Issue: the removed visual redesign attempt did not match the working product enough for day-to-day use.
-- Recommendation: keep classic UI as active interface; redesign later after a cleaner mockup and component inventory.
-
-### UX-006 Admin mobile complex operations
-
-- Role: Admin
-- Issue: mobile technically works, but complex actions like close round, reset round, and closeout are not ideal on phones.
-- Recommendation: document Admin as desktop-first for complex operations; mobile can remain check/read-focused.
-
-### UX-007 Deep form layout polish
-
-- Role: Student, Teacher
-- Issue: scoring/report/schedule forms can be visually improved, but they are functional.
-- Recommendation: do not compact data-entry forms aggressively; improve them during a form-specific redesign.
+| Route | Role | Device | Issue | Suggested fix | Reason |
+|---|---|---|---|---|---|
+| `/student/feedback` | Student | Desktop | Rubric/feedback page is dense and partly bilingual. | Thai-first summary with expanded rubric detail later. | Not blocking workflow. |
+| `/admin/rounds` | Admin | Desktop/mobile | Open/close action controls repeat across round cards. | Cleaner hierarchy/danger-zone styling later. | Semantics are correct; UX can improve later if not changing rounds now. |
+| `/admin/closeout` | Admin | Desktop/mobile | Completed list is verbose. | Compact completed history later. | Clear enough for current Wave 2 state. |
+| `/teacher/progress1`, `/teacher/progress2` | Teacher | Desktop | Routes are less discoverable when zero tasks exist. | Add subtle route/history access if needed. | Action queues are clear when tasks exist. |
 
 ## Nice To Have
 
-### UX-008 Screenshot/manual readiness pass
+| Route | Role | Device | Issue | Suggested fix | Reason |
+|---|---|---|---|---|---|
+| All dashboards | All | All | Small English marker `now`. | Replace with Thai or icon-only. | Polish. |
+| QA login | QA only | All | QA page contains English setup text. | Leave until QA page cleanup. | Not real-user-facing. |
 
-- Run only after UX-001 to UX-004 are resolved or explicitly deferred.
-- Ensure all screenshots use classic UI unless a future redesign is restarted and approved.
+## Recommendation
 
-### UX-009 Tablet pass at 768px
+Final recommendation: `PATCH_UX_BEFORE_WAVE_2`.
 
-- Current audit covered desktop and 390px mobile.
-- Add tablet checks later if teachers commonly use tablets.
+Patch only density/text/route-expectation issues. Do not restart Figma redesign and do not change business logic.
 
-## Recommended Next Step
+## Patch Status - 2026-05-14
 
-Perform a small classic UI cleanup before expanding Wave 2:
+Completed before Wave 2:
 
-1. Teacher dashboard declutter.
-2. Admin proposals/schedules compact grouping.
-3. Round exception entrypoint clarity.
-4. User-facing Thai label pass for evidence/history.
+- `/admin/reports` now has a minimal read-only admin entrypoint that links to evidence and closeout instead of returning 404.
+- `/teacher/schedules` confirmed schedule history now uses an internal vertical scroll container so long history does not dominate the page.
+- `/admin/schedules` long status groups now use an internal vertical scroll container when a group has more than 8 items.
+- Teacher/Admin queue badges and project status badges are more compact.
+- Repeated teacher queue badge stacks now have a capped internal scroll area.
 
-After those targeted fixes, continue Wave 2 toward a controlled 20-project check rather than restarting redesign.
+Still recommended but deferred:
 
-## Cleanup Pass Status
-
-2026-05-14:
-
-- UX-001: Patched in classic UI. Teacher dashboard now keeps the action queue primary, moves notifications into the work area, removes the duplicate shortcut/account widget, compacts workload badges, and limits the teacher agenda panel to roughly two visible exam items with internal scroll.
-- UX-002: Partially patched in classic UI. Admin schedules now use compact scan rows with expandable committee/notes detail instead of large repeated cards. Admin proposals already had operational summary/table grouping; deeper proposal form/table redesign remains deferred.
-- UX-003: Already covered by the round-exception page and wording from the prior stabilization pass; keep as an operational watch item during Wave 2.
-- UX-004: Partially patched. Admin evidence now maps common audit entity names to user-facing Thai labels before rendering. Broader export/header wording can continue as low-risk polish.
-
-Recommendation after this cleanup: run validation and live QA smoke. If passing, Wave 2 can start without restarting Wave 1 or reopening the abandoned Figma redesign.
+- Admin proposal table compact/full-detail redesign.
+- Admin evidence raw ID / audit wording cleanup beyond existing label mapping.
+- Student-facing QA/programmer seed text cleanup.
+- Teacher dashboard duplicate widget reduction.
+- Completed advisor-score/report history compact/full-detail split.

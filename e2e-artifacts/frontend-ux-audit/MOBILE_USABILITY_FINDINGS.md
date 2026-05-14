@@ -1,91 +1,68 @@
 # Mobile Usability Findings
 
-Date: 2026-05-14
+## Scope
 
-Tested viewport: 390px portrait through Edge CDP.
+Checked with visible Playwright Microsoft Edge:
 
-## Result Summary
+- 390px portrait
+- 430px portrait
 
-No audited Student, Teacher, or Admin route showed detected horizontal overflow at 390px. This is a good baseline. The remaining mobile issue is page length and information priority, not broken layout.
+Student and Teacher were checked more seriously because they are likely mobile users. Admin was smoke checked.
 
-## Student Mobile
+## Student
 
-Status: mostly usable.
+| Route | Viewport | Result | Findings |
+|---|---:|---|---|
+| `/student` | 430px | Pass with minor debt | Dashboard content is reachable. Next-action sections remain understandable. |
+| `/student/proposal` | 390px | Pass with text debt | Layout is usable, but raw/English status text remains. |
+| `/student/report` | 390px | Pass | Locked state clearly says the student cannot submit yet. No major overflow observed. |
 
-What works:
+Student mobile risk is mostly wording, not layout.
 
-- Student dashboard stacks correctly.
-- Current/waiting/completed/locked sections are readable.
-- Proposal, schedule, report, and feedback pages render without horizontal overflow.
-- Buttons are generally reachable.
+## Teacher
 
-What still feels hard:
+| Route | Viewport | Result | Findings |
+|---|---:|---|---|
+| `/teacher` | 390px / 430px | Pass with density debt | Dashboard is reachable, but repeated workload widgets and long queues create vertical weight. |
+| `/teacher/schedules` | 390px | Should fix before Wave 2 | Confirmed schedule list is too long. Needs capped height, scroll, filter, or compact history. |
+| `/teacher/reports` | 390px | Pass | Empty/no-task state is understandable. |
+| `/teacher/advisor-score` | 390px | Pass with density debt | Completed score cards are readable but too tall for many advisees. |
 
-- `/student/schedule` is long because it contains many correct sections.
-- History and completed/locked rounds can push the active context farther down.
-- Some repeated status cards feel heavier than the value they provide.
+Teacher mobile is usable, but high-volume lists will be tiring. This should be patched before expanding Wave 2 load.
 
-Recommendation:
+## Admin
 
-- Preserve spacious forms.
-- Collapse completed/locked/history sections.
-- Keep only the next action and active warning above the fold.
+| Route | Viewport | Result | Findings |
+|---|---:|---|---|
+| `/admin` | 390px | Smoke pass with noise | Page is reachable. Dashboard is long and has QA/noise/duplicate signals. |
+| `/admin/rounds` | 390px | Smoke pass | Round actions are reachable, but dangerous actions need clearer visual hierarchy. |
+| `/admin/evidence` | 390px | Smoke pass | No document-level horizontal overflow detected, but table content is dense and raw. |
 
-## Teacher Mobile
+Admin mobile should remain secondary. It is usable for checking state, but not ideal for operational work.
 
-Status: usable for quick checks, but dense for daily workload.
+## Badge / Queue Compactness
 
-What works:
+User observation confirmed during audit:
 
-- Teacher dashboard, schedules, proposals, progress, final, reports, and advisor-score pages render without horizontal overflow.
-- Compact agenda list avoids unbounded growth on the dashboard.
-- Queue cards stack correctly.
+- Badges/status chips should be smaller and lower-height.
+- Same-kind badges repeated in a long group should not expand the page indefinitely.
+- Queue sections should show a limited number of rows by default; long queues/history groups should use vertical scrolling.
+- For dashboard display, use compact object rows. Full details should live in an expanded/detail view.
 
-What still feels hard:
+## Screenshots
 
-- Dashboard still includes account/role and shortcut panels that do not help the teacher complete the next task.
-- Many completed items can still make the page feel longer than necessary.
-- Forms should remain large, but dashboard summaries should stay compact.
+- `student-dashboard-mobile-430-next-action.png`
+- `student-proposal-mobile-390-status-text.png`
+- `student-report-mobile-390-locked-state.png`
+- `teacher-dashboard-mobile-390-queue-density.png`
+- `teacher-dashboard-mobile-430-smoke.png`
+- `teacher-schedules-mobile-390-confirmed-list.png`
+- `teacher-reports-mobile-390-empty-state.png`
+- `teacher-advisor-score-mobile-390-completed-density.png`
+- `admin-dashboard-mobile-390-smoke.png`
+- `admin-rounds-mobile-390-danger-actions.png`
+- `admin-evidence-mobile-390-table-overflow.png`
 
-Recommendation:
+## Mobile Decision
 
-- Put current work first.
-- Keep long queues internally scrollable when showing repeated rows.
-- Remove duplicate navigation widgets from the dashboard.
-- Use compact queue objects on dashboard; use full detail only on review/scoring pages.
-
-## Admin Mobile
-
-Status: technically passable, but not ideal for complex operations.
-
-What works:
-
-- Admin dashboard, rounds, closeout, proposals, schedules, and evidence pages render without horizontal overflow.
-- Buttons remain present.
-- Evidence/export page remains accessible.
-
-What still feels hard:
-
-- `/admin/proposals` is extremely long on mobile.
-- `/admin/schedules` has many status badges and repeated entries.
-- Round open/close/reset actions should not feel like ordinary navigation on a small screen.
-
-Recommendation:
-
-- Treat Admin mobile as read-only/check-oriented for most real use.
-- Keep complex round controls and closeout work desktop-first.
-- Add stronger compact lists and collapsed completed/history sections before broad mobile Admin use.
-
-## Mobile Acceptance Notes
-
-Passed:
-
-- 390px width no horizontal overflow on audited routes.
-- Student and Teacher pages are readable enough for quick use.
-- QA role login guard worked when scripts selected role first.
-
-Not yet ideal:
-
-- Vertical page length is still high.
-- Some cards and badges consume too much attention for low-value status information.
-- More sections should be collapsible or scroll-limited by content type.
+No mobile blocker was found. The recommendation is `PATCH_UX_BEFORE_WAVE_2`, focused on compact queues/history and text cleanup.

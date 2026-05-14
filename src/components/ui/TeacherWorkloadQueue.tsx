@@ -47,7 +47,7 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
         {metrics.map((metric) => (
           <div key={metric.label} className={`teacher-workload-metric ${toneSurfaceClassName[metric.tone]}`}>
             <div className="flex items-center justify-between gap-2">
-              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[metric.tone]}`}>{metric.label}</span>
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${toneClassName[metric.tone]}`}>{metric.label}</span>
               <span className="text-xl font-semibold">{metric.count}</span>
             </div>
             {metric.description ? <p className="mt-2 text-xs text-muted">{metric.description}</p> : null}
@@ -59,7 +59,7 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
 }
 
 export function TeacherQueueBadge({ children, tone = "waiting" }: { children: ReactNode; tone?: QueueTone }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[tone]}`}>{children}</span>;
+  return <span className={`inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${toneClassName[tone]}`}>{children}</span>;
 }
 
 export function TeacherQueueSection({
@@ -117,7 +117,7 @@ export function TeacherCompactQueueList({
               {item.meta ? <div className="mt-1 text-xs text-muted">{item.meta}</div> : null}
             </div>
             {item.badges?.length ? (
-              <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+              <div className="teacher-compact-badge-stack">
                 {item.badges.map((badge) => (
                   <TeacherQueueBadge key={`${item.id}-${badge.label}`} tone={badge.tone ?? "waiting"}>{badge.label}</TeacherQueueBadge>
                 ))}
