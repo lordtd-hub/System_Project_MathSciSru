@@ -15,6 +15,7 @@ import {
   verifyQaLoginSecret
 } from "./qaLogin";
 import { multiPilotR2Students, multiPilotR2Teachers } from "@/lib/qa/multiPilotR2";
+import { manualDemoTeachers } from "@/lib/qa/manualDemo";
 
 describe("QA login gate", () => {
   it("is disabled by default", () => {
@@ -69,6 +70,36 @@ describe("QA login gate", () => {
     ]);
     expect(getQaTeacherOptions().map((option) => option.email)).toHaveLength(11);
     expect(getQaTeacherOptions().every((option) => option.email.startsWith("manual.demo.teacher"))).toBe(true);
+    expect(getQaTeacherOptions().every((option) => !option.label.startsWith("คู่มือ"))).toBe(true);
+  });
+
+  it("keeps the canonical real teacher master list for manual-guide login", () => {
+    expect(manualDemoTeachers.map((teacher) => teacher.label)).toEqual([
+      "ผศ.กันญารัตน์ หนูชุม",
+      "อ.กันยากร อ่อนรักษ์",
+      "ผศ.ดร.เกตุกนก หนูดี",
+      "ผศ.จิราพร เสนจันทร์",
+      "อ.ดร.ธนนต์ ก่อเกียรติสกุล",
+      "อ.ศุภชัย ดำคำ",
+      "ผศ.ดร.สิทธิโชค ทรงสอาด",
+      "ผศ.สุจารี ดำศรี",
+      "อ.ดร.อรรถกร ศักดา",
+      "ผศ.อรวรรณ สืบเสน",
+      "ผศ.อัญชุลี ณ ตะกั่วทุ่ง"
+    ]);
+    expect(manualDemoTeachers.map((teacher) => teacher.realEmail)).toEqual([
+      null,
+      null,
+      null,
+      null,
+      "thanon.kor@sru.ac.th",
+      null,
+      "sittichoke.son@sru.ac.th",
+      null,
+      null,
+      null,
+      null
+    ]);
   });
 
   it("keeps legacy pilot identities behind an explicit flag", () => {

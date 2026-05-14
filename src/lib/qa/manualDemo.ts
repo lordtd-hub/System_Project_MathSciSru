@@ -59,32 +59,38 @@ export type ManualDemoTeacher = {
   key: string;
   label: string;
   email: string;
+  realEmail: string | null;
   academicPrefix: string;
   firstNameTh: string;
   lastNameTh: string;
   purpose: string;
 };
 
-export const manualDemoTeachers: ManualDemoTeacher[] = [
-  ["ผศ.ดร.", "สิทธิโชค", "ทรงสอาด"],
-  ["ผศ.", "กันญารัตน์", "หนูชุม"],
-  ["อ.", "กันยากร", "อ่อนรักษ์"],
-  ["ผศ.ดร.", "เกตุกนก", "หนูดี"],
-  ["ผศ.", "จิราพร", "เสนจันทร์"],
-  ["อ.ดร.", "ธนนต์", "ก่อเกียรติสกุล"],
-  ["อ.", "ศุภชัย", "ดำคำ"],
-  ["ผศ.", "สุจารี", "ดำศรี"],
-  ["อ.ดร.", "อรรถกร", "ศักดา"],
-  ["ผศ.", "อรวรรณ", "สืบเสน"],
-  ["ผศ.", "อัญชุลี", "ณ ตะกั่วทุ่ง"]
-].map(([academicPrefix, firstNameTh, lastNameTh], index) => {
+type ManualDemoTeacherSeed = [academicPrefix: string, firstNameTh: string, lastNameTh: string, realEmail: string | null];
+
+const manualDemoTeacherSeeds: ManualDemoTeacherSeed[] = [
+  ["ผศ.", "กันญารัตน์", "หนูชุม", null],
+  ["อ.", "กันยากร", "อ่อนรักษ์", null],
+  ["ผศ.ดร.", "เกตุกนก", "หนูดี", null],
+  ["ผศ.", "จิราพร", "เสนจันทร์", null],
+  ["อ.ดร.", "ธนนต์", "ก่อเกียรติสกุล", "thanon.kor@sru.ac.th"],
+  ["อ.", "ศุภชัย", "ดำคำ", null],
+  ["ผศ.ดร.", "สิทธิโชค", "ทรงสอาด", "sittichoke.son@sru.ac.th"],
+  ["ผศ.", "สุจารี", "ดำศรี", null],
+  ["อ.ดร.", "อรรถกร", "ศักดา", null],
+  ["ผศ.", "อรวรรณ", "สืบเสน", null],
+  ["ผศ.", "อัญชุลี", "ณ ตะกั่วทุ่ง", null]
+];
+
+export const manualDemoTeachers: ManualDemoTeacher[] = manualDemoTeacherSeeds.map(([academicPrefix, firstNameTh, lastNameTh, realEmail], index) => {
   const n = index + 1;
   const suffix = String(n).padStart(2, "0");
   return {
     index: n,
     key: `manual-demo-teacher-${suffix}`,
-    label: `คู่มือ ${academicPrefix}${firstNameTh} ${lastNameTh}`,
+    label: `${academicPrefix}${firstNameTh} ${lastNameTh}`,
     email: `manual.demo.teacher${suffix}@sru.test`,
+    realEmail,
     academicPrefix,
     firstNameTh,
     lastNameTh,

@@ -35,6 +35,7 @@ import {
   multiPilotR2Teachers,
   multiPilotR2Wave2Projects
 } from "@/lib/qa/multiPilotR2";
+import { manualDemoTeachers } from "@/lib/qa/manualDemo";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight } from "@/lib/assessments/courseRounds";
 
 function qaError(error: string): never {
@@ -49,6 +50,10 @@ const qaTeacherProfileNames = new Map(qaPilotTeachers.map((teacher, index) => {
     lastNameTh: suffix
   }];
 }));
+
+function manualDemoTeacherForEmail(email: string) {
+  return manualDemoTeachers.find((teacher) => teacher.email.toLowerCase() === email.toLowerCase());
+}
 
 async function upsertMultiPilotR2Teacher(teacher: (typeof multiPilotR2Teachers)[number]) {
   const existing = await prisma.teacher.findUnique({ where: { email: teacher.email }, select: { id: true } });
@@ -246,10 +251,22 @@ export async function selectQaUser(formData: FormData) {
   if (role === "teacher") {
     const teacherEmail = getQaTeacherEmail(formData.get("teacher_email"));
     if (!teacherEmail) qaError("Missing QA teacher email configuration.");
-    const teacher = await prisma.teacher.findFirst({
-      where: { email: teacherEmail, active: true },
-      select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
-    });
+    const manualTeacher = manualDemoTeacherForEmail(teacherEmail);
+    const teacher = manualTeacher
+      ? await prisma.teacher.findUnique({
+          where: {
+            academicPrefix_firstNameTh_lastNameTh: {
+              academicPrefix: manualTeacher.academicPrefix,
+              firstNameTh: manualTeacher.firstNameTh,
+              lastNameTh: manualTeacher.lastNameTh
+            }
+          },
+          select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
+        })
+      : await prisma.teacher.findFirst({
+          where: { email: teacherEmail, active: true },
+          select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
+        });
     if (!teacher) qaError("QA teacher profile is missing or inactive. Prepare QA pilot identities first.");
 
     const name = teacherDisplayName(teacher);
@@ -303,14 +320,18 @@ export async function selectQaUser(formData: FormData) {
 }
 
 async function upsertQaTeacher(option: ReturnType<typeof getQaTeacherOptions>[number], index: number) {
-  const identity = qaTeacherProfileNames.get(option.email) ?? { academicPrefix: "อ.", firstNameTh: "QA Legacy", lastNameTh: `${index + 1}` };
-  const existing = await prisma.teacher.findUnique({ where: { email: option.email }, select: { id: true } });
-  if (existing) {
-    await prisma.teacher.update({
-      where: { id: existing.id },
-      data: { active: true, canEvaluateProposal: true, isInternal: true }
-    });
-    return;
+  const manualTeacher = manualDemoTeacherForEmail(option.email);
+  const identity = manualTeacher ?? qaTeacherProfileNames.get(option.email) ?? { academicPrefix: "อ.", firstNameTh: "QA Legacy", lastNameTh: `${index + 1}` };
+
+  if (!manualTeacher) {
+    const existing = await prisma.teacher.findUnique({ where: { email: option.email }, select: { id: true } });
+    if (existing) {
+      await prisma.teacher.update({
+        where: { id: existing.id },
+        data: { active: true, canEvaluateProposal: true, isInternal: true }
+      });
+      return;
+    }
   }
 
   await prisma.teacher.upsert({
@@ -321,18 +342,25 @@ async function upsertQaTeacher(option: ReturnType<typeof getQaTeacherOptions>[nu
         lastNameTh: identity.lastNameTh
       }
     },
-    update: {
-      email: option.email,
-      department: "Mathematics",
-      active: true,
-      canEvaluateProposal: true,
-      isInternal: true
-    },
+    update: manualTeacher
+      ? {
+          department: "Mathematics",
+          active: true,
+          canEvaluateProposal: true,
+          isInternal: true
+        }
+      : {
+          email: option.email,
+          department: "Mathematics",
+          active: true,
+          canEvaluateProposal: true,
+          isInternal: true
+        },
     create: {
       academicPrefix: identity.academicPrefix,
       firstNameTh: identity.firstNameTh,
       lastNameTh: identity.lastNameTh,
-      email: option.email,
+      email: manualTeacher ? null : option.email,
       department: "Mathematics",
       active: true,
       canEvaluateProposal: true,
