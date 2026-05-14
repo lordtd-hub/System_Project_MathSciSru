@@ -76,7 +76,6 @@ export default async function TeacherAdviceesPage() {
       <PageHeader
         title="ลูกศิษย์ที่ปรึกษา"
         description="รวมโครงงานที่อาจารย์เป็นที่ปรึกษา เพื่อเปิดดูแฟ้มโครงงานและติดตามภาพรวมของลูกศิษย์แต่ละคน"
-        actions={<Link className="button-secondary" href="/teacher">กลับแดชบอร์ดอาจารย์</Link>}
       />
 
       <TeacherWorkloadSummary

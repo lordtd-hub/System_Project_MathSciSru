@@ -12,7 +12,6 @@ export default async function AdminReportsPage() {
       <PageHeader
         title="รายงานและผลตรวจ"
         description="หน้านี้สรุปทางไปยังงานรายงานที่ผู้ดูแลระบบต้องติดตาม โดยไม่เปลี่ยนขั้นตอนตรวจรายงานเดิมของอาจารย์"
-        actions={<Link className="button-secondary" href="/admin">กลับแดชบอร์ด</Link>}
       />
 
       <AdminOperationalSummary

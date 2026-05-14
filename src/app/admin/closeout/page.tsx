@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { AdminOperationalSummary, AdminQueueSection } from "@/components/ui/AdminOperationalQueue";
@@ -104,7 +103,6 @@ export default async function AdminCloseoutPage({
       <PageHeader
         title="ยืนยันจบโครงงาน"
         description="ผู้ดูแลระบบตรวจสอบว่าคะแนนสอบความก้าวหน้า คะแนนสอบขั้นสุดท้าย เล่มรายงาน และคะแนนสรุปของอาจารย์ที่ปรึกษาครบแล้ว ก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์"
-        actions={<Link className="button-secondary" href="/admin">กลับแดชบอร์ดผู้ดูแลระบบ</Link>}
       />
       <ActionFeedback success={params.success} error={params.error} />
 

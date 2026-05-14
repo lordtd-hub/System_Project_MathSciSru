@@ -10,42 +10,78 @@ type RoleDashboardNavProps = {
 const roleConfig = {
   admin: {
     href: "/admin",
-    label: "กลับหน้าผู้ดูแลระบบ",
+    label: "กลับแดชบอร์ดผู้ดูแลระบบ",
     helper: "กลับไปดูภาพรวมงานของผู้ดูแลระบบ",
-    secondaryHref: "/admin/evidence",
-    secondaryLabel: "หลักฐานและ AUN-QA"
   },
   teacher: {
     href: "/teacher",
-    label: "กลับหน้าอาจารย์",
+    label: "กลับแดชบอร์ดอาจารย์",
     helper: "กลับไปดูงานที่เกี่ยวข้องกับอาจารย์",
-    secondaryHref: null,
-    secondaryLabel: null
   },
   student: {
     href: "/student",
-    label: "กลับหน้านักศึกษา",
+    label: "กลับแดชบอร์ดนักศึกษา",
     helper: "กลับไปดูขั้นตอนปัจจุบันของนักศึกษา",
-    secondaryHref: null,
-    secondaryLabel: null
   }
 } as const;
+
+const contextLabels = {
+  admin: [
+    ["/admin/rounds", "รอบสอบของรายวิชา"],
+    ["/admin/closeout", "ยืนยันจบโครงงาน"],
+    ["/admin/proposals", "ผล Proposal"],
+    ["/admin/schedules", "ตารางสอบ"],
+    ["/admin/reports", "รายงานและผลตรวจ"],
+    ["/admin/evidence", "หลักฐานและ AUN-QA"],
+    ["/admin/claims", "คำขอผูกบัญชี"],
+    ["/admin/teachers", "จัดการอาจารย์"],
+    ["/admin/students", "จัดการนักศึกษา"],
+    ["/admin/committee", "จัดการกรรมการ"],
+    ["/admin/import-students", "นำเข้านักศึกษา"],
+    ["/admin/round-exceptions", "ข้อยกเว้นรอบสอบ"]
+  ],
+  teacher: [
+    ["/teacher/advicees", "ลูกศิษย์ที่ปรึกษา"],
+    ["/teacher/advisor-requests", "คำขอที่ปรึกษา"],
+    ["/teacher/schedules", "ตารางสอบ"],
+    ["/teacher/proposals", "ประเมิน Proposal"],
+    ["/teacher/progress1", "คะแนนความก้าวหน้าครั้งที่ 1"],
+    ["/teacher/progress2", "คะแนนความก้าวหน้าครั้งที่ 2"],
+    ["/teacher/final", "คะแนนสอบขั้นสุดท้าย"],
+    ["/teacher/reports", "ตรวจรายงาน"],
+    ["/teacher/advisor-score", "คะแนนที่ปรึกษา"],
+    ["/teacher/scoring", "บันทึกคะแนน"]
+  ],
+  student: [
+    ["/student/profile", "ข้อมูลนักศึกษา"],
+    ["/student/project", "ข้อมูลโครงงาน"],
+    ["/student/origin", "ที่มาโครงงาน"],
+    ["/student/proposal", "เอกสารเสนอหัวข้อ"],
+    ["/student/schedule", "เสนอวันสอบ"],
+    ["/student/report", "ส่งรายงาน"],
+    ["/student/feedback", "ผลและข้อเสนอแนะ"]
+  ]
+} as const;
+
+function getContextLabel(role: RoleDashboardNavProps["role"], pathname: string) {
+  const match = contextLabels[role].find(([prefix]) => pathname.startsWith(prefix));
+  return match?.[1] ?? "ระบบจัดการโครงงาน";
+}
 
 export function RoleDashboardNav({ role }: RoleDashboardNavProps) {
   const pathname = usePathname();
   const config = roleConfig[role];
+  const contextLabel = getContextLabel(role, pathname);
 
   if (pathname === config.href) return null;
 
   return (
     <nav className="role-dashboard-nav">
-      <div className="text-sm text-muted">{config.helper}</div>
+      <div className="role-dashboard-nav-copy">
+        <span className="role-dashboard-context">{contextLabel}</span>
+        <span className="text-sm text-muted">{config.helper}</span>
+      </div>
       <div className="flex flex-wrap gap-2">
-        {config.secondaryHref && pathname !== config.secondaryHref ? (
-          <Link className="button-secondary w-full justify-center sm:w-auto" href={config.secondaryHref}>
-            {config.secondaryLabel}
-          </Link>
-        ) : null}
         <Link className="button-secondary w-full justify-center sm:w-auto" href={config.href}>
           {config.label}
         </Link>
