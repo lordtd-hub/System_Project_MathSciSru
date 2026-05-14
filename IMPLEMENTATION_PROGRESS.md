@@ -1991,3 +1991,28 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - visual/mobile/classic-vs-figma non-mutating regression is complete;
   - Phase 9 mutating workflow regression is still pending because current Wave 1 QA state is already completed and should not be forced backward.
 - Recommended next step: run the mutating workflow regression in Wave 2 or another preserved QA offering with safe pending actions.
+
+## 2026-05-14 Redesign follow-up - User-facing language pass planned
+
+- Added a post-redesign copy/language phase to the redesign plan.
+- This pass must run only after the Figma visual redesign is complete and mutating workflow regression has passed.
+- Goal: read all browser-rendered text and source strings across public, student, teacher, admin, warning, export, locked, waiting, success, and error surfaces, then replace programmer-like or raw internal wording with clear Thai user-facing wording.
+- Guardrails:
+  - preserve lifecycle, scoring, eligibility, permission, evidence, and audit semantics;
+  - do not hide warning/late/exception/grade-I risk details;
+  - do not trust PowerShell mojibake as source text;
+  - keep classic/figma wording consistent unless a page intentionally needs different layout-only presentation.
+- Created `e2e-artifacts/redesign-mapping/COPY_LANGUAGE_AUDIT.md` as the starting audit file.
+
+## 2026-05-14 Phase 9 redesign regression readiness
+
+- Confirmed Wave 1 and Wave 2 12-project states are both completed historical evidence and should not be mutated for Phase 9.
+- Added a QA-only `MULTI-PILOT-R2 Redesign Regression Course Offering` setup path so mutating classic/figma workflow regression can run on fresh pending state.
+- The setup reuses the approved 12-project Wave 2 mix and existing QA identities, but creates/reuses a separate course offering in BE 2572.
+- No lifecycle, auth, scoring, eligibility, schema, API, or production behavior was changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test -- src/app/qaLoginSource.test.ts src/lib/qa/multiPilotR2.test.ts`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Next step: push QA preview, prepare the redesign regression offering through `/qa-login`, then run Phase 9 mutating workflow regression in classic and figma mode.

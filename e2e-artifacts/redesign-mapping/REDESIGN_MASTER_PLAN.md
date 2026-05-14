@@ -216,3 +216,48 @@ Possible outcomes:
 4. Roll back to baseline.
 
 Production is out of scope until the redesign QA pass is explicitly approved.
+
+## Phase 10 - User-Facing Language Pass
+
+Run this phase only after the visual redesign is complete and mutating workflow regression has passed.
+
+Purpose:
+
+- read all visible text across the website in classic and figma modes;
+- replace programmer-like wording, raw enum wording, and unclear status text with Thai user-facing language;
+- keep existing policy meaning, lifecycle semantics, permissions, and evidence/audit meaning unchanged.
+
+Scope:
+
+- public/login surfaces;
+- student pages;
+- teacher pages;
+- admin pages;
+- warnings, acknowledgement text, validation messages, success messages, locked/waiting/empty states;
+- export/download labels and CSV headings where visible to users.
+
+Required method:
+
+1. Build a route-by-route copy inventory from browser-rendered pages and source files.
+2. Classify text as:
+   - keep;
+   - clarify;
+   - replace raw/internal wording;
+   - needs policy decision.
+3. Patch copy in small route groups.
+4. Run validation after meaningful patches.
+5. Compare classic and figma modes to ensure copy stays consistent.
+6. Verify no lifecycle/status/action meaning changed.
+
+Stop conditions:
+
+- any wording change would alter policy meaning;
+- any wording change would hide an audit/warning detail;
+- any route exposes a raw status whose correct Thai policy wording is unclear.
+
+Output:
+
+- `e2e-artifacts/redesign-mapping/COPY_LANGUAGE_AUDIT.md`;
+- updated source strings;
+- validation results;
+- remaining wording decisions for the user.

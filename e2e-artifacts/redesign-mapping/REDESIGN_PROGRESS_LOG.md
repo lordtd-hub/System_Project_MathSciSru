@@ -1447,3 +1447,33 @@ Verified route groups:
 The visual/mobile/classic-vs-figma non-mutating regression is complete.
 
 The full Figma redesign is not yet production-complete because Phase 9 mutating workflow regression still needs a safe QA action window with actionable schedule, scoring, report revision, advisor-score, round open/close, and closeout states. Current Wave 1 QA state is already completed, so the next mutating pass should be run in Wave 2 or a preserved test offering rather than forcing old Wave 1 state.
+
+## 2026-05-14 - Phase 9 Readiness Patch
+
+### Scope
+
+Prepared a safe QA data path for Phase 9 mutating workflow regression after confirming both Wave 1 and Wave 2 12-project data are completed historical evidence.
+
+### Patch
+
+- Added a QA-only `MULTI-PILOT-R2 Redesign Regression Course Offering` setup path.
+- The new setup reuses the approved 12-project Wave 2 mix and existing QA identities, but creates/reuses a separate course offering in a later academic year.
+- Wave 1 and Wave 2 completed data are preserved and not reset.
+- Added source coverage for the new isolated redesign regression offering and QA setup guard.
+
+### Logic Touched
+
+No lifecycle, scoring, eligibility, auth, schema, server action semantics, or production configuration was changed.
+
+The patch only adds a QA setup entry point so Phase 9 can mutate a fresh safe offering instead of completed historical evidence.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- src/app/qaLoginSource.test.ts src/lib/qa/multiPilotR2.test.ts` - passed, 2 files / 12 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 364 tests.
+- `cmd /c npm.cmd run build` - passed.
+
+### Next Phase
+
+Deploy to QA, prepare the redesign regression offering from `/qa-login`, then run Phase 9 mutating workflow regression in classic and figma mode on that offering.

@@ -61,6 +61,14 @@ Implementation order:
 6. Admin operational pages.
 7. Student design gap note.
 8. Student pages only after design direction is clear.
+9. After visual redesign completion and mutating workflow regression, run a user-facing language pass.
+
+Post-redesign copy pass:
+- read browser-rendered text and source strings route by route;
+- replace programmer-like wording/raw enum wording with Thai user-facing wording;
+- preserve lifecycle/status/action meaning exactly;
+- do not hide warnings, audit evidence, late/exception wording, grade-I risk wording, or locked-state reasons;
+- create/update `e2e-artifacts/redesign-mapping/COPY_LANGUAGE_AUDIT.md`.
 
 Validation after code changes:
 - cmd /c npm.cmd run typecheck

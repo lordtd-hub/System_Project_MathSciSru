@@ -28,6 +28,7 @@
 - Admin evidence/export and closeout pages are operationally verified, but deeper table/filter redesign remains deferred until a larger visual pass.
 - Figma-style two-column review/detail layouts for scoring, schedule review, report review, and advisor score pages remain the next high-value visual implementation area.
 - Some Thai source files display as mojibake in terminal output, especially through PowerShell. Source files should remain UTF-8, verifier scripts should avoid embedding Thai regex through PowerShell, CSV/export routes should keep UTF-8/BOM handling, and UI copy should be reused from source/browser rendering rather than trusted from terminal output alone.
+- A full user-facing language pass is deferred until the visual redesign is complete and mutating workflow regression has passed. That pass should remove programmer-like wording and raw enum/status labels from visible UI while preserving lifecycle, scoring, eligibility, permission, evidence, and audit semantics.
 - Mutating admin actions such as round close/open/reset and closeout confirmation should only be exercised in a safe action window, not during non-mutating redesign verification.
 - `.env.preview.local` may not always contain the active QA preview secret. Live verification should prefer a process-scoped `QA_LIVE_SECRET` and must never write the secret to artifacts.
 

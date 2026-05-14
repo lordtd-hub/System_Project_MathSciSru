@@ -3,6 +3,8 @@ import {
   getMultiPilotR2ScenarioCounts,
   getMultiPilotR2TeacherRoleSummary,
   getMultiPilotR2Wave2ScenarioCounts,
+  MULTI_PILOT_R2_REDESIGN_COURSE_TITLE,
+  MULTI_PILOT_R2_REDESIGN_YEAR_BE,
   multiPilotR2Projects,
   multiPilotR2Students,
   multiPilotR2Teachers,
@@ -36,6 +38,11 @@ describe("MULTI-PILOT-R2 QA data design", () => {
       "Schedule Reject/Resubmit": 1,
       "Report Revision Loop": 1
     });
+  });
+
+  it("defines an isolated redesign regression offering after completed Wave 1 and Wave 2 data", () => {
+    expect(MULTI_PILOT_R2_REDESIGN_COURSE_TITLE).toContain("Redesign Regression");
+    expect(MULTI_PILOT_R2_REDESIGN_YEAR_BE).toBeGreaterThan(2571);
   });
 
   it("avoids assigning one teacher to multiple roles in the same project", () => {

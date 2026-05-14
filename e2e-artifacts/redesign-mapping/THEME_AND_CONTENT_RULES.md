@@ -63,6 +63,41 @@ Rules:
 - Do not replace precise operational wording with vague marketing text.
 - Do not add visible instructional text that explains UI mechanics unless the current app already needs it for safety.
 
+## Post-Redesign User-Facing Language Pass
+
+After the Figma visual redesign is complete and mutating workflow regression has passed, run a dedicated copy pass across every page.
+
+Goal:
+
+- make all visible Thai text sound like communication with real users, not programmer/debug wording;
+- keep the same lifecycle meaning, permissions, and workflow semantics;
+- keep precise operational terms where they prevent mistakes;
+- remove raw enum/status/code-like wording from user-facing surfaces unless it is intentionally shown as technical evidence;
+- preserve the department theme, logo, and existing route behavior.
+
+Allowed after redesign completion:
+
+- clarify labels, headings, empty states, helper text, warnings, and button text;
+- replace raw internal terms such as enum-like status names with Thai user-facing wording;
+- make waiting/action/locked/completed states easier for students, teachers, and admins to understand;
+- improve CSV/export labels and evidence descriptions while preserving the exported data.
+
+Not allowed:
+
+- changing lifecycle logic, scoring logic, eligibility logic, permissions, or server actions;
+- renaming official round concepts in a way that changes policy meaning;
+- hiding warnings, late/exception evidence, grade-I risk wording, or audit-critical details;
+- copying Figma English demo text into the app.
+
+Copy audit sources:
+
+- browser-rendered UI text in classic and figma modes;
+- source strings in `src/app` and `src/components`;
+- CSV/export/download route labels;
+- validation/error/success messages;
+- empty states and locked/waiting states;
+- Markdown/evidence/report display surfaces.
+
 Examples of copy that must remain aligned with current app semantics:
 
 - Proposal / Progress 1 / Progress 2 / Final wording.

@@ -25,6 +25,9 @@ import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import {
   MULTI_PILOT_R2_COURSE_TITLE,
+  MULTI_PILOT_R2_REDESIGN_COURSE_TITLE,
+  MULTI_PILOT_R2_REDESIGN_TERM_TYPE,
+  MULTI_PILOT_R2_REDESIGN_YEAR_BE,
   MULTI_PILOT_R2_TERM_TYPE,
   MULTI_PILOT_R2_WAVE2_COURSE_TITLE,
   MULTI_PILOT_R2_WAVE2_TERM_TYPE,
@@ -449,6 +452,25 @@ export async function prepareMultiPilotR2Wave2Data(formData: FormData) {
   });
 
   redirectWithQuery("/qa-login", { success: "multi_pilot_r2_wave2_prepared" });
+}
+
+export async function prepareMultiPilotR2RedesignRegressionData(formData: FormData) {
+  assertRateLimit("qa-login:prepare-multi-pilot-r2-redesign", pilotRateLimits.devLogin);
+
+  if (!isQaLoginEnabled()) qaError("QA login is disabled for this environment.");
+  if (!hasQaLoginSecret()) qaError("QA_LOGIN_SECRET is not configured.");
+  if (!verifyQaLoginSecret(String(formData.get("secret") ?? ""))) qaError("QA login secret is incorrect.");
+
+  const redesignStudents = multiPilotR2Wave2Projects.map((project) => multiPilotR2Students[project.index - 1]);
+  await prepareMultiPilotCourseData({
+    courseTitle: MULTI_PILOT_R2_REDESIGN_COURSE_TITLE,
+    yearBe: MULTI_PILOT_R2_REDESIGN_YEAR_BE,
+    termType: MULTI_PILOT_R2_REDESIGN_TERM_TYPE,
+    termDisplayName: "MULTI-PILOT-R2 Redesign Regression Semester 1 BE 2572",
+    projectStudents: redesignStudents
+  });
+
+  redirectWithQuery("/qa-login", { success: "multi_pilot_r2_redesign_prepared" });
 }
 
 export async function clearQaUser() {

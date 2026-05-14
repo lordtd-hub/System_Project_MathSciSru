@@ -922,3 +922,24 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd run build` - passed, 35 routes generated.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Phase 9 Readiness Patch Validation
+
+- Phase: 9 readiness.
+- Scope:
+  - QA-only safe offering setup for mutating redesign regression.
+- Renderer status:
+  - no renderer behavior changed;
+  - classic/figma fallback remains unchanged.
+- Logic touched: no workflow logic.
+- Safety boundary:
+  - Wave 1 completed state is not mutated;
+  - Wave 2 completed state is not mutated;
+  - new regression mutations must run on `MULTI-PILOT-R2 Redesign Regression Course Offering`.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- src/app/qaLoginSource.test.ts src/lib/qa/multiPilotR2.test.ts` - passed, 2 files / 12 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 364 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- QA deployment: pending.
+- Live verification: pending.

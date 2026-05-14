@@ -6,6 +6,9 @@ export const MULTI_PILOT_R2_WAVE2_COURSE_TITLE = "MULTI-PILOT-R2 Wave 2 Course O
 export const MULTI_PILOT_R2_WAVE2_YEAR_BE = 2571;
 export const MULTI_PILOT_R2_WAVE2_TERM_TYPE = "SEMESTER_1" as const;
 export const MULTI_PILOT_R2_WAVE2_PROJECT_COUNT = 12;
+export const MULTI_PILOT_R2_REDESIGN_COURSE_TITLE = "MULTI-PILOT-R2 Redesign Regression Course Offering";
+export const MULTI_PILOT_R2_REDESIGN_YEAR_BE = 2572;
+export const MULTI_PILOT_R2_REDESIGN_TERM_TYPE = "SEMESTER_1" as const;
 
 export type MultiPilotR2Student = {
   index: number;
