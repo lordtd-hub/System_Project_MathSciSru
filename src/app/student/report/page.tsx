@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { submitReportVersion } from "@/app/student/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -100,7 +101,12 @@ export default async function StudentReportPage({
       <PageHeader
         title="ส่งเล่มรายงาน"
         description="ส่งลิงก์รายงานฉบับสมบูรณ์และติดตามผลการตรวจจากอาจารย์ผู้ตรวจ"
-        actions={<StatusBadge status={project.status} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={project.status} />
+            <Link className="button-secondary" href={`/projects/${project.id}`}>ดูแฟ้มโครงงาน</Link>
+          </div>
+        }
       />
       <ActionFeedback success={params.success} error={params.error} />
       <GuidancePanel

@@ -208,7 +208,7 @@ export default async function TeacherDashboardPage() {
       select: {
         id: true,
         presentationSubmission: { select: { titleTh: true } },
-        project: { select: { student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } } },
+        project: { select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } } },
         evaluatorAssignments: {
           where: { evaluatorUserId: session.user.id },
           select: { id: true, scoreSubmission: { select: { status: true } } }
@@ -537,16 +537,19 @@ export default async function TeacherDashboardPage() {
                         {attempt.project.student.studentCode} {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
                       </div>
                     </div>
-                    {assignmentSubmitted ? (
-                      <Link className="button-secondary" href={`/teacher/scoring/${assignment.id}`}>ดูผลประเมินที่ส่งแล้ว</Link>
-                    ) : assignment ? (
-                      <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
-                    ) : (
-                      <form action={openProposalScoring}>
-                        <input type="hidden" name="attempt_id" value={attempt.id} />
-                        <button type="submit">เริ่มประเมิน</button>
-                      </form>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Link className="button-secondary" href={`/projects/${attempt.project.id}`}>ดูแฟ้มโครงงาน</Link>
+                      {assignmentSubmitted ? (
+                        <Link className="button-secondary" href={`/teacher/scoring/${assignment.id}`}>ดูผลประเมินที่ส่งแล้ว</Link>
+                      ) : assignment ? (
+                        <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
+                      ) : (
+                        <form action={openProposalScoring}>
+                          <input type="hidden" name="attempt_id" value={attempt.id} />
+                          <button type="submit">เริ่มประเมิน</button>
+                        </form>
+                      )}
+                    </div>
                   </div>
                 );
               })

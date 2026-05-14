@@ -114,6 +114,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
         <PageHeader
           title="ผลและข้อเสนอแนะการประเมิน"
           description="หน้านี้เป็นข้อมูลอ่านอย่างเดียวสำหรับติดตามคะแนนและข้อเสนอแนะที่บันทึกแล้ว"
+          actions={project ? <Link className="button-secondary" href={`/projects/${project.id}`}>ดูแฟ้มโครงงาน</Link> : undefined}
         />
         <EmptyState title="ยังไม่มีข้อเสนอแนะหรือผลประเมินที่เปิดเผย" description="เมื่อกรรมการบันทึกคะแนนหรือข้อเสนอแนะแล้ว รายการจะแสดงในหน้านี้" />
       </div>
@@ -125,6 +126,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
       <PageHeader
         title="ผลและข้อเสนอแนะการประเมิน"
         description="หน้านี้เป็นข้อมูลอ่านอย่างเดียว ไม่ใช่งานที่นักศึกษาต้องส่งเพิ่ม"
+        actions={project ? <Link className="button-secondary" href={`/projects/${project.id}`}>ดูแฟ้มโครงงาน</Link> : undefined}
       />
       <StudentReadabilitySummary
         title="สรุปผลที่แสดงอยู่"

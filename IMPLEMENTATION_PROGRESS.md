@@ -8,6 +8,26 @@
 - Current baseline: Lifecycle v2 is implemented through Admin-only `COMPLETED`; self-scheduling, Progress 1 scoring, Progress 2 scoring, Final Presentation scoring, report approval, Advisor score 25%, and closeout are functional.
 - Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
 - Next step: Import the real student roster only when ready, then verify teacher/admin role capability after logout/login.
+- Active UI/IA track: Project Record + Dashboard IA Cleanup is implemented locally through Phase 6, with Phase 7 local validation passing and QA live verification still pending. Read `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md` before any dashboard restructuring or `/projects/[projectId]` work.
+
+## 2026-05-14 Project Record + Dashboard IA cleanup plan
+
+- Added `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md`.
+- Status: implemented locally through the read-only Project Record route, safe links, and conservative dashboard cleanup. QA deploy/live verification is still pending.
+- Purpose: define a strict full-loop plan for adding a read-only project record page and reducing dashboard duplication later.
+- Default route planned: `/projects/[projectId]`.
+- Active implementation artifacts:
+  - `e2e-artifacts/project-record-dashboard/IMPLEMENTATION_REPORT.md`
+  - `e2e-artifacts/project-record-dashboard/VALIDATION_REPORT.md`
+  - `e2e-artifacts/project-record-dashboard/DECISIONS.md`
+  - `e2e-artifacts/project-record-dashboard/DEFERRED_ITEMS.md`
+- Guardrails:
+  - Do not start Wave 2 from this plan.
+  - Do not touch production.
+  - Do not change lifecycle, scoring, eligibility, auth, Prisma schema, or API semantics.
+  - Existing workflow pages remain the owner of submit/approve/score/review/closeout actions.
+  - Preserve UTF-8 Thai text; do not copy mojibake from PowerShell/terminal output into source or docs.
+- Next action: push to `qa-preview`, verify `/projects/[projectId]` access for Student/Teacher/Admin, and confirm unauthorized access is blocked before closing Phase 7.
 
 ## 2026-05-14 QA manual guide data preparation
 
@@ -2241,3 +2261,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - commit `ce66def`;
   - preview `https://system-project-math-sci-hfqwa1dik-lordtd-hubs-projects.vercel.app`.
 - Latest Playwright visible re-entry to the documentation-only preview redirected to Vercel Login / Deployment Protection, so Wave 2 should resume only after a valid protected-preview session is available at `/qa-login`. This is a preview/session protection issue, not an app-code regression from the UX patch.
+
+## 2026-05-14 QA manual teacher identity correction
+
+- Corrected the QA manual/demo identity plan after review:
+  - teacher dropdown labels now use the real teacher name only, without a `คู่มือ` prefix;
+  - `manual.demo.teacherXX@sru.test` remains only a QA login identity;
+  - the guarded QA manual reset/seed script no longer clears or replaces stored `Teacher.email` values;
+  - manual QA users are linked through `teacher.userId`, while the teacher master profile keeps its existing real email if present.
+- Canonical teacher master data for the manual QA baseline is now fixed to the 11 listed Mathematics teachers:
+  - `thanon.kor@sru.ac.th` remains on อ.ดร.ธนนต์ ก่อเกียรติสกุล;
+  - `sittichoke.son@sru.ac.th` remains on ผศ.ดร.สิทธิโชค ทรงสอาด;
+  - the other 9 teacher email fields remain empty unless edited by Admin later.
+- The destructive reset/seed script still has not been run.
+- No production data was touched.

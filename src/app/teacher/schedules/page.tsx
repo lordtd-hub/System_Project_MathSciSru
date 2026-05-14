@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { reviewExamSchedule } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -92,6 +93,7 @@ export default async function TeacherSchedulesPage({
         room: true,
         project: {
           select: {
+            id: true,
             currentTitleTh: true,
             student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
             committeeAssignments: {
@@ -279,6 +281,7 @@ export default async function TeacherSchedulesPage({
                 <p className="mt-1 text-sm text-muted">{schedule.project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Link className="button-secondary" href={`/projects/${schedule.project.id}`}>ดูแฟ้มโครงงาน</Link>
                 <TeacherQueueBadge tone="action">ต้องดำเนินการ</TeacherQueueBadge>
                 <TeacherQueueBadge tone="waiting">{scheduleStatusLabel(schedule.status)}</TeacherQueueBadge>
               </div>

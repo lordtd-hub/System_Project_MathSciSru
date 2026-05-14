@@ -404,7 +404,10 @@ export default async function AdminDashboardPage({
                     {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                   </div>
                 </div>
-                <SubmitButton pendingText="กำลังยืนยัน...">ยืนยันโครงงานและอาจารย์ที่ปรึกษา</SubmitButton>
+                <div className="flex flex-wrap gap-2">
+                  <Link className="button-secondary" href={`/projects/${project.id}`}>ดูแฟ้มโครงงาน</Link>
+                  <SubmitButton pendingText="กำลังยืนยัน...">ยืนยันโครงงานและอาจารย์ที่ปรึกษา</SubmitButton>
+                </div>
               </form>
             )) : (
               <EmptyState title="ยังไม่มีโครงงานรอผู้ดูแลระบบยืนยัน" description="เมื่ออาจารย์ที่ปรึกษาอนุมัติแล้ว รายการจะแสดงที่นี่" />
@@ -608,7 +611,10 @@ async function ProjectStatusOverviewSection({
                   {items.slice(0, 3).map((project) => (
                     <div key={project.id} className="flex flex-col gap-2 rounded-md border border-line bg-paperSoft p-2 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
                       <span>{project.student.studentCode} {project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</span>
-                      <CompactLifecycleBadge status={project.status} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CompactLifecycleBadge status={project.status} />
+                        <Link className="text-xs font-semibold text-brand" href={`/projects/${project.id}`}>ดูแฟ้ม</Link>
+                      </div>
                     </div>
                   ))}
                 </div>

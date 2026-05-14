@@ -220,7 +220,7 @@ export default async function StudentDashboardPage() {
               }
             },
             orderBy: { createdAt: "desc" },
-            take: 12
+            take: 6
           },
           reportVersions: { select: { versionNo: true, reviews: { select: { decision: true } } }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
@@ -272,7 +272,7 @@ export default async function StudentDashboardPage() {
           timelineEvents: {
             select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
             orderBy: { occurredAt: "desc" },
-            take: 8
+            take: 4
           }
         }
       }
@@ -562,8 +562,15 @@ export default async function StudentDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title={`สวัสดี, ${student.firstNameTh}`}
-        description="แดชบอร์ดนี้สรุปสถานะโครงงาน สิ่งที่ต้องทำ และหลักฐานสำคัญตลอดขั้นตอนการดำเนินงาน"
-        actions={<StatusBadge status={project.status} />}
+        description="แดชบอร์ดนี้เน้นสิ่งที่ต้องทำตอนนี้และสถานะล่าสุด รายละเอียดทั้งหมดอ่านได้ในแฟ้มโครงงาน"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={project.status} />
+            <Link className="button-secondary" href={`/projects/${project.id}`}>
+              ดูแฟ้มโครงงาน
+            </Link>
+          </div>
+        }
       />
 
       <div className="rounded-md border border-line bg-surface px-4 py-2 text-sm text-muted">

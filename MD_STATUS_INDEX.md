@@ -2,6 +2,50 @@
 
 Last updated: 2026-05-14
 
+## Current Working State - Read This First
+
+This section is intentionally written in plain ASCII/English so it remains readable even when a Windows console shows Thai text with broken encoding.
+
+Current product direction:
+- Target environment now: QA only.
+- Production must not be touched.
+- Current goal: prepare clean QA manual/demo data and user manuals for 3 roles: Student, Teacher, Admin.
+- Keep the 11 real teacher master names.
+- Old QA/pilot transactional data may be reset only after the QA database target is confirmed and the destructive reset is explicitly accepted.
+- Do not capture `/qa-login` as a user manual screen. It is an internal QA entry screen only.
+
+Current active docs:
+- `e2e-artifacts/manual-guide/QA_MANUAL_DATA_PREP.md`
+- `e2e-artifacts/manual-guide/MANUAL_CAPTURE_PLAN.md`
+- `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md`
+- `IMPLEMENTATION_PROGRESS.md`
+- `e2e-artifacts/PILOT_FIX_STATUS.md`
+- `MD_STATUS_INDEX.md`
+
+Already completed:
+- Manual demo identity plan added.
+- Guarded QA manual reset/seed script added but NOT run yet.
+- QA login default changed to manual-only identities.
+- Correction added: manual teacher login identities must not rename teacher profiles or replace stored teacher emails; real teacher names/emails remain master data.
+- Legacy QA/MULTI identities hidden unless `QA_LOGIN_SHOW_LEGACY_IDENTITIES=1`.
+- UTF-8/mojibake guardrails added via `.editorconfig`, `.gitattributes`, and source tests.
+- Latest pushed QA commit: `08962c0`.
+- Latest QA preview recorded: `https://system-project-math-sci-macf85k49-lordtd-hubs-projects.vercel.app/qa-login`.
+
+Not completed yet:
+- Live browser verification of the latest QA preview after `08962c0`.
+- Destructive QA manual reset/seed has not been run.
+- Manual screenshots have not started.
+- User manuals for Student/Teacher/Admin have not been written.
+- Project Record + Dashboard IA Cleanup is implemented locally through Phase 6; local typecheck/test/build passed. QA live verification is still pending after push/deploy.
+- Full MD/archive cleanup is not finished; items marked `QUESTION` below still need an explicit keep/archive/delete decision.
+
+Do not do next:
+- Do not start Wave 2 execution.
+- Do not restart old multi-pilot loops.
+- Do not reopen or mutate historical Wave 1/Wave 2 evidence unless explicitly requested.
+- Do not open a new browser window. If browser verification is needed, inspect existing tabs first and reuse the visible Playwright/Edge window.
+
 Purpose: ทะเบียนสถานะไฟล์ Markdown ใน repo เพื่อแยกว่าไฟล์ไหนยังใช้อยู่, ไฟล์ไหนเป็นแผนที่ทำไปแล้ว/ปิดงานแล้ว, และไฟล์ไหนต้องถามก่อนลบหรือย้าย
 
 Status legend:
@@ -75,6 +119,16 @@ Status legend:
 |---|---:|---|
 | `e2e-artifacts/manual-guide/QA_MANUAL_DATA_PREP.md` | ACTIVE-PLAN | แผนและ guard สำหรับ reset/seed QA เพื่อถ่ายคู่มือ |
 | `e2e-artifacts/manual-guide/MANUAL_CAPTURE_PLAN.md` | ACTIVE-PLAN | แผนถ่ายคู่มือ 3 role จาก QA manual demo data |
+
+## Project Record / Dashboard IA
+
+| File | Status | Notes |
+|---|---:|---|
+| `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md` | ACTIVE-PLAN | Strict full-loop plan for `/projects/[projectId]` read-only project record and dashboard de-duplication work. Implemented locally; QA live verification pending. Includes UTF-8/mojibake guardrails. |
+| `e2e-artifacts/project-record-dashboard/IMPLEMENTATION_REPORT.md` | ACTIVE-REPORT | Tracks phase-by-phase implementation status for Project Record + Dashboard IA Cleanup. Current state: local implementation complete through Phase 6. |
+| `e2e-artifacts/project-record-dashboard/VALIDATION_REPORT.md` | ACTIVE-REPORT | Tracks typecheck/test/build/QA validation for this cleanup pass. Local validation passed; QA live verification pending. |
+| `e2e-artifacts/project-record-dashboard/DECISIONS.md` | ACTIVE-DECISIONS | Records strict scope decisions: read-only project record, DTO-level access, no schema or workflow changes. |
+| `e2e-artifacts/project-record-dashboard/DEFERRED_ITEMS.md` | ACTIVE-DEBT | Tracks deferred items and explicit out-of-scope work. |
 
 ## Admin / Teacher UX Stabilization
 

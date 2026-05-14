@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
@@ -83,7 +84,12 @@ export default async function ProposalSubmissionPage({
       <PageHeader
         title="ส่งเอกสารเสนอหัวข้อ"
         description="แนบ abstract และลิงก์เอกสารสำหรับสอบหัวข้อ ข้อมูลนี้ใช้ประกอบการสอบและเป็นหลักฐานสำหรับ AUN-QA"
-        actions={<StatusBadge status={project.status} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={project.status} />
+            <Link className="button-secondary" href={`/projects/${project.id}`}>ดูแฟ้มโครงงาน</Link>
+          </div>
+        }
       />
       <ActionFeedback success={params.success} error={params.error} />
       <StudentReadabilitySummary
