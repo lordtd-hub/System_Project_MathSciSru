@@ -386,6 +386,19 @@
     @apply p-4;
   }
 
+  .compact-metric-row-panel {
+    @apply p-3;
+  }
+
+  .compact-metric-grid {
+    @apply -mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6;
+  }
+
+  .compact-metric-card {
+    @apply min-w-[8rem] snap-start rounded-md border border-line bg-surface px-2 py-1.5 transition hover:border-brand/40 hover:bg-paperSoft sm:min-w-0;
+    border-left-width: 3px;
+  }
+
   .action-list-card {
     background: var(--surface);
   }

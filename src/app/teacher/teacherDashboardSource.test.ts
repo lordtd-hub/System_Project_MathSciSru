@@ -22,6 +22,7 @@ describe("teacher dashboard source", () => {
 
     expect(page).toContain("teacherActionableTaskCount");
     expect(page).toContain("TeacherWorkloadSummary");
+    expect(page).toContain("CompactMetricRow");
     expect(page).not.toContain("GuidancePanel");
     expect(page).not.toContain("คำแนะนำสำหรับอาจารย์");
     expect(page).toContain("teacherWorkloadSummaryMetrics");
@@ -50,5 +51,8 @@ describe("teacher dashboard source", () => {
     expect(css).toContain(".figma-teacher-agenda-list .figma-status-badge");
     expect(workloadQueue).toContain("xl:grid-cols-6");
     expect(css).toContain("px-2 py-1.5");
+    expect(css).toContain(".compact-metric-row-panel");
+    expect(css).toContain(".compact-metric-grid");
+    expect(css).toContain("lg:grid-cols-6");
   });
 });
