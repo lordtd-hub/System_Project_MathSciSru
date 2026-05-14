@@ -56,9 +56,9 @@ export default async function AdminSchedulesPage() {
     0
   );
   const scheduleGroups = [
-    { title: "Needs attention", description: "รายการที่ยังรอกรรมการยืนยันเวลา", tone: "action" as const, items: proposedSchedules },
-    { title: "Returned / Needs revision", description: "รายการที่ถูกปฏิเสธและรอนักศึกษาส่งเวลาใหม่", tone: "exception" as const, items: rejectedSchedules },
-    { title: "Completed", description: "รายการที่ยืนยันเวลาแล้ว เก็บไว้เป็นประวัติการสอบ", tone: "completed" as const, items: confirmedSchedules }
+    { title: "รอการยืนยัน", description: "รายการที่ยังรอกรรมการยืนยันเวลา", tone: "action" as const, items: proposedSchedules },
+    { title: "ให้แก้ไขเวลา", description: "รายการที่ถูกปฏิเสธและรอนักศึกษาส่งเวลาใหม่", tone: "exception" as const, items: rejectedSchedules },
+    { title: "ยืนยันแล้ว", description: "รายการที่ยืนยันเวลาแล้ว เก็บไว้เป็นประวัติการสอบ", tone: "completed" as const, items: confirmedSchedules }
   ];
 
   return (
