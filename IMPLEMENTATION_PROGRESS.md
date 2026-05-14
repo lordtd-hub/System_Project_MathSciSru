@@ -2084,3 +2084,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
 - Next step: deploy to QA, live-check teacher Figma pages with the icon rail, then resume Phase 9 Progress 2 scoring.
+
+## 2026-05-14 Phase 9 Figma display density
+
+- Refined Figma display-only layout after live review of `/teacher/advisor-score`.
+- Figma KPI rows now use auto-fit compact columns, which avoids awkward empty gaps and keeps metric cards on one row when the viewport has enough width.
+- Completed/locked teacher report and advisor-score detail rows now use a compact read-only layout instead of reserving a large empty action column.
+- Editable scoring/review states still use the wider two-column layout so forms remain easy to fill.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route, server action, QA data, or production behavior was changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - targeted teacher/Figma source tests;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Next step: deploy to QA, live-check `/teacher/advisor-score`, then resume Phase 9 Progress 2 scoring.

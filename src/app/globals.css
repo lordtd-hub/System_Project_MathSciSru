@@ -879,7 +879,8 @@
   }
 
   .figma-kpi-grid {
-    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-4;
+    @apply grid gap-2;
+    grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr));
   }
 
   .figma-dashboard-grid {
@@ -906,6 +907,14 @@
 
   .figma-action-row {
     @apply grid gap-3 rounded-lg border border-line border-l-4 bg-surface p-3 text-sm transition hover:border-brand hover:bg-paperSoft sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center;
+  }
+
+  .figma-readonly-detail {
+    @apply grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.52fr)] lg:items-start;
+  }
+
+  .figma-readonly-note {
+    @apply rounded-lg border border-line bg-paperSoft p-3 text-sm leading-6 text-muted;
   }
 
   .figma-action-row[data-tone="action"] {

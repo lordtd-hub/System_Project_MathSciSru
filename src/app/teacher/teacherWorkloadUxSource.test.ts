@@ -136,6 +136,7 @@ describe("teacher workload UX source", () => {
     expect(source).toContain("getUiMode");
     expect(source).toContain('uiMode === "figma"');
     expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-readonly-detail");
     expect(source).toContain("figma-teacher-reports");
     expect(source).toContain("figma-report-row");
     expect(source).toContain("reviewReportVersion");
@@ -153,6 +154,7 @@ describe("teacher workload UX source", () => {
     expect(source).toContain("getUiMode");
     expect(source).toContain('uiMode === "figma"');
     expect(source).toContain("FigmaReviewLayout");
+    expect(source).toContain("figma-readonly-detail");
     expect(source).toContain("figma-teacher-advisor-score");
     expect(source).toContain("figma-advisor-score-row");
     expect(source).toContain("submitAdvisorScore");

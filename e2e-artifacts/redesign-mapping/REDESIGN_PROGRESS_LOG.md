@@ -1620,3 +1620,33 @@ The patch is presentation/test-tooling only. It does not change lifecycle, auth,
 ### Next Phase
 
 Commit and deploy the icon navigator patch to QA, then live-check teacher Figma navigation on the new preview before resuming Phase 9 Progress 2 scoring.
+
+## 2026-05-14 - Phase 9 Figma Display Density Follow-up
+
+### Scope
+
+Addressed live feedback on `/teacher/advisor-score` that display-only content still left too much unused space, especially in KPI rows and read-only review/detail layouts.
+
+### Patch
+
+- Changed the Figma KPI grid from fixed columns to auto-fit compact columns so five metric cards can stay on one row when viewport width allows.
+- Added compact readonly detail surfaces for teacher report/advisor-score rows.
+- Kept form/editable states in the wider two-column review layout so scoring and review forms remain easy to fill.
+- Removed oversized empty action-column behavior for completed/locked report and advisor-score items.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is layout/CSS/renderer-only. It does not change lifecycle, auth, scoring, eligibility, schema, API semantics, permissions, guards, server actions, route behavior, QA data, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- src/app/teacher/teacherWorkloadUxSource.test.ts src/app/figmaUiModeSource.test.ts` - passed.
+- `cmd /c npm.cmd test` - passed, 82 files / 365 tests.
+- `cmd /c npm.cmd run build` - passed.
+
+### Next Phase
+
+Commit and deploy this display-density follow-up to QA, live-check `/teacher/advisor-score` on the new preview, then resume Phase 9 Progress 2 scoring.

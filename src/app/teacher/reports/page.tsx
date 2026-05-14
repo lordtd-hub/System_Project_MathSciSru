@@ -188,7 +188,7 @@ export default async function TeacherReportsPage({
     const action = !latestReport ? (
       <EmptyState title="ยังไม่มีเล่มรายงาน" description="ยังไม่มีฟอร์มตรวจจนกว่านักศึกษาจะส่งรายงานฉบับล่าสุด" />
     ) : project.status === "REPORT_REVIEW" && hasSubmittedCurrentReview ? (
-      <div className="rounded-lg border border-line bg-paperSoft p-4 text-sm">
+      <div className="figma-readonly-note">
         <div className="font-semibold text-ink">บันทึกผลตรวจของท่านแล้ว</div>
         <p className="mt-1 text-muted">
           {previousReview?.decision === "PASS"
@@ -233,18 +233,27 @@ export default async function TeacherReportsPage({
         </div>
       </form>
     ) : latestReportHasRevisionRequest ? (
-      <p className="rounded-lg border border-line bg-paperSoft p-4 text-sm text-muted">
+      <p className="figma-readonly-note">
         มีผู้ตรวจขอให้นักศึกษาแก้ไขเล่มรายงานแล้ว กรุณารอรายงานฉบับแก้ไขก่อนตรวจอีกครั้ง
       </p>
     ) : (
-      <p className="rounded-lg border border-line bg-paperSoft p-4 text-sm text-muted">
+      <p className="figma-readonly-note">
         เล่มรายงานผ่านแล้ว หน้านี้จะแสดงประวัติเท่านั้น
       </p>
     );
 
+    const hasEditableReportAction = Boolean(latestReport) && project.status === "REPORT_REVIEW" && !hasSubmittedCurrentReview && !latestReportHasRevisionRequest;
+
     return (
       <section key={`${project.id}-figma`} id={`report-${project.id}`} className="scroll-mt-24 rounded-lg border border-line bg-surface p-4 shadow-sm">
-        <FigmaReviewLayout context={context} action={action} />
+        {hasEditableReportAction ? (
+          <FigmaReviewLayout context={context} action={action} />
+        ) : (
+          <div className="figma-readonly-detail">
+            <div>{context}</div>
+            {action}
+          </div>
+        )}
       </section>
     );
   };

@@ -177,11 +177,11 @@ export default async function TeacherAdvisorScorePage({
     );
 
     const action = submitted ? (
-      <div className="rounded-lg border border-line bg-paperSoft p-4 text-sm text-muted">
+      <div className="figma-readonly-note">
         บันทึกคะแนนสรุปแล้ว หน้านี้แสดงผลอ่านย้อนหลังเท่านั้น
       </div>
     ) : !editable ? (
-      <div className="rounded-lg border border-line bg-paperSoft p-4 text-sm text-muted">
+      <div className="figma-readonly-note">
         ยังไม่สามารถบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาได้ ต้องรอให้เล่มรายงานผ่านการตรวจก่อน
       </div>
     ) : (
@@ -222,7 +222,14 @@ export default async function TeacherAdvisorScorePage({
 
     return (
       <section key={`${project.id}-figma`} id={`advisor-score-${project.id}`} className="scroll-mt-24 rounded-lg border border-line bg-surface p-4 shadow-sm">
-        <FigmaReviewLayout context={context} action={action} />
+        {editable ? (
+          <FigmaReviewLayout context={context} action={action} />
+        ) : (
+          <div className="figma-readonly-detail">
+            <div>{context}</div>
+            {action}
+          </div>
+        )}
       </section>
     );
   };
