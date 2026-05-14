@@ -164,7 +164,20 @@ Validation:
 - `cmd /c npm.cmd test` passed.
 - `cmd /c npm.cmd run build` passed.
 
-Updated recommendation after this UI-only cleanup: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`, pending QA preview push/smoke on the latest preview.
+QA preview/live smoke:
+
+- Commit: `4add56f`
+- QA preview: `https://system-project-math-sci-m7cqf3ycs-lordtd-hubs-projects.vercel.app`
+- Result: passed read-only smoke on the latest QA preview.
+- Checked:
+  - `/qa-login` loads without Vercel protection and still requires selecting the role dropdown before login.
+  - `/admin/proposals` shows Thai labels for vote/final-decision fields and Thai select option text while preserving the existing action controls.
+  - `/admin/evidence` hides project/audit internal IDs behind expandable "รหัสอ้างอิงระบบ" details.
+  - `/student` shows committee roles as Thai user-facing labels.
+  - `/student/proposal` shows Proposal comments as Thai vote labels.
+  - `/teacher/reports` loads with the Teacher guard/session; current QA state has no visible report-review history rows for this teacher, so the report-decision label change remains covered by source tests.
+
+Updated recommendation after this UI-only cleanup: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`.
 
 ## Latest QA Re-Entry Note - 2026-05-14
 

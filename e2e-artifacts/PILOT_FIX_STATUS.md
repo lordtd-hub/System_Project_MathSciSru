@@ -352,6 +352,13 @@ Validation passed:
 - `cmd /c npm.cmd test`
 - `cmd /c npm.cmd run build`
 
-Pending before closure:
+QA preview/live smoke:
 
-- QA preview push/smoke if validation passes.
+- Commit: `4add56f`
+- QA preview: `https://system-project-math-sci-m7cqf3ycs-lordtd-hubs-projects.vercel.app`
+- Result: passed read-only smoke on the latest QA preview.
+- No QA data mutation was performed.
+
+Current closure decision:
+
+- `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`

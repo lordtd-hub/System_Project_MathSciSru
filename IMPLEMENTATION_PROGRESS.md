@@ -25,7 +25,11 @@
   - `cmd /c npm.cmd run typecheck`;
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
-- Next step: push QA preview and smoke-check if the deployment is available.
+- QA preview/live smoke passed on commit `4add56f`:
+  - `https://system-project-math-sci-m7cqf3ycs-lordtd-hubs-projects.vercel.app`
+  - Checked `/qa-login`, `/admin/proposals`, `/admin/evidence`, `/student`, `/student/proposal`, and `/teacher/reports`.
+  - No QA data mutation was performed.
+- Current decision: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`.
 
 ## 2026-05-14 Frontend UX audit
 

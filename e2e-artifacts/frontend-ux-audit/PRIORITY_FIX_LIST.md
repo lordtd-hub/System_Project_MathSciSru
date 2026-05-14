@@ -91,4 +91,10 @@ Validation:
 - `cmd /c npm.cmd test` passed.
 - `cmd /c npm.cmd run build` passed.
 
-Current recommendation after this cleanup patch: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`, pending QA preview push/smoke on the latest preview.
+QA preview/live smoke:
+
+- Commit: `4add56f`
+- QA preview: `https://system-project-math-sci-m7cqf3ycs-lordtd-hubs-projects.vercel.app`
+- Result: passed read-only smoke on `/qa-login`, `/admin/proposals`, `/admin/evidence`, `/student`, `/student/proposal`, and `/teacher/reports`.
+
+Current recommendation after this cleanup patch: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`.
