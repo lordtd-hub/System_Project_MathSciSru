@@ -2121,3 +2121,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - preview `https://system-project-math-sci-jypb0gct0-lordtd-hubs-projects.vercel.app`.
 - Live teacher Figma verification passed for all teacher routes with no shell-only page, no unauthorized guard page, and no detected horizontal overflow.
 - Next step: resume Phase 9 Progress 2 scoring on the safe Figma regression offering.
+
+## 2026-05-14 Redesign paused; classic UI restored as active baseline
+
+- Live review found the Figma-mode UI still had enough usability problems that it should not continue as the active redesign path.
+- Fixed the immediate scroll-safety issue by removing negative vertical shell margin from the Figma role shell and preserving normal document-level scrolling.
+- Kept queue/list internal scrolling opt-in only; the page itself should not be globally height-locked.
+- Changed Figma UI access so QA no longer enables Figma mode automatically through QA login. Classic UI is the active baseline again unless a future QA environment explicitly sets `ENABLE_FIGMA_UI=1`.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route, server action, QA data, or production behavior was changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Recommendation: pause visual redesign work, keep using classic UI, and restart redesign later from a cleaner page-by-page mockup and interaction plan.

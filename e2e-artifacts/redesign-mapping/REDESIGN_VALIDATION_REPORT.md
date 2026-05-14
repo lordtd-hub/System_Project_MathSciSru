@@ -820,6 +820,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - QA deployment: pending.
 - Live verification: pending.
 
+## 2026-05-14 Figma Pause / Scroll Safety Validation
+
+- Phase: redesign pause and fallback stabilization.
+- Scope:
+  - removed negative vertical shell margin from Figma mode;
+  - preserved normal document-level page scrolling;
+  - kept internal queue scrolling opt-in only;
+  - changed QA Figma access to require explicit `ENABLE_FIGMA_UI=1`.
+- Renderer status:
+  - classic fallback remains the default and primary UI;
+  - figma renderer code remains in the repo for future planning, but is no longer enabled automatically in QA.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 366 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- QA deployment: pending.
+- Live verification: pending.
+
 ### QA Deployment And Live Verification
 
 - Commit: `4174383`.

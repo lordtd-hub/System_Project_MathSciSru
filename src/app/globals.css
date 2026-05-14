@@ -698,7 +698,8 @@
 
 @layer components {
   .figma-role-shell {
-    @apply mx-0 -my-5 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[88px_minmax(0,1fr)];
+    @apply mx-0 my-0 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[88px_minmax(0,1fr)];
+    overflow: visible;
   }
 
   .figma-role-sidebar {
@@ -764,6 +765,7 @@
 
   .figma-role-main {
     @apply min-w-0;
+    overflow: visible;
   }
 
   .figma-role-mobile-bar {
@@ -771,7 +773,8 @@
   }
 
   .figma-role-content {
-    @apply mx-auto w-full max-w-7xl space-y-5 px-3 py-4 sm:px-5 lg:px-6 lg:py-6;
+    @apply mx-auto w-full max-w-7xl space-y-5 px-3 py-4 pb-10 sm:px-5 lg:px-6 lg:py-6 lg:pb-12;
+    overflow: visible;
   }
 
   .figma-ui-mode-switch {

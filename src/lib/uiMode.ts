@@ -7,7 +7,7 @@ export const UI_MODE_COOKIE = "project_ui_mode";
 
 export function isFigmaUiAllowed(env: Record<string, string | undefined> = process.env) {
   if (env.VERCEL_ENV === "production" && env.FIGMA_UI_ALLOW_PRODUCTION !== "1") return false;
-  return env.ENABLE_FIGMA_UI === "1" || isQaLoginEnabled(env);
+  return env.ENABLE_FIGMA_UI === "1" && isQaLoginEnabled(env);
 }
 
 export async function getUiMode(): Promise<UiMode> {

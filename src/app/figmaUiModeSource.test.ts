@@ -10,6 +10,7 @@ describe("figma UI mode source", () => {
 
     expect(source).toContain('env.VERCEL_ENV === "production"');
     expect(source).toContain('env.FIGMA_UI_ALLOW_PRODUCTION !== "1"');
+    expect(source).toContain('env.ENABLE_FIGMA_UI === "1" && isQaLoginEnabled(env)');
     expect(source).toContain('return "classic"');
     expect(source).toContain("UI_MODE_COOKIE");
   });
@@ -62,6 +63,8 @@ describe("figma UI mode source", () => {
     expect(statusBadge).toContain("max-w-full");
     expect(statusBadge).toContain("title={displayLabel}");
     expect(css).toContain("lg:grid-cols-[88px_minmax(0,1fr)]");
+    expect(css).toContain("@apply mx-0 my-0 grid");
+    expect(css).not.toContain("mx-0 -my-5");
     expect(css).toContain(".figma-role-nav a::after");
     expect(css).toContain(".figma-role-nav-svg");
     expect(css).toContain(".figma-scroll-queue:has(> :nth-child(6))");

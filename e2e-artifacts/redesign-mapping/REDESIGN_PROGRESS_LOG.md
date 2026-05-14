@@ -1700,3 +1700,34 @@ Validate locally, deploy to QA, live-check teacher dashboard and advisor-score/r
   - redundant dashboard quick-link widget is gone in Figma mode;
   - normal vertical page scrolling remains available;
   - no shell-only page, digest/application error, unauthorized guard page, or horizontal overflow was detected.
+
+## 2026-05-14 - Figma Redesign Paused / Classic Fallback First
+
+### Scope
+
+Live review found that the Figma-mode dashboard still felt too hard to use at real scale, including page-end scrolling discomfort and too much visual churn compared with the proven classic UI.
+
+### Patch
+
+- Removed the negative vertical margin from the Figma role shell so Figma pages do not lose readable content at the bottom of the document.
+- Kept normal document-level vertical scrolling available for page content.
+- Left internal scroll as opt-in for long queue/list widgets only.
+- Changed Figma mode availability so QA no longer enables it automatically just because QA login is enabled.
+- Classic UI is now the safe default again. Figma UI can be re-enabled later only by explicitly setting `ENABLE_FIGMA_UI=1` in a QA environment.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is UI-mode/CSS only. It does not change lifecycle, auth, scoring, eligibility, schema, API semantics, permissions, guards, server actions, route behavior, QA data, or production configuration.
+
+### Status
+
+The redesign implementation is paused. Keep the classic UI as the working baseline until a cleaner redesign plan and mockup pass is approved.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts` - passed.
+- `cmd /c npm.cmd test` - passed, 82 files / 366 tests.
+- `cmd /c npm.cmd run build` - passed.

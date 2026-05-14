@@ -58,6 +58,14 @@
 - Navigation shortcut widgets on dashboards should be removed or minimized in Figma mode when the icon sidebar already provides the same route access. Keep the dashboard focused on current workload and status, not duplicated navigation.
 - The teacher dashboard KPI strip can be redundant when the action workspace already shows the same counts. Prefer the action workspace and the "NOW" card near it; keep aggregate metrics lower priority or hidden in Figma mode unless they answer a distinct question.
 
+## Redesign Paused After Live Review
+
+- Figma visual redesign is paused after live review because the current implementation is still not reliable enough as a day-to-day UI.
+- Classic UI should remain the active working interface.
+- Figma UI code remains available as a reference/fallback experiment, but QA should not enable it automatically.
+- To re-enable Figma mode later, use an explicit QA environment flag instead of relying on QA login alone.
+- Before resuming redesign, create a cleaner page-by-page mockup and interaction inventory that removes duplicate dashboard widgets, defines compact vs full-detail object views, and verifies scrolling behavior before implementation.
+
 ## Deferred After Admin Renderer Batch 1
 
 - `/admin/proposals` renderer split is complete and live-verified in classic/figma mode on desktop and 390px mobile.
