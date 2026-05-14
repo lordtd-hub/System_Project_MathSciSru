@@ -742,7 +742,16 @@
   }
 
   .figma-role-nav-icon {
-    @apply tabular-nums;
+    @apply flex h-5 w-5 items-center justify-center;
+  }
+
+  .figma-role-nav-svg {
+    @apply h-5 w-5;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .figma-role-nav-label {

@@ -1589,3 +1589,34 @@ Phase 9 Figma-mode mutating regression remains in progress on the safe Figma reg
 ### Next Phase
 
 Commit and deploy this compact chrome/badge follow-up to QA, live-check the student schedule page and one teacher workload page in Figma mode, then resume Phase 9 from Progress 2 scoring on the latest QA preview URL.
+
+## 2026-05-14 - Phase 9 Figma Navigator Icon Follow-up
+
+### Scope
+
+Refined the compact Figma role navigator after live feedback that the narrowed rail worked, but text abbreviations such as `IN` and `SC` still felt less intuitive than visual icons.
+
+### Patch
+
+- Replaced Figma role navigator text abbreviations with small inline SVG icons.
+- Added route-specific icons for workload inbox, schedules, Proposal, Progress 1, Progress 2, Final, reports, advisor score, admin closeout, evidence, student project, and feedback.
+- Preserved the existing tooltip labels, links, role shells, and route behavior.
+- Kept the implementation dependency-free because the app currently has no icon library installed.
+- Updated the teacher verifier so Figma-mode teacher pages are accepted by Figma shell/nav/surface markers instead of requiring the classic teacher workload summary marker.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation/test-tooling only. It does not change lifecycle, auth, scoring, eligibility, schema, API semantics, permissions, guards, server actions, route behavior, QA data, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts` - passed.
+- `cmd /c npm.cmd test` - passed, 82 files / 365 tests.
+- `cmd /c npm.cmd run build` - passed.
+
+### Next Phase
+
+Commit and deploy the icon navigator patch to QA, then live-check teacher Figma navigation on the new preview before resuming Phase 9 Progress 2 scoring.

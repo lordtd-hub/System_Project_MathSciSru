@@ -194,11 +194,12 @@ async function qaLoginTeacher(client, teacherKey) {
   const text = await bodyText(client, `after qa login teacher ${teacherKey}`);
   const url = await evaluate(client, "location.href", `after qa login teacher ${teacherKey} url`);
   const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `after qa login teacher ${teacherKey} summary`);
+  const hasFigmaChrome = await evaluate(client, "Boolean(document.querySelector('.figma-role-shell .figma-role-nav-icon'))", `after qa login teacher ${teacherKey} figma chrome`);
   if (url.includes("/qa-login")) {
     throw new Error(`Expected teacher dashboard after QA login for ${teacherKey}; still on QA login: ${text.slice(0, 240).replace(/\s+/g, " ")}`);
   }
-  if (/สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น/.test(text) || !hasSummary) {
-    throw new Error(`Expected authorized teacher dashboard after QA login for ${teacherKey}; url=${url}; hasSummary=${hasSummary}; body=${text.slice(0, 240).replace(/\s+/g, " ")}`);
+  if (/สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น/.test(text) || (!hasSummary && !hasFigmaChrome)) {
+    throw new Error(`Expected authorized teacher dashboard after QA login for ${teacherKey}; url=${url}; hasSummary=${hasSummary}; hasFigmaChrome=${hasFigmaChrome}; body=${text.slice(0, 240).replace(/\s+/g, " ")}`);
   }
   if (!text.includes("TEACHER") && !text.includes("อาจารย์")) {
     throw new Error(`Expected teacher dashboard after QA login for ${teacherKey}`);
@@ -219,7 +220,10 @@ async function verifyTeacherPage(client, route, name) {
   if (/สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น/.test(text)) throw new Error(`${route}: unauthorized teacher guard rendered`);
   const hasSummaryBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class early`);
   const hasQueueSurfaceBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-metric'))", `${route} metric class early`);
-  if (hasSummaryBeforeTextCheck && hasQueueSurfaceBeforeTextCheck) {
+  const hasFigmaShellBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.figma-role-shell'))", `${route} figma shell early`);
+  const hasFigmaChromeBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.figma-role-nav-icon'))", `${route} figma nav icon early`);
+  const hasFigmaQueueSurfaceBeforeTextCheck = await evaluate(client, "Boolean(document.querySelector('.figma-metric-card, .figma-panel, .figma-action-row, .teacher-review-card'))", `${route} figma surface early`);
+  if ((hasSummaryBeforeTextCheck && hasQueueSurfaceBeforeTextCheck) || (hasFigmaShellBeforeTextCheck && hasFigmaChromeBeforeTextCheck && hasFigmaQueueSurfaceBeforeTextCheck)) {
     const overflow = await evaluate(client, `
       (() => {
         const root = document.scrollingElement || document.documentElement;
@@ -238,7 +242,8 @@ async function verifyTeacherPage(client, route, name) {
   if (!text.includes("สรุปภาระงานอาจารย์")) {
     const url = await evaluate(client, "location.href", `${route} current url`);
     const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class probe`);
-    throw new Error(`${route}: missing workload summary; url=${url}; hasSummaryClass=${hasSummary}; body=${text.slice(0, 320).replace(/\\s+/g, " ")}`);
+    const hasFigmaShell = await evaluate(client, "Boolean(document.querySelector('.figma-role-shell'))", `${route} figma shell probe`);
+    throw new Error(`${route}: missing workload summary/figma shell; url=${url}; hasSummaryClass=${hasSummary}; hasFigmaShell=${hasFigmaShell}; body=${text.slice(0, 320).replace(/\\s+/g, " ")}`);
   }
   if (!text.includes("ต้องทำตอนนี้")) throw new Error(`${route}: missing action-first total`);
   const hasSummary = await evaluate(client, "Boolean(document.querySelector('.teacher-workload-summary'))", `${route} summary class`);

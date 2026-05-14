@@ -1018,3 +1018,22 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd run build` - passed.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Phase 9 Figma Navigator Icon Validation
+
+- Phase: 9 mutating regression follow-up.
+- Scope:
+  - Figma role navigator changed from text abbreviations to small inline SVG icons;
+  - route tooltips and labels preserved;
+  - teacher verifier updated to accept Figma shell/nav/surface markers.
+- Renderer status:
+  - classic fallback remains available;
+  - figma mode uses icon-first navigation.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 365 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- QA deployment: pending.
+- Live verification: pending.

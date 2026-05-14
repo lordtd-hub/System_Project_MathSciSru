@@ -2070,3 +2070,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
 - Next step: deploy to QA, live-check compact Figma UI on the latest preview, then resume Phase 9 from Progress 2 scoring.
+
+## 2026-05-14 Phase 9 Figma navigator icons
+
+- Refined the compact Figma role navigator from text abbreviations to small SVG icons.
+- Added visual icons for inbox/workload, schedules, Proposal, Progress 1, Progress 2, Final, reports, advisor score, closeout, evidence, project, feedback, and overview.
+- Kept native hover/focus tooltips with the existing Thai route labels.
+- Updated the teacher live verifier to recognize the Figma shell/nav/surface markers as a valid redesigned page.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route, server action, QA data, or production behavior was changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Next step: deploy to QA, live-check teacher Figma pages with the icon rail, then resume Phase 9 Progress 2 scoring.

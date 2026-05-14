@@ -49,6 +49,8 @@ describe("figma UI mode source", () => {
     const css = readSource("src/app/globals.css");
 
     expect(shell).toContain("navIconByHref");
+    expect(shell).toContain("iconPaths");
+    expect(shell).toContain("NavIcon");
     expect(shell).toContain("figma-role-nav-icon");
     expect(shell).toContain("data-label");
     expect(surfaces).toContain('title={title}');
@@ -57,6 +59,7 @@ describe("figma UI mode source", () => {
     expect(statusBadge).toContain("title={displayLabel}");
     expect(css).toContain("lg:grid-cols-[88px_minmax(0,1fr)]");
     expect(css).toContain(".figma-role-nav a::after");
+    expect(css).toContain(".figma-role-nav-svg");
     expect(css).toContain(".figma-action-list:has(> :nth-child(6))");
     expect(css).toContain("@apply min-h-[4.75rem]");
     expect(css).toContain("line-clamp-1");
