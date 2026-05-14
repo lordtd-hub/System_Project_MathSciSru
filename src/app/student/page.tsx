@@ -117,18 +117,19 @@ function StudentWorkflowGroup({
         : tone === "waiting"
           ? "workflow-group-waiting"
           : "workflow-group-locked";
-  const actionClass = tone === "current" ? "button" : tone === "history" ? "button-secondary" : "workflow-chip text-muted";
+  const actionClass =
+    tone === "current" ? "button student-workflow-primary-action" : tone === "history" ? "student-workflow-chip student-workflow-chip-history" : "student-workflow-chip text-muted";
 
   return (
-    <div className={`workflow-group ${toneClass}`}>
+    <div className={`workflow-group student-workflow-group student-workflow-group-${tone} ${toneClass}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-ink">{title}</h3>
           <p className="mt-1 text-xs leading-5 text-muted">{description}</p>
         </div>
-        <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold text-muted">{actions.length}</span>
+        <span className="student-workflow-count">{actions.length}</span>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {actions.length ? actions.map((item) =>
           item.href && tone !== "waiting" && tone !== "locked" ? (
             <Link key={item.key} className={`${actionClass} w-full sm:w-auto`} href={item.href}>
@@ -725,30 +726,30 @@ export default async function StudentDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="panel action-queue-panel lg:col-span-2">
+      <div className="student-project-dashboard-grid">
+        <section className={`panel action-queue-panel student-project-panel ${shouldShowStudentTrackingCard ? "lg:col-span-2" : "lg:col-span-3"}`}>
           <h2 className="text-lg font-semibold">ข้อมูลโครงงาน</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="rounded-md border border-line bg-paper p-3">
+          <div className="student-project-summary-grid">
+            <div className="student-project-summary-card">
               <div className="text-sm font-semibold">ชื่อหัวข้อ</div>
               <p className="mt-1 text-sm text-muted">{project.currentTitleTh ?? "ยังไม่ได้ระบุหัวข้อ"}</p>
             </div>
-            <div className="rounded-md border border-line bg-paper p-3">
+            <div className="student-project-summary-card">
               <div className="text-sm font-semibold">อาจารย์ที่ปรึกษา</div>
               <p className="mt-1 text-sm text-muted">
                 {advisorRequest ? teacherDisplayName(advisorRequest.advisorTeacher) : "ยังไม่ได้เลือกที่ปรึกษา"}
               </p>
             </div>
-            <div className="rounded-md border border-line bg-paper p-3">
+            <div className="student-project-summary-card">
               <div className="text-sm font-semibold">เอกสารเสนอหัวข้อ</div>
               <p className="mt-1 text-sm text-muted">{proposal ? "ส่งเอกสารเสนอหัวข้อแล้ว" : "ยังไม่ได้ส่งเอกสารเสนอหัวข้อ"}</p>
             </div>
-            <div className="rounded-md border border-line bg-paper p-3">
+            <div className="student-project-summary-card">
               <div className="text-sm font-semibold">รายงาน</div>
               <p className="mt-1 text-sm text-muted">{latestReport ? `ฉบับที่ ${latestReport.versionNo}` : "ยังไม่มีรายงานที่ส่ง"}</p>
             </div>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="student-project-workflow-stack">
             <StudentWorkflowGroup
               title="ทำได้ตอนนี้"
               description="รายการที่นักศึกษาสามารถกดทำต่อได้ในสถานะปัจจุบัน"
@@ -756,7 +757,7 @@ export default async function StudentDashboardPage() {
               tone="current"
               emptyText="ยังไม่มีรายการที่ต้องทำตอนนี้"
             />
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="student-project-workflow-secondary">
               <StudentWorkflowGroup
                 title="รอผู้อื่นดำเนินการ"
                 description="สถานะที่ต้องรออาจารย์หรือผู้ดูแลระบบก่อน"

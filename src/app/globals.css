@@ -574,6 +574,52 @@
     box-shadow: var(--shadow-soft);
   }
 
+  .student-project-dashboard-grid {
+    @apply grid gap-4 lg:grid-cols-3;
+  }
+
+  .student-project-panel {
+    @apply p-4;
+  }
+
+  .student-project-summary-grid {
+    @apply mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .student-project-summary-card {
+    @apply min-w-0 rounded-md border border-line bg-paper px-3 py-2.5;
+  }
+
+  .student-project-workflow-stack {
+    @apply mt-3 grid gap-2;
+  }
+
+  .student-project-workflow-secondary {
+    @apply grid gap-2 md:grid-cols-2;
+  }
+
+  .student-workflow-group {
+    @apply p-3;
+    box-shadow: none;
+  }
+
+  .student-workflow-count {
+    @apply inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface px-1.5 text-xs font-semibold text-muted;
+  }
+
+  .student-workflow-chip {
+    @apply inline-flex min-h-8 items-center rounded-md border border-lineStrong bg-surface px-2.5 py-1 text-xs font-semibold;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .student-workflow-chip-history {
+    @apply text-muted;
+  }
+
+  .student-workflow-primary-action {
+    @apply min-h-10;
+  }
+
   .lifecycle-panel {
     background: linear-gradient(180deg, var(--surface), var(--paper-2));
   }

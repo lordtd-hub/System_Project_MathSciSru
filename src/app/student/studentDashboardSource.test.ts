@@ -29,4 +29,15 @@ describe("student dashboard source", () => {
     expect(page).toContain("displayStudentTrackingTasks.length > 1");
     expect(page).toContain("shouldShowStudentTrackingCard ? <TaskListCard");
   });
+
+  it("lets the project panel fill the dashboard when the tracking card is hidden", () => {
+    const page = source();
+
+    expect(page).toContain("student-project-dashboard-grid");
+    expect(page).toContain("student-project-panel");
+    expect(page).toContain('shouldShowStudentTrackingCard ? "lg:col-span-2" : "lg:col-span-3"');
+    expect(page).toContain("student-project-summary-grid");
+    expect(page).toContain("student-project-workflow-secondary");
+    expect(page).toContain("student-workflow-group");
+  });
 });
