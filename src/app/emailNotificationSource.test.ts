@@ -5,7 +5,7 @@ function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
-describe("workflow email notification wiring", () => {
+describe("workflow notification wiring", () => {
   it("keeps email delivery best-effort and behind explicit environment flags", () => {
     const email = read("src/lib/notifications/email.ts");
     const templates = read("src/lib/notifications/templates.ts");
@@ -31,12 +31,14 @@ describe("workflow email notification wiring", () => {
     expect(studentActions).toContain('success: "schedule_saved"');
   });
 
-  it("keeps notification links on existing workflow routes", () => {
+  it("keeps external notification links on existing workflow routes", () => {
     const workflowEmail = read("src/lib/notifications/workflowEmail.ts");
     expect(workflowEmail).toContain('buildAppUrl("/teacher/advisor-requests")');
     expect(workflowEmail).toContain('buildAppUrl("/teacher/schedules")');
+    expect(workflowEmail).toContain("sendLineNotification");
     expect(workflowEmail).toContain("emailReady: true");
     expect(workflowEmail).toContain('kind: "PROPOSAL_SUBMITTED"');
     expect(workflowEmail).toContain("emailReady: false");
+    expect(workflowEmail).toContain("จะไม่ส่งอีเมลหรือ LINE");
   });
 });

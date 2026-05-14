@@ -1,6 +1,6 @@
 # LINE Notification Setup Notes
 
-Status: webhook setup prepared. LINE message sending has not been implemented yet.
+Status: webhook receiver is deployed; LINE sender code is prepared for QA behind `LINE_NOTIFICATIONS_ENABLED`.
 
 ## LINE Official Account
 
@@ -8,33 +8,57 @@ Status: webhook setup prepared. LINE message sending has not been implemented ye
 - Business category: `องค์กร หรือสถาบัน · องค์กร หรือสถาบัน(อื่นๆ)`
 - Basic ID: `@428chrry`
 
-## Intended Use
+## Current Intended Use
 
-Use this LINE Official Account as the system notification sender for the Mathematical Project Course system.
+Use this LINE Official Account as a short teacher-group notification sender.
 
-Recommended notification scope:
+Send only:
 
-- Send short reminders to the teacher LINE group.
-- Keep all approval, scoring, and sensitive details inside the web app.
-- Do not send Proposal submission email/LINE spam for normal Proposal rounds.
-- Candidate LINE events:
-  - advisor request submitted;
-  - exam schedule proposed or resubmitted;
-  - high-value admin/teacher reminders only if approved later.
+- advisor request submitted;
+- exam schedule proposed or resubmitted.
 
-## Values Still Needed Before Implementation
+Do not send:
 
-Do not commit these values to the repository.
+- normal Proposal submission messages;
+- scores;
+- detailed feedback;
+- sensitive comments;
+- noisy dashboard/internal status messages.
 
-- `LINE_CHANNEL_ACCESS_TOKEN`
-- `LINE_CHANNEL_SECRET`
-- `LINE_TEACHER_GROUP_ID`
+LINE should only say that work exists and link back to the web app. Approval, scoring, and detail reading stay inside the web app.
+
+## Environment Values
+
+Do not commit secret values to the repository.
+
+Production currently uses the webhook receiver for setup. QA/Preview can be used for sender testing after these Preview env values are configured:
+
+```text
+LINE_NOTIFICATIONS_ENABLED=1
+LINE_CHANNEL_ACCESS_TOKEN=<from LINE Developers>
+LINE_CHANNEL_SECRET=<from LINE Developers>
+LINE_TEACHER_GROUP_ID=<test groupId from webhook event>
+```
+
+Production should stay quiet until rollout approval:
+
+```text
+LINE_NOTIFICATIONS_ENABLED=0
+```
 
 ## Webhook Endpoint
 
 The setup webhook endpoint is:
 
-- `/api/line/webhook`
+```text
+/api/line/webhook
+```
+
+Production URL:
+
+```text
+https://system-project-math-sci-sru.vercel.app/api/line/webhook
+```
 
 Behavior:
 
@@ -48,33 +72,22 @@ Behavior:
   - message type.
 - The route does not log full message text.
 
-## How To Get `LINE_TEACHER_GROUP_ID`
+## Moving From Test Group To Real Teacher Group
 
-1. Enable Messaging API for the LINE Official Account.
-2. Configure webhook URL after the app endpoint exists, for example:
-   - `https://<production-domain>/api/line/webhook`
-3. Invite the LINE Official Account into the teacher LINE group.
-4. Ask someone in the group to send a test message.
-5. Read the webhook event `source.groupId`.
-6. Store that value as `LINE_TEACHER_GROUP_ID` in Vercel environment variables.
+1. Keep `LINE_NOTIFICATIONS_ENABLED=0` while switching groups.
+2. Invite the LINE Official Account into the real teacher group.
+3. Send one test message in that group.
+4. Read Vercel logs for `LINE webhook group source detected`.
+5. Copy the new `source.groupId`.
+6. Replace `LINE_TEACHER_GROUP_ID` in the target Vercel environment.
+7. Redeploy that environment.
+8. Enable `LINE_NOTIFICATIONS_ENABLED=1` only after a controlled test is accepted.
 
-## Current Vercel Environment Values To Set
-
-Set these after the endpoint is deployed to an environment LINE can reach:
-
-```text
-LINE_NOTIFICATIONS_ENABLED=0
-LINE_CHANNEL_SECRET=<from LINE Developers>
-LINE_CHANNEL_ACCESS_TOKEN=<from LINE Developers, keep secret>
-LINE_TEACHER_GROUP_ID=<from webhook event, after invite/test>
-```
-
-Keep `LINE_NOTIFICATIONS_ENABLED=0` until message sending is implemented and intentionally enabled.
+The test group and real teacher group always have different `groupId` values.
 
 ## Safety Rules
 
-- LINE notification must be feature-flagged.
+- LINE notification must remain feature-flagged.
 - Default state must be off.
-- Do not include scores, detailed feedback, or sensitive student comments in LINE group messages.
-- LINE messages should contain only a short event summary and a link back to the web app.
 - Failed LINE sends must not block the original workflow action.
+- Keep source files UTF-8 and keep Thai message text readable, not mojibake.

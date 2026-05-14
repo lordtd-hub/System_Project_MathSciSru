@@ -1,9 +1,10 @@
 import type { AssessmentRoundType } from "@prisma/client";
 import type { EmailNotificationPayload } from "@/lib/notifications/email";
 
-export const EMAIL_BRAND_NAME = "ระบบประเมินการนำเสนอโครงงาน";
+export const NOTIFICATION_BRAND_NAME = "ระบบประเมินการนำเสนอโครงงาน";
+export const EMAIL_BRAND_NAME = NOTIFICATION_BRAND_NAME;
 
-type WorkflowEmailTemplate = Omit<EmailNotificationPayload, "to" | "actionUrl">;
+type WorkflowNotificationTemplate = Omit<EmailNotificationPayload, "to" | "actionUrl">;
 
 type ProjectTemplateInput = {
   projectLabel: string;
@@ -24,11 +25,11 @@ export function formatAssessmentRoundLabel(roundType: AssessmentRoundType | stri
   if (roundType === "PROGRESS_1") return "สอบความก้าวหน้าครั้งที่ 1";
   if (roundType === "PROGRESS_2") return "สอบความก้าวหน้าครั้งที่ 2";
   if (roundType === "FINAL_PRESENTATION") return "สอบนำเสนอขั้นสุดท้าย";
-  if (roundType === "PROPOSAL") return "Proposal";
+  if (roundType === "PROPOSAL") return "สอบนำเสนอหัวข้อ";
   return String(roundType);
 }
 
-export function buildAdvisorRequestEmailTemplate(input: ProjectTemplateInput): WorkflowEmailTemplate {
+export function buildAdvisorRequestEmailTemplate(input: ProjectTemplateInput): WorkflowNotificationTemplate {
   const title = "มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา";
   return {
     subject: title,
@@ -42,7 +43,7 @@ export function buildAdvisorRequestEmailTemplate(input: ProjectTemplateInput): W
   };
 }
 
-export function buildExamScheduleProposedEmailTemplate(input: ScheduleTemplateInput): WorkflowEmailTemplate {
+export function buildExamScheduleProposedEmailTemplate(input: ScheduleTemplateInput): WorkflowNotificationTemplate {
   const roundLabel = formatAssessmentRoundLabel(input.roundType);
   const title = `มีคำขอนัดวันสอบ ${roundLabel}`;
   return {

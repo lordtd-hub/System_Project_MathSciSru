@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildAppUrl, emailNotificationsEnabled, sendEmailNotification } from "./email";
+import { lineNotificationsEnabled, sendLineNotification } from "./line";
 import {
   buildAdvisorRequestEmailTemplate,
   buildExamScheduleProposedEmailTemplate,
@@ -13,10 +14,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("email notification transport", () => {
-  it("stays disabled unless the explicit email flag is enabled", () => {
+describe("notification transports", () => {
+  it("keeps email and LINE disabled unless explicit flags are enabled", () => {
     expect(emailNotificationsEnabled({ ...process.env, EMAIL_NOTIFICATIONS_ENABLED: "0" })).toBe(false);
     expect(emailNotificationsEnabled({ ...process.env, EMAIL_NOTIFICATIONS_ENABLED: "1" })).toBe(true);
+    expect(lineNotificationsEnabled({ ...process.env, LINE_NOTIFICATIONS_ENABLED: "0" })).toBe(false);
+    expect(lineNotificationsEnabled({ ...process.env, LINE_NOTIFICATIONS_ENABLED: "1" })).toBe(true);
   });
 
   it("builds app links from configured public app URLs", () => {
@@ -43,7 +46,7 @@ describe("email notification transport", () => {
     expect(formatAssessmentRoundLabel("FINAL_PRESENTATION")).toBe("สอบนำเสนอขั้นสุดท้าย");
   });
 
-  it("skips sending without a provider key and never calls fetch", async () => {
+  it("skips email sending without a provider key and never calls fetch", async () => {
     process.env.EMAIL_NOTIFICATIONS_ENABLED = "1";
     delete process.env.RESEND_API_KEY;
     const fetchMock = vi.fn();
@@ -89,5 +92,35 @@ describe("email notification transport", () => {
     expect(body.html).toContain('<meta charset="utf-8" />');
     expect(body.html).toContain("ระบบประเมินการนำเสนอโครงงาน");
     expect(body.html).toContain("นักศึกษาเสนอวันสอบแล้ว");
+  });
+
+  it("pushes a short UTF-8 LINE message to the configured teacher group", async () => {
+    process.env.LINE_NOTIFICATIONS_ENABLED = "1";
+    process.env.LINE_CHANNEL_ACCESS_TOKEN = "line_token";
+    process.env.LINE_TEACHER_GROUP_ID = "C-test-group";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({})
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(sendLineNotification({
+      title: "มีคำขอนัดวันสอบ",
+      body: "65123456 สมชาย ใจดี\nรอบสอบ: สอบความก้าวหน้าครั้งที่ 1",
+      actionUrl: "https://example.test/teacher/schedules",
+      actionLabel: "เปิดตารางสอบ"
+    })).resolves.toMatchObject({ status: "sent" });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://api.line.me/v2/bot/message/push", expect.objectContaining({
+      method: "POST",
+      headers: expect.objectContaining({
+        Authorization: "Bearer line_token",
+        "Content-Type": "application/json; charset=utf-8"
+      })
+    }));
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.to).toBe("C-test-group");
+    expect(body.messages[0].text).toContain("ระบบประเมินการนำเสนอโครงงาน");
+    expect(body.messages[0].text).toContain("เปิดตารางสอบ");
   });
 });

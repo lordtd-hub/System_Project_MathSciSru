@@ -2335,3 +2335,18 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Added LINE environment placeholders to `.env.example`.
 - Added tests for signature verification, source extraction, and source-level webhook guardrails.
 - LINE message sending is still not implemented and `LINE_NOTIFICATIONS_ENABLED` should remain `0`.
+
+## 2026-05-14 LINE sender prepared for QA testing
+
+- Added a guarded LINE Messaging API push sender in `src/lib/notifications/line.ts`.
+- LINE sending is disabled unless `LINE_NOTIFICATIONS_ENABLED=1`.
+- LINE sending also requires:
+  - `LINE_CHANNEL_ACCESS_TOKEN`;
+  - `LINE_TEACHER_GROUP_ID`.
+- Wired LINE sending into the existing best-effort workflow notification layer for:
+  - advisor request submitted: links to `/teacher/advisor-requests`;
+  - exam schedule proposed/resubmitted: links to `/teacher/schedules`.
+- Normal Proposal submission remains in-app only and does not send email or LINE.
+- Repaired notification template/email text in the touched notification files so Thai message text remains UTF-8 and readable, not mojibake.
+- Failed LINE sends do not block the original student workflow action.
+- No lifecycle, auth, scoring, eligibility, schema, route behavior, or API semantics were changed.

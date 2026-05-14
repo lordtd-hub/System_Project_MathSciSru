@@ -258,7 +258,7 @@ export async function saveProjectOrigin(formData: FormData) {
     }
   });
   await notifyAdvisorRequestSubmitted(project.id, data.tentativeAdvisorId).catch((error) => {
-    console.error("advisor request email notification failed", error);
+    console.error("advisor request notification failed", error);
   });
 
   revalidatePath("/student");
@@ -408,7 +408,7 @@ export async function saveProposalSubmission(formData: FormData) {
     }
   });
   await notifyProposalSubmitted(project.id, proposalTeachers.map((teacher) => teacher.id)).catch((error) => {
-    console.error("proposal email notification failed", error);
+    console.error("proposal notification failed", error);
   });
 
   revalidatePath("/student");
@@ -667,7 +667,7 @@ export async function submitExamSchedule(formData: FormData) {
     end,
     room
   }).catch((error) => {
-    console.error("schedule email notification failed", error);
+    console.error("schedule notification failed", error);
   });
 
   revalidatePath("/student");
