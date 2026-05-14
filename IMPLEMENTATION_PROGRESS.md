@@ -1320,3 +1320,27 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - Login action validates production env before starting Google sign-in, preventing the previous blank `client_id` Google error path.
 - Updated `.env.example`, `README.md`, `PRODUCTION_CHECKLIST.md`, and `DEPLOYMENT_NOTES.md` with production env names, OAuth callback examples, Supabase/Vercel migration order, and smoke-test steps.
 - No schema or lifecycle workflow changes were made.
+## 2026-05-14 LINE notification setup notes started
+
+- Recorded LINE Official Account setup details in `e2e-artifacts/line-notifications/LINE_NOTIFICATION_SETUP_NOTES.md`.
+- Current non-secret LINE OA details:
+  - account name: `MathSCISRU`;
+  - Basic ID: `@428chrry`.
+- LINE integration is still setup-only. No LINE message sending is enabled.
+- Values still needed before sending implementation:
+  - `LINE_CHANNEL_ACCESS_TOKEN`;
+  - `LINE_CHANNEL_SECRET`;
+  - `LINE_TEACHER_GROUP_ID`.
+
+## 2026-05-14 LINE webhook receiver prepared
+
+- Added `/api/line/webhook` as a setup receiver for LINE Messaging API events.
+- The webhook:
+  - runs on Node.js runtime;
+  - requires `LINE_CHANNEL_SECRET`;
+  - verifies `x-line-signature` against the raw request body;
+  - logs only event/source metadata needed to find `LINE_TEACHER_GROUP_ID`;
+  - does not log full message text.
+- Added LINE environment placeholders to `.env.example`.
+- Added tests for signature verification, source extraction, and source-level webhook guardrails.
+- LINE message sending is still not implemented and `LINE_NOTIFICATIONS_ENABLED` should remain `0`.
