@@ -56,6 +56,7 @@ Validation and QA:
 
 - Local validation passed: `npm run typecheck`, `npm test`, `npm run build`.
 - QA preview `https://system-project-math-sci-4cqk7d5hb-lordtd-hubs-projects.vercel.app` passed live smoke for `/teacher/schedules`, `/admin/schedules`, and `/admin/reports`.
+- Latest documentation-only preview `https://system-project-math-sci-hfqwa1dik-lordtd-hubs-projects.vercel.app` redirected Playwright visible re-entry to Vercel Login / Deployment Protection. Treat this as preview/session protection, not a new app UX blocker. Resume Wave 2 only from a valid `/qa-login` session.
 
 Still recommended but deferred:
 

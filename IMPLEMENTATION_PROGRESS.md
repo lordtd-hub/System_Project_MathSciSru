@@ -2191,3 +2191,7 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `/admin/schedules` confirmed/history group is scroll-contained;
   - `/admin/reports` renders the read-only report entrypoint and no longer returns 404.
 - Recommendation after smoke check: ready to proceed to Wave 2 with remaining UX debt logged, as long as Wave 2 continues to stop on real workflow/state blockers.
+- Documentation follow-up:
+  - commit `ce66def`;
+  - preview `https://system-project-math-sci-hfqwa1dik-lordtd-hubs-projects.vercel.app`.
+- Latest Playwright visible re-entry to the documentation-only preview redirected to Vercel Login / Deployment Protection, so Wave 2 should resume only after a valid protected-preview session is available at `/qa-login`. This is a preview/session protection issue, not an app-code regression from the UX patch.

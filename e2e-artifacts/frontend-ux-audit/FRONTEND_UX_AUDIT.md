@@ -143,3 +143,18 @@ QA preview/live smoke:
 - `/admin/reports`: passed. Route renders the read-only report entrypoint with evidence and closeout links; no 404/digest page.
 
 Updated recommendation after patch: `READY_FOR_WAVE_2_WITH_REMAINING_UX_DEBT`.
+
+## Latest QA Re-Entry Note - 2026-05-14
+
+After the documentation-only follow-up commit, the latest QA preview was:
+
+- Commit: `ce66def`
+- QA preview: `https://system-project-math-sci-hfqwa1dik-lordtd-hubs-projects.vercel.app`
+
+Live Playwright visible re-entry was attempted from `/qa-login`, but Vercel redirected the session to Vercel Login / Deployment Protection. This is recorded as a preview/session protection issue, not an application regression, because the same app code was already live-smoked on the code preview `4cqk7d5hb` for:
+
+- `/teacher/schedules`
+- `/admin/schedules`
+- `/admin/reports`
+
+Do not deep-link into protected previews when resuming Wave 2. Start from `/qa-login` with a valid protected-preview session, select the role dropdown before identity, and stop immediately if Vercel Login / Deployment Protection appears.
