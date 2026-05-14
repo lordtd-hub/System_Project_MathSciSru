@@ -18,6 +18,7 @@ import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
 import { parseSelectableSourceType } from "@/lib/projects/sourceType";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
+import { notifyAdvisorRequestSubmitted, notifyExamScheduleProposed, notifyProposalSubmitted } from "@/lib/notifications/workflowEmail";
 
 async function requireStudentContext() {
   const session = await auth();
@@ -256,6 +257,9 @@ export async function saveProjectOrigin(formData: FormData) {
       relatedEntityId: origin.id
     }
   });
+  await notifyAdvisorRequestSubmitted(project.id, data.tentativeAdvisorId).catch((error) => {
+    console.error("advisor request email notification failed", error);
+  });
 
   revalidatePath("/student");
   revalidatePath("/student/origin");
@@ -403,6 +407,9 @@ export async function saveProposalSubmission(formData: FormData) {
       }
     }
   });
+  await notifyProposalSubmitted(project.id, proposalTeachers.map((teacher) => teacher.id)).catch((error) => {
+    console.error("proposal email notification failed", error);
+  });
 
   revalidatePath("/student");
   revalidatePath("/student/proposal");
@@ -520,7 +527,6 @@ export async function saveAssessmentEvidence(formData: FormData) {
       }
     }
   });
-
   revalidatePath("/student");
   revalidatePath("/student/schedule");
   revalidatePath("/teacher/schedules");
@@ -651,6 +657,17 @@ export async function submitExamSchedule(formData: FormData) {
         latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
       }
     }
+  });
+  await notifyExamScheduleProposed({
+    projectId: project.id,
+    scheduleId: schedule.id,
+    teacherIds: requiredApproverIds,
+    roundType,
+    start,
+    end,
+    room
+  }).catch((error) => {
+    console.error("schedule email notification failed", error);
   });
 
   revalidatePath("/student");

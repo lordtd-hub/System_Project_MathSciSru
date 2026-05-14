@@ -351,8 +351,15 @@ Required production environment variables:
 - `CRON_SECRET` for the guarded Vercel Cron heartbeat at `/api/cron/heartbeat`
 - `STUDENT_EMAIL_DOMAIN=student.sru.ac.th`
 - `TEACHER_EMAIL_DOMAIN=sru.ac.th`
+- `APP_BASE_URL` for links inside notification emails
+- Optional transactional email notifications:
+  - `EMAIL_NOTIFICATIONS_ENABLED=1`
+  - `RESEND_API_KEY`
+  - `EMAIL_FROM`
 
 Supabase inactivity note: `vercel.json` registers `/api/cron/heartbeat` once per day at `0 2 * * *` UTC, which is 09:00 in Thailand. The route only runs a guarded read-only `SELECT 1` database query and returns `401` unless Vercel sends `Authorization: Bearer $CRON_SECRET`. Vercel Cron runs on production deployments, so set `CRON_SECRET` in the Vercel Production environment before relying on it to keep a Supabase Free project active.
+
+Email notification note: notification emails are off unless `EMAIL_NOTIFICATIONS_ENABLED=1`. When enabled, the app sends best-effort Resend API emails for advisor requests, Proposal submissions, and exam schedule proposals. Email failures are logged but do not block the original workflow action.
 
 Google OAuth redirect URIs:
 

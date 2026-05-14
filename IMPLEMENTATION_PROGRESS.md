@@ -2275,3 +2275,27 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - the other 9 teacher email fields remain empty unless edited by Admin later.
 - The destructive reset/seed script still has not been run.
 - No production data was touched.
+
+## 2026-05-14 Email notification infrastructure prepared
+
+- Added a guarded transactional email notification layer for workflow events that already create in-app `Notification` evidence.
+- Email sending is disabled by default and requires all of:
+  - `EMAIL_NOTIFICATIONS_ENABLED=1`;
+  - `RESEND_API_KEY`;
+  - an optional `EMAIL_FROM` sender, otherwise the Resend testing sender is used.
+- Added `APP_BASE_URL` support for links inside emails, with fallback to `NEXT_PUBLIC_APP_URL`, `AUTH_URL`, `NEXTAUTH_URL`, or `VERCEL_URL`.
+- Added UTF-8-safe email HTML output:
+  - `<meta charset="utf-8" />`;
+  - `Content-Type: application/json; charset=utf-8`;
+  - escaped HTML content so Thai text and user-entered content do not corrupt or inject markup.
+- Wired best-effort email/dashboard notification hooks for:
+  - student submits advisor request after project origin: email link to `/teacher/advisor-requests`;
+  - student submits Proposal: email link to `/teacher/proposals`;
+  - student proposes exam schedule: email link to `/teacher/schedules` for advisor/chair/committee approvers.
+- Notification failures are caught and logged so they do not block the original workflow mutation.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route behavior, QA data, or production settings were changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test -- emailNotificationSource src/lib/notifications/email.test.ts`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
