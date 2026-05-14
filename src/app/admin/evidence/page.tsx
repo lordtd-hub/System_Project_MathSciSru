@@ -237,7 +237,7 @@ export default async function AdminEvidencePage({
           <section className="grid gap-4 lg:grid-cols-2">
             <div className="panel dashboard-console-panel">
               <DashboardSectionHeader title="เหตุการณ์หลักฐานล่าสุด" description="เหตุการณ์สำคัญล่าสุดของรายวิชาที่เลือก" />
-              <div className="mt-3 space-y-2 text-sm">
+              <div className="evidence-scroll-panel-tight mt-3 space-y-2 text-sm">
                 {data.recentTimelineEvents.map((event) => (
                   <div key={event.id} className="rounded-lg border border-line bg-paperSoft p-3">
                     <div className="font-semibold">{event.eventTitle}</div>
@@ -251,7 +251,7 @@ export default async function AdminEvidencePage({
 
             <div className="panel dashboard-console-panel">
               <DashboardSectionHeader title="ประวัติการดำเนินการล่าสุดของผู้ดูแลระบบ" description="รายการนี้เป็นประวัติภาพรวมทั้งระบบ แสดงเฉพาะข้อมูลประกอบที่ปลอดภัย ไม่ส่งออกข้อมูลลับหรือโทเคน" />
-              <div className="mt-3 space-y-2 text-sm">
+              <div className="evidence-scroll-panel-tight mt-3 space-y-2 text-sm">
                 {data.recentAuditLogs.map((log) => (
                   <div key={log.id} className="rounded-lg border border-line bg-paperSoft p-3">
                     <div className="font-semibold">{log.action}</div>

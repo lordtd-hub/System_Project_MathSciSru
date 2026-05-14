@@ -188,6 +188,19 @@ Then summarize:
 - Assumptions
 - Remaining issues
 
+## QA browser operation rules
+
+These rules are mandatory for QA preview checks and user-visible browser testing.
+
+- Use Playwright visible session `edgepilot-visible` for QA browser work unless the user explicitly asks for another tool.
+- Do not close, kill, reset, or replace any browser window/tab that the user is using or has asked to keep open.
+- If a browser is already open, inspect/list sessions first and reuse the visible session instead of opening a new uncontrolled window.
+- Do not use a headless or blank Playwright session when the user needs to see the browser.
+- Start QA verification from `/qa-login` unless the user gives a specific route.
+- On QA login, select the `บทบาท` dropdown first, then select the identity, then enter the QA secret.
+- If Vercel protection, session mismatch, or an unexpected login screen appears, stop and report the exact state instead of guessing or clicking randomly.
+- Never record QA secrets in public artifacts, screenshots, or documentation.
+
 ## QA browser verification notes
 
 - When asked to verify QA preview pages, prefer the available Browser/Chrome plugin first.

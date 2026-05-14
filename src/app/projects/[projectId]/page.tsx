@@ -269,7 +269,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
       <MiniSection title="หลักฐานและไทม์ไลน์">
         {record.timeline.length ? (
-          <div className="space-y-2">
+          <div className="evidence-scroll-panel space-y-2">
             {record.timeline.map((event) => (
               <div key={event.id} className="rounded-md border border-line bg-paper p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">

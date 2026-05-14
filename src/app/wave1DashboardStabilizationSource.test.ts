@@ -38,4 +38,18 @@ describe("wave 1 dashboard stabilization source", () => {
     expect(teacherSchedulesPage).toContain('orderBy: [{ createdAt: "asc" }, { proposedStartAt: "asc" }]');
     expect(adminSchedulesPage).toContain('orderBy: [{ createdAt: "asc" }, { proposedStartAt: "asc" }]');
   });
+
+  it("keeps long evidence sections scrollable instead of stretching dashboards", () => {
+    const globals = readFileSync("src/app/globals.css", "utf8");
+    const timelineCard = readFileSync("src/components/ui/TimelineCard.tsx", "utf8");
+    const projectRecordPage = readFileSync("src/app/projects/[projectId]/page.tsx", "utf8");
+    const adminEvidencePage = readFileSync("src/app/admin/evidence/page.tsx", "utf8");
+
+    expect(globals).toContain(".evidence-scroll-panel");
+    expect(globals).toContain("max-h-[24rem]");
+    expect(globals).toContain(".evidence-scroll-panel-tight");
+    expect(timelineCard).toContain("evidence-scroll-panel");
+    expect(projectRecordPage).toContain("evidence-scroll-panel space-y-2");
+    expect(adminEvidencePage).toContain("evidence-scroll-panel-tight mt-3 space-y-2 text-sm");
+  });
 });

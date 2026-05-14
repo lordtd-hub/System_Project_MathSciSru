@@ -488,6 +488,16 @@
     @apply max-h-[24rem] overflow-y-auto pr-2;
   }
 
+  .evidence-scroll-panel {
+    @apply max-h-[24rem] overflow-y-auto pr-2;
+    scrollbar-width: thin;
+  }
+
+  .evidence-scroll-panel-tight {
+    @apply max-h-[18rem] overflow-y-auto pr-2;
+    scrollbar-width: thin;
+  }
+
   .teacher-compact-badge-stack {
     @apply flex max-h-12 shrink-0 flex-wrap justify-end gap-1 overflow-y-auto pr-1;
   }

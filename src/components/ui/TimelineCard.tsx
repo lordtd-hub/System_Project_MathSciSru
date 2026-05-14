@@ -14,7 +14,7 @@ export function TimelineCard({ title = "Evidence timeline", events }: { title?: 
   return (
     <section className="panel">
       <SectionHeading title={title} description="ประวัติหลักฐาน" compact />
-      <div className="mt-4 space-y-4">
+      <div className="evidence-scroll-panel mt-4 space-y-4">
         {events.length ? (
           events.map((event) => (
             <div key={event.id} className="timeline-event">
