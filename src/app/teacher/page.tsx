@@ -439,6 +439,7 @@ export default async function TeacherDashboardPage() {
       <PageHeader
         title="แดชบอร์ดอาจารย์"
         description="รวมคำขอที่ปรึกษา งานประเมินการเสนอหัวข้อ ตารางสอบ และงานตรวจรายงานที่เกี่ยวข้อง"
+        actions={<Link className="button-secondary" href="/teacher/advicees">ลูกศิษย์ที่ปรึกษา</Link>}
       />
       <TeacherWorkloadSummary metrics={teacherWorkloadSummaryMetrics} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">

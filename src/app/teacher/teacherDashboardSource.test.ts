@@ -32,6 +32,7 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("assignmentSubmitted");
     expect(page).toContain("ดูผลประเมินที่ส่งแล้ว");
     expect(page).toContain("pendingProposalScores.length");
+    expect(page).toContain("/teacher/advicees");
   });
 
   it("keeps the classic dashboard compact without alternate renderer fallback UI", () => {
