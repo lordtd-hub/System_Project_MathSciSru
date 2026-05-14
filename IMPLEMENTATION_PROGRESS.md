@@ -2134,4 +2134,8 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts`;
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
+- QA preview deployed and live-verified:
+  - commit `0cc9332`;
+  - preview `https://system-project-math-sci-no3lka8tn-lordtd-hubs-projects.vercel.app`;
+  - teacher route verifier passed for all teacher routes with no detected horizontal overflow.
 - Recommendation: pause visual redesign work, keep using classic UI, and restart redesign later from a cleaner page-by-page mockup and interaction plan.

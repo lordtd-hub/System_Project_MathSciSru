@@ -1731,3 +1731,19 @@ The redesign implementation is paused. Keep the classic UI as the working baseli
 - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts` - passed.
 - `cmd /c npm.cmd test` - passed, 82 files / 366 tests.
 - `cmd /c npm.cmd run build` - passed.
+
+### QA Deployment And Live Verification
+
+- Commit: `0cc9332`.
+- QA preview: `https://system-project-math-sci-no3lka8tn-lordtd-hubs-projects.vercel.app`.
+- Live teacher route verification passed with persistent Edge CDP.
+- Verified routes:
+  - `/teacher`
+  - `/teacher/schedules`
+  - `/teacher/proposals`
+  - `/teacher/progress1`
+  - `/teacher/progress2`
+  - `/teacher/final`
+  - `/teacher/reports`
+  - `/teacher/advisor-score`
+- Result: authorized teacher pages rendered and no horizontal overflow was detected.

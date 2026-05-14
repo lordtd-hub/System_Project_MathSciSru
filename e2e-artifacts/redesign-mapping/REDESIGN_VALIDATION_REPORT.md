@@ -837,8 +837,13 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts` - passed.
   - `cmd /c npm.cmd test` - passed, 82 files / 366 tests.
   - `cmd /c npm.cmd run build` - passed.
-- QA deployment: pending.
-- Live verification: pending.
+- QA deployment:
+  - Commit `0cc9332`.
+  - Preview `https://system-project-math-sci-no3lka8tn-lordtd-hubs-projects.vercel.app`.
+- Live verification:
+  - Passed with persistent Edge CDP teacher verifier.
+  - Verified `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score`.
+  - Result: pages render with authorized teacher content and no detected horizontal overflow.
 
 ### QA Deployment And Live Verification
 
