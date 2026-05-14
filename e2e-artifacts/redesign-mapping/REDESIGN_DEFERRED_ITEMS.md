@@ -31,6 +31,7 @@
 - A full user-facing language pass is deferred until the visual redesign is complete and mutating workflow regression has passed. That pass should remove programmer-like wording and raw enum/status labels from visible UI while preserving lifecycle, scoring, eligibility, permission, evidence, and audit semantics.
 - Mutating admin actions such as round close/open/reset and closeout confirmation should only be exercised in a safe action window, not during non-mutating redesign verification.
 - `.env.preview.local` may not always contain the active QA preview secret. Live verification should prefer a process-scoped `QA_LIVE_SECRET` and must never write the secret to artifacts.
+- Phase 9 now has two safe QA-only offering targets for mode parity. Keep completed Wave 1 and completed Wave 2 read-only; run destructive/mutating classic-vs-figma checks only on the redesign regression offerings.
 
 ## Deferred After Admin Renderer Batch 1
 

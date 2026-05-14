@@ -2016,3 +2016,19 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`
   - `cmd /c npm.cmd run build`
 - Next step: push QA preview, prepare the redesign regression offering through `/qa-login`, then run Phase 9 mutating workflow regression in classic and figma mode.
+
+## 2026-05-14 Phase 9 redesign regression dual-state setup
+
+- Added a second QA-only `MULTI-PILOT-R2 Redesign Figma Regression Course Offering` setup path so mutating regression can use one fresh offering for classic mode and another fresh offering for figma mode.
+- The second offering uses the same approved 12-project Wave 2 mix and existing QA identities, but creates/reuses a separate course offering in BE 2573.
+- Added reusable Edge CDP helpers for preparing either redesign regression offering and setting the `project_ui_mode` cookie before mutating workflow scripts.
+- No lifecycle, auth, scoring, eligibility, schema, API, or production behavior was changed.
+- Validation passed:
+  - `node --check e2e-artifacts/redesign-mapping/prepare-redesign-regression-offering-cdp.js`
+  - `node --check e2e-artifacts/redesign-mapping/set-ui-mode-cdp.js`
+  - `cmd /c npm.cmd test -- src/app/qaLoginSource.test.ts src/lib/qa/multiPilotR2.test.ts`
+  - `cmd /c npm.cmd run typecheck`
+  - `cmd /c npm.cmd test`
+  - `cmd /c npm.cmd run build`
+- Secret scan found no known QA/database secret fragments in source or redesign artifacts.
+- Next step: deploy to QA, prepare the figma regression offering on the new preview, then run Phase 9 mutating regression without touching completed Wave 1 or Wave 2 evidence.

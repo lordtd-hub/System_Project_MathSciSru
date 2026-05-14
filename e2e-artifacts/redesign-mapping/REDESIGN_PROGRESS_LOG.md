@@ -1477,3 +1477,41 @@ The patch only adds a QA setup entry point so Phase 9 can mutate a fresh safe of
 ### Next Phase
 
 Deploy to QA, prepare the redesign regression offering from `/qa-login`, then run Phase 9 mutating workflow regression in classic and figma mode on that offering.
+
+## 2026-05-14 - Phase 9 Dual-State Regression Setup
+
+### Scope
+
+Prepared Phase 9 to run mutating workflow regression in both UI modes without mutating completed Wave 1 or completed Wave 2 evidence.
+
+### Patch
+
+- Added a second QA-only isolated course offering for Figma-mode mutating regression:
+  - `MULTI-PILOT-R2 Redesign Figma Regression Course Offering`
+  - Semester 1 BE 2573
+- Kept the existing redesign regression offering as the classic-mode safe state:
+  - `MULTI-PILOT-R2 Redesign Regression Course Offering`
+  - Semester 1 BE 2572
+- Added a QA-login setup action and form for the Figma regression offering.
+- Made the CDP setup helper reusable by input id/success text/offering text.
+- Added a CDP helper to set the `project_ui_mode` cookie to `classic` or `figma` before running mutating scripts.
+
+### Logic Touched
+
+No workflow logic was changed.
+
+The patch only adds QA-only setup and verification tooling. It does not change lifecycle, scoring, eligibility, auth, schema, server action semantics for real users, route behavior, or production configuration.
+
+### Validation
+
+- `node --check e2e-artifacts/redesign-mapping/prepare-redesign-regression-offering-cdp.js` - passed.
+- `node --check e2e-artifacts/redesign-mapping/set-ui-mode-cdp.js` - passed.
+- `cmd /c npm.cmd test -- src/app/qaLoginSource.test.ts src/lib/qa/multiPilotR2.test.ts` - passed, 2 files / 12 tests.
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test` - passed, 82 files / 364 tests.
+- `cmd /c npm.cmd run build` - passed.
+- Secret scan over `src`, redesign artifacts, and `IMPLEMENTATION_PROGRESS.md` found no QA/database secret fragments.
+
+### Next Phase
+
+Commit and deploy the dual-state setup to QA, prepare the second Figma regression offering from `/qa-login`, then run Phase 9 mutating workflow regression with classic and figma safe states.

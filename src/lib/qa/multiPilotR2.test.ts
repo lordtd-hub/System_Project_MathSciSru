@@ -3,6 +3,8 @@ import {
   getMultiPilotR2ScenarioCounts,
   getMultiPilotR2TeacherRoleSummary,
   getMultiPilotR2Wave2ScenarioCounts,
+  MULTI_PILOT_R2_REDESIGN_FIGMA_COURSE_TITLE,
+  MULTI_PILOT_R2_REDESIGN_FIGMA_YEAR_BE,
   MULTI_PILOT_R2_REDESIGN_COURSE_TITLE,
   MULTI_PILOT_R2_REDESIGN_YEAR_BE,
   multiPilotR2Projects,
@@ -43,6 +45,8 @@ describe("MULTI-PILOT-R2 QA data design", () => {
   it("defines an isolated redesign regression offering after completed Wave 1 and Wave 2 data", () => {
     expect(MULTI_PILOT_R2_REDESIGN_COURSE_TITLE).toContain("Redesign Regression");
     expect(MULTI_PILOT_R2_REDESIGN_YEAR_BE).toBeGreaterThan(2571);
+    expect(MULTI_PILOT_R2_REDESIGN_FIGMA_COURSE_TITLE).toContain("Redesign Figma Regression");
+    expect(MULTI_PILOT_R2_REDESIGN_FIGMA_YEAR_BE).toBeGreaterThan(MULTI_PILOT_R2_REDESIGN_YEAR_BE);
   });
 
   it("avoids assigning one teacher to multiple roles in the same project", () => {

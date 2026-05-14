@@ -81,6 +81,7 @@ successMessages.qa_pilot_identities_prepared = "เตรียมบัญช�
 successMessages.multi_pilot_r2_prepared = "Prepared MULTI-PILOT-R2 QA data.";
 successMessages.multi_pilot_r2_wave2_prepared = "Prepared MULTI-PILOT-R2 Wave 2 QA data.";
 successMessages.multi_pilot_r2_redesign_prepared = "Prepared MULTI-PILOT-R2 redesign regression QA data.";
+successMessages.multi_pilot_r2_redesign_figma_prepared = "Prepared MULTI-PILOT-R2 redesign figma regression QA data.";
 successMessages.late_round_opened = "เปิดให้ดำเนินการย้อนหลังเป็นรายกรณีแล้ว";
 errorMessages.round_close_missing_ack_required = "ยังมีนักศึกษาค้างส่งในรอบนี้ กรุณาตรวจรายชื่อและยืนยันก่อนปิดรอบ";
 errorMessages.late_round_requires_closed_round = "เปิดส่งย้อนหลังได้เฉพาะรอบที่ปิดแล้ว";

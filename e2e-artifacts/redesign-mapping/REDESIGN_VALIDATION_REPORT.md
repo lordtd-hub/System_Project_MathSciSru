@@ -943,3 +943,32 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd run build` - passed.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Phase 9 Dual-State Setup Validation
+
+- Phase: 9 dual-state setup.
+- Scope:
+  - second QA-only safe offering for Figma-mode mutating regression;
+  - reusable CDP setup helper;
+  - CDP UI mode cookie helper.
+- Renderer status:
+  - no renderer behavior changed;
+  - classic/figma fallback remains unchanged.
+- Logic touched: no workflow logic.
+- Safety boundary:
+  - Wave 1 completed state is not mutated;
+  - Wave 2 completed state is not mutated;
+  - classic mutating regression can use `MULTI-PILOT-R2 Redesign Regression Course Offering`;
+  - figma mutating regression can use `MULTI-PILOT-R2 Redesign Figma Regression Course Offering`.
+- Local validation:
+  - `node --check e2e-artifacts/redesign-mapping/prepare-redesign-regression-offering-cdp.js` - passed.
+  - `node --check e2e-artifacts/redesign-mapping/set-ui-mode-cdp.js` - passed.
+  - `cmd /c npm.cmd test -- src/app/qaLoginSource.test.ts src/lib/qa/multiPilotR2.test.ts` - passed, 2 files / 12 tests.
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 364 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- Secret scan:
+  - searched `src`, redesign artifacts, and `IMPLEMENTATION_PROGRESS.md` for known QA/database secret fragments;
+  - no matches found.
+- QA deployment: pending.
+- Live verification: pending.

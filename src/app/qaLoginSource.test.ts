@@ -42,6 +42,7 @@ describe("QA login source guards", () => {
     expect(pageSource).toContain("prepareMultiPilotR2Data");
     expect(pageSource).toContain("prepareMultiPilotR2Wave2Data");
     expect(pageSource).toContain("prepareMultiPilotR2RedesignRegressionData");
+    expect(pageSource).toContain("prepareMultiPilotR2RedesignFigmaRegressionData");
     expect(pageSource).toContain("QA Mode");
     expect(pageSource).not.toContain(placeholderSecret);
   });
@@ -53,6 +54,7 @@ describe("QA login source guards", () => {
     expect(actionSource).toContain("prepareMultiPilotR2Data");
     expect(actionSource).toContain("prepareMultiPilotR2Wave2Data");
     expect(actionSource).toContain("prepareMultiPilotR2RedesignRegressionData");
+    expect(actionSource).toContain("prepareMultiPilotR2RedesignFigmaRegressionData");
     expect(actionSource).toContain("verifyQaLoginSecret");
     expect(actionSource).toContain("isQaLoginEnabled");
     expect(actionSource).toContain("prisma.project.upsert");
@@ -60,6 +62,7 @@ describe("QA login source guards", () => {
     expect(actionSource).toContain("MULTI_PILOT_R2_COURSE_TITLE");
     expect(actionSource).toContain("MULTI_PILOT_R2_WAVE2_COURSE_TITLE");
     expect(actionSource).toContain("MULTI_PILOT_R2_REDESIGN_COURSE_TITLE");
+    expect(actionSource).toContain("MULTI_PILOT_R2_REDESIGN_FIGMA_COURSE_TITLE");
     expect(actionSource).not.toContain("deleteMany");
     expect(actionSource).not.toContain(placeholderSecret);
   });
