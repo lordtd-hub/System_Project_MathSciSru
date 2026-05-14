@@ -2310,3 +2310,28 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Repaired mojibake in the notification email HTML wrapper and `.env.example` sender sample; source files remain UTF-8 with `.editorconfig` and `.gitattributes` already enforcing UTF-8/LF behavior.
 - Email sending remains disabled unless `EMAIL_NOTIFICATIONS_ENABLED=1` and `RESEND_API_KEY` are configured. No production env was changed.
 - No lifecycle, auth, scoring, eligibility, schema, API, permission, route behavior, QA data, or production settings were changed.
+
+## 2026-05-14 LINE notification setup notes started
+
+- Recorded LINE Official Account setup details in `e2e-artifacts/line-notifications/LINE_NOTIFICATION_SETUP_NOTES.md`.
+- Current non-secret LINE OA details:
+  - account name: `MathSCISRU`;
+  - Basic ID: `@428chrry`.
+- LINE integration is still planning/setup only. No LINE notification code, webhook route, environment variable, or production behavior has been added.
+- Values still needed before implementation:
+  - `LINE_CHANNEL_ACCESS_TOKEN`;
+  - `LINE_CHANNEL_SECRET`;
+  - `LINE_TEACHER_GROUP_ID`.
+
+## 2026-05-14 LINE webhook receiver prepared
+
+- Added `/api/line/webhook` as a setup receiver for LINE Messaging API events.
+- The webhook:
+  - runs on Node.js runtime;
+  - requires `LINE_CHANNEL_SECRET`;
+  - verifies `x-line-signature` against the raw request body;
+  - logs only event/source metadata needed to find `LINE_TEACHER_GROUP_ID`;
+  - does not log full message text.
+- Added LINE environment placeholders to `.env.example`.
+- Added tests for signature verification, source extraction, and source-level webhook guardrails.
+- LINE message sending is still not implemented and `LINE_NOTIFICATIONS_ENABLED` should remain `0`.
