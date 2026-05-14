@@ -5,7 +5,6 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader, type DashboardActionQueueItem } from "@/components/ui/DashboardActionQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
@@ -778,12 +777,6 @@ export default async function TeacherDashboardPage() {
           </section>
         </div>
       </div>
-      <GuidancePanel
-        title="คำแนะนำสำหรับอาจารย์"
-        current="ตรวจงานที่ต้องดำเนินการและอ่านเอกสารแนบก่อนตัดสินใจ"
-        next="ระบบจะแสดงข้อเสนอแนะให้นักศึกษาทันที แต่ซ่อนคะแนนการเสนอหัวข้อจากนักศึกษา"
-        actor="อาจารย์ที่ปรึกษา ประธานกรรมการ กรรมการ หรือผู้ตรวจรายงานตามบทบาทของท่าน"
-      />
       <CompactMetricRow
         title="ภาพรวมสถานะ"
         description={`รวม ${workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการจากข้อมูลของอาจารย์ ใช้เป็นสัญญาณประกอบจากงานหลักด้านบน`}

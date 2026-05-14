@@ -397,7 +397,7 @@
   }
 
   .teacher-workload-summary {
-    @apply rounded-lg border border-line bg-surface p-4 shadow-sm;
+    @apply rounded-lg border border-line bg-surface p-3 shadow-sm;
     background: linear-gradient(180deg, var(--surface), var(--paper-2));
   }
 
@@ -411,7 +411,7 @@
   }
 
   .teacher-workload-metric {
-    @apply rounded-md border border-line bg-paperSoft p-2.5 shadow-sm;
+    @apply rounded-md border border-line bg-paperSoft px-2 py-1.5 shadow-sm;
     border-left-width: 3px;
   }
 

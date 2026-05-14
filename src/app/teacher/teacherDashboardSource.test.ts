@@ -22,6 +22,8 @@ describe("teacher dashboard source", () => {
 
     expect(page).toContain("teacherActionableTaskCount");
     expect(page).toContain("TeacherWorkloadSummary");
+    expect(page).not.toContain("GuidancePanel");
+    expect(page).not.toContain("คำแนะนำสำหรับอาจารย์");
     expect(page).toContain("teacherWorkloadSummaryMetrics");
     expect(page).toContain("มีงานที่ต้องดำเนินการ");
     expect(page).toContain("การแจ้งเตือน");
@@ -33,6 +35,7 @@ describe("teacher dashboard source", () => {
   it("supports safe classic and figma dashboard renderers", () => {
     const page = source();
     const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+    const workloadQueue = readFileSync(join(process.cwd(), "src/components/ui/TeacherWorkloadQueue.tsx"), "utf8");
 
     expect(page).toContain("getUiMode");
     expect(page).toContain("FigmaTeacherDashboardView");
@@ -45,5 +48,7 @@ describe("teacher dashboard source", () => {
     expect(css).toContain(".figma-teacher-agenda-list");
     expect(css).toContain("max-height: 12rem");
     expect(css).toContain(".figma-teacher-agenda-list .figma-status-badge");
+    expect(workloadQueue).toContain("xl:grid-cols-6");
+    expect(css).toContain("px-2 py-1.5");
   });
 });
