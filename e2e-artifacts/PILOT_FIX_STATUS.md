@@ -323,3 +323,35 @@ Current recommendation:
 - Prepare a deliberate 20-project Wave 2 expansion plan next.
 - Do not jump directly to 40 projects.
 - Before or during the 20-project expansion, consider compact filters/collapsible history for teacher completed sections and admin evidence/history views.
+
+## Frontend UI-Only Cleanup After Audit - 2026-05-14
+
+Current workstream:
+
+- Classic UI frontend cleanup only.
+- This is not a Wave 2 execution step and does not mutate pilot data.
+- Scope remains UI/text/layout only.
+
+Additional cleanup applied:
+
+- Student dashboard committee role labels now display as Thai user-facing labels.
+- Student Proposal comment vote labels now display as Thai user-facing labels.
+- Teacher report review history no longer displays raw `PASS` to users.
+- Admin Proposal vote, final decision, decision metadata, and detail labels now avoid programmer-facing `PASS` / `REVISE` / `FAIL`, `Final decision`, `decided_by`, `decided_at`, `status`, and `score` wording in visible labels.
+- Admin Evidence hides internal project/audit IDs behind expandable "รหัสอ้างอิงระบบ" details.
+
+Safety:
+
+- Logic touched: no.
+- Lifecycle, scoring, eligibility, auth, schema, API, server actions, QA data, and production behavior unchanged.
+
+Validation passed:
+
+- `cmd /c npm.cmd test -- studentReadabilityStabilization adminOperationalUxSource teacherWorkloadUxSource`
+- `cmd /c npm.cmd run typecheck`
+- `cmd /c npm.cmd test`
+- `cmd /c npm.cmd run build`
+
+Pending before closure:
+
+- QA preview push/smoke if validation passes.

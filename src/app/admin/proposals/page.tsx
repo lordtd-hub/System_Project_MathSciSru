@@ -23,6 +23,12 @@ function decisionLabel(decision?: string | null) {
   return "ยังไม่ตัดสิน";
 }
 
+function proposalVoteLabel(vote: "PASS" | "REVISE" | "FAIL") {
+  if (vote === "PASS") return "ผ่าน";
+  if (vote === "REVISE") return "ให้แก้ไข";
+  return "ไม่ผ่าน";
+}
+
 function nextDecisionStep(decision?: string | null) {
   if (decision === "PASS") return "ขั้นถัดไป: แต่งตั้งประธานกรรมการและกรรมการ";
   if (decision === "PASS_WITH_REVISION") return "ขั้นถัดไป: ให้นักศึกษาแก้ไขและส่งใหม่";
@@ -111,7 +117,7 @@ export default async function AdminProposalsPage({
             metrics={[
               { label: "รอตัดสิน", count: waitingDecisionCount, tone: waitingDecisionCount ? "action" : "completed", description: "มีคะแนน/เอกสารแล้วแต่ยังไม่มีมติสุดท้าย" },
               { label: "คะแนนยังไม่ครบ", count: missingScoreCount, tone: missingScoreCount ? "waiting" : "completed", description: "ไม่ใช่ blocker เสมอไป แต่ควรตรวจสอบก่อนปิดรอบ" },
-              { label: "FAIL ≥ 50%", count: failAlertCount, tone: failAlertCount ? "exception" : "completed", description: "ต้องอ่านเหตุผลและมติประชุมอย่างระมัดระวัง" },
+              { label: "ไม่ผ่านตั้งแต่ 50%", count: failAlertCount, tone: failAlertCount ? "exception" : "completed", description: "ต้องอ่านเหตุผลและมติประชุมอย่างระมัดระวัง" },
               { label: "ตัดสินแล้ว", count: decidedCount, tone: "completed", description: "มี final decision แล้ว" },
               { label: "เปิดผลแล้ว", count: releasedCount, tone: "completed", description: "นักศึกษาเห็นข้อเสนอแนะแล้ว" }
             ]}
@@ -141,7 +147,7 @@ export default async function AdminProposalsPage({
                 กรุณาตรวจผลโหวต ข้อเสนอแนะ และเหตุผลก่อนเลือกมติสุดท้าย
               </WarningAlert>
             ) : (
-              <InfoAlert title="ไม่มีรายการ FAIL ≥ 50%" />
+              <InfoAlert title="ไม่มีรายการไม่ผ่านตั้งแต่ 50%" />
             )}
             {missingScoreCount ? (
               <WarningAlert title={`มีรายการที่คะแนนยังไม่ครบ ${missingScoreCount} รายการ`}>
@@ -288,23 +294,23 @@ export default async function AdminProposalsPage({
                             </dd>
                           </div>
                           <div className="rounded-lg border border-line bg-paperSoft p-3">
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Vote</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">ผลโหวต</dt>
                             <dd className="mt-2 space-y-1">
-                              <div>PASS {passVotes}</div>
-                              <div>REVISE {reviseVotes}</div>
-                              <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>FAIL {failVotes} ({failRatio}%)</div>
+                              <div>{proposalVoteLabel("PASS")} {passVotes}</div>
+                              <div>{proposalVoteLabel("REVISE")} {reviseVotes}</div>
+                              <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>{proposalVoteLabel("FAIL")} {failVotes} ({failRatio}%)</div>
                             </dd>
                           </div>
                         </div>
                         <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Final decision</dt>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">มติสุดท้าย</dt>
                           <dd className="mt-1">
                             <div className="font-semibold">{decisionLabel(finalDecision)}</div>
                             {attempt.proposalResult ? (
                               <div className="mt-1 break-words text-xs leading-5 text-muted">
-                                decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
+                                ผู้บันทึก: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
                                 <br />
-                                decided_at: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
+                                เวลาบันทึก: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
                               </div>
                             ) : null}
                             {attempt.proposalResult?.finalDecisionReason ? (
@@ -320,9 +326,9 @@ export default async function AdminProposalsPage({
                         <form action={saveFinalDecision} className="grid gap-2">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
                           <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                            <option value="PASS">PASS - ผ่าน</option>
-                            <option value="PASS_WITH_REVISION">PASS_WITH_REVISION - แก้ไข</option>
-                            <option value="NOT_PASS">NOT_PASS - ไม่ผ่าน</option>
+                            <option value="PASS">ผ่าน</option>
+                            <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
+                            <option value="NOT_PASS">ไม่ผ่าน</option>
                           </select>
                           <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
                           <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
@@ -341,8 +347,8 @@ export default async function AdminProposalsPage({
                             {attempt.evaluatorAssignments.map((assignment) => (
                               <div key={assignment.id} className="rounded border border-line p-2">
                                 <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
-                                <div>status: {assignment.scoreSubmission?.status ?? "ยังไม่ส่ง"}</div>
-                                <div>score: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
+                                <div>สถานะ: {assignment.scoreSubmission?.status === "SUBMITTED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
                                 <div>ข้อเสนอแนะ:</div>
                                 <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />
                               </div>
@@ -363,8 +369,8 @@ export default async function AdminProposalsPage({
                       <th className="py-2 pr-3">หัวข้อ</th>
                       <th className="py-2 pr-3">สถานะ</th>
                       <th className="py-2 pr-3">คะแนน</th>
-                      <th className="py-2 pr-3">Vote</th>
-                      <th className="py-2 pr-3">Final decision</th>
+                      <th className="py-2 pr-3">ผลโหวต</th>
+                      <th className="py-2 pr-3">มติสุดท้าย</th>
                       <th className="py-2 pr-3">การทำงาน</th>
                     </tr>
                   </thead>
@@ -417,17 +423,17 @@ export default async function AdminProposalsPage({
                             <div>เฉลี่ย {summary.averageScore}</div>
                           </td>
                           <td className="py-3 pr-3 whitespace-nowrap">
-                            <div>PASS {passVotes}</div>
-                            <div>REVISE {reviseVotes}</div>
-                            <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>FAIL {failVotes} ({failRatio}%)</div>
+                            <div>{proposalVoteLabel("PASS")} {passVotes}</div>
+                            <div>{proposalVoteLabel("REVISE")} {reviseVotes}</div>
+                            <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>{proposalVoteLabel("FAIL")} {failVotes} ({failRatio}%)</div>
                           </td>
                           <td className="py-3 pr-3 min-w-56">
                             <div className="font-semibold">{decisionLabel(finalDecision)}</div>
                             {attempt.proposalResult ? (
                               <div className="mt-1 text-xs leading-5 text-muted">
-                                decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
+                                ผู้บันทึก: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
                                 <br />
-                                decided_at: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
+                                เวลาบันทึก: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
                               </div>
                             ) : null}
                             {attempt.proposalResult?.finalDecisionReason ? (
@@ -439,9 +445,9 @@ export default async function AdminProposalsPage({
                             <form action={saveFinalDecision} className="grid gap-2">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
                               <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                                <option value="PASS">PASS - ผ่าน</option>
-                                <option value="PASS_WITH_REVISION">PASS_WITH_REVISION - แก้ไข</option>
-                                <option value="NOT_PASS">NOT_PASS - ไม่ผ่าน</option>
+                                <option value="PASS">ผ่าน</option>
+                                <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
+                                <option value="NOT_PASS">ไม่ผ่าน</option>
                               </select>
                               <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
                               <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>

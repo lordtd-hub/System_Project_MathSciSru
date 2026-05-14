@@ -42,7 +42,17 @@ describe("student readability stabilization", () => {
     expect(page).toContain("สรุปสถานะ Proposal");
     expect(page).toContain("รอรอบ/รออนุญาต");
     expect(page).toContain("proposalComments.length");
+    expect(page).toContain("proposalVoteLabel");
     expect(page).toContain("saveProposalSubmission");
+    expect(page).not.toContain("{vote.vote}");
+  });
+
+  it("does not expose raw committee role enum labels on the student dashboard", () => {
+    const page = source("src/app/student/page.tsx");
+
+    expect(page).toContain("committeeRoleLabel");
+    expect(page).toContain("committeeRoleLabel(assignment.role)");
+    expect(page).not.toContain(">{assignment.role}</span>");
   });
 
   it("separates report actions from waiting-for-review states and avoids raw PASS wording", () => {

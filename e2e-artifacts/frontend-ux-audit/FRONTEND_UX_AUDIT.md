@@ -144,6 +144,28 @@ QA preview/live smoke:
 
 Updated recommendation after patch: `READY_FOR_WAVE_2_WITH_REMAINING_UX_DEBT`.
 
+## Wave 1 UI-Only Cleanup Update - 2026-05-14
+
+The current work is a frontend-only cleanup pass on the classic UI. It is not a new Wave 2 execution pass and does not change workflow semantics.
+
+Additional cleanup applied:
+
+- Student dashboard committee role badges now use Thai labels instead of raw role enum values.
+- Student Proposal comments now show Thai vote labels instead of raw `PASS` / `REVISE` / `FAIL`.
+- Teacher report review history now shows Thai decision labels instead of raw `PASS`.
+- Admin Proposal tables/cards now use Thai labels for vote counts, final decisions, decision metadata, and score details while preserving enum values in form submissions.
+- Admin Evidence keeps technical IDs available, but hides them behind expandable "รหัสอ้างอิงระบบ" details to reduce debug-table feel.
+
+No lifecycle, scoring, eligibility, auth, schema, API, server action, or production behavior was changed.
+
+Validation:
+
+- `cmd /c npm.cmd run typecheck` passed.
+- `cmd /c npm.cmd test` passed.
+- `cmd /c npm.cmd run build` passed.
+
+Updated recommendation after this UI-only cleanup: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`, pending QA preview push/smoke on the latest preview.
+
 ## Latest QA Re-Entry Note - 2026-05-14
 
 After the documentation-only follow-up commit, the latest QA preview was:

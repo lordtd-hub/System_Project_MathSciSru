@@ -65,3 +65,30 @@ Still recommended but deferred:
 - Student-facing QA/programmer seed text cleanup.
 - Teacher dashboard duplicate widget reduction.
 - Completed advisor-score/report history compact/full-detail split.
+
+## Wave 1 UI-Only Cleanup Status - 2026-05-14
+
+Clarification: Wave 2 multi-pilot work has already been exercised separately. The current pass is not Wave 2 execution; it is a classic-UI frontend cleanup pass driven by this audit.
+
+Fixed in this cleanup patch:
+
+- `/student` now displays committee roles with Thai role labels instead of raw role enum values.
+- `/student/proposal` now displays Proposal vote results with Thai labels instead of raw `PASS` / `REVISE` / `FAIL` values.
+- `/teacher/reports` now displays report review decisions with Thai labels instead of showing raw `PASS`.
+- `/admin/proposals` now shows user-facing Thai labels for proposal vote counts, final decision headings, decision metadata, score detail labels, and select options while preserving the submitted enum values internally.
+- `/admin/evidence` now moves project IDs and audit entity IDs behind expandable "รหัสอ้างอิงระบบ" details so the default view reads less like a debug table.
+
+Still safe to defer:
+
+- A larger admin proposal compact/full-detail redesign.
+- A larger evidence/export table redesign.
+- Cleanup of test seed content that is stored as user-entered evidence/comments in QA data.
+- Completed advisor-score/report history compact/full-detail split.
+
+Validation:
+
+- `cmd /c npm.cmd run typecheck` passed.
+- `cmd /c npm.cmd test` passed.
+- `cmd /c npm.cmd run build` passed.
+
+Current recommendation after this cleanup patch: `READY_FOR_WAVE_2_WITH_DEFERRED_UI_DEBT`, pending QA preview push/smoke on the latest preview.

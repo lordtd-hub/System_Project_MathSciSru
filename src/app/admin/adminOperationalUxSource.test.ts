@@ -67,11 +67,26 @@ describe("admin operational UX source", () => {
     const source = readSource("src/app/admin/evidence/page.tsx");
 
     expect(source).toContain('kind: "grades"');
+    expect(source).toContain("รหัสอ้างอิงระบบ");
+    expect(source).not.toContain("ID: {row.projectId}");
     expect(source).toContain("คะแนนแต่ละรอบและสถานะจบรายคน");
     expect(source).toContain("ไม่เปลี่ยนกฎการปิดโครงงานหรือการคำนวณคะแนน");
   });
   it("maps admin evidence audit entity labels before rendering", () => {
     expect(readSource("src/lib/evidence/adminEvidence.ts")).toContain("evidenceEntityLabel(log.entityType)");
     expect(readSource("src/lib/evidence/eventLabels.ts")).toContain("evidenceEntityLabel");
+  });
+
+  it("keeps proposal decision controls semantic while replacing programmer-facing labels", () => {
+    const source = readSource("src/app/admin/proposals/page.tsx");
+
+    expect(source).toContain("proposalVoteLabel");
+    expect(source).toContain("ผลโหวต");
+    expect(source).toContain("มติสุดท้าย");
+    expect(source).toContain('<option value="PASS">ผ่าน</option>');
+    expect(source).toContain('<option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>');
+    expect(source).toContain('<option value="NOT_PASS">ไม่ผ่าน</option>');
+    expect(source).not.toContain("decided_by:");
+    expect(source).not.toContain("decided_at:");
   });
 });

@@ -40,6 +40,13 @@ function scheduleStatusLabel(status?: string | null) {
   return status ?? "-";
 }
 
+function committeeRoleLabel(role?: string | null) {
+  if (role === "ADVISOR") return "อาจารย์ที่ปรึกษา";
+  if (role === "HEAD") return "ประธานกรรมการ";
+  if (role === "MEMBER") return "กรรมการ";
+  return role ?? "-";
+}
+
 function displayTimelineText(value?: string | null) {
   if (!value) return value ?? undefined;
   return value
@@ -646,7 +653,7 @@ export default async function StudentDashboardPage() {
                 project.committeeAssignments.map((assignment) => (
                   <div key={assignment.id} className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface p-2">
                     <span>{teacherDisplayName(assignment.teacher)}</span>
-                    <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs">{assignment.role}</span>
+                    <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs">{committeeRoleLabel(assignment.role)}</span>
                   </div>
                 ))
               ) : (

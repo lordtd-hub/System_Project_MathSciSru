@@ -22,6 +22,13 @@ import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { saveProposalSubmission } from "../actions";
 
+function proposalVoteLabel(vote?: string | null) {
+  if (vote === "PASS") return "ผ่าน";
+  if (vote === "REVISE") return "ให้แก้ไข";
+  if (vote === "FAIL") return "ไม่ผ่าน";
+  return vote ?? "-";
+}
+
 export default async function ProposalSubmissionPage({
   searchParams
 }: {
@@ -256,7 +263,7 @@ export default async function ProposalSubmissionPage({
           {proposalComments.length ? (
             proposalComments.map((vote) => (
               <div key={vote.id} className="rounded-md border border-line p-3 text-sm">
-                <div className="font-medium">{teacherDisplayName(vote.teacher)} · {vote.vote}</div>
+                <div className="font-medium">{teacherDisplayName(vote.teacher)} · {proposalVoteLabel(vote.vote)}</div>
                 <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={vote.comment} emptyText="ไม่มีข้อเสนอแนะเพิ่มเติม" />
               </div>
             ))

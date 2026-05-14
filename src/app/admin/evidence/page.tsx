@@ -164,7 +164,10 @@ export default async function AdminEvidencePage({
                       </td>
                       <td className="min-w-56">
                         <div className="font-medium">{row.projectTitle}</div>
-                        <div className="mt-1 text-xs text-muted">ID: {row.projectId}</div>
+                        <details className="mt-1 text-xs text-muted">
+                          <summary className="cursor-pointer">รหัสอ้างอิงระบบ</summary>
+                          <div className="mt-1 break-all">{row.projectId}</div>
+                        </details>
                       </td>
                       <td className="min-w-44">{row.advisorName}</td>
                       <td>{row.statusLabel}</td>
@@ -252,7 +255,11 @@ export default async function AdminEvidencePage({
                 {data.recentAuditLogs.map((log) => (
                   <div key={log.id} className="rounded-lg border border-line bg-paperSoft p-3">
                     <div className="font-semibold">{log.action}</div>
-                    <div className="text-xs text-muted">{log.entityType} · {log.entityId}</div>
+                    <div className="text-xs text-muted">รายการ: {log.entityType}</div>
+                    <details className="mt-1 text-xs text-muted">
+                      <summary className="cursor-pointer">รหัสอ้างอิงระบบ</summary>
+                      <div className="mt-1 break-all">{log.entityId}</div>
+                    </details>
                     <div className="mt-1 text-xs text-muted">{formatThaiDateTime24(log.occurredAt)} · {log.actorName}</div>
                   </div>
                 ))}

@@ -84,6 +84,8 @@ describe("teacher workload UX source", () => {
     const advisorScore = readSource("src/app/teacher/advisor-score/page.tsx");
 
     expect(reports).toContain("reportQueueOrder");
+    expect(reports).toContain("reportDecisionLabel");
+    expect(reports).not.toContain('? "PASS" : "ขอแก้ไข"');
     expect(reports).toContain("latestReportHasRevisionRequest");
     expect(reports).toContain("allRequiredReportReviewersPassed");
     expect(advisorScore).toContain("advisorQueueOrder");

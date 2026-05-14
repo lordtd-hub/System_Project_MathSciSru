@@ -14,6 +14,12 @@ import { prisma } from "@/lib/db";
 import { allRequiredReportReviewersPassed, requiredReportReviewerIds } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
+function reportDecisionLabel(decision?: string | null) {
+  if (decision === "PASS") return "ผ่านการตรวจ";
+  if (decision === "FAIL") return "ขอแก้ไข";
+  return decision ?? "-";
+}
+
 export default async function TeacherReportsPage({
   searchParams
 }: {
@@ -189,7 +195,7 @@ export default async function TeacherReportsPage({
                         {latestReport.reviews.map((review) => (
                           <div key={review.id} className="rounded-md border border-line p-3 text-sm">
                             <div className="font-medium">
-                              {teacherDisplayName(review.reviewerTeacher)} · {review.decision === "PASS" ? "PASS" : "ขอแก้ไข"}
+                              {teacherDisplayName(review.reviewerTeacher)} · {reportDecisionLabel(review.decision)}
                             </div>
                             {review.comment ? <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={review.comment} /> : null}
                           </div>

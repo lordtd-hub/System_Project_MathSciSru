@@ -9,6 +9,24 @@
 - Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
 - Next step: Import the real student roster only when ready, then verify teacher/admin role capability after logout/login.
 
+## 2026-05-14 Classic UI text/readability cleanup
+
+- Continued the frontend-only cleanup track after the classic UX audit. This is not a Wave 2 execution step and does not mutate pilot data.
+- Patched user-facing raw/programmer labels without changing submitted values or workflow logic:
+  - Student dashboard committee roles now display Thai labels instead of raw role enum values.
+  - Student Proposal comments now display Thai vote labels instead of raw `PASS` / `REVISE` / `FAIL`.
+  - Teacher report review history now displays Thai decision labels instead of raw `PASS`.
+  - Admin Proposal now uses Thai labels for vote counts, final decision headings, decision metadata, score detail labels, and final decision select options while preserving enum option values internally.
+  - Admin Evidence keeps internal project/audit IDs available but hides them behind expandable "รหัสอ้างอิงระบบ" details.
+- Updated source tests for student readability, teacher report workload text, admin proposal text, and admin evidence ID visibility.
+- No lifecycle, scoring, eligibility, auth, Prisma schema, API semantics, server actions, route semantics, QA data, or production configuration changed.
+- Validation passed:
+  - `cmd /c npm.cmd test -- studentReadabilityStabilization adminOperationalUxSource teacherWorkloadUxSource`;
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Next step: push QA preview and smoke-check if the deployment is available.
+
 ## 2026-05-14 Frontend UX audit
 
 - Added `e2e-artifacts/frontend-ux-audit/` as a non-mutating user-experience audit package for the classic UI.
