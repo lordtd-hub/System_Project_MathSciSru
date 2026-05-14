@@ -37,6 +37,8 @@ const errorMessages: Record<string, string> = {
 
 successMessages.course_offering_opened = "เปิดรายวิชาเรียบร้อยแล้ว";
 successMessages.students_imported = "นำเข้านักศึกษาในรายวิชานี้เรียบร้อยแล้ว";
+successMessages.manual_students_imported = "เพิ่มนักศึกษาคู่มือเข้า roster ของรายวิชาเรียบร้อยแล้ว";
+successMessages.course_offering_deleted = "ลบรายวิชาและข้อมูลที่ผูกกับรายวิชานี้เรียบร้อยแล้ว";
 successMessages.teacher_baseline_seeded = "เพิ่มข้อมูลอาจารย์พื้นฐานเรียบร้อยแล้ว";
 successMessages.teacher_email_updated = "บันทึกอีเมลอาจารย์เรียบร้อยแล้ว กรุณาให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อปรับปรุงสิทธิ์การใช้งาน";
 successMessages.test_course_reset = "ล้างข้อมูลทดสอบของรายวิชาเรียบร้อยแล้ว";

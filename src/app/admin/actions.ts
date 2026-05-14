@@ -12,6 +12,7 @@ import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { parseStudentImportCsv } from "@/lib/admin/studentImportCsv";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
+import { manualDemoStudents } from "@/lib/qa/manualDemo";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
@@ -187,6 +188,8 @@ export async function resetCourseOfferingTestData(formData: FormData) {
 
   const courseOfferingId = String(formData.get("course_offering_id") ?? "");
   if (!courseOfferingId) redirect("/admin?error=course_offering_missing");
+  const returnTo = String(formData.get("return_to") ?? "");
+  const redirectPath = returnTo === "/admin/import-students" ? "/admin/import-students" : "/admin";
 
   await resetCourseOfferingForTesting(prisma, courseOfferingId, adminUserId);
 
@@ -195,7 +198,7 @@ export async function resetCourseOfferingTestData(formData: FormData) {
   revalidatePath("/admin/students");
   revalidatePath("/admin/rounds");
   revalidatePath("/admin/proposals");
-  redirect("/admin?success=test_course_reset");
+  redirectWithQuery(redirectPath, { success: returnTo === "/admin/import-students" ? "course_offering_deleted" : "test_course_reset" });
 }
 
 export async function importStudents(formData: FormData) {
@@ -264,6 +267,55 @@ export async function importStudents(formData: FormData) {
   revalidatePath("/admin/students");
   timer.end("redirect");
   redirectWithQuery("/admin/import-students", { success: "students_imported", course_offering_id: courseOfferingId });
+}
+
+export async function importManualDemoStudents(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:importManualDemoStudents`, pilotRateLimits.importExport);
+  if (!isAdminTestingToolsEnabled()) redirect("/admin/import-students?error=test_tools_disabled");
+
+  const courseOfferingId = String(formData.get("course_offering_id") ?? "");
+  const offering = await prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } });
+  if (!offering) redirect("/admin/import-students?error=course_offering_missing");
+
+  for (const row of manualDemoStudents) {
+    const student = await prisma.student.upsert({
+      where: { generatedEmail: row.email },
+      update: {
+        studentCode: row.studentCode,
+        firstNameTh: row.firstNameTh,
+        lastNameTh: row.lastNameTh,
+        active: true
+      },
+      create: {
+        studentCode: row.studentCode,
+        firstNameTh: row.firstNameTh,
+        lastNameTh: row.lastNameTh,
+        generatedEmail: row.email,
+        active: true
+      }
+    });
+
+    await prisma.project.upsert({
+      where: { courseOfferingId_studentId: { courseOfferingId, studentId: student.id } },
+      update: {},
+      create: { courseOfferingId, studentId: student.id, status: "STUDENT_PROFILE" }
+    });
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "MANUAL_DEMO_STUDENTS_IMPORTED",
+      entityType: "CourseOffering",
+      entityId: courseOfferingId,
+      afterJson: { importedCount: manualDemoStudents.length }
+    }
+  });
+
+  revalidatePath("/admin/import-students");
+  revalidatePath("/admin/students");
+  redirectWithQuery("/admin/import-students", { success: "manual_students_imported", course_offering_id: courseOfferingId });
 }
 
 export async function confirmProjectAdvisor(formData: FormData) {
