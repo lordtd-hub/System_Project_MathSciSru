@@ -43,8 +43,8 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
         </div>
         <CompactLifecycleBadge status={status} />
       </div>
-      <div className="mt-4 overflow-x-auto pb-1">
-        <div className="grid min-w-[760px] grid-cols-10 gap-2">
+      <div className="lifecycle-step-scroll">
+        <div className="lifecycle-step-track">
           {steps.map((step, index) => {
             const isDone = status === "COMPLETED" ? index <= current : index < current;
             const isCurrent = status === "COMPLETED" ? false : index === current;
@@ -58,13 +58,13 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
 
             return (
               <div key={step.label} className={`lifecycle-step-card ${className}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${markerClass}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${markerClass}`}>
                     {isDone ? "✓" : index + 1}
                   </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide">{state}</span>
+                  <span className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide">{state}</span>
                 </div>
-                <div className="mt-2 text-sm font-semibold leading-5">{step.label}</div>
+                <div className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5">{step.label}</div>
               </div>
             );
           })}

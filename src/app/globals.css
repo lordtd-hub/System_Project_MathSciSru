@@ -568,8 +568,17 @@
     background: linear-gradient(180deg, var(--surface), var(--paper-2));
   }
 
+  .lifecycle-step-scroll {
+    @apply -mx-2 mt-4 overflow-x-auto px-2 pb-2;
+    scrollbar-width: thin;
+  }
+
+  .lifecycle-step-track {
+    @apply flex snap-x gap-2;
+  }
+
   .lifecycle-step-card {
-    @apply rounded-lg border p-3;
+    @apply min-h-[7.25rem] w-[7.5rem] shrink-0 snap-start rounded-lg border p-2.5 sm:w-[8rem] lg:w-[8.75rem];
   }
 
   .timeline-event {
