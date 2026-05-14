@@ -8,7 +8,7 @@
 - Current baseline: Lifecycle v2 is implemented through Admin-only `COMPLETED`; self-scheduling, Progress 1 scoring, Progress 2 scoring, Final Presentation scoring, report approval, Advisor score 25%, and closeout are functional.
 - Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
 - Next step: Import the real student roster only when ready, then verify teacher/admin role capability after logout/login.
-- Active UI/IA track: Project Record + Dashboard IA Cleanup is implemented locally through Phase 6, with Phase 7 local validation passing and QA live verification still pending. Read `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md` before any dashboard restructuring or `/projects/[projectId]` work.
+- Active UI/IA track: Project Record + Dashboard IA Cleanup is implemented and pushed to QA preview `https://system-project-math-sci-bcl42ddy1-lordtd-hubs-projects.vercel.app`; local validation passed, but live app verification is blocked by Vercel Deployment Protection (`401 Unauthorized`). Read `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md` before any dashboard restructuring or `/projects/[projectId]` work.
 
 ## 2026-05-14 Project Record + Dashboard IA cleanup plan
 
@@ -27,7 +27,7 @@
   - Do not change lifecycle, scoring, eligibility, auth, Prisma schema, or API semantics.
   - Existing workflow pages remain the owner of submit/approve/score/review/closeout actions.
   - Preserve UTF-8 Thai text; do not copy mojibake from PowerShell/terminal output into source or docs.
-- Next action: push to `qa-preview`, verify `/projects/[projectId]` access for Student/Teacher/Admin, and confirm unauthorized access is blocked before closing Phase 7.
+- Next action: obtain a valid protected-preview session, then verify `/projects/[projectId]` access for Student/Teacher/Admin and confirm unrelated viewers are blocked before closing Phase 7.
 
 ## 2026-05-14 QA manual guide data preparation
 

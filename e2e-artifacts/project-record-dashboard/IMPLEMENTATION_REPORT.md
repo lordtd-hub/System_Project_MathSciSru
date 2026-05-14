@@ -9,7 +9,7 @@
 - Phase 4: Complete.
 - Phase 5: Complete.
 - Phase 6: Complete.
-- Phase 7: Local validation complete; QA deploy/live verification pending.
+- Phase 7: Local validation complete; QA preview deployed; live app verification blocked by Vercel Deployment Protection.
 - Phase 8: Documentation updated; archive deferred until QA stability is confirmed.
 
 ## Start State
@@ -95,7 +95,17 @@ Local validation is complete:
 - `npm test` passed.
 - `npm run build` passed.
 
-QA deploy/live verification remains pending because the branch has not yet been pushed after this implementation pass.
+QA deploy:
+
+- Commit: `17fcead`
+- QA preview: `https://system-project-math-sci-bcl42ddy1-lordtd-hubs-projects.vercel.app`
+- Deployment status: Ready.
+
+Live app verification:
+
+- `curl -I /qa-login` returned `401 Unauthorized` from Vercel Deployment Protection.
+- `curl -I /projects/not-a-real-project` returned `401 Unauthorized` from Vercel Deployment Protection.
+- No app route, auth, or project-record page could be verified live until the protected preview session is available.
 
 ### Phase 8 - Completion + Archive Policy
 

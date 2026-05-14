@@ -38,7 +38,16 @@ Note: Vite printed its existing CJS deprecation warning during the targeted test
 
 ## QA Verification
 
-Pending. Use QA preview only and preserve QA data.
+- Commit pushed to `qa-preview`: `17fcead`
+- QA preview: `https://system-project-math-sci-bcl42ddy1-lordtd-hubs-projects.vercel.app`
+- Vercel deployment status: Ready.
+- Live smoke result: blocked by Vercel Deployment Protection.
+  - `/qa-login` returned `401 Unauthorized`.
+  - `/projects/not-a-real-project` returned `401 Unauthorized`.
+- No QA data was mutated.
+- No browser window was opened or closed.
+
+Live role verification remains pending until a valid protected-preview session is available.
 
 ## Encoding / Mojibake Check
 

@@ -37,7 +37,7 @@ Not completed yet:
 - Destructive QA manual reset/seed has not been run.
 - Manual screenshots have not started.
 - User manuals for Student/Teacher/Admin have not been written.
-- Project Record + Dashboard IA Cleanup is implemented locally through Phase 6; local typecheck/test/build passed. QA live verification is still pending after push/deploy.
+- Project Record + Dashboard IA Cleanup is implemented and pushed to QA preview `https://system-project-math-sci-bcl42ddy1-lordtd-hubs-projects.vercel.app`; local typecheck/test/build passed. Live role verification is blocked by Vercel Deployment Protection (`401 Unauthorized`).
 - Full MD/archive cleanup is not finished; items marked `QUESTION` below still need an explicit keep/archive/delete decision.
 
 Do not do next:
@@ -124,9 +124,9 @@ Status legend:
 
 | File | Status | Notes |
 |---|---:|---|
-| `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md` | ACTIVE-PLAN | Strict full-loop plan for `/projects/[projectId]` read-only project record and dashboard de-duplication work. Implemented locally; QA live verification pending. Includes UTF-8/mojibake guardrails. |
-| `e2e-artifacts/project-record-dashboard/IMPLEMENTATION_REPORT.md` | ACTIVE-REPORT | Tracks phase-by-phase implementation status for Project Record + Dashboard IA Cleanup. Current state: local implementation complete through Phase 6. |
-| `e2e-artifacts/project-record-dashboard/VALIDATION_REPORT.md` | ACTIVE-REPORT | Tracks typecheck/test/build/QA validation for this cleanup pass. Local validation passed; QA live verification pending. |
+| `e2e-artifacts/project-record-dashboard/PROJECT_RECORD_DASHBOARD_PLAN.md` | ACTIVE-PLAN | Strict full-loop plan for `/projects/[projectId]` read-only project record and dashboard de-duplication work. Implemented and pushed; live role verification blocked by Vercel protection. Includes UTF-8/mojibake guardrails. |
+| `e2e-artifacts/project-record-dashboard/IMPLEMENTATION_REPORT.md` | ACTIVE-REPORT | Tracks phase-by-phase implementation status for Project Record + Dashboard IA Cleanup. Current state: implementation pushed to QA, live role verification pending. |
+| `e2e-artifacts/project-record-dashboard/VALIDATION_REPORT.md` | ACTIVE-REPORT | Tracks typecheck/test/build/QA validation for this cleanup pass. Local validation passed; QA preview deployed; Vercel protection blocked app-level smoke. |
 | `e2e-artifacts/project-record-dashboard/DECISIONS.md` | ACTIVE-DECISIONS | Records strict scope decisions: read-only project record, DTO-level access, no schema or workflow changes. |
 | `e2e-artifacts/project-record-dashboard/DEFERRED_ITEMS.md` | ACTIVE-DEBT | Tracks deferred items and explicit out-of-scope work. |
 
