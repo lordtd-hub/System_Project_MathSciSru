@@ -4,6 +4,30 @@ import type { UiMode } from "@/lib/uiMode";
 
 type Role = "admin" | "teacher" | "student";
 
+const navIconByHref: Record<string, string> = {
+  "/admin": "OV",
+  "/admin/rounds": "RD",
+  "/admin/proposals": "PP",
+  "/admin/schedules": "SC",
+  "/admin/reports": "RP",
+  "/admin/closeout": "CL",
+  "/admin/evidence": "EV",
+  "/teacher": "IN",
+  "/teacher/schedules": "SC",
+  "/teacher/proposals": "PP",
+  "/teacher/progress1": "P1",
+  "/teacher/progress2": "P2",
+  "/teacher/final": "FN",
+  "/teacher/reports": "RP",
+  "/teacher/advisor-score": "AS",
+  "/student": "OV",
+  "/student/project": "PJ",
+  "/student/proposal": "PP",
+  "/student/schedule": "SC",
+  "/student/report": "RP",
+  "/student/feedback": "FB"
+};
+
 const roleNavigation: Record<Role, { home: string; label: string; items: Array<{ href: string; label: string }> }> = {
   admin: {
     home: "/admin",
@@ -74,8 +98,9 @@ export function FigmaRoleShell({ role, mode, children }: { role: Role; mode: UiM
         </Link>
         <nav className="figma-role-nav">
           {config.items.map((item) => (
-            <Link key={item.href} href={item.href}>
-              {item.label}
+            <Link key={item.href} href={item.href} title={item.label} data-label={item.label}>
+              <span className="figma-role-nav-icon" aria-hidden="true">{navIconByHref[item.href] ?? item.label.slice(0, 2)}</span>
+              <span className="figma-role-nav-label">{item.label}</span>
             </Link>
           ))}
         </nav>

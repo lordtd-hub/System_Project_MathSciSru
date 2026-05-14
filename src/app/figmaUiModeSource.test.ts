@@ -42,6 +42,26 @@ describe("figma UI mode source", () => {
     expect(css).toContain("@apply grid gap-4 lg:grid-cols");
   });
 
+  it("keeps figma chrome and status surfaces compact for dense operational screens", () => {
+    const shell = readSource("src/components/redesign/FigmaRoleShell.tsx");
+    const surfaces = readSource("src/components/redesign/VisualSurfaces.tsx");
+    const statusBadge = readSource("src/components/ui/StatusBadge.tsx");
+    const css = readSource("src/app/globals.css");
+
+    expect(shell).toContain("navIconByHref");
+    expect(shell).toContain("figma-role-nav-icon");
+    expect(shell).toContain("data-label");
+    expect(surfaces).toContain('title={title}');
+    expect(surfaces).toContain("min-w-0 truncate");
+    expect(statusBadge).toContain("max-w-full");
+    expect(statusBadge).toContain("title={displayLabel}");
+    expect(css).toContain("lg:grid-cols-[88px_minmax(0,1fr)]");
+    expect(css).toContain(".figma-role-nav a::after");
+    expect(css).toContain(".figma-action-list:has(> :nth-child(6))");
+    expect(css).toContain("@apply min-h-[4.75rem]");
+    expect(css).toContain("line-clamp-1");
+  });
+
   it("redirects back to the current route after switching modes", () => {
     const action = readSource("src/app/ui-mode/actions.ts");
 

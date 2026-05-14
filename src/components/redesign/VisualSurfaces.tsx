@@ -79,9 +79,11 @@ export function FigmaReviewLayout({ context, action }: { context: ReactNode; act
 }
 
 export function FigmaStatusBadge({ children, tone = "muted" }: { children: ReactNode; tone?: Tone }) {
+  const title = typeof children === "string" ? children : undefined;
+
   return (
-    <span className="figma-status-badge" data-tone={tone}>
-      {children}
+    <span className="figma-status-badge" data-tone={tone} title={title}>
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }

@@ -2052,3 +2052,21 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
 - Next step: push a QA preview for this UI/tooling patch, verify `/student/schedule` visual density in Figma mode, then resume Phase 9 from Progress 1 scoring on the new preview URL.
+
+## 2026-05-14 Phase 9 compact Figma chrome and badges
+
+- Applied a second UI-only density pass from live visual feedback.
+- Figma mode now uses:
+  - compact icon-first role navigation with hover/focus tooltips;
+  - shorter KPI/status cards;
+  - compact/truncated Figma status badges and project status badges;
+  - horizontal overflow for row-like status/action groups;
+  - internal vertical scroll for Figma action/schedule/attempt/notification lists after five items;
+  - a wider review/action column for form-heavy pages.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route, server action, QA data, or production behavior was changed.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - targeted Figma/teacher/UI source tests;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Next step: deploy to QA, live-check compact Figma UI on the latest preview, then resume Phase 9 from Progress 2 scoring.

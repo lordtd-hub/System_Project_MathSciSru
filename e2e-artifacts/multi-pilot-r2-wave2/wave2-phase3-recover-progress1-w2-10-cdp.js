@@ -147,6 +147,37 @@ async function qaLogin(client, role, key) {
   if (!text.includes(expected)) throw new Error(`qa login ${role} ${key || ""}: expected role ${expected} not visible`);
 }
 
+async function openProgress1ExceptionForStudent10(client) {
+  await qaLogin(client, "admin");
+  await goto(client, `${baseUrl}/admin/round-exceptions?round_type=PROGRESS_1&q=R2STU10`);
+  await bodyText(client, "round exceptions W2-10 progress1");
+  const result = await evaluate(client, `
+    (() => {
+      const forms = Array.from(document.querySelectorAll('form')).filter((form) => form.querySelector('input[name="project_id"]'));
+      const form = forms.find((item) => {
+        let node = item;
+        let text = item.innerText || "";
+        for (let depth = 0; depth < 8 && node; depth += 1, node = node.parentElement) text += "\\n" + (node.innerText || "");
+        return text.includes("R2STU10") || text.includes("MULTI-PILOT-R2 Wave 2 Project 10");
+      });
+      if (!form) return "not-found";
+      const reason = form.querySelector('[name="reason"]');
+      if (reason) {
+        reason.value = "Wave 2 planned Progress 1 recovery for Project 10 after round close.";
+        reason.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      const submit = form.querySelector('button[type="submit"]:not([disabled])');
+      if (!submit) return "not-actionable";
+      form.requestSubmit(submit);
+      return "submitted";
+    })()
+  `, "open progress1 exception for W2-10");
+  if (result === "submitted") await sleep(1800);
+  await goto(client, `${baseUrl}/admin/round-exceptions?round_type=PROGRESS_1&q=R2STU10`);
+  const sample = await bodyText(client, "round exceptions W2-10 after open");
+  return { result, sample: sample.slice(0, 1200) };
+}
+
 async function recoverStudent10(client) {
   await qaLogin(client, "student", "multi-r2-student-10");
   await goto(client, `${baseUrl}/student/schedule`);
@@ -226,7 +257,7 @@ async function recoverStudent10(client) {
 async function main() {
   const client = await connectPage();
   try {
-    const result = { baseUrl, student10: await recoverStudent10(client) };
+    const result = { baseUrl, exception: await openProgress1ExceptionForStudent10(client), student10: await recoverStudent10(client) };
     console.log(JSON.stringify(result, null, 2));
   } finally {
     client.ws.close();

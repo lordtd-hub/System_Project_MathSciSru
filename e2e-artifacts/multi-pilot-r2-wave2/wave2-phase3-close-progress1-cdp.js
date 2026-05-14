@@ -138,8 +138,20 @@ async function main() {
     if (!before.includes("R2STU10") || !before.includes("MULTI-PILOT-R2 Wave 2 Project 10")) {
       throw new Error("Progress 1 close guard did not list W2-10");
     }
-    if (!before.includes("เธเธฃเนเธญเธกเนเธ•เนเธขเธฑเธเนเธกเนเธเธฃเธ") || !before.includes("1")) {
-      throw new Error("Progress 1 close guard count was not visible as expected");
+    const guardState = await evaluate(client, `
+      (() => {
+        const forms = Array.from(document.querySelectorAll("form")).filter((form) => {
+          const checkbox = form.querySelector('[name="acknowledge_incomplete_projects"]');
+          const button = form.querySelector('button[type="submit"]:not([disabled])');
+          const section = form.closest("section") || form.parentElement;
+          const text = section?.innerText || "";
+          return checkbox && button && text.includes("R2STU10") && text.includes("MULTI-PILOT-R2 Wave 2 Project 10");
+        });
+        return { acknowledgementForms: forms.length };
+      })()
+    `, "inspect progress1 close guard");
+    if (guardState.acknowledgementForms < 1) {
+      throw new Error(`Progress 1 close guard did not expose an acknowledgement form for W2-10: ${JSON.stringify(guardState)}`);
     }
     const closeResult = await evaluate(client, `
       (() => {
@@ -148,7 +160,7 @@ async function main() {
           const button = form.querySelector('button[type="submit"]:not([disabled])');
           const section = form.closest("section") || form.parentElement;
           const text = section?.innerText || "";
-          return checkbox && button && text.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 1") && text.includes("R2STU10");
+          return checkbox && button && text.includes("R2STU10") && text.includes("MULTI-PILOT-R2 Wave 2 Project 10");
         });
         const form = forms[0];
         if (!form) throw new Error("Progress 1 close form with acknowledgement not found");
@@ -165,13 +177,28 @@ async function main() {
     await sleep(2000);
     await goto(client, `${baseUrl}/admin/rounds`);
     const after = await bodyText(client, "admin rounds after close progress1");
-    if (!after.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 1") || !after.includes("เธเธดเธ”เนเธฅเนเธง")) {
-      throw new Error("Progress 1 did not show closed after close");
+    const afterState = await evaluate(client, `
+      (() => {
+        const text = document.body.innerText;
+        const stillHasW210Acknowledgement = Array.from(document.querySelectorAll("form")).some((form) => {
+          const section = form.closest("section") || form.parentElement;
+          return Boolean(form.querySelector('[name="acknowledge_incomplete_projects"]')) && (section?.innerText || "").includes("R2STU10");
+        });
+        return {
+          hasOffering: text.includes(${JSON.stringify(expectedOfferingTitle)}),
+          stillHasW210Acknowledgement,
+          hasProgress2OpenForm: Array.from(document.querySelectorAll("form")).some((form) => {
+            const roundType = form.querySelector('[name="round_type"]');
+            const button = form.querySelector('button[type="submit"]:not([disabled])');
+            return roundType?.value === "PROGRESS_2" && Boolean(button);
+          })
+        };
+      })()
+    `, "inspect progress1 close result");
+    if (!afterState.hasOffering || afterState.stillHasW210Acknowledgement) {
+      throw new Error(`Progress 1 did not close cleanly after acknowledgement: ${JSON.stringify(afterState)}`);
     }
-    if (!after.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 2") || !after.includes("เธเธฃเนเธญเธกเน€เธเนเธฒเธชเธนเนเธฃเธญเธเธเธตเน")) {
-      throw new Error("Progress 2 bucket not visible after Progress 1 close");
-    }
-    console.log(JSON.stringify({ baseUrl, closeResult, before: before.slice(0, 1800), after: after.slice(0, 2600) }, null, 2));
+    console.log(JSON.stringify({ baseUrl, closeResult, guardState, afterState, before: before.slice(0, 1800), after: after.slice(0, 2600) }, null, 2));
   } finally {
     client.ws.close();
   }

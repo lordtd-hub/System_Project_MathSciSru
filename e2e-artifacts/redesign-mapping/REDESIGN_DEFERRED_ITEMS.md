@@ -35,7 +35,13 @@
 
 ## Visual Density Feedback From Live Figma Regression
 
-- Some status badges/cards, such as advisor-pending style states, are too large for their informational weight and can overflow or wrap into tall blocks.
+- Addressed in the Phase 9 compact chrome/badge follow-up:
+  - Figma role navigator/sidebar is now an icon-first rail with hover/focus tooltips.
+  - Figma KPI/status cards are shorter and lighter.
+  - Figma status badges and project status badges are compact/truncated with full text in title tooltip.
+  - Long repeated Figma queues can scroll internally after five items.
+  - Review/action layouts give more width to the action/form column.
+- Remaining watch item: verify the compact treatment on live teacher/admin pages with very large completed/history queues; some page-specific lists may still need to opt into the shared Figma list classes.
 - Form-heavy pages should prioritize easy data entry: the form area should be wider/full-page where possible, with less decorative framing around the actual inputs.
 - Long status rows should avoid awkward multi-line wrapping. Preferred fixes:
   - reduce badge/card padding and font scale;

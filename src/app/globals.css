@@ -446,7 +446,7 @@
   }
 
   .teacher-compact-queue-list[data-scrollable="true"] {
-    @apply max-h-[22rem] overflow-y-auto;
+    @apply max-h-[20rem] overflow-y-auto;
   }
 
   .teacher-compact-queue-list[data-scrollable="true"] .teacher-compact-queue-item {
@@ -454,7 +454,7 @@
   }
 
   .admin-queue-scroll[data-scrollable="true"] {
-    @apply max-h-[24rem] overflow-y-auto pr-1;
+    @apply max-h-[20rem] overflow-y-auto pr-1;
   }
 
   .teacher-compact-queue-item {
@@ -698,41 +698,59 @@
 
 @layer components {
   .figma-role-shell {
-    @apply mx-0 -my-5 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[260px_minmax(0,1fr)];
+    @apply mx-0 -my-5 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[88px_minmax(0,1fr)];
   }
 
   .figma-role-sidebar {
-    @apply hidden border-r border-line bg-surface px-3 py-4 lg:flex lg:flex-col;
+    @apply hidden border-r border-line bg-surface px-2 py-3 lg:flex lg:flex-col lg:items-center;
     box-shadow: var(--shadow-soft);
   }
 
   .figma-role-brand {
-    @apply flex items-center gap-2 rounded-md border border-line bg-paperSoft p-2.5 text-ink;
+    @apply flex w-full items-center justify-center rounded-md border border-line bg-paperSoft p-2 text-ink;
   }
 
   .figma-role-brand-mark {
     @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand text-base font-bold text-white;
   }
 
-  .figma-role-brand strong {
-    @apply block text-sm font-semibold;
+  .figma-role-brand span:last-child {
+    @apply sr-only;
   }
 
+  .figma-role-brand strong,
   .figma-role-brand small {
-    @apply block text-[10px] font-semibold uppercase text-muted;
-    letter-spacing: 0.06em;
+    @apply block;
   }
 
   .figma-role-nav {
-    @apply mt-4 flex flex-1 flex-col gap-1;
+    @apply mt-4 flex flex-1 flex-col items-center gap-1;
   }
 
   .figma-role-nav a {
-    @apply rounded-md px-2.5 py-2 text-[13px] font-semibold text-muted transition hover:bg-red-50 hover:text-brand;
+    @apply relative flex h-10 w-10 items-center justify-center rounded-md border border-transparent text-[11px] font-bold text-muted transition hover:border-brand/20 hover:bg-red-50 hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand/20;
+  }
+
+  .figma-role-nav a::after {
+    content: attr(data-label);
+    @apply pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-30 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-line bg-surface px-2 py-1 text-xs font-semibold text-ink shadow-md;
+  }
+
+  .figma-role-nav a:hover::after,
+  .figma-role-nav a:focus-visible::after {
+    @apply block;
+  }
+
+  .figma-role-nav-icon {
+    @apply tabular-nums;
+  }
+
+  .figma-role-nav-label {
+    @apply sr-only;
   }
 
   .figma-role-sidebar-footer {
-    @apply mt-5 border-t border-line pt-4;
+    @apply mt-5 w-full border-t border-line pt-3;
   }
 
   .figma-role-main {
@@ -778,12 +796,12 @@
   }
 
   .figma-page-actions {
-    @apply flex flex-wrap gap-2;
+    @apply flex max-w-full flex-nowrap gap-1.5 overflow-x-auto pb-1;
   }
 
   .figma-metric-card {
-    @apply rounded-md border border-line bg-surface p-3 shadow-sm;
-    border-left-width: 3px;
+    @apply min-h-[4.75rem] rounded-md border border-line bg-surface p-2.5 shadow-sm;
+    border-left-width: 2px;
   }
 
   .figma-metric-card[data-tone="action"],
@@ -805,16 +823,16 @@
   }
 
   .figma-metric-card span {
-    @apply block truncate text-[11px] font-semibold uppercase text-muted;
+    @apply block truncate text-[10px] font-semibold uppercase text-muted;
     letter-spacing: 0.05em;
   }
 
   .figma-metric-card strong {
-    @apply mt-1 block text-2xl font-semibold tabular-nums leading-none text-ink;
+    @apply mt-1 block text-xl font-semibold tabular-nums leading-none text-ink;
   }
 
   .figma-metric-card p {
-    @apply mt-1 line-clamp-2 text-[11px] leading-4 text-muted;
+    @apply mt-1 line-clamp-1 text-[10px] leading-4 text-muted;
   }
 
   .figma-panel {
@@ -834,7 +852,7 @@
   }
 
   .figma-review-layout {
-    @apply grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-start;
+    @apply grid gap-4 lg:grid-cols-[minmax(260px,0.72fr)_minmax(560px,1.28fr)] lg:items-start;
   }
 
   .figma-review-context,
@@ -843,7 +861,7 @@
   }
 
   .figma-status-badge {
-    @apply inline-flex max-w-full items-center whitespace-nowrap rounded-full border border-line bg-paperSoft px-2 py-0.5 text-[11px] font-semibold leading-5 text-muted;
+    @apply inline-flex max-w-[12rem] items-center truncate whitespace-nowrap rounded-full border border-line bg-paperSoft px-2 py-0.5 text-[11px] font-semibold leading-5 text-muted;
     border-left-width: 2px;
   }
 
@@ -852,7 +870,7 @@
   }
 
   .figma-kpi-grid {
-    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-5;
+    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-4;
   }
 
   .figma-dashboard-grid {
@@ -868,6 +886,13 @@
   .figma-attempt-list,
   .figma-notification-list {
     @apply space-y-2;
+  }
+
+  .figma-action-list:has(> :nth-child(6)),
+  .figma-schedule-list:has(> :nth-child(6)),
+  .figma-attempt-list:has(> :nth-child(6)),
+  .figma-notification-list:has(> :nth-child(6)) {
+    @apply max-h-[28rem] overflow-y-auto pr-1;
   }
 
   .figma-action-row {

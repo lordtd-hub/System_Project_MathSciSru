@@ -1553,3 +1553,39 @@ Figma-mode mutating regression has reached Progress 1 schedule approval for the 
 ### Next Phase
 
 Commit and deploy this visual-density/tooling correction to QA. After the new QA preview is ready, resume Phase 9 from the same database state using the new preview URL, starting with Progress 1 scoring.
+
+## 2026-05-14 - Phase 9 Figma Chrome / Badge Density Follow-up
+
+### Scope
+
+Addressed live visual feedback during Phase 9 that Figma-mode status badges, KPI/status blocks, long queues, and the role navigator still consumed too much space for their operational value.
+
+### Patch
+
+- Converted the Figma role sidebar into a compact icon-first rail with hover/focus tooltips while preserving the same role routes and links.
+- Reduced the global Figma KPI card height, padding, number size, label size, border weight, and description height.
+- Made Figma status badges and project status badges compact/truncated with full text available through the native title tooltip.
+- Kept row-like status/action groups on one row with horizontal overflow instead of awkward multi-line badge wrapping.
+- Added internal vertical scroll behavior for repeated Figma action/schedule/attempt/notification lists once they exceed five items.
+- Widened the Figma review/action column so form-heavy pages give more space to inputs and scoring forms.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is UI/CSS/component-only. It does not change lifecycle, auth, scoring, eligibility, schema, API semantics, permissions, guards, server actions, route behavior, QA data, or production configuration.
+
+### Validation
+
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts src/app/teacher/teacherWorkloadUxSource.test.ts src/components/ui/uiFoundation.test.ts` - passed, 3 files / 20 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 365 tests.
+- `cmd /c npm.cmd run build` - passed.
+
+### Current Phase 9 State
+
+Phase 9 Figma-mode mutating regression remains in progress on the safe Figma regression offering. Progress 1 close/recovery, Progress 1 Project10 recovery/scoring, Progress 2 opening, Progress 2 student submissions, and Progress 2 schedule approval have passed after the previous QA deployment.
+
+### Next Phase
+
+Commit and deploy this compact chrome/badge follow-up to QA, live-check the student schedule page and one teacher workload page in Figma mode, then resume Phase 9 from Progress 2 scoring on the latest QA preview URL.

@@ -995,3 +995,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd run build` - passed.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Phase 9 Compact Chrome + Badge Density Validation
+
+- Phase: 9 mutating regression follow-up.
+- Scope:
+  - compact Figma role navigator/sidebar;
+  - compact/truncated project and Figma status badges;
+  - shorter Figma KPI/status cards;
+  - horizontal overflow for row-like badge/action groups;
+  - internal vertical scroll for repeated Figma action/schedule/attempt/notification lists after 5 items;
+  - wider Figma review/action column for form-heavy pages.
+- Renderer status:
+  - classic fallback remains available;
+  - figma mode uses the compact visual chrome;
+  - mode switch and route links are unchanged.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts src/app/teacher/teacherWorkloadUxSource.test.ts src/components/ui/uiFoundation.test.ts` - passed, 3 files / 20 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 365 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- QA deployment: pending.
+- Live verification: pending.
