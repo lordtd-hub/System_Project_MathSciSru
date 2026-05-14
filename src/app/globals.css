@@ -902,6 +902,12 @@
     @apply space-y-2;
   }
 
+  .figma-teacher-agenda-list {
+    max-height: 12rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
   .figma-scroll-queue:has(> :nth-child(6)) {
     @apply max-h-[28rem] overflow-y-auto pr-1;
   }
@@ -976,9 +982,17 @@
     @apply grid gap-3 rounded-lg border border-line bg-surface p-3 text-sm transition hover:border-brand hover:bg-paperSoft md:grid-cols-[minmax(0,1fr)_auto] md:items-center;
   }
 
+  .figma-teacher-agenda-list .figma-schedule-row {
+    @apply gap-2 p-2 text-xs;
+  }
+
   .figma-schedule-row strong,
   .figma-attempt-row strong {
     @apply text-ink;
+  }
+
+  .figma-teacher-agenda-list .figma-schedule-row strong {
+    @apply text-sm leading-5;
   }
 
   .figma-schedule-row p,
@@ -986,16 +1000,33 @@
     @apply mt-1 text-sm text-muted;
   }
 
+  .figma-teacher-agenda-list .figma-schedule-row p {
+    @apply mt-0.5 text-xs leading-5;
+  }
+
   .figma-schedule-row small,
   .figma-attempt-row small {
     @apply mt-1 block text-xs leading-5 text-muted;
+  }
+
+  .figma-teacher-agenda-list .figma-schedule-row small {
+    @apply mt-0.5 text-[11px] leading-4;
   }
 
   .figma-schedule-meta {
     @apply flex flex-col gap-2 text-left text-sm font-semibold text-ink md:text-right;
   }
 
+  .figma-teacher-agenda-list .figma-schedule-meta {
+    @apply gap-1 text-xs;
+  }
+
   .figma-schedule-meta > div {
     @apply flex flex-wrap gap-1.5 md:justify-end;
+  }
+
+  .figma-teacher-agenda-list .figma-status-badge {
+    @apply max-w-[8rem] px-1.5 py-0 text-[10px] leading-4;
+    min-height: 1.15rem;
   }
 }

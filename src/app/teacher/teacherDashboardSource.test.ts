@@ -32,6 +32,7 @@ describe("teacher dashboard source", () => {
 
   it("supports safe classic and figma dashboard renderers", () => {
     const page = source();
+    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 
     expect(page).toContain("getUiMode");
     expect(page).toContain("FigmaTeacherDashboardView");
@@ -40,5 +41,9 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("FigmaPageHeader");
     expect(page).toContain("FigmaMetricCard");
     expect(page).toContain("teacherDashboardViewProps");
+    expect(page).toContain("figma-teacher-agenda-list");
+    expect(css).toContain(".figma-teacher-agenda-list");
+    expect(css).toContain("max-height: 12rem");
+    expect(css).toContain(".figma-teacher-agenda-list .figma-status-badge");
   });
 });

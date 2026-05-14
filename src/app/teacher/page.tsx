@@ -303,7 +303,7 @@ function FigmaTeacherDashboardView({
           description="เรียงตามวันเวลา พร้อมบทบาทของอาจารย์ในแต่ละโครงงาน"
           tone={ownConfirmedScheduleAgenda.length ? "success" : "muted"}
         >
-          <div className="figma-schedule-list">
+          <div className="figma-schedule-list figma-teacher-agenda-list">
             {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
               const roles = Array.from(new Set([
                 ...schedule.project.committeeAssignments.map((assignment) => assignment.role),
