@@ -8,6 +8,7 @@ type WorkflowNotificationTemplate = Omit<EmailNotificationPayload, "to" | "actio
 
 type ProjectTemplateInput = {
   projectLabel: string;
+  advisorName?: string;
   recipientName?: string;
 };
 
@@ -36,6 +37,7 @@ export function buildAdvisorRequestEmailTemplate(input: ProjectTemplateInput): W
     title,
     body: [
       input.projectLabel,
+      ...(input.advisorName ? [`อาจารย์ที่ถูกขอเป็นที่ปรึกษา: ${input.advisorName}`] : []),
       "กรุณาเข้าสู่ระบบเพื่อพิจารณาคำขอเป็นอาจารย์ที่ปรึกษา"
     ].join("\n") + recipientLine(input.recipientName),
     actionLabel: "เปิดคำขอที่ปรึกษา",

@@ -30,10 +30,12 @@ describe("notification transports", () => {
   it("builds Thai workflow templates from one template layer", () => {
     expect(buildAdvisorRequestEmailTemplate({
       projectLabel: "65123456 สมชาย ใจดี - หัวข้อทดสอบ",
+      advisorName: "ผศ.ดร.สิทธิโชค ทรงสอาด",
       recipientName: "ผศ.ดร.สิทธิโชค ทรงสอาด"
     })).toMatchObject({
       subject: "มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา",
-      actionLabel: "เปิดคำขอที่ปรึกษา"
+      actionLabel: "เปิดคำขอที่ปรึกษา",
+      body: expect.stringContaining("อาจารย์ที่ถูกขอเป็นที่ปรึกษา: ผศ.ดร.สิทธิโชค ทรงสอาด")
     });
 
     expect(buildExamScheduleProposedEmailTemplate({

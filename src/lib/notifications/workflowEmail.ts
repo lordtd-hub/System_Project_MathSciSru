@@ -63,7 +63,11 @@ export async function notifyAdvisorRequestSubmitted(projectId: string, advisorTe
   ]);
   if (!project || !advisor) return;
 
-  const baseTemplate = buildAdvisorRequestEmailTemplate({ projectLabel: projectLabel(project) });
+  const advisorName = teacherDisplayName(advisor);
+  const baseTemplate = buildAdvisorRequestEmailTemplate({
+    projectLabel: projectLabel(project),
+    advisorName
+  });
   await prisma.notification.create({
     data: {
       projectId,
@@ -88,7 +92,8 @@ export async function notifyAdvisorRequestSubmitted(projectId: string, advisorTe
           actionUrl,
           ...buildAdvisorRequestEmailTemplate({
             projectLabel: projectLabel(project),
-            recipientName: teacherDisplayName(advisor)
+            advisorName,
+            recipientName: advisorName
           })
         }])]
       : [])
