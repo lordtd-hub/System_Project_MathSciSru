@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = () => readFileSync("src/components/ui/RoleDashboardNav.tsx", "utf8");
 
 describe("role dashboard navigation source", () => {
-  it("uses one compact role dashboard return control over the page header", () => {
+  it("uses one compact role dashboard return control before the page header", () => {
     const component = source();
     const css = readFileSync("src/app/globals.css", "utf8");
 
@@ -16,7 +16,8 @@ describe("role dashboard navigation source", () => {
     expect(component).not.toContain("helper:");
     expect(css).toContain(".role-dashboard-nav-copy");
     expect(css).toContain(".role-dashboard-return");
-    expect(css).toContain("@apply relative z-10 h-0");
+    expect(css).toContain("@apply mb-3 flex justify-end");
+    expect(css).not.toContain("@apply relative z-10 h-0");
   });
 
   it("does not duplicate dashboard return buttons inside subpage headers", () => {

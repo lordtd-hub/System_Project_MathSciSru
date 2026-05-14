@@ -650,11 +650,11 @@
   }
 
   .role-dashboard-nav {
-    @apply relative z-10 h-0;
+    @apply mb-3 flex justify-end;
   }
 
   .role-dashboard-nav-copy {
-    @apply flex w-full min-w-0 justify-end px-4 pt-4 sm:px-5;
+    @apply flex w-full min-w-0 justify-end;
   }
 
   .role-dashboard-return {
