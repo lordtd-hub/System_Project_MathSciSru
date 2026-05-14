@@ -1680,3 +1680,23 @@ The patch is presentation-only and does not change lifecycle, auth, scoring, eli
 ### Next Phase
 
 Validate locally, deploy to QA, live-check teacher dashboard and advisor-score/report pages in Figma mode, then resume Phase 9 Progress 2 scoring.
+
+### QA Deployment And Live Verification
+
+- Commit: `c497d81`.
+- QA preview: `https://system-project-math-sci-jypb0gct0-lordtd-hubs-projects.vercel.app`.
+- Live verification passed in Figma mode with the persistent Edge CDP teacher verifier.
+- Verified routes:
+  - `/teacher`
+  - `/teacher/schedules`
+  - `/teacher/proposals`
+  - `/teacher/progress1`
+  - `/teacher/progress2`
+  - `/teacher/final`
+  - `/teacher/reports`
+  - `/teacher/advisor-score`
+- Result:
+  - teacher dashboard no longer shows the redundant KPI strip;
+  - redundant dashboard quick-link widget is gone in Figma mode;
+  - normal vertical page scrolling remains available;
+  - no shell-only page, digest/application error, unauthorized guard page, or horizontal overflow was detected.

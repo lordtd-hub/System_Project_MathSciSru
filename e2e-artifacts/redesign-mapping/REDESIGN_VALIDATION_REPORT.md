@@ -573,8 +573,15 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
 - Follow-up:
   - build initially reported an unused variable warning in `/admin/closeout`;
   - the warning was patched and the full validation cycle was rerun successfully.
-- QA deployment: pending.
-- Live verification: pending.
+- QA deployment:
+  - commit `c497d81`;
+  - QA preview `https://system-project-math-sci-jypb0gct0-lordtd-hubs-projects.vercel.app`.
+- Live verification:
+  - persistent Edge CDP used in Figma mode;
+  - teacher verifier passed for `/teacher`, `/teacher/schedules`, `/teacher/proposals`, `/teacher/progress1`, `/teacher/progress2`, `/teacher/final`, `/teacher/reports`, and `/teacher/advisor-score`;
+  - `/teacher` Figma dashboard no longer shows the redundant KPI strip or the duplicated quick-link widget;
+  - normal page vertical scrolling remains available because automatic list height locking is no longer global;
+  - no shell-only page, digest/application error, unauthorized guard page, or horizontal overflow was detected.
 
 ### QA Deployment And Live Verification
 

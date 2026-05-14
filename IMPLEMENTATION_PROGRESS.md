@@ -2111,4 +2111,13 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Hid the redundant Figma teacher dashboard KPI strip because the action workspace already provides the same "now / total / waiting" information.
 - Changed internal scroll behavior to opt-in only, so pages keep normal vertical scrolling unless a specific queue deliberately asks for its own scroll area.
 - No lifecycle, auth, scoring, eligibility, schema, API, permission, route, server action, QA data, or production behavior was changed.
-- Next step: validate, deploy to QA, live-check the compact/full-detail presentation, then resume Phase 9 Progress 2 scoring.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - targeted Figma/teacher tests;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- QA deployment passed:
+  - commit `c497d81`;
+  - preview `https://system-project-math-sci-jypb0gct0-lordtd-hubs-projects.vercel.app`.
+- Live teacher Figma verification passed for all teacher routes with no shell-only page, no unauthorized guard page, and no detected horizontal overflow.
+- Next step: resume Phase 9 Progress 2 scoring on the safe Figma regression offering.
