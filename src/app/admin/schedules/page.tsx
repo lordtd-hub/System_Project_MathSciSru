@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { AdminOperationalSummary, AdminQueueBadge } from "@/components/ui/AdminOperationalQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { prisma } from "@/lib/db";
@@ -64,12 +63,6 @@ export default async function AdminSchedulesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="ตารางสอบของรายวิชา" description="รายการวันที่นักศึกษาส่งสำหรับการสอบความก้าวหน้าครั้งที่ 1 ครั้งที่ 2 และการสอบนำเสนอขั้นสุดท้าย" />
-      <GuidancePanel
-        title="ภาพรวมตารางสอบ"
-        current="ผู้ดูแลระบบเห็นรายการของทุกโครงงานในรายวิชา"
-        next="ใช้หน้านี้เพื่อติดตามรายการที่ส่งแล้วและสถานะการพิจารณา"
-        actor="ผู้ดูแลระบบ"
-      />
       <AdminOperationalSummary
         title="สรุปตารางสอบ"
         description="แยกรายการที่รอการยืนยันออกจากรายการที่ยืนยันแล้ว เพื่อให้สแกนงานจำนวนมากได้เร็วขึ้น"

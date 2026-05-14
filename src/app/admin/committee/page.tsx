@@ -4,7 +4,6 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { assignProjectCommittee } from "@/app/admin/actions";
 import { WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -46,12 +45,6 @@ export default async function AdminCommitteePage({
       {params.success === "committee_saved" ? (
         <Link className="button" href="/admin/rounds">ไปหน้าเปิดรอบสอบความก้าวหน้าครั้งที่ 1</Link>
       ) : null}
-      <GuidancePanel
-        title="กติกาการแต่งตั้ง"
-        current="ตรวจอาจารย์ที่ปรึกษาที่อนุมัติแล้ว และเลือกประธานกับกรรมการ"
-        next="หลังแต่งตั้งครบ โครงงานจะเข้าสู่ขั้นดำเนินงาน และนักศึกษาจะเสนอวันสอบความก้าวหน้า/สอบนำเสนอขั้นสุดท้าย"
-        actor="ผู้ดูแลระบบเป็นผู้แต่งตั้งกรรมการ"
-      />
       <WarningAlert title="เงื่อนไขที่ต้องตรวจ">
         ต้องมีประธานอย่างน้อย 1 คน และกรรมการอย่างน้อย 1 คน โดยอาจารย์ที่ปรึกษาจะแสดงเป็นบทบาทที่ปรึกษาอัตโนมัติ และไม่ควรเลือกซ้ำเป็นประธานหรือกรรมการ
       </WarningAlert>

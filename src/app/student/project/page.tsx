@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormSection } from "@/components/ui/FormSection";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
@@ -104,12 +103,6 @@ export default async function StudentProjectPage({
           </p>
         </section>
       ) : null}
-      <GuidancePanel
-        title="ขั้นร่างหัวข้อ"
-        current="กรอกชื่อหัวข้อ เหตุผล ขอบเขต และเลือกอาจารย์ที่ปรึกษา"
-        next="ระบบจะส่งคำขอไปยังอาจารย์ที่ปรึกษา หากถูกปฏิเสธจะกลับมาแก้ไขในสถานะ DRAFT"
-        actor="นักศึกษาเริ่มส่งคำขอ จากนั้นอาจารย์ที่ปรึกษาเป็นผู้อนุมัติ"
-      />
       {advisorRequest ? (
         <section className="panel">
           <h2 className="font-semibold">คำขอที่ปรึกษาล่าสุด</h2>

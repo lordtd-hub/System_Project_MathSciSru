@@ -4,7 +4,6 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormSection } from "@/components/ui/FormSection";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
@@ -146,12 +145,6 @@ export default async function ProposalSubmissionPage({
           ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์และผู้ดูแลระบบดำเนินการตามสถานะโครงงาน
         </InfoAlert>
       ) : null}
-      <GuidancePanel
-        title="การส่งเอกสารเสนอหัวข้อ"
-        current="กรอก abstract และแนบลิงก์ Google Drive/Docs/Classroom"
-        next="อาจารย์จะให้ข้อเสนอแนะได้ทันที คะแนนการเสนอหัวข้อจะไม่แสดงให้นักศึกษาเห็น"
-        actor="นักศึกษาเป็นผู้ส่งข้อมูล จากนั้นอาจารย์ภายในเป็นผู้ประเมิน"
-      />
       <InfoAlert title="การแสดงผลให้นักศึกษา">
         นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่คะแนนการเสนอหัวข้อจะถูกซ่อน
       </InfoAlert>
@@ -194,9 +187,6 @@ export default async function ProposalSubmissionPage({
       ) : (
       <ProposalDraftForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`} clearOnSuccess={params.success === "proposal_submitted"}>
         <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
-          <InfoAlert title="คำแนะนำตาม rubric">
-            Background: อธิบายปัญหา บริบท/กลุ่มผู้ใช้ และเหตุผลที่ปัญหาสำคัญ · Objectives: ระบุสิ่งที่จะศึกษา/พัฒนา/พิสูจน์/วิเคราะห์/สร้าง/ประเมินให้ตรงหัวข้อและตรวจสอบผลได้ · Methods: เขียนขั้นตอนตามลำดับและเชื่อมกับวัตถุประสงค์ · Expected outcomes: ระบุผลลัพธ์ที่ตรวจสอบได้ · Timeline: ครอบคลุม 16 สัปดาห์ · Supporting documents: ใส่ทฤษฎี งานที่เกี่ยวข้อง เครื่องมือ หรือวรรณกรรมที่เกี่ยวข้อง
-          </InfoAlert>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label>ชื่อเอกสารเสนอหัวข้อภาษาไทย</label>

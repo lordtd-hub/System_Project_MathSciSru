@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { CompactLifecycleBadge } from "@/components/ui/LifecycleStepper";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -371,12 +370,6 @@ export default async function AdminDashboardPage({
           </section>
         </div>
       </div>
-      <GuidancePanel
-        title="คำแนะนำสำหรับผู้ดูแลระบบ"
-        current="ตรวจรายการค้าง เช่น การยืนยันโครงงาน การตัดสินผลเสนอหัวข้อ คำขอผูกบัญชีอาจารย์ และการแต่งตั้งกรรมการ"
-        next="ระบบไม่ตัดสินผลการเสนอหัวข้ออัตโนมัติ ผู้ดูแลระบบต้องยืนยันผลสุดท้ายด้วยตนเอง"
-        actor="ผู้ดูแลระบบเป็นผู้ยืนยันขั้นสำคัญและดูแลหลักฐาน"
-      />
       {failAlertCount ? (
         <WarningAlert title="มีเอกสารเสนอหัวข้อที่มีผลไม่ผ่านตั้งแต่ 50%">
           กรุณาตรวจผลพิจารณาและข้อเสนอแนะอย่างละเอียดก่อนตัดสินผลสุดท้าย

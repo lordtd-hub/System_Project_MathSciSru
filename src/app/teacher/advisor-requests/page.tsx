@@ -4,7 +4,6 @@ import { reviewAdvisorRequest } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -61,12 +60,6 @@ export default async function TeacherAdvisorRequestsPage({
         description="ตรวจหัวข้อของนักศึกษา แล้วตอบรับหรือปฏิเสธพร้อมเหตุผล"
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="การอนุมัติที่ปรึกษา"
-        current="อ่านชื่อหัวข้อ เหตุผล และเอกสารที่นักศึกษาส่ง"
-        next="ถ้าอนุมัติ โครงงานจะเข้าสู่ขั้นรอผู้ดูแลระบบยืนยัน ถ้าปฏิเสธจะกลับสู่ขั้นร่างหัวข้อพร้อมเก็บประวัติ"
-        actor="อาจารย์ที่ถูกเลือกเป็นที่ปรึกษา"
-      />
       <div className="space-y-3">
         {requests.length ? (
           requests.map((request) => {

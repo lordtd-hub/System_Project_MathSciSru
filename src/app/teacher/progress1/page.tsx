@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -91,12 +90,6 @@ export default async function TeacherProgress1Page({
     <div className="space-y-6">
       <PageHeader title="บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1" description="สำหรับประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="การประเมินความก้าวหน้าครั้งที่ 1"
-        current="ให้คะแนนจากเกณฑ์แบบตรวจเงื่อนไข 100 คะแนน โดยเทียบกับหลักฐานและแผนงานที่นักศึกษาส่งไว้"
-        next="ระบบบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน โดยไม่เปลี่ยนขั้นตอนโครงงานอัตโนมัติ"
-        actor="ประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้ง"
-      />
       <TeacherWorkloadSummary
         metrics={[
           { label: "ต้องดำเนินการ", count: projects.length, tone: "action", description: "พร้อมให้คะแนน Progress 1" },

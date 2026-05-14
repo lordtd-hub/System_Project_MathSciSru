@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { seedTeacherBaselineFromAdmin, updateTeacherEmail } from "@/app/admin/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -28,16 +27,10 @@ export default async function AdminTeachersPage({
     <div className="space-y-6">
       <PageHeader
         title="จัดการอาจารย์"
-        description="ดูโปรไฟล์อาจารย์และตั้งค่าอีเมลสำหรับการผูกบัญชี Google"
+        description="ดูโปรไฟล์อาจารย์และตั้งค่าอีเมลสำหรับการผูกบัญชี Google หลังแก้อีเมลให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่"
         actions={<Link className="button" href="/admin/claims">คำขอผูกบัญชี {pendingClaims}</Link>}
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="อีเมลอาจารย์"
-        current="ผู้ดูแลระบบแก้ได้เฉพาะอีเมลของโปรไฟล์อาจารย์ เพื่อให้ระบบผูกบัญชีกับ Google login ครั้งถัดไป"
-        next="หลังบันทึกอีเมล ให้อาจารย์ออกจากระบบแล้วเข้าสู่ระบบใหม่เพื่อปรับปรุงสิทธิ์ผู้ดูแลระบบ/อาจารย์"
-        actor="การอนุมัติคำขอผูกบัญชีอาจารย์ยังทำที่หน้าคำขอผูกบัญชีอาจารย์เหมือนเดิม"
-      />
       <section className="panel">
         <h2 className="text-lg font-semibold">รายชื่ออาจารย์</h2>
         {teachers.length ? (

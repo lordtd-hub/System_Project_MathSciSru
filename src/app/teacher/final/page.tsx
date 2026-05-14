@@ -4,7 +4,6 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FinalEvidenceContinuityPanel } from "@/components/ui/FinalEvidenceContinuityPanel";
 import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -84,12 +83,6 @@ export default async function TeacherFinalPage({
     <div className="space-y-6">
       <PageHeader title="บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย" description="สำหรับประธานหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="การประเมินการสอบนำเสนอขั้นสุดท้าย"
-        current="ประเมินการสอบขั้นสุดท้ายด้วยเกณฑ์แบบตรวจเงื่อนไข รวม 100 คะแนน โดยตรวจหลักฐานที่เชื่อมกับเอกสารเสนอหัวข้อ การสอบความก้าวหน้า รายงาน และการตอบคำถาม"
-        next="ระบบบันทึกคะแนนไว้ก่อน และจะเข้าสู่ขั้นตอนส่งรายงานฉบับสมบูรณ์เมื่อผลการประเมินของกรรมการครบตามเงื่อนไข"
-        actor="ประธานหรือกรรมการที่ได้รับแต่งตั้ง"
-      />
       {!finalRound ? (
         <EmptyState title="ยังไม่มีรอบสอบนำเสนอขั้นสุดท้าย" description="ผู้ดูแลระบบต้องเปิดรอบสอบนำเสนอขั้นสุดท้ายระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
       ) : null}

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseOfferingLabel, defaultCourseTitle } from "@/lib/admin/courseOffering";
@@ -34,12 +33,6 @@ export default async function ImportStudentsPage({
         description="เริ่มจากเปิดรายวิชาด้วยปีการศึกษาและภาคเรียน จากนั้นนำเข้านักศึกษาให้ผูกกับรายวิชานั้น"
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="ขั้นตอนการใช้งานจริง"
-        current="เปิดรายวิชาด้วยปีการศึกษาและภาคเรียน เช่น 2569 / ภาคเรียนที่ 1"
-        next="หลังเปิดรายวิชาแล้ว เลือกรายวิชานั้นในฟอร์มนำเข้านักศึกษา"
-        actor="ผู้ดูแลระบบเท่านั้นที่เปิดรายวิชาและนำเข้ารายชื่อนักศึกษาได้"
-      />
 
       <section className="panel">
         <h2 className="text-lg font-semibold">เปิดรายวิชา</h2>

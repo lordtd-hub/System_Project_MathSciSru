@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
@@ -80,12 +79,6 @@ export default async function TeacherProposalsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="ประเมินการเสนอหัวข้อ" description="อ่านบทคัดย่อและเอกสารแนบก่อนประเมินตามเกณฑ์" />
-      <GuidancePanel
-        title="แนวทางประเมิน"
-        current="ตรวจเอกสารแนบและให้คะแนนตามเกณฑ์การเสนอหัวข้อ"
-        next="นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่ไม่เห็นคะแนนการเสนอหัวข้อ"
-        actor="อาจารย์ภายในที่ประเมินการเสนอหัวข้อ"
-      />
       <InfoAlert title="ข้อควรระวัง">
         การเลือก REVISE หรือ FAIL ควรระบุเหตุผลชัดเจนเพื่อให้นักศึกษาแก้ไขได้ตรงจุด
       </InfoAlert>

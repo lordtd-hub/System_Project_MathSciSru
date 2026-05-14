@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -156,12 +155,6 @@ export default async function ProposalScoringPage({
             : "รอบประเมินปิดแล้ว จึงไม่สามารถเริ่มหรือส่งคะแนนการเสนอหัวข้อเพิ่มจากหน้านี้ได้"}
         </InfoAlert>
       ) : null}
-      <GuidancePanel
-        title="แนวทางก่อนส่งคะแนน"
-        current="อ่าน abstract และเอกสารแนบ จากนั้นเลือก checklist ตามหลักฐานที่พบ"
-        next="ระบบจะบันทึกคะแนนและผลพิจารณา แต่แสดงให้นักศึกษาเห็นเฉพาะข้อเสนอแนะพร้อมชื่ออาจารย์"
-        actor="อาจารย์ผู้ประเมินการเสนอหัวข้อ"
-      />
       <InfoAlert title="การมองเห็นของนักศึกษา">
         นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่จะไม่เห็นคะแนนการเสนอหัวข้อ
       </InfoAlert>

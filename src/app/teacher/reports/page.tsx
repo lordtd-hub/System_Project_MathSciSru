@@ -3,7 +3,6 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { reviewReportVersion } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -102,12 +101,6 @@ export default async function TeacherReportsPage({
         description="อาจารย์ที่ปรึกษา ประธานกรรมการ และกรรมการที่ได้รับแต่งตั้งสามารถอนุมัติหรือขอให้นักศึกษาแก้ไขรายงานได้"
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="ขั้นตอนการตรวจรายงาน"
-        current="ตรวจเฉพาะรายงานฉบับล่าสุดของโครงงานที่อยู่ระหว่างการตรวจรายงาน"
-            next="ถ้าอาจารย์ที่ปรึกษาและกรรมการที่กำหนดอนุมัติครบ ระบบจะเปลี่ยนเป็นขั้นตอนบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา"
-        actor="อาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการที่ได้รับแต่งตั้ง"
-      />
       <TeacherWorkloadSummary
         metrics={[
           { label: "ต้องดำเนินการ", count: reportQueueCount("action"), tone: "action", description: "รายงานฉบับล่าสุดที่รอผลตรวจของท่าน" },

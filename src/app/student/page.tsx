@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { LifecycleStepper } from "@/components/ui/LifecycleStepper";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { NextActionCard } from "@/components/ui/NextActionCard";
@@ -784,13 +783,6 @@ export default async function StudentDashboardPage() {
 
         <TaskListCard title="รายการที่ต้องติดตาม" tasks={displayStudentTrackingTasks} />
       </div>
-
-      <GuidancePanel
-        title="คำแนะนำสำหรับนักศึกษา"
-        current="ดูสถานะปัจจุบันและทำรายการที่ระบบแนะนำก่อน"
-        next="ระบบจะบันทึกประวัติทุกครั้งเพื่อใช้เป็นหลักฐาน และแจ้งเตือนเมื่อมีผู้เกี่ยวข้องต้องดำเนินการ"
-        actor="ขึ้นอยู่กับสถานะ อาจเป็นนักศึกษา อาจารย์ที่ปรึกษา กรรมการ หรือผู้ดูแลระบบ"
-      />
 
       {project.status === "PROPOSAL_REVIEW" ? (
         <InfoAlert title="การแสดงผลการเสนอหัวข้อ">

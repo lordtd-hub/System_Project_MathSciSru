@@ -5,7 +5,6 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, SuccessAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormSection } from "@/components/ui/FormSection";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
@@ -109,12 +108,6 @@ export default async function StudentReportPage({
         }
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="ขั้นตอนการตรวจรายงาน"
-        current={reportSubmissionReasonLabel(gate.reason)}
-        next="หากผู้ตรวจขอให้แก้ไข นักศึกษาสามารถส่งรายงานฉบับใหม่จากหน้านี้"
-        actor="นักศึกษาและอาจารย์ผู้ตรวจเล่ม"
-      />
       <StudentReadabilitySummary
         title="สรุปสถานะรายงาน"
         description="หน้านี้แยกงานที่นักศึกษาต้องทำออกจากสถานะที่รอผู้ตรวจ เพื่อไม่ให้เข้าใจว่าต้องส่งซ้ำระหว่างรอผล"
@@ -157,19 +150,6 @@ export default async function StudentReportPage({
         </WarningAlert>
       ) : null}
       <InfoAlert title="รูปแบบลิงก์">ใช้ลิงก์ Google Drive, Google Docs หรือ Google Classroom เท่านั้น และช่องสรุปการแก้ไขรองรับ Markdown/LaTeX</InfoAlert>
-      {(
-        <div className="space-y-4">
-          <section className="panel">
-            <h2 className="text-lg font-semibold">คำแนะนำสำหรับหลักฐานรายงาน</h2>
-            <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
-            <p>รายงานควรมีบทคัดย่อ ความเป็นมา วัตถุประสงค์ วิธีดำเนินงาน ผลการดำเนินงาน สรุปผล และเอกสารอ้างอิงครบถ้วน</p>
-              <p>วัตถุประสงค์ วิธีดำเนินงาน และผลลัพธ์ในรายงานควรสอดคล้องกันและตรวจสอบย้อนกลับไปยังเอกสารเสนอหัวข้อได้</p>
-            <p>ผลลัพธ์หรือข้อสรุปควรมีหลักฐานรองรับ เช่น การพิสูจน์ การวิเคราะห์ ชิ้นงานระบบ ผลการทดลอง หรือเอกสารประกอบที่ตรวจสอบได้</p>
-            <p>สมการ รูปภาพ ตาราง และเอกสารอ้างอิงควรมีรูปแบบสม่ำเสมอ เพื่อใช้เป็นหลักฐานประกอบการประกันคุณภาพการศึกษา</p>
-            </div>
-          </section>
-        </div>
-      )}
 
       <FormSection title={reportActionLabel} description={reportSubmissionReasonLabel(gate.reason)}>
         {gate.allowed ? (

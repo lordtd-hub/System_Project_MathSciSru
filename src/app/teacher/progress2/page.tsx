@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -99,12 +98,6 @@ export default async function TeacherProgress2Page({
     <div className="space-y-6">
       <PageHeader title="บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2" description="สำหรับประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="การประเมินความก้าวหน้าครั้งที่ 2"
-        current="ให้คะแนนจากเกณฑ์แบบตรวจเงื่อนไข 100 คะแนน โดยเทียบกับหลักฐานและแผนงานที่นักศึกษาส่งไว้"
-        next="ระบบบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน โดยไม่เปลี่ยนขั้นตอนโครงงานอัตโนมัติ"
-        actor="ประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้ง"
-      />
       {!progress2Round ? (
         <EmptyState title="ยังไม่มีรอบสอบความก้าวหน้าครั้งที่ 2" description="ผู้ดูแลระบบต้องเปิดรอบสอบความก้าวหน้าครั้งที่ 2 ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
       ) : null}

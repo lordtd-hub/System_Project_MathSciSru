@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { courseOfferingLabel } from "@/lib/admin/courseOffering";
 import { prisma } from "@/lib/db";
@@ -18,12 +17,6 @@ export default async function AdminStudentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="จัดการนักศึกษา" description="ตรวจรายชื่อนักศึกษาและโครงงานที่นำเข้าแล้ว การนำเข้าต้องเลือกรายวิชาที่เปิดไว้จริง" />
-      <GuidancePanel
-        title="การนำเข้านักศึกษา"
-        current="ใช้คอลัมน์ student_code, first_name_th, last_name_th เท่านั้น"
-        next="เปิดรายวิชาจากปีการศึกษาและภาคเรียนก่อน แล้วนำเข้า CSV ในรายวิชานั้น"
-        actor="ผู้ดูแลระบบเป็นผู้นำเข้าและตรวจความถูกต้อง"
-      />
       <section className="panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

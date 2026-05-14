@@ -4,7 +4,6 @@ import { reviewExamSchedule } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -135,12 +134,6 @@ export default async function TeacherSchedulesPage({
     <div className="flex flex-col gap-6">
       <PageHeader title="ตารางสอบที่เกี่ยวข้อง" description="รายการวันสอบที่นักศึกษาส่งภายใต้รอบสอบระดับรายวิชา" />
       <ActionFeedback success={params?.success} error={params?.error} />
-      <GuidancePanel
-        title="การดูตารางสอบ"
-        current="อาจารย์เห็นรายการที่ตนเป็นที่ปรึกษา หรือได้รับแต่งตั้งเป็นกรรมการของโครงงาน"
-        next="พิจารณาอนุมัติหรือไม่อนุมัติวันสอบจากข้อมูลที่นักศึกษาเสนอ"
-        actor="อาจารย์ที่ปรึกษา ประธานกรรมการ และกรรมการ"
-      />
       <TeacherWorkloadSummary
         metrics={[
           { label: "ต้องดำเนินการ", count: pendingReviewSchedules.length, tone: "action", description: "คำขอวันสอบที่รอท่านอนุมัติ" },

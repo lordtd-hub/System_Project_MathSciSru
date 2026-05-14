@@ -6,7 +6,6 @@ import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { FormSection } from "@/components/ui/FormSection";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
@@ -305,12 +304,6 @@ export default async function StudentSchedulePage({
           }
         ]}
       />
-      <GuidancePanel
-        title="การนัดสอบ"
-        current="นักศึกษาเสนอวัน เวลา ห้องสอบ และหมายเหตุให้กรรมการพิจารณา"
-        next="เมื่อส่งแล้ว กรรมการที่ได้รับแต่งตั้งจะเห็นรายการนี้ในหน้าตารางสอบ"
-        actor="นักศึกษาส่งคำขอ ประธานและกรรมการเป็นผู้พิจารณาตามขั้นตอนปัจจุบัน"
-      />
       <section className="panel" data-testid="student-schedule-round-guidance">
         <h2 className="text-lg font-semibold">เกณฑ์และหลักฐานแยกตามรอบสอบ</h2>
         <p className="mt-1 text-sm text-muted">
@@ -358,15 +351,6 @@ export default async function StudentSchedulePage({
               </>
             ) : (
               <>
-                <section className="panel">
-                  <h2 className="text-lg font-semibold">คำแนะนำสำหรับการสอบนำเสนอขั้นสุดท้าย</h2>
-                  <div className="mt-3 grid gap-3 text-sm text-muted md:grid-cols-2">
-                    <p>การสอบนำเสนอขั้นสุดท้ายจะตรวจว่างานที่เสร็จแล้วสอดคล้องกับวัตถุประสงค์ที่อนุมัติในเอกสารเสนอหัวข้อหรือไม่</p>
-                    <p>หลักฐานควรเป็นผลลัพธ์ที่ตรวจสอบได้ เช่น proof draft, dataset, implementation, screenshots, experiment results, logs หรือ report sections</p>
-                    <p>วิธีดำเนินงานและผลลัพธ์ควรเชื่อมกับแผน 16 สัปดาห์ และประวัติการสอบความก้าวหน้าที่เคยส่งไว้</p>
-                    <p>ถ้ามีการเลื่อน/ปรับแผน ให้เตรียมเหตุผลและหลักฐานประกอบการอธิบายต่อกรรมการ</p>
-                  </div>
-                </section>
                 <FinalQaRubricPanel audience="student" />
               </>
             )}

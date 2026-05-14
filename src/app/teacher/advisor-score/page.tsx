@@ -3,7 +3,6 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { submitAdvisorScore } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -120,12 +119,6 @@ export default async function TeacherAdvisorScorePage({
         description="บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาหลังเล่มรายงานผ่านการตรวจแล้ว ระบบยังไม่ยืนยันจบโครงงานในขั้นตอนนี้"
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="คะแนนสรุปของอาจารย์ที่ปรึกษา"
-        current="เปิดให้บันทึกเมื่อรายงานฉบับสมบูรณ์ผ่านการตรวจแล้ว"
-        next="เมื่อบันทึกแล้ว โครงงานจะรอผู้ดูแลระบบตรวจเงื่อนไขและยืนยันจบโครงงาน"
-        actor="อาจารย์ที่ปรึกษาของโครงงานเท่านั้น"
-      />
       <TeacherWorkloadSummary
         metrics={[
           { label: "ต้องดำเนินการ", count: advisorQueueCount("action"), tone: "action", description: "พร้อมบันทึกคะแนนที่ปรึกษา" },
