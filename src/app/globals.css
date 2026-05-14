@@ -650,15 +650,19 @@
   }
 
   .role-dashboard-nav {
-    @apply mb-4 flex flex-col gap-2 rounded-lg border border-line bg-paperSoft p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between;
+    @apply mb-4 rounded-lg border border-line bg-paperSoft p-3 shadow-sm;
   }
 
   .role-dashboard-nav-copy {
-    @apply flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3;
+    @apply flex min-w-0 flex-wrap items-center gap-2;
   }
 
   .role-dashboard-context {
     @apply inline-flex w-fit rounded-full border border-brand/20 bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand;
+  }
+
+  .role-dashboard-return {
+    @apply w-fit justify-center px-3 py-2 text-sm;
   }
 
   .responsive-scroll {

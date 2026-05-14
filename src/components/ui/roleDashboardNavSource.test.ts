@@ -12,10 +12,13 @@ describe("role dashboard navigation source", () => {
     expect(component).toContain("กลับแดชบอร์ดอาจารย์");
     expect(component).toContain("กลับแดชบอร์ดนักศึกษา");
     expect(component).toContain("role-dashboard-context");
+    expect(component).toContain("role-dashboard-return");
     expect(component).toContain("getContextLabel");
     expect(component).not.toContain("secondaryHref");
+    expect(component).not.toContain("helper:");
     expect(css).toContain(".role-dashboard-context");
     expect(css).toContain(".role-dashboard-nav-copy");
+    expect(css).toContain(".role-dashboard-return");
   });
 
   it("does not duplicate dashboard return buttons inside subpage headers", () => {

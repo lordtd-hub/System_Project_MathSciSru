@@ -11,17 +11,14 @@ const roleConfig = {
   admin: {
     href: "/admin",
     label: "กลับแดชบอร์ดผู้ดูแลระบบ",
-    helper: "กลับไปดูภาพรวมงานของผู้ดูแลระบบ",
   },
   teacher: {
     href: "/teacher",
     label: "กลับแดชบอร์ดอาจารย์",
-    helper: "กลับไปดูงานที่เกี่ยวข้องกับอาจารย์",
   },
   student: {
     href: "/student",
     label: "กลับแดชบอร์ดนักศึกษา",
-    helper: "กลับไปดูขั้นตอนปัจจุบันของนักศึกษา",
   }
 } as const;
 
@@ -79,10 +76,7 @@ export function RoleDashboardNav({ role }: RoleDashboardNavProps) {
     <nav className="role-dashboard-nav">
       <div className="role-dashboard-nav-copy">
         <span className="role-dashboard-context">{contextLabel}</span>
-        <span className="text-sm text-muted">{config.helper}</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Link className="button-secondary w-full justify-center sm:w-auto" href={config.href}>
+        <Link className="button-secondary role-dashboard-return" href={config.href}>
           {config.label}
         </Link>
       </div>
