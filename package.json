@@ -20,6 +20,7 @@
     "seed:production-baseline": "tsx prisma/seed-production-baseline.ts",
     "prisma:seed:demo": "tsx prisma/seed-demo.ts",
     "prisma:seed:demo:clean": "tsx prisma/clean-demo.ts",
+    "qa:manual:reset-seed": "tsx prisma/qa-manual-reset-seed.ts",
     "dev:reset-demo": "tsx prisma/clean-demo.ts && tsx prisma/seed-demo.ts",
     "e2e:lifecycle": "tsx tests/e2e/lifecycle-v2.ts"
   },

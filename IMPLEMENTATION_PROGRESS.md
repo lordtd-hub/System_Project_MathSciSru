@@ -9,6 +9,29 @@
 - Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
 - Next step: Import the real student roster only when ready, then verify teacher/admin role capability after logout/login.
 
+## 2026-05-14 QA manual guide data preparation
+
+- Started the manual-guide preparation track for creating user manuals on QA, not production, because production authentication depends on real SRU Google accounts.
+- Added QA-only `MANUAL-DEMO` identities for:
+  - one admin manual account;
+  - three student manual accounts;
+  - eleven teacher options using the real teacher names, while preserving the teacher master records.
+- Added guarded reset/seed script `qa:manual:reset-seed` for QA manual data only. The script refuses `VERCEL_ENV=production` and requires `QA_MANUAL_RESET_CONFIRM=RESET_QA_FOR_MANUAL_GUIDE`; remote database reset also requires `QA_MANUAL_ALLOW_REMOTE_RESET=1`.
+- Added manual preparation docs:
+  - `e2e-artifacts/manual-guide/QA_MANUAL_DATA_PREP.md`;
+  - `e2e-artifacts/manual-guide/MANUAL_CAPTURE_PLAN.md`.
+- Added UTF-8/mojibake guardrails:
+  - `.editorconfig` with `charset = utf-8`;
+  - `.gitattributes` with repository-level LF normalization;
+  - `src/app/encodingPolicySource.test.ts` for Thai manual text and CSV UTF-8 BOM checks.
+- The reset/seed script has not been run yet in this pass; next step is to confirm the intended QA database environment and then run the guarded script when ready.
+- Validation so far:
+  - `cmd /c npm.cmd test -- qaLoginSource`;
+  - `cmd /c npm.cmd test -- encodingPolicySource qaLoginSource`;
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+
 ## 2026-05-14 Classic UI text/readability cleanup
 
 - Continued the frontend-only cleanup track after the classic UX audit. This is not a Wave 2 execution step and does not mutate pilot data.

@@ -36,6 +36,7 @@ describe("QA login source guards", () => {
 
   it("explains the multi-user QA identity design without exposing secrets", () => {
     const pageSource = readFileSync(join(root, "src/app/qa-login/page.tsx"), "utf8");
+    const qaLoginSource = readFileSync(join(root, "src/lib/auth/qaLogin.ts"), "utf8");
 
     expect(pageSource).toContain("Multi-User Pilot");
     expect(pageSource).toContain("MULTI-PILOT-R2 operational simulation");
@@ -44,6 +45,10 @@ describe("QA login source guards", () => {
     expect(pageSource).toContain("QA Mode");
     expect(pageSource).toContain('defaultValue=""');
     expect(pageSource).toContain('<option value="" disabled>เลือกบทบาท</option>');
+    expect(qaLoginSource).toContain("manualDemoAdmin");
+    expect(qaLoginSource).toContain("manualDemoTeachers");
+    expect(qaLoginSource).toContain("manualDemoStudents");
+    expect(qaLoginSource).toContain("คู่มือ Admin");
     expect(pageSource).not.toContain(placeholderSecret);
   });
 
@@ -61,5 +66,19 @@ describe("QA login source guards", () => {
     expect(actionSource).toContain("MULTI_PILOT_R2_WAVE2_COURSE_TITLE");
     expect(actionSource).not.toContain("deleteMany");
     expect(actionSource).not.toContain(placeholderSecret);
+  });
+
+  it("keeps destructive QA manual reset outside the QA login server action", () => {
+    const actionSource = readFileSync(join(root, "src/app/qa-login/actions.ts"), "utf8");
+    const manualResetSource = readFileSync(join(root, "prisma/qa-manual-reset-seed.ts"), "utf8");
+    const packageJson = readFileSync(join(root, "package.json"), "utf8");
+
+    expect(packageJson).toContain("qa:manual:reset-seed");
+    expect(actionSource).not.toContain("QA_MANUAL_RESET_CONFIRM");
+    expect(actionSource).not.toContain("qa-manual-reset-seed");
+    expect(manualResetSource).toContain("QA_MANUAL_RESET_CONFIRM");
+    expect(manualResetSource).toContain("RESET_QA_FOR_MANUAL_GUIDE");
+    expect(manualResetSource).toContain("VERCEL_ENV === \"production\"");
+    expect(manualResetSource).toContain("manualDemoTeachers");
   });
 });

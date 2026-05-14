@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { DevSessionPayload } from "./devSession";
 import { multiPilotR2Admin, multiPilotR2Students, multiPilotR2Teachers } from "@/lib/qa/multiPilotR2";
+import { manualDemoAdmin, manualDemoStudents, manualDemoTeachers } from "@/lib/qa/manualDemo";
 
 export type QaRole = "admin" | "teacher" | "student";
 export type QaTeacherOption = {
@@ -81,7 +82,8 @@ export function getQaRoleEmail(role: QaRole, env: EnvLike = process.env) {
 export function getQaAdminOptions(): QaAdminOption[] {
   return [
     { ...qaPilotAdmin, key: "qa-admin", label: "QA Admin" },
-    { ...multiPilotR2Admin, key: "multi-r2-admin", label: "MULTI-PILOT-R2 Admin" }
+    { ...multiPilotR2Admin, key: "multi-r2-admin", label: "MULTI-PILOT-R2 Admin" },
+    { ...manualDemoAdmin, key: "manual-demo-admin", label: "คู่มือ Admin" }
   ];
 }
 
@@ -228,6 +230,7 @@ export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption
 
   qaPilotTeachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, teacher.displayName, teacher.purpose));
   multiPilotR2Teachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`, "MULTI-PILOT-R2 controlled operational simulation"));
+  manualDemoTeachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`, teacher.purpose));
 
   add("legacy-default", "Legacy QA Teacher", readEnv(env, "QA_TEACHER_EMAIL"), undefined, "Legacy single-teacher QA identity");
   add("legacy-advisor", "Legacy QA Advisor", readEnv(env, "QA_TEACHER_ADVISOR_EMAIL") ?? readEnv(env, "QA_TEACHER_EMAIL_1"), undefined, "Legacy advisor identity");
@@ -252,7 +255,8 @@ export function getQaStudentOptions(env: EnvLike = process.env): QaStudentOption
       firstNameTh: student.firstNameTh,
       lastNameTh: student.lastNameTh,
       purpose: "MULTI-PILOT-R2 controlled operational simulation"
-    }))
+    })),
+    ...manualDemoStudents
   ];
   const configured = readEnv(env, "QA_STUDENT_EMAIL")?.toLowerCase();
   if (configured && !entries.some((student) => student.email === configured)) {
