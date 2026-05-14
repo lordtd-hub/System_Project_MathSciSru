@@ -10,7 +10,8 @@ import {
   getQaTeacherOptions,
   hasQaLoginSecret,
   isQaLoginEnabled,
-  qaPilotProjectRoles
+  qaPilotProjectRoles,
+  shouldShowLegacyQaIdentities
 } from "@/lib/auth/qaLogin";
 import {
   MULTI_PILOT_R2_PREFIX,
@@ -57,14 +58,15 @@ export default async function QaLoginPage({
   const teacherOptions = getQaTeacherOptions();
   const studentOptions = getQaStudentOptions();
   const adminOptions = getQaAdminOptions();
+  const showLegacyQa = shouldShowLegacyQaIdentities();
   const r2RoleSummary = getMultiPilotR2TeacherRoleSummary();
   const r2ScenarioCounts = getMultiPilotR2ScenarioCounts();
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <PageHeader
-        title="QA Login for Controlled Multi-User Pilot"
-        description="ใช้เฉพาะ QA preview เพื่อทดสอบ workflow จริงโดยข้ามเฉพาะ Google OAuth ภายนอกเท่านั้น"
+        title={showLegacyQa ? "QA Login for Controlled Multi-User Pilot" : "QA Login สำหรับจัดทำคู่มือ"}
+        description={showLegacyQa ? "ใช้เฉพาะ QA preview เพื่อทดสอบ workflow จริงโดยข้ามเฉพาะ Google OAuth ภายนอกเท่านั้น" : "ใช้เฉพาะ QA preview เพื่อถ่ายคู่มือการใช้งาน โดยเลือกบัญชีคู่มือของผู้ดูแลระบบ อาจารย์ หรือนักศึกษา"}
       />
       <ActionFeedback success={params.success} error={params.error} />
       <WarningAlert title="สำหรับ QA preview เท่านั้น">
@@ -96,7 +98,7 @@ export default async function QaLoginPage({
         <div>
           <h2 className="text-lg font-semibold">เลือกบัญชีทดสอบ</h2>
           <p className="mt-1 text-sm text-muted">
-            ชุดบัญชีนี้ออกแบบสำหรับ controlled multi-user pilot โดยหนึ่งอาจารย์อาจมีหลายบทบาทในหลายโปรเจกต์
+            {showLegacyQa ? "ชุดบัญชีนี้ออกแบบสำหรับ controlled multi-user pilot โดยหนึ่งอาจารย์อาจมีหลายบทบาทในหลายโปรเจกต์" : "ชุดบัญชีนี้ใช้สำหรับจัดทำคู่มือเท่านั้น เพื่อลดโอกาสเลือกบัญชี pilot เก่าผิดระหว่างถ่ายขั้นตอนการใช้งาน"}
           </p>
         </div>
         <form action={selectQaUser} className="space-y-4">
@@ -152,7 +154,7 @@ export default async function QaLoginPage({
         </form>
       </section>
 
-      <section className="panel space-y-3">
+      {showLegacyQa ? <section className="panel space-y-3">
         <div>
           <h2 className="text-lg font-semibold">MULTI-PILOT-R2 operational simulation</h2>
           <p className="mt-1 text-sm text-muted">
@@ -225,9 +227,9 @@ export default async function QaLoginPage({
             </tbody>
           </table>
         </div>
-      </section>
+      </section> : null}
 
-      <section className="panel space-y-3">
+      {showLegacyQa ? <section className="panel space-y-3">
         <div>
           <h2 className="text-lg font-semibold">MULTI-PILOT-R2 teacher role distribution</h2>
           <p className="mt-1 text-sm text-muted">
@@ -264,7 +266,7 @@ export default async function QaLoginPage({
             </div>
           ))}
         </div>
-      </section>
+      </section> : null}
 
       <section className="panel space-y-3">
         <div>
@@ -311,7 +313,7 @@ export default async function QaLoginPage({
         </div>
       </section>
 
-      <section className="panel space-y-3">
+      {showLegacyQa ? <section className="panel space-y-3">
         <div>
           <h2 className="text-lg font-semibold">ผังบทบาทอาจารย์ใน Multi-User Pilot</h2>
           <p className="mt-1 text-sm text-muted">ใช้ผังนี้ตอนสร้างโปรเจกต์และแต่งตั้งกรรมการ เพื่อทดสอบ queue หลายบทบาทของอาจารย์</p>
@@ -340,9 +342,9 @@ export default async function QaLoginPage({
             </tbody>
           </table>
         </div>
-      </section>
+      </section> : null}
 
-      <section className="panel space-y-3">
+      {showLegacyQa ? <section className="panel space-y-3">
         <h2 className="text-lg font-semibold">สถานการณ์ที่ต้องทดสอบ</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {pilotScenarios.map(([student, scenario]) => (
@@ -352,9 +354,9 @@ export default async function QaLoginPage({
             </div>
           ))}
         </div>
-      </section>
+      </section> : null}
 
-      <section className="panel space-y-3">
+      {showLegacyQa ? <section className="panel space-y-3">
         <div>
           <h2 className="text-lg font-semibold">เตรียมข้อมูลบัญชีทดสอบ</h2>
           <p className="mt-1 text-sm text-muted">
@@ -382,15 +384,15 @@ export default async function QaLoginPage({
             เตรียม Teacher profiles อย่างเดียว
           </button>
         </form>
-      </section>
+      </section> : null}
 
       <InfoAlert title="ข้อจำกัด QA Mode">
         บัญชีเหล่านี้ใช้เฉพาะ QA preview เท่านั้น ห้ามใช้ข้อมูลจริงในรอบทดสอบ บางบันทึกหลักฐานอาจแสดง actor ตามบัญชี QA login/impersonation
         และ QA secret ไม่ควรถูกบันทึกในโค้ดหรือเอกสารสาธารณะ
       </InfoAlert>
-      <InfoAlert title="Legacy QA users">
+      {showLegacyQa ? <InfoAlert title="Legacy QA users">
         บัญชี QA ชุดเดิมยังไม่ถูกลบเพื่อรักษาประวัติ pilot เดิม หากจำเป็นต้องลบหรือย้ายข้อมูลเก่า ให้ยืนยันก่อนดำเนินการทุกครั้ง
-      </InfoAlert>
+      </InfoAlert> : null}
     </div>
   );
 }

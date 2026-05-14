@@ -19,6 +19,8 @@ Purpose: เตรียมข้อมูล QA สำหรับทำคู�
 - เพิ่ม student สำหรับคู่มือ 3 คน
 - เพิ่ม admin สำหรับคู่มือ 1 คน
 - เพิ่ม teacher login option สำหรับอาจารย์จริง 11 คน โดยใช้ email QA domain `@sru.test`
+- หน้า `/qa-login` ในค่าเริ่มต้นแสดงเฉพาะบัญชีชุดคู่มือเท่านั้น เพื่อกันเลือกบัญชี QA/MULTI-PILOT/Legacy เก่าผิดระหว่างถ่ายคู่มือ
+- ถ้าจำเป็นต้องเปิดบัญชี pilot เก่ากลับมาทดสอบย้อนหลัง ให้ตั้ง `QA_LOGIN_SHOW_LEGACY_IDENTITIES=1`
 - เพิ่มสคริปต์ reset/seed สำหรับ QA manual demo:
 
 ```powershell

@@ -74,16 +74,23 @@ export function parseQaRole(value: FormDataEntryValue | null): QaRole | null {
 }
 
 export function getQaRoleEmail(role: QaRole, env: EnvLike = process.env) {
-  if (role === "admin") return qaPilotAdmin.email;
+  if (role === "admin") return getQaAdminOptions(env)[0]?.email;
   if (role === "student") return getQaStudentOptions(env)[0]?.email;
   return getQaTeacherOptions(env)[0]?.email;
 }
 
-export function getQaAdminOptions(): QaAdminOption[] {
+export function shouldShowLegacyQaIdentities(env: EnvLike = process.env) {
+  return readEnv(env, "QA_LOGIN_SHOW_LEGACY_IDENTITIES") === "1";
+}
+
+export function getQaAdminOptions(env: EnvLike = process.env): QaAdminOption[] {
+  const manualOptions = [{ ...manualDemoAdmin, key: "manual-demo-admin", label: "คู่มือ Admin" }];
+  if (!shouldShowLegacyQaIdentities(env)) return manualOptions;
+
   return [
+    ...manualOptions,
     { ...qaPilotAdmin, key: "qa-admin", label: "QA Admin" },
-    { ...multiPilotR2Admin, key: "multi-r2-admin", label: "MULTI-PILOT-R2 Admin" },
-    { ...manualDemoAdmin, key: "manual-demo-admin", label: "คู่มือ Admin" }
+    { ...multiPilotR2Admin, key: "multi-r2-admin", label: "MULTI-PILOT-R2 Admin" }
   ];
 }
 
@@ -228,9 +235,11 @@ export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption
     entries.push({ key, label, email: normalized, displayName, purpose });
   };
 
+  manualDemoTeachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`, teacher.purpose));
+  if (!shouldShowLegacyQaIdentities(env)) return entries;
+
   qaPilotTeachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, teacher.displayName, teacher.purpose));
   multiPilotR2Teachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`, "MULTI-PILOT-R2 controlled operational simulation"));
-  manualDemoTeachers.forEach((teacher) => add(teacher.key, teacher.label, teacher.email, `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`, teacher.purpose));
 
   add("legacy-default", "Legacy QA Teacher", readEnv(env, "QA_TEACHER_EMAIL"), undefined, "Legacy single-teacher QA identity");
   add("legacy-advisor", "Legacy QA Advisor", readEnv(env, "QA_TEACHER_ADVISOR_EMAIL") ?? readEnv(env, "QA_TEACHER_EMAIL_1"), undefined, "Legacy advisor identity");
@@ -246,6 +255,11 @@ export function getQaTeacherOptions(env: EnvLike = process.env): QaTeacherOption
 
 export function getQaStudentOptions(env: EnvLike = process.env): QaStudentOption[] {
   const entries: QaStudentOption[] = [
+    ...manualDemoStudents
+  ];
+  if (!shouldShowLegacyQaIdentities(env)) return entries;
+
+  entries.push(
     ...qaPilotStudents,
     ...multiPilotR2Students.map((student) => ({
       key: student.key,
@@ -255,9 +269,8 @@ export function getQaStudentOptions(env: EnvLike = process.env): QaStudentOption
       firstNameTh: student.firstNameTh,
       lastNameTh: student.lastNameTh,
       purpose: "MULTI-PILOT-R2 controlled operational simulation"
-    })),
-    ...manualDemoStudents
-  ];
+    }))
+  );
   const configured = readEnv(env, "QA_STUDENT_EMAIL")?.toLowerCase();
   if (configured && !entries.some((student) => student.email === configured)) {
     entries.push({
@@ -286,8 +299,8 @@ export function getQaTeacherEmail(selection: FormDataEntryValue | null, env: Env
   return options.find((option) => option.key === keyOrEmail || option.email === keyOrEmail)?.email ?? options[0].email;
 }
 
-export function getQaAdminEmail(selection: FormDataEntryValue | null) {
-  const options = getQaAdminOptions();
+export function getQaAdminEmail(selection: FormDataEntryValue | null, env: EnvLike = process.env) {
+  const options = getQaAdminOptions(env);
   const keyOrEmail = String(selection ?? "").trim().toLowerCase();
   return options.find((option) => option.key === keyOrEmail || option.email === keyOrEmail)?.email ?? options[0]?.email;
 }

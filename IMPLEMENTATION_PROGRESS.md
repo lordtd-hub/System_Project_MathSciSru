@@ -16,6 +16,7 @@
   - one admin manual account;
   - three student manual accounts;
   - eleven teacher options using the real teacher names, while preserving the teacher master records.
+- Set QA login identity dropdowns to manual-only by default for Admin, Student, and Teacher. Legacy QA/MULTI-PILOT identities are now hidden unless `QA_LOGIN_SHOW_LEGACY_IDENTITIES=1` is set.
 - Added guarded reset/seed script `qa:manual:reset-seed` for QA manual data only. The script refuses `VERCEL_ENV=production` and requires `QA_MANUAL_RESET_CONFIRM=RESET_QA_FOR_MANUAL_GUIDE`; remote database reset also requires `QA_MANUAL_ALLOW_REMOTE_RESET=1`.
 - Added manual preparation docs:
   - `e2e-artifacts/manual-guide/QA_MANUAL_DATA_PREP.md`;
