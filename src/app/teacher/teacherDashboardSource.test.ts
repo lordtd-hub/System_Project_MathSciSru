@@ -49,10 +49,12 @@ describe("teacher dashboard source", () => {
     expect(css).toContain(".figma-teacher-agenda-list");
     expect(css).toContain("max-height: 12rem");
     expect(css).toContain(".figma-teacher-agenda-list .figma-status-badge");
+    expect(workloadQueue).toContain("overflow-x-auto");
     expect(workloadQueue).toContain("xl:grid-cols-6");
     expect(css).toContain("px-2 py-1.5");
     expect(css).toContain(".compact-metric-row-panel");
     expect(css).toContain(".compact-metric-grid");
-    expect(css).toContain("lg:grid-cols-6");
+    expect(css).toContain("overflow-x-auto");
+    expect(css).toContain("xl:grid-cols-6");
   });
 });

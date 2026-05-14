@@ -42,9 +42,9 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
           <span className="text-xs text-muted">จาก {total}</span>
         </div>
       </div>
-      <div className="mt-2 grid gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="-mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-6">
         {metrics.map((metric) => (
-          <div key={metric.label} className={`teacher-workload-metric ${toneSurfaceClassName[metric.tone]}`} title={metric.description}>
+          <div key={metric.label} className={`teacher-workload-metric min-w-[8rem] snap-start lg:min-w-0 ${toneSurfaceClassName[metric.tone]}`} title={metric.description}>
             <div className="flex items-center justify-between gap-1.5">
               <span className={`truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5 ${toneClassName[metric.tone]}`}>{metric.label}</span>
               <span className="shrink-0 text-lg font-semibold leading-none">{metric.count}</span>
