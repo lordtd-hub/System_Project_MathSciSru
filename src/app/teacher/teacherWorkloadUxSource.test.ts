@@ -57,11 +57,6 @@ describe("teacher workload UX source", () => {
   it("keeps actionable schedule approvals ahead of confirmed calendar content", () => {
     const source = readSource("src/app/teacher/schedules/page.tsx");
 
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-teacher-schedules");
-    expect(source).toContain("figma-schedule-row");
     expect(source).toContain('className="panel order-1"');
     expect(source).toContain('className="panel order-3"');
     expect(source).toContain("pendingReviewSchedules");
@@ -75,94 +70,10 @@ describe("teacher workload UX source", () => {
   it("adds compact proposal navigation before long proposal review cards", () => {
     const source = readSource("src/app/teacher/proposals/page.tsx");
 
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-teacher-proposals");
-    expect(source).toContain("figma-proposal-row");
     expect(source).toContain("TeacherCompactQueueList");
     expect(source).toContain("pendingAttempts.map");
     expect(source).toContain('href: `#proposal-${attempt.id}`');
     expect(source).toContain('id={`proposal-${attempt.id}`}');
-  });
-
-  it("adds figma review layout for Progress 1 without changing the scoring action", () => {
-    const source = readSource("src/app/teacher/progress1/page.tsx");
-
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-teacher-progress1");
-    expect(source).toContain("figma-progress-row");
-    expect(source).toContain("submitProgress1Score");
-    expect(source).toContain('name="project_id"');
-    expect(source).toContain("MarkdownLatexViewer");
-    expect(source).toContain("MarkdownLatexEditor");
-  });
-
-  it("adds figma review layout for Progress 2 while preserving round-open handling", () => {
-    const source = readSource("src/app/teacher/progress2/page.tsx");
-
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-teacher-progress2");
-    expect(source).toContain("figma-progress-row");
-    expect(source).toContain("submitProgress2Score");
-    expect(source).toContain('name="project_id"');
-    expect(source).toContain("progress2Round");
-    expect(source).toContain("MarkdownLatexViewer");
-    expect(source).toContain("MarkdownLatexEditor");
-  });
-
-  it("adds figma review layout for Final without changing final scoring semantics", () => {
-    const source = readSource("src/app/teacher/final/page.tsx");
-
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-teacher-final");
-    expect(source).toContain("figma-final-row");
-    expect(source).toContain("submitFinalPresentationScore");
-    expect(source).toContain('name="project_id"');
-    expect(source).toContain("FinalEvidenceContinuityPanel");
-    expect(source).toContain("FinalQaRubricPanel");
-    expect(source).toContain("conditionCountForSavedScore");
-  });
-
-  it("adds figma report review layout without changing latest-version review semantics", () => {
-    const source = readSource("src/app/teacher/reports/page.tsx");
-
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-readonly-detail");
-    expect(source).toContain("figma-teacher-reports");
-    expect(source).toContain("figma-report-row");
-    expect(source).toContain("reviewReportVersion");
-    expect(source).toContain('name="report_version_id"');
-    expect(source).toContain("latestReportHasRevisionRequest");
-    expect(source).toContain("allRequiredReportReviewersPassed");
-    expect(source).toContain("reportHistory");
-    expect(source).toContain("MarkdownLatexViewer");
-    expect(source).toContain("MarkdownLatexEditor");
-  });
-
-  it("adds figma advisor-score layout without changing unlock and score field semantics", () => {
-    const source = readSource("src/app/teacher/advisor-score/page.tsx");
-
-    expect(source).toContain("getUiMode");
-    expect(source).toContain('uiMode === "figma"');
-    expect(source).toContain("FigmaReviewLayout");
-    expect(source).toContain("figma-readonly-detail");
-    expect(source).toContain("figma-teacher-advisor-score");
-    expect(source).toContain("figma-advisor-score-row");
-    expect(source).toContain("submitAdvisorScore");
-    expect(source).toContain('name="project_id"');
-    expect(source).toContain('project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING"');
-    expect(source).toContain('previous?.status === "SUBMITTED"');
-    expect(source).toContain("advisorCriteria.map");
-    expect(source).toContain("fieldName(criterion.key)");
   });
 
   it("marks report and advisor score queues without changing unlock logic", () => {

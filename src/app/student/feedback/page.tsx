@@ -3,13 +3,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
-import {
-  FigmaMetricCard,
-  FigmaPageHeader,
-  FigmaStatusBadge
-} from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
-import { getUiMode } from "@/lib/uiMode";
 import Link from "next/link";
 
 type StudentFeedbackPageProps = {
@@ -113,77 +107,25 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
     ? allPresentationResults.filter((item) => item.anchor === requestedRound)
     : presentationAttempts;
   const waitingResultCount = Math.max(allPresentationResults.length - presentationAttempts.length, 0);
-  const uiMode = await getUiMode();
-  const feedbackTone = presentationAttempts.length ? "success" : waitingResultCount ? "waiting" : "muted";
 
   if (!allPresentationResults.length) {
     return (
-      <div className={uiMode === "figma" ? "figma-dashboard-page figma-student-feedback" : "space-y-6"} data-testid="student-feedback-page-content">
-        {uiMode === "figma" ? (
-          <FigmaPageHeader
-            eyebrow="Student Feedback"
-            title="ผลและข้อเสนอแนะการประเมิน"
-            description="หน้านี้เป็นข้อมูลอ่านอย่างเดียวสำหรับติดตามคะแนนและข้อเสนอแนะที่บันทึกแล้ว"
-            actions={<FigmaStatusBadge tone="muted">ยังไม่มีผลที่เปิดเผย</FigmaStatusBadge>}
-          />
-        ) : (
-          <PageHeader
-            title="ผลและข้อเสนอแนะการประเมิน"
-            description="หน้านี้เป็นข้อมูลอ่านอย่างเดียวสำหรับติดตามคะแนนและข้อเสนอแนะที่บันทึกแล้ว"
-          />
-        )}
+      <div className="space-y-6">
+        <PageHeader
+          title="ผลและข้อเสนอแนะการประเมิน"
+          description="หน้านี้เป็นข้อมูลอ่านอย่างเดียวสำหรับติดตามคะแนนและข้อเสนอแนะที่บันทึกแล้ว"
+        />
         <EmptyState title="ยังไม่มีข้อเสนอแนะหรือผลประเมินที่เปิดเผย" description="เมื่อกรรมการบันทึกคะแนนหรือข้อเสนอแนะแล้ว รายการจะแสดงในหน้านี้" />
       </div>
     );
   }
 
   return (
-    <div className={uiMode === "figma" ? "figma-dashboard-page figma-student-feedback" : "space-y-6"} data-testid="student-feedback-page-content">
-      {uiMode === "figma" ? (
-        <FigmaPageHeader
-          eyebrow="Student Feedback"
-          title="ผลและข้อเสนอแนะการประเมิน"
-          description="หน้านี้เป็นข้อมูลอ่านอย่างเดียว ไม่ใช่งานที่นักศึกษาต้องส่งเพิ่ม"
-          actions={
-            <FigmaStatusBadge tone={feedbackTone}>
-              {presentationAttempts.length ? "มีผลที่อ่านได้" : waitingResultCount ? "รอคะแนน" : "ยังไม่มีผล"}
-            </FigmaStatusBadge>
-          }
-        />
-      ) : (
-        <PageHeader
-          title="ผลและข้อเสนอแนะการประเมิน"
-          description="หน้านี้เป็นข้อมูลอ่านอย่างเดียว ไม่ใช่งานที่นักศึกษาต้องส่งเพิ่ม"
-        />
-      )}
-      {uiMode === "figma" ? (
-        <div className="figma-kpi-grid">
-          <FigmaMetricCard
-            label="อ่านได้แล้ว"
-            value={presentationAttempts.length}
-            tone={presentationAttempts.length ? "success" : "muted"}
-            description="รอบที่มีคะแนนหรือข้อเสนอแนะบันทึกแล้ว"
-          />
-          <FigmaMetricCard
-            label="รอคะแนน"
-            value={waitingResultCount}
-            tone={waitingResultCount ? "waiting" : "muted"}
-            description="รอบที่ยังไม่มีข้อมูลให้แสดง"
-          />
-          <FigmaMetricCard
-            label="ตัวกรอง"
-            value={requestedRound ? "1" : "ทั้งหมด"}
-            tone={requestedRound ? "action" : "muted"}
-            description="ใช้แท็บเพื่อดูเฉพาะรอบที่ต้องการ"
-          />
-          <FigmaMetricCard
-            label="การแก้ไข"
-            value="อ่านอย่างเดียว"
-            tone="muted"
-            description="หน้านี้ไม่มีงานให้นักศึกษาส่งเพิ่ม"
-          />
-        </div>
-      ) : null}
+    <div className="space-y-6">
+      <PageHeader
+        title="ผลและข้อเสนอแนะการประเมิน"
+        description="หน้านี้เป็นข้อมูลอ่านอย่างเดียว ไม่ใช่งานที่นักศึกษาต้องส่งเพิ่ม"
+      />
       <StudentReadabilitySummary
         title="สรุปผลที่แสดงอยู่"
         description="ช่วยแยกผลที่อ่านได้แล้วออกจากรอบที่ยังรอคะแนนหรือข้อเสนอแนะจากกรรมการ"

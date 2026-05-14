@@ -1,23 +1,19 @@
 import Link from "next/link";
-import type { ComponentProps } from "react";
 import type { AssessmentRoundType, AssessmentStatus, CommitteeRole, ScoreStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
-import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader, type DashboardActionQueueItem } from "@/components/ui/DashboardActionQueue";
+import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { TaskListCard, type TaskListItem } from "@/components/ui/TaskListCard";
-import { TeacherWorkloadSummary, type TeacherWorkloadMetric } from "@/components/ui/TeacherWorkloadQueue";
+import { TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
-import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
-import { getUiMode } from "@/lib/uiMode";
 import { openProposalScoring } from "./actions";
 
 function assessmentKindLabel(kind?: string | null) {
@@ -153,245 +149,6 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     finalScoreReadyCount,
     confirmedScheduleCalendarCount
   ] as const;
-}
-
-type TeacherDashboardTeacher = {
-  academicPrefix: string;
-  firstNameTh: string;
-  lastNameTh: string;
-  email: string | null;
-};
-
-type TeacherDashboardStudent = {
-  studentCode: string;
-  firstNameTh: string;
-  lastNameTh: string;
-};
-
-type TeacherDashboardSchedule = {
-  id: string;
-  assessmentKind: string | null;
-  proposedStartAt: Date;
-  proposedEndAt: Date | null;
-  room: string | null;
-  project: {
-    currentTitleTh: string | null;
-    student: TeacherDashboardStudent;
-    committeeAssignments: Array<{ role: CommitteeRole }>;
-    advisorRequests: Array<{ id: string }>;
-  };
-};
-
-type TeacherDashboardAttempt = {
-  id: string;
-  presentationSubmission: { titleTh: string | null } | null;
-  project: { student: TeacherDashboardStudent };
-  evaluatorAssignments: Array<{
-    id: string;
-    scoreSubmission: { status: ScoreStatus } | null;
-  }>;
-};
-
-type TeacherDashboardNotification = {
-  id: string;
-  title: string;
-  body: string | null;
-};
-
-type TeacherDashboardMetricCard = {
-  label: string;
-  value: number;
-  href: string;
-  tone?: "urgent" | "ready" | "waiting" | "complete" | "quiet";
-};
-
-type TeacherDashboardViewProps = {
-  teacher: TeacherDashboardTeacher;
-  teacherWorkloadSummaryMetrics: TeacherWorkloadMetric[];
-  activeTeacherActionQueue: DashboardActionQueueItem[];
-  teacherNextAction: ComponentProps<typeof NextActionCard>["action"];
-  ownConfirmedScheduleAgenda: TeacherDashboardSchedule[];
-  workloadCards: TeacherDashboardMetricCard[];
-  attempts: TeacherDashboardAttempt[];
-  teacherWorkspaceTasks: TaskListItem[];
-  notifications: TeacherDashboardNotification[];
-  teacherActionableTaskCount: number;
-  submittedScoreStatus: ScoreStatus;
-};
-
-function figmaMetricTone(tone?: TeacherDashboardMetricCard["tone"]): "action" | "warning" | "success" | "muted" {
-  if (tone === "urgent" || tone === "ready") return "action";
-  if (tone === "waiting") return "warning";
-  if (tone === "complete") return "success";
-  return "muted";
-}
-
-function FigmaTeacherDashboardView({
-  teacherWorkloadSummaryMetrics,
-  activeTeacherActionQueue,
-  teacherNextAction,
-  ownConfirmedScheduleAgenda,
-  workloadCards,
-  attempts,
-  teacherWorkspaceTasks,
-  notifications,
-  teacherActionableTaskCount,
-  submittedScoreStatus
-}: TeacherDashboardViewProps) {
-  const totalWorkload = workloadCards.reduce((sum, card) => sum + card.value, 0);
-  const needsAction = teacherWorkloadSummaryMetrics.find((metric) => metric.tone === "action")?.count ?? 0;
-
-  return (
-    <div className="figma-dashboard-page figma-teacher-dashboard">
-      <FigmaPageHeader
-        eyebrow="พื้นที่ทำงานอาจารย์"
-        title="แดชบอร์ดอาจารย์"
-        description="รวมงานที่ต้องดำเนินการ ตารางสอบ งานตรวจรายงาน และสถานะที่เกี่ยวข้อง โดยแยกงานเร่งด่วนออกจากงานติดตามให้สแกนได้เร็วขึ้น"
-      />
-
-      <div className="hidden">
-        <FigmaMetricCard label="ต้องทำตอนนี้" value={needsAction} description="งานที่ต้องตอบรับ ประเมิน ตรวจ หรือยืนยัน" tone="action" />
-        <FigmaMetricCard label="งานทั้งหมด" value={totalWorkload} description="สัญญาณรวมจากบทบาทของอาจารย์ในระบบ" tone="muted" />
-        {teacherWorkloadSummaryMetrics.slice(1, 5).map((metric) => (
-          <FigmaMetricCard
-            key={metric.label}
-            label={metric.label}
-            value={metric.count}
-            description={metric.description}
-            tone={metric.tone === "completed" ? "success" : metric.tone === "returned" ? "warning" : metric.tone === "action" ? "action" : "muted"}
-          />
-        ))}
-      </div>
-
-      <div className="figma-dashboard-grid">
-        <FigmaPanel
-          title="งานที่ต้องดำเนินการ"
-          description="จัดลำดับจากงานที่ต้องเปิดต่อหรือต้องพิจารณาก่อน"
-          tone={activeTeacherActionQueue.some((item) => (item.count ?? 0) > 0) ? "action" : "muted"}
-        >
-          <div className="figma-action-list">
-            {activeTeacherActionQueue.map((item) => (
-              <Link key={`${item.title}-${item.href}-figma`} href={item.href} className="figma-action-row" data-tone={figmaMetricTone(item.tone)}>
-                <div className="min-w-0">
-                  <div className="figma-action-title">
-                    <span>{item.title}</span>
-                    <FigmaStatusBadge tone={figmaMetricTone(item.tone)}>
-                      {item.statusLabel ?? (item.count && item.count > 0 ? "ต้องดำเนินการ" : "ติดตาม")}
-                    </FigmaStatusBadge>
-                  </div>
-                  <p>{item.description}</p>
-                  {item.meta ? <small>{item.meta}</small> : null}
-                </div>
-                <div className="figma-action-side">
-                  {typeof item.count === "number" ? <strong>{item.count}</strong> : null}
-                  <span>{item.ctaLabel ?? "เปิดงานนี้"}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </FigmaPanel>
-
-        <div className="figma-side-stack">
-          <NextActionCard action={teacherNextAction} />
-        </div>
-      </div>
-
-      <div className="figma-review-layout">
-        <FigmaPanel
-          title="ตารางสอบของท่าน"
-          description="เรียงตามวันเวลา พร้อมบทบาทของอาจารย์ในแต่ละโครงงาน"
-          tone={ownConfirmedScheduleAgenda.length ? "success" : "muted"}
-        >
-          <div className="figma-schedule-list figma-teacher-agenda-list">
-            {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
-              const roles = Array.from(new Set([
-                ...schedule.project.committeeAssignments.map((assignment) => assignment.role),
-                ...(schedule.project.advisorRequests.length ? ["ADVISOR" as const] : [])
-              ]));
-              return (
-                <Link key={`${schedule.id}-figma-schedule`} className="figma-schedule-row" href="/teacher/schedules">
-                  <div>
-                    <strong>{assessmentKindLabel(schedule.assessmentKind)}</strong>
-                    <p>
-                      {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
-                    </p>
-                    {schedule.project.currentTitleTh ? <small>{schedule.project.currentTitleTh}</small> : null}
-                  </div>
-                  <div className="figma-schedule-meta">
-                    <span>{formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}</span>
-                    {schedule.room ? <small>ห้อง {schedule.room}</small> : null}
-                    <div>
-                      {roles.map((role) => (
-                        <FigmaStatusBadge key={`${schedule.id}-${role}-figma`} tone="muted">{teacherRoleBadgeLabel(role)}</FigmaStatusBadge>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
-              );
-            }) : (
-              <p className="text-sm text-muted">ยังไม่มีตารางสอบที่ยืนยันแล้วสำหรับโครงงานที่ท่านเกี่ยวข้อง</p>
-            )}
-          </div>
-          <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบทั้งหมด</Link>
-        </FigmaPanel>
-
-        <FigmaPanel
-          title="เอกสารเสนอหัวข้อที่เกี่ยวข้อง"
-          description="คงลิงก์และฟอร์มประเมินเดิม แต่จัดแถวให้สแกนง่ายขึ้น"
-          tone={attempts.length ? "action" : "muted"}
-        >
-          <div className="figma-attempt-list">
-            {attempts.length ? attempts.map((attempt) => {
-              const assignment = attempt.evaluatorAssignments[0];
-              const assignmentSubmitted = assignment?.scoreSubmission?.status === submittedScoreStatus;
-              return (
-                <div key={`${attempt.id}-figma-attempt`} className="figma-attempt-row">
-                  <div>
-                    <strong>{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</strong>
-                    <p>
-                      {attempt.project.student.studentCode} {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
-                    </p>
-                  </div>
-                  {assignmentSubmitted ? (
-                    <Link className="button-secondary" href={`/teacher/scoring/${assignment.id}`}>ดูผลประเมินที่ส่งแล้ว</Link>
-                  ) : assignment ? (
-                    <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
-                  ) : (
-                    <form action={openProposalScoring}>
-                      <input type="hidden" name="attempt_id" value={attempt.id} />
-                      <button type="submit">เริ่มประเมิน</button>
-                    </form>
-                  )}
-                </div>
-              );
-            }) : (
-              <EmptyState title="ยังไม่มีเอกสารเสนอหัวข้อที่ส่งแล้ว" description="เมื่อมีนักศึกษาส่งเอกสารเสนอหัวข้อ รายการจะแสดงที่นี่" />
-            )}
-          </div>
-        </FigmaPanel>
-      </div>
-
-      <div className="figma-dashboard-grid">
-        <TaskListCard title="ทางลัดการทำงาน" compact tasks={teacherWorkspaceTasks} />
-        <FigmaPanel title="การแจ้งเตือน" tone={teacherActionableTaskCount ? "action" : "muted"}>
-          <div className="figma-notification-list">
-            {notifications.length ? notifications.map((notification) => (
-              <div key={`${notification.id}-figma-notification`} className="rounded-md border border-line p-3 text-sm">
-                <div className="font-medium">{notification.title}</div>
-                {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
-              </div>
-            )) : teacherActionableTaskCount ? (
-              <InfoAlert title={`มีงานที่ต้องดำเนินการ ${teacherActionableTaskCount} รายการ`}>
-                ตรวจรายละเอียดในส่วนงานที่ต้องดำเนินการด้านบน ระบบนับจากคำขอที่ปรึกษา งานประเมิน ตารางสอบ งานตรวจรายงาน และคะแนนที่ปรึกษาที่รอท่านดำเนินการ
-              </InfoAlert>
-            ) : (
-              <InfoAlert title="ยังไม่มีงานที่ต้องดำเนินการ">งานใหม่จะแสดงใน dashboard และ route ย่อยตามบทบาท</InfoAlert>
-            )}
-          </div>
-        </FigmaPanel>
-      </div>
-    </div>
-  );
 }
 
 export default async function TeacherDashboardPage() {
@@ -682,33 +439,7 @@ export default async function TeacherDashboardPage() {
   const activeTeacherActionQueue = teacherActionQueue.filter((item) =>
     !["/teacher/progress1", "/teacher/progress2", "/teacher/final"].includes(item.href) || (item.count ?? 0) > 0
   );
-  const teacherWorkspaceTasks = [
-    { title: "คำขอที่ปรึกษา", description: `${advisorRequestCount} รายการรออนุมัติ`, href: "/teacher/advisor-requests", urgency: advisorRequestCount ? "สูง" : "ปกติ" },
-    ...(progress1ScoreReadyCount ? [{ title: "คะแนนความก้าวหน้าครั้งที่ 1", description: `${progress1ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress1", urgency: "พร้อมให้คะแนน" }] : []),
-    ...(progress2ScoreReadyCount ? [{ title: "คะแนนความก้าวหน้าครั้งที่ 2", description: `${progress2ScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/progress2", urgency: "พร้อมให้คะแนน" }] : []),
-    ...(finalScoreReadyCount ? [{ title: "คะแนนสอบนำเสนอขั้นสุดท้าย", description: `${finalScoreReadyCount} รายการพร้อมให้คะแนน`, href: "/teacher/final", urgency: "พร้อมให้คะแนน" }] : []),
-    { title: "ตารางสอบ", description: `${confirmedScheduleCalendarCount} รายการยืนยันแล้ว`, href: "/teacher/schedules", urgency: confirmedScheduleCalendarCount ? "ดูตาราง" : "ปกติ" }
-  ];
   timer.end();
-
-  const uiMode = await getUiMode();
-  const teacherDashboardViewProps: TeacherDashboardViewProps = {
-    teacher,
-    teacherWorkloadSummaryMetrics,
-    activeTeacherActionQueue,
-    teacherNextAction,
-    ownConfirmedScheduleAgenda,
-    workloadCards,
-    attempts,
-    teacherWorkspaceTasks,
-    notifications,
-    teacherActionableTaskCount,
-    submittedScoreStatus
-  };
-
-  if (uiMode === "figma") {
-    return <FigmaTeacherDashboardView {...teacherDashboardViewProps} />;
-  }
 
   return (
     <div className="space-y-4">
@@ -732,30 +463,30 @@ export default async function TeacherDashboardPage() {
               title="ตารางสอบของท่าน"
               description="เรียงตามวันเวลา สำหรับโครงงานที่ท่านเป็นที่ปรึกษา ประธานกรรมการ หรือกรรมการ"
             />
-            <div className="mt-3 space-y-2">
+            <div className="teacher-agenda-list mt-3 space-y-2">
               {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
                 const roles = Array.from(new Set([
                   ...schedule.project.committeeAssignments.map((assignment) => assignment.role),
                   ...(schedule.project.advisorRequests.length ? ["ADVISOR" as const] : [])
                 ]));
                 return (
-                  <Link key={schedule.id} className="block rounded-md border border-line bg-surface p-3 text-sm hover:border-brand" href="/teacher/schedules">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                  <Link key={schedule.id} className="block rounded-md border border-line bg-surface p-2 text-xs hover:border-brand" href="/teacher/schedules">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <div className="font-semibold">{assessmentKindLabel(schedule.assessmentKind)}</div>
+                        <div className="text-sm font-semibold leading-5">{assessmentKindLabel(schedule.assessmentKind)}</div>
                         <div className="mt-1 text-muted">
                           {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
                         </div>
-                        {schedule.project.currentTitleTh ? <div className="mt-1 text-xs text-muted">{schedule.project.currentTitleTh}</div> : null}
+                        {schedule.project.currentTitleTh ? <div className="mt-0.5 text-[11px] leading-4 text-muted">{schedule.project.currentTitleTh}</div> : null}
                       </div>
-                      <div className="text-right font-semibold text-ink">
+                      <div className="text-right text-xs font-semibold text-ink">
                         {formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}
-                        {schedule.room ? <div className="text-xs text-muted">ห้อง {schedule.room}</div> : null}
+                        {schedule.room ? <div className="text-[11px] text-muted">ห้อง {schedule.room}</div> : null}
                       </div>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {roles.map((role) => (
-                        <span key={`${schedule.id}-${role}`} className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">{teacherRoleBadgeLabel(role)}</span>
+                        <span key={`${schedule.id}-${role}`} className="rounded-full border border-line px-1.5 py-0 text-[10px] leading-4 text-muted">{teacherRoleBadgeLabel(role)}</span>
                       ))}
                     </div>
                   </Link>
@@ -782,7 +513,7 @@ export default async function TeacherDashboardPage() {
         description={`รวม ${workloadCards.reduce((sum, card) => sum + card.value, 0)} รายการจากข้อมูลของอาจารย์ ใช้เป็นสัญญาณประกอบจากงานหลักด้านบน`}
         metrics={workloadCards}
       />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
+      <div className="grid gap-4">
         <section className="panel dashboard-console-panel">
           <h2 className="text-lg font-semibold">เอกสารเสนอหัวข้อที่เกี่ยวข้อง</h2>
           <div className="mt-3 space-y-3">
@@ -816,11 +547,6 @@ export default async function TeacherDashboardPage() {
             )}
           </div>
         </section>
-        <TaskListCard
-          title="ทางลัดการทำงาน"
-          compact
-          tasks={teacherWorkspaceTasks}
-        />
       </div>
       <section className="panel dashboard-console-panel">
         <h2 className="text-lg font-semibold">การแจ้งเตือน</h2>

@@ -9,6 +9,27 @@
 - Architecture baseline: Assessment rounds are course-level only (`courseOfferingId + roundType`); project-level work uses attempts, schedules, report versions, scores, timeline/history, or exceptions. Do not create per-project assessment rounds.
 - Next step: Import the real student roster only when ready, then verify teacher/admin role capability after logout/login.
 
+## 2026-05-14 Frontend UX audit
+
+- Added `e2e-artifacts/frontend-ux-audit/` as a non-mutating user-experience audit package for the classic UI.
+- Audited the current QA preview in classic mode for Admin, Teacher, and Student routes on desktop and 390px mobile.
+- No app code, lifecycle logic, scoring logic, eligibility logic, auth logic, Prisma schema, API semantics, or production configuration was changed.
+- Live route verification found no shell-only pages, digest/application errors, or detected 390px horizontal overflow on the audited routes.
+- Main recommendation: keep classic UI active, do a small classic UX cleanup before Wave 2 expansion, and treat the previous Figma redesign attempt as decommissioned unless a new plan is approved later.
+- Priority cleanup before wider Wave 2 scale:
+  - Teacher dashboard declutter.
+  - Admin proposals/schedules compact grouping.
+  - Round exception/recovery entrypoint clarity.
+  - User-facing Thai label pass for evidence/history wording.
+
+## 2026-05-14 Figma redesign decommission
+
+- Removed the Figma UI mode, renderer switch, redesign shell/components, UI-mode action, and source tests from the app source.
+- Removed tracked Figma redesign planning/screenshot artifacts under `e2e-artifacts/redesign-mapping/` and untracked Figma mockup PNGs under `e2e-artifacts/`.
+- Restored the app to the classic UI path only. No lifecycle, scoring, eligibility, auth, Prisma schema, API semantics, or production configuration was intentionally changed.
+- Preserved the useful classic UX audit package at `e2e-artifacts/frontend-ux-audit/`.
+- Kept the teacher dashboard cleanup that was already agreed for classic UI: compact workload/status metrics, scrollable teacher agenda, no teacher guidance block, and no duplicate teacher quick-link widget.
+
 Historical note: The original Task 01-10 checklist below is retained as the initial MVP sequence. Later 2026-05-06 sections supersede early Proposal-only limitations.
 
 ## 2026-05-13 Supabase heartbeat cron

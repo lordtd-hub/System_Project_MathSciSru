@@ -34,12 +34,12 @@ export function StudentReadabilitySummary({
           <p className="mt-1 text-sm text-muted">{description}</p>
         </div>
       </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-4">
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
         {items.map((item) => (
-          <div key={item.label} className={`rounded-md border p-2.5 ${toneClass[item.tone ?? "info"]}`}>
-            <div className="truncate text-[11px] font-semibold uppercase tracking-[0.05em]">{item.label}</div>
-            <div className="mt-1 text-xl font-semibold leading-none">{item.value}</div>
-            <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-90">{item.detail}</p>
+          <div key={item.label} className={`rounded-md border p-3 ${toneClass[item.tone ?? "info"]}`}>
+            <div className="text-xs font-semibold uppercase tracking-[0.08em]">{item.label}</div>
+            <div className="mt-2 text-2xl font-semibold leading-none">{item.value}</div>
+            <p className="mt-2 text-sm leading-6 opacity-90">{item.detail}</p>
           </div>
         ))}
       </div>

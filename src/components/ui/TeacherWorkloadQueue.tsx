@@ -31,10 +31,11 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
 
   return (
     <section className="teacher-workload-summary" aria-labelledby="teacher-workload-summary-heading">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
-        <div className="min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
+        <div>
           <p className="page-kicker">ภาระงานอาจารย์</p>
-          <h2 id="teacher-workload-summary-heading" className="mt-0.5 text-base font-semibold">สรุปภาระงานอาจารย์</h2>
+          <h2 id="teacher-workload-summary-heading" className="mt-1 text-lg font-semibold">สรุปภาระงานอาจารย์</h2>
+          <p className="mt-1 text-sm text-muted">แยกงานที่ต้องดำเนินการออกจากงานที่รอหรือเสร็จแล้ว เพื่อให้สแกนได้เร็วเมื่อมีหลายโครงงาน</p>
         </div>
         <div className="teacher-workload-total" aria-label={`งานที่ต้องดำเนินการ ${actionCount} จากทั้งหมด ${total} รายการ`}>
           <span className="text-xs font-semibold text-muted">ต้องทำตอนนี้</span>
@@ -42,13 +43,14 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
           <span className="text-xs text-muted">จาก {total}</span>
         </div>
       </div>
-      <div className="-mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-6">
+      <div className="teacher-workload-metric-grid">
         {metrics.map((metric) => (
-          <div key={metric.label} className={`teacher-workload-metric min-w-[8rem] snap-start lg:min-w-0 ${toneSurfaceClassName[metric.tone]}`} title={metric.description}>
-            <div className="flex items-center justify-between gap-1.5">
-              <span className={`truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5 ${toneClassName[metric.tone]}`}>{metric.label}</span>
-              <span className="shrink-0 text-lg font-semibold leading-none">{metric.count}</span>
+          <div key={metric.label} className={`teacher-workload-metric ${toneSurfaceClassName[metric.tone]}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[metric.tone]}`}>{metric.label}</span>
+              <span className="text-xl font-semibold">{metric.count}</span>
             </div>
+            {metric.description ? <p className="mt-2 text-xs text-muted">{metric.description}</p> : null}
           </div>
         ))}
       </div>
@@ -57,7 +59,7 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
 }
 
 export function TeacherQueueBadge({ children, tone = "waiting" }: { children: ReactNode; tone?: QueueTone }) {
-  return <span className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5 ${toneClassName[tone]}`}>{children}</span>;
+  return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[tone]}`}>{children}</span>;
 }
 
 export function TeacherQueueSection({
@@ -104,7 +106,7 @@ export function TeacherCompactQueueList({
   if (!items.length) return null;
 
   return (
-    <div className="teacher-compact-queue-list" data-scrollable={items.length > 5 ? "true" : undefined}>
+    <div className="teacher-compact-queue-list">
       {items.map((item) => {
         const primaryTone = item.badges?.[0]?.tone ?? "waiting";
         const content = (

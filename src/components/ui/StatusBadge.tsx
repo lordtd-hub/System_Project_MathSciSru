@@ -19,15 +19,10 @@ function badgeTone(status: ProjectStatus): { badge: string; dot: string } {
 
 export function StatusBadge({ status, label }: { status: ProjectStatus; label?: string }) {
   const tone = badgeTone(status);
-  const displayLabel = label ?? projectStatusLabelTh(status);
-
   return (
-    <span
-      className={`inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${tone.badge}`}
-      title={displayLabel}
-    >
-      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tone.dot}`} aria-hidden="true" />
-      <span className="min-w-0 truncate">{displayLabel}</span>
+    <span className={`inline-flex min-h-5 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none sm:min-h-8 sm:gap-2 sm:px-3 sm:py-1 sm:text-xs ${tone.badge}`}>
+      <span className={`h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2 ${tone.dot}`} aria-hidden="true" />
+      สถานะ: {label ?? projectStatusLabelTh(status)}
     </span>
   );
 }

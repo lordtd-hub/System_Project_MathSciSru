@@ -1,22 +1,9 @@
 import { RoleDashboardNav } from "@/components/ui/RoleDashboardNav";
-import { FigmaRoleShell, UiModeSwitch } from "@/components/redesign/FigmaRoleShell";
-import { getUiMode, isFigmaUiAllowed } from "@/lib/uiMode";
 
-export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
-  const uiMode = await getUiMode();
-
-  if (uiMode === "figma") {
-    return <FigmaRoleShell role="teacher" mode={uiMode}>{children}</FigmaRoleShell>;
-  }
-
+export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <RoleDashboardNav role="teacher" />
-      {isFigmaUiAllowed() ? (
-        <div className="mb-4 flex justify-end">
-          <UiModeSwitch mode={uiMode} />
-        </div>
-      ) : null}
       {children}
     </>
   );

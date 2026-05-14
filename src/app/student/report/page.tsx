@@ -13,17 +13,11 @@ import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import {
-  FigmaMetricCard,
-  FigmaPageHeader,
-  FigmaStatusBadge
-} from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { getReportSubmissionGate, getStudentReportActionLabel, reportSubmissionReasonLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
-import { getUiMode } from "@/lib/uiMode";
 
 export default async function StudentReportPage({
   searchParams
@@ -100,61 +94,15 @@ export default async function StudentReportPage({
     finalPresentationCompleted
   });
   const waitingForReview = Boolean(latestReport && !latestReportHasRevisionRequest && project.status === "REPORT_REVIEW");
-  const uiMode = await getUiMode();
-  const reportTone = gate.allowed ? "action" : waitingForReview ? "waiting" : project.status === "REPORT_APPROVED" ? "success" : "muted";
 
   return (
-    <div className={uiMode === "figma" ? "figma-dashboard-page figma-student-report" : "space-y-6"} data-testid="student-report-page-content">
-      {uiMode === "figma" ? (
-        <FigmaPageHeader
-          eyebrow="Student Report"
-          title="ส่งเล่มรายงาน"
-          description="ส่งลิงก์รายงานฉบับสมบูรณ์และติดตามผลการตรวจจากอาจารย์ผู้ตรวจ"
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge status={project.status} />
-              <FigmaStatusBadge tone={reportTone}>
-                {gate.allowed ? "ต้องทำตอนนี้" : waitingForReview ? "รอผู้ตรวจ" : project.status === "REPORT_APPROVED" ? "ผ่านแล้ว" : "ยังส่งไม่ได้"}
-              </FigmaStatusBadge>
-            </div>
-          }
-        />
-      ) : (
-        <PageHeader
-          title="ส่งเล่มรายงาน"
-          description="ส่งลิงก์รายงานฉบับสมบูรณ์และติดตามผลการตรวจจากอาจารย์ผู้ตรวจ"
-          actions={<StatusBadge status={project.status} />}
-        />
-      )}
+    <div className="space-y-6">
+      <PageHeader
+        title="ส่งเล่มรายงาน"
+        description="ส่งลิงก์รายงานฉบับสมบูรณ์และติดตามผลการตรวจจากอาจารย์ผู้ตรวจ"
+        actions={<StatusBadge status={project.status} />}
+      />
       <ActionFeedback success={params.success} error={params.error} />
-      {uiMode === "figma" ? (
-        <div className="figma-kpi-grid">
-          <FigmaMetricCard
-            label="ต้องทำตอนนี้"
-            value={gate.allowed ? 1 : 0}
-            tone={gate.allowed ? "action" : "muted"}
-            description="ส่งรายงานฉบับแรกหรือฉบับแก้ไขจากหน้านี้"
-          />
-          <FigmaMetricCard
-            label="รอผู้ตรวจ"
-            value={waitingForReview ? 1 : 0}
-            tone={waitingForReview ? "waiting" : "muted"}
-            description="ส่งแล้วและยังไม่ต้องส่งซ้ำจนกว่าจะมีผลตรวจ"
-          />
-          <FigmaMetricCard
-            label="ผ่านแล้ว"
-            value={project.status === "REPORT_APPROVED" ? 1 : 0}
-            tone={project.status === "REPORT_APPROVED" ? "success" : "muted"}
-            description="รายงานฉบับล่าสุดผ่านการตรวจแล้ว"
-          />
-          <FigmaMetricCard
-            label="ประวัติ"
-            value={reportHistory.length}
-            tone={reportHistory.length ? "success" : "muted"}
-            description="จำนวนฉบับรายงานที่เก็บไว้เป็นหลักฐาน"
-          />
-        </div>
-      ) : null}
       <GuidancePanel
         title="ขั้นตอนการตรวจรายงาน"
         current={reportSubmissionReasonLabel(gate.reason)}

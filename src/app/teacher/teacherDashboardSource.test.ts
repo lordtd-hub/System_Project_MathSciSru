@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = () => readFileSync(join(process.cwd(), "src/app/teacher/page.tsx"), "utf8");
+const cssSource = () => readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 
 describe("teacher dashboard source", () => {
   it("derives report and schedule counters from teacher-scoped actionable work", () => {
@@ -22,10 +23,9 @@ describe("teacher dashboard source", () => {
 
     expect(page).toContain("teacherActionableTaskCount");
     expect(page).toContain("TeacherWorkloadSummary");
-    expect(page).toContain("CompactMetricRow");
-    expect(page).not.toContain("GuidancePanel");
-    expect(page).not.toContain("คำแนะนำสำหรับอาจารย์");
     expect(page).toContain("teacherWorkloadSummaryMetrics");
+    expect(page).not.toContain("GuidancePanel");
+    expect(page).not.toContain("TaskListCard");
     expect(page).toContain("มีงานที่ต้องดำเนินการ");
     expect(page).toContain("การแจ้งเตือน");
     expect(page).toContain("assignmentSubmitted");
@@ -33,28 +33,15 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("pendingProposalScores.length");
   });
 
-  it("supports safe classic and figma dashboard renderers", () => {
+  it("keeps the classic dashboard compact without alternate renderer fallback UI", () => {
     const page = source();
-    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
-    const workloadQueue = readFileSync(join(process.cwd(), "src/components/ui/TeacherWorkloadQueue.tsx"), "utf8");
+    const css = cssSource();
 
-    expect(page).toContain("getUiMode");
-    expect(page).toContain("FigmaTeacherDashboardView");
-    expect(page).toContain("return <FigmaTeacherDashboardView");
-    expect(page).toContain('uiMode === "figma"');
-    expect(page).toContain("FigmaPageHeader");
-    expect(page).toContain("FigmaMetricCard");
-    expect(page).toContain("teacherDashboardViewProps");
-    expect(page).toContain("figma-teacher-agenda-list");
-    expect(css).toContain(".figma-teacher-agenda-list");
-    expect(css).toContain("max-height: 12rem");
-    expect(css).toContain(".figma-teacher-agenda-list .figma-status-badge");
-    expect(workloadQueue).toContain("overflow-x-auto");
-    expect(workloadQueue).toContain("xl:grid-cols-6");
-    expect(css).toContain("px-2 py-1.5");
-    expect(css).toContain(".compact-metric-row-panel");
+    expect(page).toContain("teacher-agenda-list");
+    expect(page).toContain("CompactMetricRow");
+    expect(css).toContain(".teacher-agenda-list");
+    expect(css).toContain("max-height: 16rem");
+    expect(css).toContain(".teacher-workload-metric-grid");
     expect(css).toContain(".compact-metric-grid");
-    expect(css).toContain("overflow-x-auto");
-    expect(css).toContain("xl:grid-cols-6");
   });
 });

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
@@ -8,7 +7,6 @@ import { AdminOperationalSummary } from "@/components/ui/AdminOperationalQueue";
 import { CompactMetricRow, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { getEvidenceDashboardData } from "@/lib/evidence/adminEvidence";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
-import { getUiMode } from "@/lib/uiMode";
 
 function percent(value: number, total: number) {
   if (!total) return "0%";
@@ -52,151 +50,6 @@ export default async function AdminEvidencePage({
   const reportCount = data.projectRows.filter((row) => row.reportApproval).length;
   const advisorScoreCount = data.projectRows.filter((row) => row.advisorScore).length;
   const selectedOfferingId = data.selectedOffering?.id;
-  const uiMode = await getUiMode();
-
-  if (uiMode === "figma") {
-    return (
-      <div className="figma-dashboard-page figma-admin-evidence">
-        <FigmaPageHeader
-          eyebrow="Evidence / AUN-QA"
-          title="หลักฐานการดำเนินงานและ AUN-QA"
-          description="รวมหลักฐานการดำเนินโครงการ การประเมิน ข้อเสนอแนะ การแก้ไขรายงาน และประวัติการดำเนินการสำหรับผู้ดูแลระบบ"
-          actions={<Link className="button-secondary" href="/admin">กลับแดชบอร์ด</Link>}
-        />
-
-        <FigmaPanel title="เลือกรายวิชา" description="ค่าเริ่มต้นคือรายวิชาที่เปิดล่าสุดในระบบ" tone={data.invalidCourseOfferingId ? "warning" : "muted"}>
-          {data.offerings.length ? (
-            <form className="flex flex-col gap-2 sm:flex-row sm:items-center" action="/admin/evidence">
-              <select name="course_offering_id" defaultValue={selectedOfferingId}>
-                {data.offerings.map((offering) => (
-                  <option key={offering.id} value={offering.id}>
-                    {offering.label}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="button-secondary mobile-primary-action sm:w-auto">ดูหลักฐาน</button>
-            </form>
-          ) : (
-            <EmptyState title="ยังไม่มีรายวิชาที่เปิด" description="เมื่อเปิดรายวิชาแล้ว ระบบจะแสดงสรุปหลักฐานที่นี่" />
-          )}
-          {data.invalidCourseOfferingId ? (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              ไม่พบรายวิชาที่เลือก กรุณาเลือกรายวิชาจากรายการด้านบนอีกครั้ง
-            </div>
-          ) : null}
-        </FigmaPanel>
-
-        {data.selectedOffering ? (
-          <>
-            <div className="figma-kpi-grid">
-              <FigmaMetricCard label="โครงการทั้งหมด" value={totalProjects} tone={totalProjects ? "action" : "muted"} description="จำนวนโครงการในรายวิชาที่เลือก" />
-              <FigmaMetricCard label="เสร็จสมบูรณ์" value={completedProjects} tone="success" description="ผ่าน Admin closeout แล้ว" />
-              <FigmaMetricCard label="หลักฐานยังไม่ครบ" value={missingEvidenceProjects} tone={missingEvidenceProjects ? "warning" : "success"} description="ควรตรวจก่อนใช้เป็นชุดหลักฐานทางการ" />
-              <FigmaMetricCard label="รายงานผ่าน" value={reportCount} tone={reportCount ? "success" : "muted"} description="มีหลักฐานผลตรวจรายงาน" />
-              <FigmaMetricCard label="คะแนนที่ปรึกษา" value={advisorScoreCount} tone={advisorScoreCount ? "success" : "muted"} description="มีคะแนนส่วนที่ปรึกษา 25%" />
-            </div>
-
-            <FigmaPanel title="ส่งออกหลักฐาน" description="ดาวน์โหลดเป็น CSV หรือ Excel (.xlsx) โดยประวัติการดำเนินการเป็นข้อมูลภาพรวมทั้งระบบ" tone="action">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {exportItems.map((item) => (
-                  <div key={`${item.kind}-figma-export`} className="figma-action-row" data-tone={item.kind === "grades" ? "action" : "muted"}>
-                    <div>
-                      <div className="figma-action-title">
-                        {item.label}
-                        {item.kind === "grades" ? <FigmaStatusBadge tone="action">grade CSV</FigmaStatusBadge> : null}
-                      </div>
-                      <p>{item.description}</p>
-                    </div>
-                    <div className="figma-action-side">
-                      <a className="button-secondary justify-center px-2 text-xs" href={exportHref(item.kind, "csv", selectedOfferingId)}>CSV</a>
-                      <a className="button-secondary justify-center px-2 text-xs" href={exportHref(item.kind, "xlsx", selectedOfferingId)}>Excel</a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </FigmaPanel>
-
-            <FigmaPanel
-              title="สถานะหลักฐานรายโครงการ"
-              description={`มีหลักฐานคะแนนสอบความก้าวหน้าครั้งที่ 1 ${progress1Count}/${totalProjects} (${percent(progress1Count, totalProjects)}) · ครั้งที่ 2 ${progress2Count}/${totalProjects} · Final ${finalCount}/${totalProjects}`}
-              tone={missingEvidenceProjects ? "warning" : "success"}
-            >
-              <div className="overflow-x-auto">
-                <table className="responsive-table">
-                  <thead>
-                    <tr className="border-b border-line">
-                      <th>นักศึกษา</th>
-                      <th>หัวข้อ</th>
-                      <th>ที่ปรึกษา</th>
-                      <th>สถานะ</th>
-                      <th>P1</th>
-                      <th>P2</th>
-                      <th>Final</th>
-                      <th>รายงาน</th>
-                      <th>ที่ปรึกษา</th>
-                      <th>ล่าสุด</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.projectRows.map((row) => (
-                      <tr key={`${row.projectId}-figma-evidence`} className="border-b border-line align-top">
-                        <td><div className="font-semibold">{row.studentCode}</div><div className="text-xs text-muted">{row.studentName}</div></td>
-                        <td className="min-w-56"><div className="font-medium">{row.projectTitle}</div><div className="mt-1 text-xs text-muted">ID: {row.projectId}</div></td>
-                        <td className="min-w-44">{row.advisorName}</td>
-                        <td>{row.statusLabel}</td>
-                        <td>{row.progress1Score ? "มี" : "ไม่มี"}</td>
-                        <td>{row.progress2Score ? "มี" : "ไม่มี"}</td>
-                        <td>{row.finalScore ? "มี" : "ไม่มี"}</td>
-                        <td>{row.reportApproval ? "มี" : "ไม่มี"}</td>
-                        <td>{row.advisorScore ? "มี" : "ไม่มี"}</td>
-                        <td>
-                          <div>{row.lastEvidenceUpdate ? formatThaiDateTime24(row.lastEvidenceUpdate) : "ไม่มีข้อมูล"}</div>
-                          {row.missingEvidence.length ? <div className="mt-1 text-xs text-amber-700">{row.missingEvidence.join(", ")}</div> : null}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {!data.projectRows.length ? <EmptyState title="ยังไม่มีโครงการ" description="เมื่อนำเข้านักศึกษาและเริ่มขั้นตอนโครงการแล้ว รายการหลักฐานจะแสดงที่นี่" /> : null}
-            </FigmaPanel>
-
-            <section className="grid gap-4 lg:grid-cols-2">
-              <FigmaPanel title="เหตุการณ์หลักฐานล่าสุด" description="เหตุการณ์สำคัญล่าสุดของรายวิชาที่เลือก" tone="muted">
-                <div className="space-y-2 text-sm">
-                  {data.recentTimelineEvents.map((event) => (
-                    <div key={`${event.id}-figma-event`} className="figma-action-row" data-tone="muted">
-                      <div>
-                        <div className="figma-action-title">{event.eventTitle}</div>
-                        <p>{event.studentCode} · {event.projectTitle}</p>
-                        <small>{event.eventType} · {formatThaiDateTime24(event.occurredAt)} · {event.actorName}</small>
-                      </div>
-                    </div>
-                  ))}
-                  {!data.recentTimelineEvents.length ? <EmptyState title="ยังไม่มีเหตุการณ์หลักฐาน" /> : null}
-                </div>
-              </FigmaPanel>
-
-              <FigmaPanel title="ประวัติการดำเนินการล่าสุดของผู้ดูแลระบบ" description="แสดงเฉพาะข้อมูลประกอบที่ปลอดภัย ไม่ส่งออกข้อมูลลับหรือโทเคน" tone="muted">
-                <div className="space-y-2 text-sm">
-                  {data.recentAuditLogs.map((log) => (
-                    <div key={`${log.id}-figma-audit`} className="figma-action-row" data-tone="muted">
-                      <div>
-                        <div className="figma-action-title">{log.action}</div>
-                        <p>{log.entityType} · {log.entityId}</p>
-                        <small>{formatThaiDateTime24(log.occurredAt)} · {log.actorName}</small>
-                      </div>
-                    </div>
-                  ))}
-                  {!data.recentAuditLogs.length ? <EmptyState title="ยังไม่มีประวัติการดำเนินการ" /> : null}
-                </div>
-              </FigmaPanel>
-            </section>
-          </>
-        ) : null}
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">

@@ -14,18 +14,12 @@ import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import {
-  FigmaMetricCard,
-  FigmaPageHeader,
-  FigmaStatusBadge
-} from "@/components/redesign/VisualSurfaces";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { canEditUntilDeadline } from "@/lib/submissions/versioning";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
-import { getUiMode } from "@/lib/uiMode";
 import { saveProposalSubmission } from "../actions";
 
 export default async function ProposalSubmissionPage({
@@ -74,64 +68,17 @@ export default async function ProposalSubmissionPage({
   const showSubmittedProposalState = Boolean(submission && project?.status !== "PROPOSAL_PENDING");
   const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState;
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
-  const uiMode = await getUiMode();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาสร้างโครงงานก่อนส่งเอกสารเสนอหัวข้อ" actionLabel="ไปหน้าโครงงาน" href="/student/project" />;
 
-  const proposalTone = canSubmitProposal ? "action" : showSubmittedProposalState ? "success" : canPrepareProposal ? "waiting" : "muted";
-
   return (
-    <div className={uiMode === "figma" ? "figma-dashboard-page figma-student-proposal" : "space-y-6"}>
-      {uiMode === "figma" ? (
-        <FigmaPageHeader
-          eyebrow="Student Proposal"
-          title="ส่งเอกสารเสนอหัวข้อ"
-          description="แนบ abstract และลิงก์เอกสารสำหรับสอบหัวข้อ ข้อมูลนี้ใช้ประกอบการสอบและเป็นหลักฐานสำหรับ AUN-QA"
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge status={project.status} />
-              <FigmaStatusBadge tone={proposalTone}>
-                {canSubmitProposal ? "ต้องส่งตอนนี้" : showSubmittedProposalState ? "ส่งแล้ว" : canPrepareProposal ? "รอรอบ/รออนุญาต" : "ยังไม่พร้อม"}
-              </FigmaStatusBadge>
-            </div>
-          }
-        />
-      ) : (
-        <PageHeader
-          title="ส่งเอกสารเสนอหัวข้อ"
-          description="แนบ abstract และลิงก์เอกสารสำหรับสอบหัวข้อ ข้อมูลนี้ใช้ประกอบการสอบและเป็นหลักฐานสำหรับ AUN-QA"
-          actions={<StatusBadge status={project.status} />}
-        />
-      )}
+    <div className="space-y-6">
+      <PageHeader
+        title="ส่งเอกสารเสนอหัวข้อ"
+        description="แนบ abstract และลิงก์เอกสารสำหรับสอบหัวข้อ ข้อมูลนี้ใช้ประกอบการสอบและเป็นหลักฐานสำหรับ AUN-QA"
+        actions={<StatusBadge status={project.status} />}
+      />
       <ActionFeedback success={params.success} error={params.error} />
-      {uiMode === "figma" ? (
-        <div className="figma-kpi-grid">
-          <FigmaMetricCard
-            label="ต้องทำตอนนี้"
-            value={canSubmitProposal ? 1 : 0}
-            tone={canSubmitProposal ? "action" : "muted"}
-            description="กรอกข้อมูล Proposal และส่งหลักฐานเมื่อรอบเปิดหรือได้รับสิทธิ์ส่งย้อนหลัง"
-          />
-          <FigmaMetricCard
-            label="รอรอบ/รออนุญาต"
-            value={!canSubmitProposal && canPrepareProposal ? 1 : 0}
-            tone={!canSubmitProposal && canPrepareProposal ? "waiting" : "muted"}
-            description="ยังไม่เปิดให้ส่งตามรอบปกติ หรือกำลังรอผู้ดูแลระบบเปิดเป็นรายกรณี"
-          />
-          <FigmaMetricCard
-            label="ส่งแล้ว"
-            value={submission ? 1 : 0}
-            tone={submission ? "success" : "muted"}
-            description="เมื่อส่งแล้วให้ติดตามผลการพิจารณาและความเห็นจากอาจารย์"
-          />
-          <FigmaMetricCard
-            label="ความเห็น"
-            value={proposalComments.length}
-            tone={proposalComments.length ? "muted" : "muted"}
-            description="จำนวนความเห็น Proposal ที่เปิดให้นักศึกษาอ่านได้"
-          />
-        </div>
-      ) : null}
       <StudentReadabilitySummary
         title="สรุปสถานะ Proposal"
         description="แยกงานที่ต้องส่งตอนนี้ออกจากสถานะที่ส่งแล้วหรือกำลังรอรอบเปิด เพื่อให้นักศึกษาเห็นขั้นตอนถัดไปชัดเจนขึ้น"

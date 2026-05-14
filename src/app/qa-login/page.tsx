@@ -14,8 +14,6 @@ import {
 } from "@/lib/auth/qaLogin";
 import {
   MULTI_PILOT_R2_PREFIX,
-  MULTI_PILOT_R2_REDESIGN_COURSE_TITLE,
-  MULTI_PILOT_R2_REDESIGN_FIGMA_COURSE_TITLE,
   MULTI_PILOT_R2_WAVE2_COURSE_TITLE,
   getMultiPilotR2ScenarioCounts,
   getMultiPilotR2TeacherRoleSummary,
@@ -25,7 +23,7 @@ import {
   multiPilotR2Wave2Projects,
   multiPilotR2WavePlan
 } from "@/lib/qa/multiPilotR2";
-import { clearQaUser, prepareMultiPilotR2Data, prepareMultiPilotR2RedesignFigmaRegressionData, prepareMultiPilotR2RedesignRegressionData, prepareMultiPilotR2Wave2Data, prepareQaPilotIdentities, prepareQaTeacherProfiles, selectQaUser } from "./actions";
+import { clearQaUser, prepareMultiPilotR2Data, prepareMultiPilotR2Wave2Data, prepareQaPilotIdentities, prepareQaTeacherProfiles, selectQaUser } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +103,8 @@ export default async function QaLoginPage({
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label htmlFor="role">บทบาท</label>
-              <select id="role" name="role" required defaultValue="student">
+              <select id="role" name="role" required defaultValue="">
+                <option value="" disabled>เลือกบทบาท</option>
                 <option value="admin">Admin</option>
                 <option value="teacher">Teacher</option>
                 <option value="student">Student</option>
@@ -182,30 +181,6 @@ export default async function QaLoginPage({
           </button>
           <p className="text-xs text-muted">
             Creates or reuses the isolated {MULTI_PILOT_R2_WAVE2_COURSE_TITLE} with {multiPilotR2Wave2Projects.length} starter projects at STUDENT_PROFILE. Wave 1 data is preserved.
-          </p>
-        </form>
-        <form action={prepareMultiPilotR2RedesignRegressionData} className="space-y-3 rounded-md border border-line bg-paper p-3">
-          <div>
-            <label htmlFor="prepare_r2_redesign_secret">QA login secret</label>
-            <input id="prepare_r2_redesign_secret" name="secret" type="password" required autoComplete="off" />
-          </div>
-          <button type="submit" className="button-secondary" disabled={!secretConfigured}>
-            Prepare Redesign Regression Offering
-          </button>
-          <p className="text-xs text-muted">
-            Creates or reuses the isolated {MULTI_PILOT_R2_REDESIGN_COURSE_TITLE} with {multiPilotR2Wave2Projects.length} starter projects at STUDENT_PROFILE. Wave 1 and Wave 2 data are preserved.
-          </p>
-        </form>
-        <form action={prepareMultiPilotR2RedesignFigmaRegressionData} className="space-y-3 rounded-md border border-line bg-paper p-3">
-          <div>
-            <label htmlFor="prepare_r2_redesign_figma_secret">QA login secret</label>
-            <input id="prepare_r2_redesign_figma_secret" name="secret" type="password" required autoComplete="off" />
-          </div>
-          <button type="submit" className="button-secondary" disabled={!secretConfigured}>
-            Prepare Redesign Figma Regression Offering
-          </button>
-          <p className="text-xs text-muted">
-            Creates or reuses the isolated {MULTI_PILOT_R2_REDESIGN_FIGMA_COURSE_TITLE} with {multiPilotR2Wave2Projects.length} starter projects at STUDENT_PROFILE. Use it as the second safe state for classic/figma mutating parity. Wave 1 and Wave 2 data are preserved.
           </p>
         </form>
         <div className="grid gap-3 md:grid-cols-4">

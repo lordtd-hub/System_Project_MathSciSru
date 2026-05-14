@@ -386,6 +386,10 @@
     @apply p-4;
   }
 
+  .action-list-card {
+    background: var(--surface);
+  }
+
   .compact-metric-row-panel {
     @apply p-3;
   }
@@ -399,8 +403,10 @@
     border-left-width: 3px;
   }
 
-  .action-list-card {
-    background: var(--surface);
+  .teacher-agenda-list {
+    max-height: 16rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
   }
 
   .action-list-item {
@@ -423,8 +429,12 @@
     font-feature-settings: "tnum";
   }
 
+  .teacher-workload-metric-grid {
+    @apply -mx-1 mt-3 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 lg:pb-0;
+  }
+
   .teacher-workload-metric {
-    @apply rounded-md border border-line bg-paperSoft px-2 py-1.5 shadow-sm;
+    @apply min-w-[8rem] snap-start rounded-md border border-line bg-paperSoft px-2 py-1.5 shadow-sm lg:min-w-0;
     border-left-width: 3px;
   }
 
@@ -454,20 +464,8 @@
     @apply overflow-hidden rounded-lg border border-line bg-surface shadow-sm;
   }
 
-  .teacher-compact-queue-list[data-scrollable="true"] {
-    @apply max-h-[20rem] overflow-y-auto;
-  }
-
-  .teacher-compact-queue-list[data-scrollable="true"] .teacher-compact-queue-item {
-    @apply rounded-none;
-  }
-
-  .admin-queue-scroll[data-scrollable="true"] {
-    @apply max-h-[20rem] overflow-y-auto pr-1;
-  }
-
   .teacher-compact-queue-item {
-    @apply flex flex-col gap-2 border-b border-line bg-paperSoft p-2.5 text-sm last:border-b-0 hover:bg-surface sm:flex-row sm:items-center sm:justify-between;
+    @apply flex flex-col gap-3 border-b border-line bg-paperSoft p-3 text-sm last:border-b-0 hover:bg-surface sm:flex-row sm:items-center sm:justify-between;
     border-left-width: 4px;
   }
 
@@ -702,340 +700,5 @@
 
   .teacher-compact-queue-item {
     @apply rounded-none;
-  }
-}
-
-@layer components {
-  .figma-role-shell {
-    @apply mx-0 my-0 grid min-h-[calc(100vh-9rem)] grid-cols-1 bg-paper sm:-mx-6 lg:-mx-8 lg:grid-cols-[88px_minmax(0,1fr)];
-    overflow: visible;
-  }
-
-  .figma-role-sidebar {
-    @apply hidden border-r border-line bg-surface px-2 py-3 lg:flex lg:flex-col lg:items-center;
-    box-shadow: var(--shadow-soft);
-  }
-
-  .figma-role-brand {
-    @apply flex w-full items-center justify-center rounded-md border border-line bg-paperSoft p-2 text-ink;
-  }
-
-  .figma-role-brand-mark {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand text-base font-bold text-white;
-  }
-
-  .figma-role-brand span:last-child {
-    @apply sr-only;
-  }
-
-  .figma-role-brand strong,
-  .figma-role-brand small {
-    @apply block;
-  }
-
-  .figma-role-nav {
-    @apply mt-4 flex flex-1 flex-col items-center gap-1;
-  }
-
-  .figma-role-nav a {
-    @apply relative flex h-10 w-10 items-center justify-center rounded-md border border-transparent text-[11px] font-bold text-muted transition hover:border-brand/20 hover:bg-red-50 hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand/20;
-  }
-
-  .figma-role-nav a::after {
-    content: attr(data-label);
-    @apply pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-30 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-line bg-surface px-2 py-1 text-xs font-semibold text-ink shadow-md;
-  }
-
-  .figma-role-nav a:hover::after,
-  .figma-role-nav a:focus-visible::after {
-    @apply block;
-  }
-
-  .figma-role-nav-icon {
-    @apply flex h-5 w-5 items-center justify-center;
-  }
-
-  .figma-role-nav-svg {
-    @apply h-5 w-5;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .figma-role-nav-label {
-    @apply sr-only;
-  }
-
-  .figma-role-sidebar-footer {
-    @apply mt-5 w-full border-t border-line pt-3;
-  }
-
-  .figma-role-main {
-    @apply min-w-0;
-    overflow: visible;
-  }
-
-  .figma-role-mobile-bar {
-    @apply sticky top-[72px] z-20 flex items-center justify-between gap-3 border-b border-line bg-surface/95 px-3 py-2 shadow-sm backdrop-blur lg:hidden;
-  }
-
-  .figma-role-content {
-    @apply mx-auto w-full max-w-7xl space-y-5 px-3 py-4 pb-10 sm:px-5 lg:px-6 lg:py-6 lg:pb-12;
-    overflow: visible;
-  }
-
-  .figma-ui-mode-switch {
-    @apply inline-flex rounded-lg border border-line bg-paperSoft p-1 shadow-sm;
-  }
-
-  .figma-ui-mode-switch button {
-    @apply min-h-8 rounded-md border-0 bg-transparent px-2.5 py-1 text-xs font-semibold text-muted shadow-none hover:translate-y-0 hover:bg-surface hover:text-brand;
-  }
-
-  .figma-ui-mode-switch button.is-active {
-    @apply bg-brand text-white;
-  }
-
-  .figma-page-header {
-    @apply flex flex-col gap-4 rounded-lg border border-line bg-surface p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between lg:p-5;
-    border-left: 5px solid var(--red-700);
-  }
-
-  .figma-page-header h1 {
-    @apply text-2xl font-semibold leading-9 text-ink;
-  }
-
-  .figma-page-header p {
-    @apply mt-1 max-w-3xl text-sm leading-6 text-muted;
-  }
-
-  .figma-eyebrow {
-    @apply text-xs font-bold uppercase text-brand;
-    letter-spacing: 0.12em;
-  }
-
-  .figma-page-actions {
-    @apply flex max-w-full flex-nowrap gap-1.5 overflow-x-auto pb-1;
-  }
-
-  .figma-metric-card {
-    @apply min-h-[4.75rem] rounded-md border border-line bg-surface p-2.5 shadow-sm;
-    border-left-width: 2px;
-  }
-
-  .figma-metric-card[data-tone="action"],
-  .figma-panel[data-tone="action"],
-  .figma-status-badge[data-tone="action"] {
-    border-left-color: var(--red-700);
-  }
-
-  .figma-metric-card[data-tone="warning"],
-  .figma-panel[data-tone="warning"],
-  .figma-status-badge[data-tone="warning"] {
-    border-left-color: var(--warn-700);
-  }
-
-  .figma-metric-card[data-tone="success"],
-  .figma-panel[data-tone="success"],
-  .figma-status-badge[data-tone="success"] {
-    border-left-color: var(--ok-700);
-  }
-
-  .figma-metric-card span {
-    @apply block truncate text-[10px] font-semibold uppercase text-muted;
-    letter-spacing: 0.05em;
-  }
-
-  .figma-metric-card strong {
-    @apply mt-1 block text-xl font-semibold tabular-nums leading-none text-ink;
-  }
-
-  .figma-metric-card p {
-    @apply mt-1 line-clamp-1 text-[10px] leading-4 text-muted;
-  }
-
-  .figma-panel {
-    @apply rounded-lg border border-line border-l-4 bg-surface p-4 shadow-sm;
-  }
-
-  .figma-panel > header {
-    @apply mb-3 border-b border-line pb-3;
-  }
-
-  .figma-panel > header h2 {
-    @apply text-lg font-semibold text-ink;
-  }
-
-  .figma-panel > header p {
-    @apply mt-1 text-sm leading-6 text-muted;
-  }
-
-  .figma-review-layout {
-    @apply grid gap-4 lg:grid-cols-[minmax(260px,0.72fr)_minmax(560px,1.28fr)] lg:items-start;
-  }
-
-  .figma-review-context,
-  .figma-review-action {
-    @apply min-w-0 space-y-4;
-  }
-
-  .figma-status-badge {
-    @apply inline-flex max-w-[12rem] items-center truncate whitespace-nowrap rounded-full border border-line bg-paperSoft px-2 py-0.5 text-[11px] font-semibold leading-5 text-muted;
-    border-left-width: 2px;
-  }
-
-  .figma-dashboard-page {
-    @apply space-y-5;
-  }
-
-  .figma-kpi-grid {
-    @apply grid gap-2;
-    grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr));
-  }
-
-  .figma-dashboard-grid {
-    @apply grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)] xl:items-start;
-  }
-
-  .figma-side-stack {
-    @apply space-y-4;
-  }
-
-  .figma-action-list,
-  .figma-schedule-list,
-  .figma-attempt-list,
-  .figma-notification-list,
-  .figma-object-summary-list {
-    @apply space-y-2;
-  }
-
-  .figma-teacher-agenda-list {
-    max-height: 12rem;
-    overflow-y: auto;
-    padding-right: 0.25rem;
-  }
-
-  .figma-scroll-queue:has(> :nth-child(6)) {
-    @apply max-h-[28rem] overflow-y-auto pr-1;
-  }
-
-  .figma-object-detail {
-    @apply rounded-lg border border-line bg-surface shadow-sm;
-  }
-
-  .figma-object-detail[data-density="display"] {
-    @apply p-3;
-  }
-
-  .figma-object-detail[data-density="form"] {
-    @apply p-4 lg:p-5;
-  }
-
-  .figma-action-row {
-    @apply grid gap-3 rounded-lg border border-line border-l-4 bg-surface p-3 text-sm transition hover:border-brand hover:bg-paperSoft sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center;
-  }
-
-  .figma-readonly-detail {
-    @apply grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.52fr)] lg:items-start;
-  }
-
-  .figma-readonly-note {
-    @apply rounded-lg border border-line bg-paperSoft p-3 text-sm leading-6 text-muted;
-  }
-
-  .figma-action-row[data-tone="action"] {
-    border-left-color: var(--red-700);
-  }
-
-  .figma-action-row[data-tone="warning"] {
-    border-left-color: var(--warn-700);
-  }
-
-  .figma-action-row[data-tone="success"] {
-    border-left-color: var(--ok-700);
-  }
-
-  .figma-action-row[data-tone="muted"] {
-    border-left-color: var(--ink-300);
-  }
-
-  .figma-action-title {
-    @apply flex flex-wrap items-center gap-2 font-semibold text-ink;
-  }
-
-  .figma-action-row p {
-    @apply mt-1 text-xs leading-5 text-muted;
-  }
-
-  .figma-action-row small {
-    @apply mt-1 block text-xs font-semibold uppercase text-muted;
-    letter-spacing: 0.06em;
-  }
-
-  .figma-action-side {
-    @apply flex items-center justify-between gap-3 sm:justify-end;
-  }
-
-  .figma-action-side strong {
-    @apply text-2xl font-semibold tabular-nums text-ink;
-  }
-
-  .figma-action-side span {
-    @apply inline-flex min-h-8 items-center justify-center rounded-md border border-lineStrong bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm;
-  }
-
-  .figma-schedule-row,
-  .figma-attempt-row {
-    @apply grid gap-3 rounded-lg border border-line bg-surface p-3 text-sm transition hover:border-brand hover:bg-paperSoft md:grid-cols-[minmax(0,1fr)_auto] md:items-center;
-  }
-
-  .figma-teacher-agenda-list .figma-schedule-row {
-    @apply gap-2 p-2 text-xs;
-  }
-
-  .figma-schedule-row strong,
-  .figma-attempt-row strong {
-    @apply text-ink;
-  }
-
-  .figma-teacher-agenda-list .figma-schedule-row strong {
-    @apply text-sm leading-5;
-  }
-
-  .figma-schedule-row p,
-  .figma-attempt-row p {
-    @apply mt-1 text-sm text-muted;
-  }
-
-  .figma-teacher-agenda-list .figma-schedule-row p {
-    @apply mt-0.5 text-xs leading-5;
-  }
-
-  .figma-schedule-row small,
-  .figma-attempt-row small {
-    @apply mt-1 block text-xs leading-5 text-muted;
-  }
-
-  .figma-teacher-agenda-list .figma-schedule-row small {
-    @apply mt-0.5 text-[11px] leading-4;
-  }
-
-  .figma-schedule-meta {
-    @apply flex flex-col gap-2 text-left text-sm font-semibold text-ink md:text-right;
-  }
-
-  .figma-teacher-agenda-list .figma-schedule-meta {
-    @apply gap-1 text-xs;
-  }
-
-  .figma-schedule-meta > div {
-    @apply flex flex-wrap gap-1.5 md:justify-end;
-  }
-
-  .figma-teacher-agenda-list .figma-status-badge {
-    @apply max-w-[8rem] px-1.5 py-0 text-[10px] leading-4;
-    min-height: 1.15rem;
   }
 }
