@@ -415,10 +415,6 @@
     border-left-width: 3px;
   }
 
-  .teacher-workload-metric p {
-    @apply mt-1 line-clamp-2 text-[11px] leading-4;
-  }
-
   .teacher-workload-action {
     border-left-color: var(--red-700);
   }

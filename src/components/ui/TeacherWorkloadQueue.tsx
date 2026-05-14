@@ -35,7 +35,6 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
         <div className="min-w-0">
           <p className="page-kicker">ภาระงานอาจารย์</p>
           <h2 id="teacher-workload-summary-heading" className="mt-0.5 text-base font-semibold">สรุปภาระงานอาจารย์</h2>
-          <p className="mt-0.5 line-clamp-1 text-xs text-muted">แยกงานที่ต้องดำเนินการออกจากงานที่รอหรือเสร็จแล้ว เพื่อให้สแกนได้เร็วเมื่อมีหลายโครงงาน</p>
         </div>
         <div className="teacher-workload-total" aria-label={`งานที่ต้องดำเนินการ ${actionCount} จากทั้งหมด ${total} รายการ`}>
           <span className="text-xs font-semibold text-muted">ต้องทำตอนนี้</span>
@@ -50,7 +49,6 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
               <span className={`truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5 ${toneClassName[metric.tone]}`}>{metric.label}</span>
               <span className="shrink-0 text-lg font-semibold leading-none">{metric.count}</span>
             </div>
-            {metric.description ? <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-muted">{metric.description}</p> : null}
           </div>
         ))}
       </div>
