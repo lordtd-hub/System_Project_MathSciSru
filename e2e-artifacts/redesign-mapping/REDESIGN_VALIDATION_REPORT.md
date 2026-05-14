@@ -1056,3 +1056,25 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - `cmd /c npm.cmd run build` - passed.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Phase 9 Compact Object / Full Detail Validation
+
+- Phase: 9 mutating regression follow-up.
+- Scope:
+  - shared compact object summary list and full-detail object surfaces;
+  - teacher reports Figma queue/detail layout;
+  - teacher advisor-score Figma queue/detail layout;
+  - removal of redundant teacher dashboard quick-link widget in Figma mode;
+  - opt-in internal scroll only, not global list height locking;
+  - hidden redundant teacher dashboard KPI strip in Figma mode.
+- Renderer status:
+  - classic fallback remains available;
+  - figma mode now has explicit compact dashboard/queue object presentation and wider full-detail/form presentation.
+- Logic touched: no.
+- Local validation:
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- src/app/figmaUiModeSource.test.ts src/app/teacher/teacherDashboardSource.test.ts src/app/teacher/teacherWorkloadUxSource.test.ts` - passed.
+  - `cmd /c npm.cmd test` - passed, 82 files / 366 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- QA deployment: pending.
+- Live verification: pending.

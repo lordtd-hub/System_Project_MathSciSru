@@ -220,7 +220,7 @@ type TeacherDashboardViewProps = {
   submittedScoreStatus: ScoreStatus;
 };
 
-function figmaMetricTone(tone?: TeacherDashboardMetricCard["tone"]): ComponentProps<typeof FigmaMetricCard>["tone"] {
+function figmaMetricTone(tone?: TeacherDashboardMetricCard["tone"]): "action" | "warning" | "success" | "muted" {
   if (tone === "urgent" || tone === "ready") return "action";
   if (tone === "waiting") return "warning";
   if (tone === "complete") return "success";
@@ -228,7 +228,6 @@ function figmaMetricTone(tone?: TeacherDashboardMetricCard["tone"]): ComponentPr
 }
 
 function FigmaTeacherDashboardView({
-  teacher,
   teacherWorkloadSummaryMetrics,
   activeTeacherActionQueue,
   teacherNextAction,
@@ -251,7 +250,7 @@ function FigmaTeacherDashboardView({
         description="รวมงานที่ต้องดำเนินการ ตารางสอบ งานตรวจรายงาน และสถานะที่เกี่ยวข้อง โดยแยกงานเร่งด่วนออกจากงานติดตามให้สแกนได้เร็วขึ้น"
       />
 
-      <div className="figma-kpi-grid">
+      <div className="hidden">
         <FigmaMetricCard label="ต้องทำตอนนี้" value={needsAction} description="งานที่ต้องตอบรับ ประเมิน ตรวจ หรือยืนยัน" tone="action" />
         <FigmaMetricCard label="งานทั้งหมด" value={totalWorkload} description="สัญญาณรวมจากบทบาทของอาจารย์ในระบบ" tone="muted" />
         {teacherWorkloadSummaryMetrics.slice(1, 5).map((metric) => (
@@ -295,14 +294,6 @@ function FigmaTeacherDashboardView({
 
         <div className="figma-side-stack">
           <NextActionCard action={teacherNextAction} />
-          <FigmaPanel title="บัญชีและบทบาท" description="ทางลัดไปยังงานหลักของอาจารย์" tone="muted">
-            <p className="text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
-            <div className="mt-3 grid gap-2 text-sm">
-              <Link className="button-secondary justify-start" href="/teacher/proposals">ประเมินการเสนอหัวข้อ</Link>
-              <Link className="button-secondary justify-start" href="/teacher/reports">ตรวจเล่ม</Link>
-              <Link className="button-secondary justify-start" href="/teacher/advisor-score">คะแนนสรุปของอาจารย์ที่ปรึกษา 25%</Link>
-            </div>
-          </FigmaPanel>
         </div>
       </div>
 

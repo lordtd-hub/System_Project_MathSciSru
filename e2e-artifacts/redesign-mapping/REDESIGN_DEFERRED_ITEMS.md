@@ -49,9 +49,14 @@
   - keep dense status groups in one row with horizontal overflow when the content is intentionally row-like;
   - avoid making every status a large rectangular card.
 - This is Minor/UX, not a Phase 9 workflow blocker. Address during the post-regression visual polish pass unless a specific page becomes operationally confusing.
-- Long queue sections should not make the whole page excessively tall. For dense waiting/action queues, show only the first 4-5 items in the visible panel and use an internal vertical scrollbar for the rest.
+- Long queue sections should not make the whole page excessively tall, but internal vertical scroll must be opt-in per queue. Do not globally lock list height across all Figma pages because users still need normal page scrolling to read lower content.
 - The Figma role navigator/sidebar currently uses too much space for low-value navigation labels. Consider compacting it into icon-first buttons with hover/focus tooltips that explain destinations such as workload inbox, schedules, Proposal, Progress, Final, reports, and advisor score.
 - Horizontal scroll is acceptable for intentionally row-like status/badge groups; vertical internal scroll is preferred for long queues of repeated work items.
+- Object presentation should stay split into two modes:
+  - compact summary objects for dashboards, queues, and inbox-style pages;
+  - full detail objects for inspection, reading evidence/comments, and data-entry/scoring forms.
+- Navigation shortcut widgets on dashboards should be removed or minimized in Figma mode when the icon sidebar already provides the same route access. Keep the dashboard focused on current workload and status, not duplicated navigation.
+- The teacher dashboard KPI strip can be redundant when the action workspace already shows the same counts. Prefer the action workspace and the "NOW" card near it; keep aggregate metrics lower priority or hidden in Figma mode unless they answer a distinct question.
 
 ## Deferred After Admin Renderer Batch 1
 

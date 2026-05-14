@@ -1650,3 +1650,33 @@ The patch is layout/CSS/renderer-only. It does not change lifecycle, auth, scori
 ### Next Phase
 
 Commit and deploy this display-density follow-up to QA, live-check `/teacher/advisor-score` on the new preview, then resume Phase 9 Progress 2 scoring.
+
+## 2026-05-14 - Phase 9 Compact Object / Full Detail Rule
+
+### Scope
+
+Added a clearer visual rule from live review: the same project/work object should have compact and full-detail presentations.
+
+### Patch
+
+- Added shared Figma object presentation primitives:
+  - `FigmaObjectSummaryList` for dashboard/queue/inbox scan lists.
+  - `FigmaObjectDetail` with `display` and `form` density for inspection/detail sections.
+- Applied the pattern to teacher report review and advisor-score pages:
+  - queue panels use compact summary lists with internal scrolling when many items exist;
+  - detail sections use full detail surfaces;
+  - editable/form states stay wider than read-only display states.
+- Removed the redundant Figma teacher dashboard quick-link widget because the icon role navigator already provides the same destinations.
+- Hid the redundant teacher dashboard KPI strip in Figma mode because the action workspace already presents the same workload counts.
+- Replaced broad automatic internal-scroll rules with an explicit opt-in `figma-scroll-queue` class so full pages can keep normal vertical scrolling.
+- Documented the compact-vs-full-detail rule in the redesign theme/content rules.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation-only and does not change lifecycle, auth, scoring, eligibility, schema, API semantics, permissions, guards, server actions, route behavior, QA data, or production configuration.
+
+### Next Phase
+
+Validate locally, deploy to QA, live-check teacher dashboard and advisor-score/report pages in Figma mode, then resume Phase 9 Progress 2 scoring.

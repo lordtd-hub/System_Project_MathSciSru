@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 type Tone = "action" | "waiting" | "success" | "warning" | "danger" | "muted";
 
@@ -85,5 +85,38 @@ export function FigmaStatusBadge({ children, tone = "muted" }: { children: React
     <span className="figma-status-badge" data-tone={tone} title={title}>
       <span className="min-w-0 truncate">{children}</span>
     </span>
+  );
+}
+
+export function FigmaObjectSummaryList({
+  children,
+  className = "",
+  scrollable = false,
+  ...props
+}: ComponentPropsWithoutRef<"div"> & { scrollable?: boolean }) {
+  const classes = ["figma-object-summary-list", scrollable ? "figma-scroll-queue" : "", className]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className={classes} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function FigmaObjectDetail({
+  children,
+  density = "display",
+  className = "",
+  ...props
+}: {
+  children: ReactNode;
+  density?: "display" | "form";
+} & ComponentPropsWithoutRef<"section">) {
+  return (
+    <section className={`figma-object-detail ${className}`.trim()} data-density={density} {...props}>
+      {children}
+    </section>
   );
 }

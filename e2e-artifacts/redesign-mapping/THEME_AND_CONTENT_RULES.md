@@ -120,6 +120,31 @@ Target style:
 - dangerous actions visually separated;
 - completed/history content visually lower priority than actionable work.
 
+## Object Display Density
+
+The same project/work item should have two presentation modes:
+
+- compact object summary for dashboards, queues, inboxes, and pages meant for fast scanning;
+- full detail object view for pages or sections where a user must inspect evidence, read comments, or fill a form.
+
+Dashboard and queue surfaces should not show every field of an object. They should show only:
+
+- project/student identity;
+- current status;
+- required next action or waiting state;
+- one or two useful metadata lines;
+- a clear link or anchor to the full detail.
+
+Full detail surfaces may be larger, especially when they contain forms, scoring rubrics, evidence, Markdown/KaTeX text, report comments, or audit-critical warnings.
+
+Guidelines:
+
+- Use compact summary lists for dashboard queues.
+- Keep long queue lists internally scrollable only when the page explicitly opts into that behavior; do not globally lock page or list height in a way that prevents normal page scrolling.
+- Do not duplicate navigation shortcut widgets when the Figma role sidebar already provides those links.
+- Keep form-heavy surfaces wider and easier to fill than read-only display surfaces.
+- Do not hide audit/warning/late/exception details from full detail views.
+
 Avoid:
 
 - marketing-style landing sections for operational pages;

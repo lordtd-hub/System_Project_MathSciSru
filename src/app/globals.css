@@ -894,15 +894,25 @@
   .figma-action-list,
   .figma-schedule-list,
   .figma-attempt-list,
-  .figma-notification-list {
+  .figma-notification-list,
+  .figma-object-summary-list {
     @apply space-y-2;
   }
 
-  .figma-action-list:has(> :nth-child(6)),
-  .figma-schedule-list:has(> :nth-child(6)),
-  .figma-attempt-list:has(> :nth-child(6)),
-  .figma-notification-list:has(> :nth-child(6)) {
+  .figma-scroll-queue:has(> :nth-child(6)) {
     @apply max-h-[28rem] overflow-y-auto pr-1;
+  }
+
+  .figma-object-detail {
+    @apply rounded-lg border border-line bg-surface shadow-sm;
+  }
+
+  .figma-object-detail[data-density="display"] {
+    @apply p-3;
+  }
+
+  .figma-object-detail[data-density="form"] {
+    @apply p-4 lg:p-5;
   }
 
   .figma-action-row {

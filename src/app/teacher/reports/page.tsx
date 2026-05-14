@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
-import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaReviewLayout, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
+import { FigmaMetricCard, FigmaObjectDetail, FigmaObjectSummaryList, FigmaPageHeader, FigmaPanel, FigmaReviewLayout, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
 import { allRequiredReportReviewersPassed, requiredReportReviewerIds } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
@@ -245,7 +245,7 @@ export default async function TeacherReportsPage({
     const hasEditableReportAction = Boolean(latestReport) && project.status === "REPORT_REVIEW" && !hasSubmittedCurrentReview && !latestReportHasRevisionRequest;
 
     return (
-      <section key={`${project.id}-figma`} id={`report-${project.id}`} className="scroll-mt-24 rounded-lg border border-line bg-surface p-4 shadow-sm">
+      <FigmaObjectDetail key={`${project.id}-figma`} id={`report-${project.id}`} density={hasEditableReportAction ? "form" : "display"} className="scroll-mt-24">
         {hasEditableReportAction ? (
           <FigmaReviewLayout context={context} action={action} />
         ) : (
@@ -254,7 +254,7 @@ export default async function TeacherReportsPage({
             {action}
           </div>
         )}
-      </section>
+      </FigmaObjectDetail>
     );
   };
 
@@ -282,7 +282,7 @@ export default async function TeacherReportsPage({
           tone={projects.length ? "action" : "muted"}
         >
           {projects.length ? (
-            <div className="figma-action-list">
+            <FigmaObjectSummaryList>
               {sortedProjects.map((project) => {
                 const latestReport = project.reportVersions[0];
                 const queueState = reportQueueStateByProjectId.get(project.id) ?? "waiting";
@@ -299,7 +299,7 @@ export default async function TeacherReportsPage({
                   </a>
                 );
               })}
-            </div>
+            </FigmaObjectSummaryList>
           ) : (
             <EmptyState
               title="ยังไม่มีเล่มรายงานที่ต้องตรวจ"

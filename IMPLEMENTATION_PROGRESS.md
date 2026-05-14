@@ -2098,3 +2098,17 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
 - Next step: deploy to QA, live-check `/teacher/advisor-score`, then resume Phase 9 Progress 2 scoring.
+
+## 2026-05-14 Phase 9 compact object vs full detail rule
+
+- Added the redesign rule that dashboard/queue object displays should be compact, while inspection and form-heavy views should use full-detail surfaces.
+- Added shared Figma presentation primitives for compact object summary lists and full-detail object sections.
+- Applied the rule to teacher reports and advisor-score pages:
+  - compact queue list for scan-and-select;
+  - full detail section for review, evidence, scoring, or read-only inspection;
+  - form states remain wider/easier to fill than read-only states.
+- Removed the redundant Figma teacher dashboard quick-link widget because the icon sidebar already provides those destinations.
+- Hid the redundant Figma teacher dashboard KPI strip because the action workspace already provides the same "now / total / waiting" information.
+- Changed internal scroll behavior to opt-in only, so pages keep normal vertical scrolling unless a specific queue deliberately asks for its own scroll area.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route, server action, QA data, or production behavior was changed.
+- Next step: validate, deploy to QA, live-check the compact/full-detail presentation, then resume Phase 9 Progress 2 scoring.

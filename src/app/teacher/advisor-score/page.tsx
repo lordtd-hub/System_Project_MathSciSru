@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
-import { FigmaMetricCard, FigmaPageHeader, FigmaPanel, FigmaReviewLayout, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
+import { FigmaMetricCard, FigmaObjectDetail, FigmaObjectSummaryList, FigmaPageHeader, FigmaPanel, FigmaReviewLayout, FigmaStatusBadge } from "@/components/redesign/VisualSurfaces";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { advisorCriteria } from "@/lib/scoring/advisorScoring";
@@ -221,7 +221,7 @@ export default async function TeacherAdvisorScorePage({
     );
 
     return (
-      <section key={`${project.id}-figma`} id={`advisor-score-${project.id}`} className="scroll-mt-24 rounded-lg border border-line bg-surface p-4 shadow-sm">
+      <FigmaObjectDetail key={`${project.id}-figma`} id={`advisor-score-${project.id}`} density={editable ? "form" : "display"} className="scroll-mt-24">
         {editable ? (
           <FigmaReviewLayout context={context} action={action} />
         ) : (
@@ -230,7 +230,7 @@ export default async function TeacherAdvisorScorePage({
             {action}
           </div>
         )}
-      </section>
+      </FigmaObjectDetail>
     );
   };
 
@@ -258,7 +258,7 @@ export default async function TeacherAdvisorScorePage({
           tone={projects.length ? "action" : "muted"}
         >
           {projects.length ? (
-            <div className="figma-action-list">
+            <FigmaObjectSummaryList>
               {sortedProjects.map((project) => {
                 const latestReport = project.reportVersions[0];
                 const queueState = advisorQueueStateByProjectId.get(project.id) ?? "locked";
@@ -275,7 +275,7 @@ export default async function TeacherAdvisorScorePage({
                   </a>
                 );
               })}
-            </div>
+            </FigmaObjectSummaryList>
           ) : (
             <EmptyState
               title="ยังไม่มีโครงการที่เป็นที่ปรึกษา"

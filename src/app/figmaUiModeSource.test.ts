@@ -37,8 +37,12 @@ describe("figma UI mode source", () => {
     expect(shell).toContain("figma-role-sidebar");
     expect(surfaces).toContain("FigmaReviewLayout");
     expect(surfaces).toContain("FigmaMetricCard");
+    expect(surfaces).toContain("FigmaObjectSummaryList");
+    expect(surfaces).toContain("FigmaObjectDetail");
     expect(css).toContain(".figma-role-shell");
     expect(css).toContain(".figma-review-layout");
+    expect(css).toContain(".figma-object-summary-list");
+    expect(css).toContain('.figma-object-detail[data-density="form"]');
     expect(css).toContain("@apply grid gap-4 lg:grid-cols");
   });
 
@@ -60,9 +64,21 @@ describe("figma UI mode source", () => {
     expect(css).toContain("lg:grid-cols-[88px_minmax(0,1fr)]");
     expect(css).toContain(".figma-role-nav a::after");
     expect(css).toContain(".figma-role-nav-svg");
-    expect(css).toContain(".figma-action-list:has(> :nth-child(6))");
+    expect(css).toContain(".figma-scroll-queue:has(> :nth-child(6))");
     expect(css).toContain("@apply min-h-[4.75rem]");
     expect(css).toContain("line-clamp-1");
+  });
+
+  it("keeps dashboard widgets compact when the Figma sidebar already provides navigation", () => {
+    const teacherDashboard = readSource("src/app/teacher/page.tsx");
+    const reports = readSource("src/app/teacher/reports/page.tsx");
+    const advisorScore = readSource("src/app/teacher/advisor-score/page.tsx");
+
+    expect(teacherDashboard).not.toContain('description="ทางลัดไปยังงานหลักของอาจารย์"');
+    expect(reports).toContain("FigmaObjectSummaryList");
+    expect(reports).toContain('density={hasEditableReportAction ? "form" : "display"}');
+    expect(advisorScore).toContain("FigmaObjectSummaryList");
+    expect(advisorScore).toContain('density={editable ? "form" : "display"}');
   });
 
   it("redirects back to the current route after switching modes", () => {
