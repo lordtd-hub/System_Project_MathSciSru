@@ -49,6 +49,8 @@ describe("admin operational UX source", () => {
     expect(source).toContain('schedule.status === "CONFIRMED"');
     expect(source).toContain('approval.decision === "PENDING"');
     expect(source).toContain("scheduleGroups");
+    expect(source).toContain("admin-compact-schedule-row");
+    expect(source).toContain("admin-compact-schedule-details");
   });
 
   it("clarifies evidence exports including grade summary meaning", () => {
@@ -57,5 +59,9 @@ describe("admin operational UX source", () => {
     expect(source).toContain('kind: "grades"');
     expect(source).toContain("คะแนนแต่ละรอบและสถานะจบรายคน");
     expect(source).toContain("ไม่เปลี่ยนกฎการปิดโครงงานหรือการคำนวณคะแนน");
+  });
+  it("maps admin evidence audit entity labels before rendering", () => {
+    expect(readSource("src/lib/evidence/adminEvidence.ts")).toContain("evidenceEntityLabel(log.entityType)");
+    expect(readSource("src/lib/evidence/eventLabels.ts")).toContain("evidenceEntityLabel");
   });
 });

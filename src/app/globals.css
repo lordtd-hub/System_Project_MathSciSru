@@ -403,8 +403,20 @@
     border-left-width: 3px;
   }
 
+  .admin-compact-schedule-row {
+    @apply grid gap-3 rounded-md border border-line bg-surface p-3 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start;
+  }
+
+  .admin-compact-schedule-details {
+    @apply max-w-full rounded-md border border-line bg-paperSoft px-2 py-1 text-xs text-muted;
+  }
+
+  .admin-compact-schedule-details summary {
+    @apply cursor-pointer font-semibold text-ink;
+  }
+
   .teacher-agenda-list {
-    max-height: 16rem;
+    max-height: 9.5rem;
     overflow-y: auto;
     padding-right: 0.25rem;
   }
@@ -416,7 +428,7 @@
   }
 
   .teacher-workload-summary {
-    @apply rounded-lg border border-line bg-surface p-3 shadow-sm;
+    @apply rounded-lg border border-line bg-surface p-2.5 shadow-sm;
     background: linear-gradient(180deg, var(--surface), var(--paper-2));
   }
 
@@ -430,12 +442,16 @@
   }
 
   .teacher-workload-metric-grid {
-    @apply -mx-1 mt-3 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 lg:pb-0;
+    @apply -mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-6 lg:overflow-visible lg:px-0 lg:pb-0;
   }
 
   .teacher-workload-metric {
-    @apply min-w-[8rem] snap-start rounded-md border border-line bg-paperSoft px-2 py-1.5 shadow-sm lg:min-w-0;
+    @apply min-w-[7.25rem] snap-start rounded-md border border-line bg-paperSoft px-2 py-1 shadow-sm lg:min-w-0;
     border-left-width: 3px;
+  }
+
+  .teacher-workload-metric p {
+    @apply hidden xl:block;
   }
 
   .teacher-workload-action {

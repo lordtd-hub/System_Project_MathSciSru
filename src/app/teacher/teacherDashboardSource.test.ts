@@ -39,9 +39,12 @@ describe("teacher dashboard source", () => {
 
     expect(page).toContain("teacher-agenda-list");
     expect(page).toContain("CompactMetricRow");
+    expect(page).not.toContain("บัญชีและบทบาท");
+    expect(page).toContain("notifications.slice(0, 4)");
     expect(css).toContain(".teacher-agenda-list");
-    expect(css).toContain("max-height: 16rem");
+    expect(css).toContain("max-height: 9.5rem");
     expect(css).toContain(".teacher-workload-metric-grid");
+    expect(css).toContain("lg:grid-cols-6");
     expect(css).toContain(".compact-metric-grid");
   });
 });

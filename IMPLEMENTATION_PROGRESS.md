@@ -22,6 +22,15 @@
   - Round exception/recovery entrypoint clarity.
   - User-facing Thai label pass for evidence/history wording.
 
+## 2026-05-14 Classic UX cleanup for Wave 2 readiness
+
+- Continued from the frontend UX audit and kept the active interface as classic UI only.
+- Patched the teacher dashboard to keep the action queue primary, move notifications into the work area, remove the duplicate account/shortcut widget, compact workload summary badges, and limit the confirmed exam agenda to an internal scroll area.
+- Patched `/admin/schedules` so schedule groups render as compact scan rows with expandable committee/notes detail instead of large repeated schedule cards.
+- Added user-facing Thai labels for common admin evidence audit entity names before rendering recent audit history.
+- Updated source tests for the teacher dashboard, admin schedule density, and evidence label mapping.
+- No lifecycle, scoring, eligibility, auth, Prisma schema, API semantics, or production configuration changes were intended.
+
 ## 2026-05-14 Figma redesign decommission
 
 - Removed the Figma UI mode, renderer switch, redesign shell/components, UI-mode action, and source tests from the app source.

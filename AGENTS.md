@@ -187,3 +187,16 @@ Then summarize:
 - How to test
 - Assumptions
 - Remaining issues
+
+## QA browser verification notes
+
+- When asked to verify QA preview pages, prefer the available Browser/Chrome plugin first.
+- Use the Chrome extension browser exposed by the Browser plugin when available; it can share the user's logged-in Vercel session and avoids Vercel Deployment Protection blocking automation.
+- Do not waste time trying Edge/Chrome shell launch, CDP ports, or separate Playwright profiles before checking plugin browsers with `agent.browsers.list()`.
+- If the preview shows Vercel login in the in-app browser, try the Chrome extension browser from the plugin before asking the user to log in again.
+- For QA smoke checks, verify at least:
+  - `/qa-login` renders the real app, not Vercel login.
+  - the role dropdown starts on the disabled placeholder.
+  - role-specific pages render without application error/digest pages.
+  - removed or deferred UI modes, such as Figma redesign markers, are not visible when classic UI is intended.
+  - no workflow state is mutated unless the user explicitly asks for a mutating pilot run.

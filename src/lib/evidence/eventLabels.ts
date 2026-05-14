@@ -33,3 +33,20 @@ export function evidenceTimelineTitle(value: string | null | undefined) {
   if (!value) return "เหตุการณ์หลักฐาน";
   return value.replace(/\bversion\s+(\d+)\b/gi, "ฉบับที่ $1");
 }
+
+const evidenceEntityLabels: Record<string, string> = {
+  AssessmentRound: "รอบสอบ",
+  CourseOffering: "รายวิชา",
+  ExamScheduleProposal: "วันสอบ",
+  Project: "โครงงาน",
+  ReportVersion: "รายงาน",
+  ScoreSubmission: "คะแนนสอบ",
+  AdvisorProjectScore: "คะแนนที่ปรึกษา",
+  StudentProject: "โครงงานนักศึกษา",
+  User: "บัญชีผู้ใช้"
+};
+
+export function evidenceEntityLabel(value: string | null | undefined) {
+  if (!value) return "รายการในระบบ";
+  return evidenceEntityLabels[value] ?? value.replaceAll("_", " ");
+}

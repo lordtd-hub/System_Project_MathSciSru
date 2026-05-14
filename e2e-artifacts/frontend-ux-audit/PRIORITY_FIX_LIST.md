@@ -90,3 +90,14 @@ Perform a small classic UI cleanup before expanding Wave 2:
 4. User-facing Thai label pass for evidence/history.
 
 After those targeted fixes, continue Wave 2 toward a controlled 20-project check rather than restarting redesign.
+
+## Cleanup Pass Status
+
+2026-05-14:
+
+- UX-001: Patched in classic UI. Teacher dashboard now keeps the action queue primary, moves notifications into the work area, removes the duplicate shortcut/account widget, compacts workload badges, and limits the teacher agenda panel to roughly two visible exam items with internal scroll.
+- UX-002: Partially patched in classic UI. Admin schedules now use compact scan rows with expandable committee/notes detail instead of large repeated cards. Admin proposals already had operational summary/table grouping; deeper proposal form/table redesign remains deferred.
+- UX-003: Already covered by the round-exception page and wording from the prior stabilization pass; keep as an operational watch item during Wave 2.
+- UX-004: Partially patched. Admin evidence now maps common audit entity names to user-facing Thai labels before rendering. Broader export/header wording can continue as low-risk polish.
+
+Recommendation after this cleanup: run validation and live QA smoke. If passing, Wave 2 can start without restarting Wave 1 or reopening the abandoned Figma redesign.

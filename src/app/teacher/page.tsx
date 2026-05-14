@@ -13,7 +13,6 @@ import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
-import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { openProposalScoring } from "./actions";
 
 function assessmentKindLabel(kind?: string | null) {
@@ -498,12 +497,21 @@ export default async function TeacherDashboardPage() {
             <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบทั้งหมด</Link>
           </section>
           <section className="panel dashboard-console-panel">
-            <DashboardSectionHeader title="บัญชีและบทบาท" description="ทางลัดไปยังหน้าการทำงานของอาจารย์โดยไม่เปลี่ยนสิทธิ์หรือขั้นตอนเดิม" />
-            <p className="mt-4 text-sm leading-6 text-muted">{teacherDisplayName(teacher)} · {teacher.email ?? "ยังไม่ได้ผูกอีเมล"}</p>
-            <div className="mt-3 grid gap-2 text-sm">
-              <Link className="button-secondary justify-start" href="/teacher/proposals">ประเมินการเสนอหัวข้อ</Link>
-              <Link className="button-secondary justify-start" href="/teacher/reports">ตรวจเล่ม</Link>
-              <Link className="button-secondary justify-start" href="/teacher/advisor-score">คะแนนสรุปของอาจารย์ที่ปรึกษา 25%</Link>
+            <DashboardSectionHeader title="การแจ้งเตือน" description="งานใหม่หรือข้อควรติดตามจะแสดงตรงนี้ โดยไม่ซ้ำกับเมนูด้านข้าง" />
+            <div className="mt-3 space-y-2">
+              {notifications.length ? notifications.slice(0, 4).map((notification) => (
+                <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
+                  <div className="font-medium">{notification.title}</div>
+                  {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
+                </div>
+              )) : teacherActionableTaskCount ? (
+                <InfoAlert title={`มีงานที่ต้องดำเนินการ ${teacherActionableTaskCount} รายการ`}>
+                  ตรวจรายละเอียดในส่วนงานที่ต้องดำเนินการด้านบน
+                </InfoAlert>
+              ) : (
+                <InfoAlert title="ยังไม่มีงานที่ต้องดำเนินการ">งานใหม่จะแสดงใน dashboard และ route ย่อยตามบทบาท</InfoAlert>
+              )}
+              {notifications.length > 4 ? <p className="text-xs text-muted">มีการแจ้งเตือนเพิ่มเติม {notifications.length - 4} รายการ</p> : null}
             </div>
           </section>
         </div>
@@ -548,7 +556,7 @@ export default async function TeacherDashboardPage() {
           </div>
         </section>
       </div>
-      <section className="panel dashboard-console-panel">
+      <section className="hidden">
         <h2 className="text-lg font-semibold">การแจ้งเตือน</h2>
         <div className="mt-3 space-y-2">
           {notifications.length ? notifications.map((notification) => (

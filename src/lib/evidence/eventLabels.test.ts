@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evidenceEventLabel, evidenceTimelineTitle } from "./eventLabels";
+import { evidenceEntityLabel, evidenceEventLabel, evidenceTimelineTitle } from "./eventLabels";
 
 describe("evidence display labels", () => {
   it("maps legacy English evidence labels to Thai display text", () => {
@@ -12,5 +12,10 @@ describe("evidence display labels", () => {
 
   it("uses Thai report version wording for timeline titles", () => {
     expect(evidenceTimelineTitle("ส่งเล่มรายงาน version 2")).toBe("ส่งเล่มรายงาน ฉบับที่ 2");
+  });
+  it("maps common audit entity names to user-facing Thai labels", () => {
+    expect(evidenceEntityLabel("Project")).toBe("โครงงาน");
+    expect(evidenceEntityLabel("CourseOffering")).toBe("รายวิชา");
+    expect(evidenceEntityLabel("ScoreSubmission")).toBe("คะแนนสอบ");
   });
 });
