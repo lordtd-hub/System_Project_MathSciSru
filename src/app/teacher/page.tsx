@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
-import { WarningAlert, InfoAlert } from "@/components/ui/Alert";
+import { WarningAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
@@ -215,19 +215,13 @@ export default async function TeacherDashboardPage() {
         }
       },
       take: 8
-    }),
-    prisma.notification.findMany({
-      where: { userId: session.user.id, status: "UNREAD" },
-      select: { id: true, title: true, body: true },
-      orderBy: { createdAt: "desc" },
-      take: 5
     })
   ]));
   const sessionTeacherWorkloadQuery = sessionTeacherId
     ? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(sessionTeacherId))
     : null;
 
-  const [teacher, [attempts, notifications]] = await Promise.all([teacherQuery, independentTeacherQueries]);
+  const [teacher, [attempts]] = await Promise.all([teacherQuery, independentTeacherQueries]);
 
   if (!teacher) {
     timer.end("missing_teacher_profile");
@@ -457,7 +451,7 @@ export default async function TeacherDashboardPage() {
         />
         <div className="space-y-3">
           <NextActionCard action={teacherNextAction} />
-          <section className="panel dashboard-console-panel">
+          <section className="panel dashboard-console-panel dashboard-agenda-panel">
             <DashboardSectionHeader
               title="ตารางสอบของท่าน"
               description="เรียงตามวันเวลา สำหรับโครงงานที่ท่านเป็นที่ปรึกษา ประธานกรรมการ หรือกรรมการ"
@@ -495,24 +489,6 @@ export default async function TeacherDashboardPage() {
               )}
             </div>
             <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบทั้งหมด</Link>
-          </section>
-          <section className="panel dashboard-console-panel">
-            <DashboardSectionHeader title="การแจ้งเตือน" description="งานใหม่หรือข้อควรติดตามจะแสดงตรงนี้ โดยไม่ซ้ำกับเมนูด้านข้าง" />
-            <div className="mt-3 space-y-2">
-              {notifications.length ? notifications.slice(0, 4).map((notification) => (
-                <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
-                  <div className="font-medium">{notification.title}</div>
-                  {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
-                </div>
-              )) : teacherActionableTaskCount ? (
-                <InfoAlert title={`มีงานที่ต้องดำเนินการ ${teacherActionableTaskCount} รายการ`}>
-                  ตรวจรายละเอียดในส่วนงานที่ต้องดำเนินการด้านบน
-                </InfoAlert>
-              ) : (
-                <InfoAlert title="ยังไม่มีงานที่ต้องดำเนินการ">งานใหม่จะแสดงใน dashboard และ route ย่อยตามบทบาท</InfoAlert>
-              )}
-              {notifications.length > 4 ? <p className="text-xs text-muted">มีการแจ้งเตือนเพิ่มเติม {notifications.length - 4} รายการ</p> : null}
-            </div>
           </section>
         </div>
       </div>
@@ -559,23 +535,6 @@ export default async function TeacherDashboardPage() {
           </div>
         </section>
       </div>
-      <section className="hidden">
-        <h2 className="text-lg font-semibold">การแจ้งเตือน</h2>
-        <div className="mt-3 space-y-2">
-          {notifications.length ? notifications.map((notification) => (
-            <div key={notification.id} className="rounded-md border border-line p-3 text-sm">
-              <div className="font-medium">{notification.title}</div>
-              {notification.body ? <p className="mt-1 text-muted">{notification.body}</p> : null}
-            </div>
-          )) : teacherActionableTaskCount ? (
-            <InfoAlert title={`มีงานที่ต้องดำเนินการ ${teacherActionableTaskCount} รายการ`}>
-              ตรวจรายละเอียดในส่วนงานที่ต้องดำเนินการด้านบน ระบบนับจากคำขอที่ปรึกษา งานประเมิน ตารางสอบ งานตรวจรายงาน และคะแนนที่ปรึกษาที่รอท่านดำเนินการ
-            </InfoAlert>
-          ) : (
-            <InfoAlert title="ยังไม่มีงานที่ต้องดำเนินการ">งานใหม่จะแสดงใน dashboard และ route ย่อยตามบทบาท</InfoAlert>
-          )}
-        </div>
-      </section>
     </div>
   );
 }

@@ -416,9 +416,13 @@
   }
 
   .teacher-agenda-list {
-    max-height: 9.5rem;
+    max-height: 15rem;
     overflow-y: auto;
     padding-right: 0.25rem;
+  }
+
+  .dashboard-agenda-panel {
+    min-height: 13.5rem;
   }
 
   .action-list-item {

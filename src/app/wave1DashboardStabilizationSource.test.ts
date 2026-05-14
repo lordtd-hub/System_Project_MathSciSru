@@ -11,7 +11,8 @@ describe("wave 1 dashboard stabilization source", () => {
     expect(adminPage).toContain("ภาพรวมสถานะโครงงาน");
     expect(adminPage).toContain("การแจ้งเตือนที่ต้องติดตาม");
     expect(adminPage).toContain("Legacy QA");
-    expect(teacherPage).toContain("การแจ้งเตือน");
+    expect(teacherPage).not.toContain("การแจ้งเตือน");
+    expect(teacherPage).not.toContain("prisma.notification.findMany");
     expect(timelineCard).toContain("ประวัติหลักฐาน");
     expect(scoringPage).toContain("ข้อควรพิจารณาในรายการสำคัญ");
     expect(adminPage).not.toContain("Project status overview");

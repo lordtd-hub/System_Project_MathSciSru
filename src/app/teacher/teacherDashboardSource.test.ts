@@ -18,7 +18,7 @@ describe("teacher dashboard source", () => {
     expect(page).toContain('status: "CONFIRMED"');
   });
 
-  it("keeps teacher notifications and proposal links reviewer-specific", () => {
+  it("keeps teacher dashboard work queues and proposal links reviewer-specific", () => {
     const page = source();
 
     expect(page).toContain("teacherActionableTaskCount");
@@ -26,8 +26,9 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("teacherWorkloadSummaryMetrics");
     expect(page).not.toContain("GuidancePanel");
     expect(page).not.toContain("TaskListCard");
-    expect(page).toContain("มีงานที่ต้องดำเนินการ");
-    expect(page).toContain("การแจ้งเตือน");
+    expect(page).toContain("teacherActionableTaskCount");
+    expect(page).not.toContain("การแจ้งเตือน");
+    expect(page).not.toContain("prisma.notification.findMany");
     expect(page).toContain("assignmentSubmitted");
     expect(page).toContain("ดูผลประเมินที่ส่งแล้ว");
     expect(page).toContain("pendingProposalScores.length");
@@ -40,9 +41,10 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("teacher-agenda-list");
     expect(page).toContain("CompactMetricRow");
     expect(page).not.toContain("บัญชีและบทบาท");
-    expect(page).toContain("notifications.slice(0, 4)");
+    expect(page).not.toContain("notifications.slice(0, 4)");
     expect(css).toContain(".teacher-agenda-list");
-    expect(css).toContain("max-height: 9.5rem");
+    expect(css).toContain("max-height: 15rem");
+    expect(css).toContain(".dashboard-agenda-panel");
     expect(css).toContain(".teacher-workload-metric-grid");
     expect(css).toContain("lg:grid-cols-6");
     expect(css).toContain(".compact-metric-grid");
