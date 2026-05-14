@@ -525,6 +525,7 @@ export default async function StudentDashboardPage() {
         urgency: "พ้นกำหนด"
       }]
     : roundAwareStudentTrackingTasks;
+  const shouldShowStudentTrackingCard = displayStudentTrackingTasks.length > 1;
   const latestAdvisorRejected = project.status === "DRAFT" && advisorRequest?.status === "REJECTED";
   const visibleAssessmentResults = project.attempts
     .map((attempt) => {
@@ -781,7 +782,7 @@ export default async function StudentDashboardPage() {
           </div>
         </section>
 
-        <TaskListCard title="รายการที่ต้องติดตาม" tasks={displayStudentTrackingTasks} />
+        {shouldShowStudentTrackingCard ? <TaskListCard title="รายการที่ต้องติดตาม" tasks={displayStudentTrackingTasks} /> : null}
       </div>
 
       {project.status === "PROPOSAL_REVIEW" ? (

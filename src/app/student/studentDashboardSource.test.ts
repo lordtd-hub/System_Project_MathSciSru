@@ -21,4 +21,12 @@ describe("student dashboard source", () => {
     expect(page).toContain("/student/feedback?round=progress-2#progress-2");
     expect(page).toContain("/student/feedback?round=final#final");
   });
+
+  it("does not render the tracking card when it only repeats one current task", () => {
+    const page = source();
+
+    expect(page).toContain("shouldShowStudentTrackingCard");
+    expect(page).toContain("displayStudentTrackingTasks.length > 1");
+    expect(page).toContain("shouldShowStudentTrackingCard ? <TaskListCard");
+  });
 });
