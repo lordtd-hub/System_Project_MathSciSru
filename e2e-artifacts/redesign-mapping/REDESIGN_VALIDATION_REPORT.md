@@ -972,3 +972,26 @@ Additional tooling note: Edge also has the Figma reference tab open. CDP verific
   - no matches found.
 - QA deployment: pending.
 - Live verification: pending.
+
+## 2026-05-14 Phase 9 Visual Density + Script Compatibility Validation
+
+- Phase: 9 mutating regression follow-up.
+- Scope:
+  - compact Figma metric/status cards;
+  - remove duplicate Figma-mode student schedule summary;
+  - compact admin/teacher queue badges;
+  - add internal scroll to long admin/teacher queue sections;
+  - make Wave 2 CDP scripts configurable for the safe Figma regression offering title.
+- Renderer status:
+  - classic fallback remains available;
+  - `/student/schedule` classic renderer still shows `StudentReadabilitySummary`;
+  - `/student/schedule` figma renderer uses only the Figma KPI row to avoid duplicate large status blocks.
+- Logic touched: no.
+- Local validation:
+  - `node --check` for the modified Wave 2 CDP scripts - passed.
+  - `cmd /c npm.cmd run typecheck` - passed.
+  - `cmd /c npm.cmd test -- src/app/student/schedule src/components/ui/TeacherWorkloadQueue src/components/ui/AdminOperationalQueue src/app/teacher/teacherWorkloadUxSource.test.ts src/app/admin/rounds/roundsUx.test.ts` - passed, 3 matching files / 24 tests.
+  - `cmd /c npm.cmd test` - passed, 82 files / 364 tests.
+  - `cmd /c npm.cmd run build` - passed.
+- QA deployment: pending.
+- Live verification: pending.

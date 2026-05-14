@@ -2032,3 +2032,23 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd run build`
 - Secret scan found no known QA/database secret fragments in source or redesign artifacts.
 - Next step: deploy to QA, prepare the figma regression offering on the new preview, then run Phase 9 mutating regression without touching completed Wave 1 or Wave 2 evidence.
+
+## 2026-05-14 Phase 9 Figma visual density correction
+
+- Continued Phase 9 mutating regression on the safe Figma regression offering.
+- Confirmed the Figma flow had reached Progress 1 schedule approval after Proposal, late Proposal recovery, committee assignment, and Progress 1 student submissions.
+- Applied a UI-only correction based on live visual review:
+  - `/student/schedule` no longer shows both the Figma KPI row and the classic readability summary in Figma mode;
+  - metric/status cards now use smaller padding, labels, numbers, and clipped two-line descriptions;
+  - teacher/admin queue badges are more compact;
+  - long teacher/admin queue lists gain an internal vertical scrollbar after 5 items;
+  - the Figma role sidebar/nav spacing is slightly reduced.
+- Updated Wave 2 CDP scripts so Phase 9 can continue against the safe Figma regression offering title instead of assuming the original Wave 2 offering title.
+- No lifecycle, auth, scoring, eligibility, schema, API, permissions, server action, route, or production configuration semantics were changed.
+- Validation passed:
+  - `node --check` for modified Wave 2 CDP scripts;
+  - `cmd /c npm.cmd run typecheck`;
+  - targeted UI/source tests;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Next step: push a QA preview for this UI/tooling patch, verify `/student/schedule` visual density in Figma mode, then resume Phase 9 from Progress 1 scoring on the new preview URL.

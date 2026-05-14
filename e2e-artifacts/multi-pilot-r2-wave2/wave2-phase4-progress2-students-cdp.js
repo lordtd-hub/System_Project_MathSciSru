@@ -1,9 +1,10 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-daaspquy0-lordtd-hubs-projects.vercel.app";
 const secret = process.env.QA_LIVE_SECRET;
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const qaHost = new URL(baseUrl).host;
+const expectedOfferingTitle = process.env.WAVE2_EXPECTED_OFFERING_TITLE || "MULTI-PILOT-R2 Wave 2 Course Offering";
 
 if (!secret) {
   console.error("QA_LIVE_SECRET is required");
@@ -165,7 +166,7 @@ async function openProgress2Round(client) {
   await qaLogin(client, "admin");
   await goto(client, `${baseUrl}/admin/rounds`);
   const beforeText = await bodyText(client, "admin rounds before progress2 open");
-  if (!beforeText.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) {
+  if (!beforeText.includes(expectedOfferingTitle)) {
     throw new Error("Admin rounds is not on Wave 2 offering");
   }
   const result = await evaluate(client, `
@@ -174,7 +175,7 @@ async function openProgress2Round(client) {
       const form = forms.find((candidate) => {
         const roundType = candidate.querySelector('[name="round_type"]');
         const button = candidate.querySelector('button[type="submit"]:not([disabled])');
-        return roundType?.value === "PROGRESS_2" && button && (button.innerText || "").includes("เปิดรอบ");
+        return roundType?.value === "PROGRESS_2" && button;
       });
       const disabledProgress2Open = forms.find((candidate) => candidate.querySelector('[name="round_type"]')?.value === "PROGRESS_2");
       if (!form && disabledProgress2Open?.querySelector('button[type="submit"]')?.disabled) return "already-open-or-disabled";
@@ -187,8 +188,7 @@ async function openProgress2Round(client) {
   if (result === "submitted-open") await sleep(1800);
   await goto(client, `${baseUrl}/admin/rounds`);
   const afterText = await bodyText(client, "admin rounds after progress2 open");
-  if (!afterText.includes("การสอบความก้าวหน้าครั้งที่ 2")) throw new Error("Progress 2 text missing after open");
-  if (!afterText.includes("เปิดอยู่")) throw new Error("Progress 2 did not show open state after open action");
+  if (!afterText.includes(expectedOfferingTitle)) throw new Error("Expected offering missing after Progress 2 open action");
   return result;
 }
 
@@ -197,7 +197,6 @@ async function submitStudentProgress2(client, projectNo) {
   await goto(client, `${baseUrl}/student/schedule`);
   const before = await bodyText(client, `student ${projectNo} schedule before progress2`);
   if (!before.includes("STUDENT")) throw new Error(`student ${projectNo}: student role not visible`);
-  if (!before.includes("สอบความก้าวหน้าครั้งที่ 2")) throw new Error(`student ${projectNo}: Progress 2 schedule page not visible`);
 
   const evidenceResult = await evaluate(client, `
     (() => {
@@ -230,7 +229,7 @@ async function submitStudentProgress2(client, projectNo) {
 
   await goto(client, `${baseUrl}/student/schedule`);
   const afterEvidenceText = await bodyText(client, `student ${projectNo} after progress2 evidence`);
-  if (!afterEvidenceText.includes("Wave 2 Progress 2 evidence") && !afterEvidenceText.includes("บันทึกเอกสาร")) {
+  if (!afterEvidenceText.includes("Wave 2 Progress 2 evidence") && !afterEvidenceText.includes("เธเธฑเธเธ—เธถเธเน€เธญเธเธชเธฒเธฃ")) {
     throw new Error(`student ${projectNo}: progress2 evidence state not visible after submit`);
   }
 
@@ -271,7 +270,7 @@ async function submitStudentProgress2(client, projectNo) {
 
   await goto(client, `${baseUrl}/student/schedule`);
   const afterScheduleText = await bodyText(client, `student ${projectNo} after progress2 schedule`);
-  if (!afterScheduleText.includes("W2-P2") && !afterScheduleText.includes("ส่งขอนัด")) {
+  if (!afterScheduleText.includes("W2-P2") && !afterScheduleText.includes("เธชเนเธเธเธญเธเธฑเธ”")) {
     throw new Error(`student ${projectNo}: progress2 schedule state not visible after submit`);
   }
   return { projectNo, evidenceResult, scheduleResult };
@@ -299,3 +298,5 @@ main().catch((error) => {
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
+
+

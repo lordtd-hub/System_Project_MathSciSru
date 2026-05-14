@@ -33,6 +33,20 @@
 - `.env.preview.local` may not always contain the active QA preview secret. Live verification should prefer a process-scoped `QA_LIVE_SECRET` and must never write the secret to artifacts.
 - Phase 9 now has two safe QA-only offering targets for mode parity. Keep completed Wave 1 and completed Wave 2 read-only; run destructive/mutating classic-vs-figma checks only on the redesign regression offerings.
 
+## Visual Density Feedback From Live Figma Regression
+
+- Some status badges/cards, such as advisor-pending style states, are too large for their informational weight and can overflow or wrap into tall blocks.
+- Form-heavy pages should prioritize easy data entry: the form area should be wider/full-page where possible, with less decorative framing around the actual inputs.
+- Long status rows should avoid awkward multi-line wrapping. Preferred fixes:
+  - reduce badge/card padding and font scale;
+  - use compact inline badges for short statuses;
+  - keep dense status groups in one row with horizontal overflow when the content is intentionally row-like;
+  - avoid making every status a large rectangular card.
+- This is Minor/UX, not a Phase 9 workflow blocker. Address during the post-regression visual polish pass unless a specific page becomes operationally confusing.
+- Long queue sections should not make the whole page excessively tall. For dense waiting/action queues, show only the first 4-5 items in the visible panel and use an internal vertical scrollbar for the rest.
+- The Figma role navigator/sidebar currently uses too much space for low-value navigation labels. Consider compacting it into icon-first buttons with hover/focus tooltips that explain destinations such as workload inbox, schedules, Proposal, Progress, Final, reports, and advisor score.
+- Horizontal scroll is acceptable for intentionally row-like status/badge groups; vertical internal scroll is preferred for long queues of repeated work items.
+
 ## Deferred After Admin Renderer Batch 1
 
 - `/admin/proposals` renderer split is complete and live-verified in classic/figma mode on desktop and 390px mobile.

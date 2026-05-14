@@ -1,9 +1,10 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app";
 const secret = process.env.QA_LIVE_SECRET;
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const qaHost = new URL(baseUrl).host;
+const expectedOfferingTitle = process.env.WAVE2_EXPECTED_OFFERING_TITLE || "MULTI-PILOT-R2 Wave 2 Course Offering";
 
 if (!secret) {
   console.error("QA_LIVE_SECRET is required");
@@ -155,7 +156,7 @@ async function openFinalRound(client) {
   await qaLogin(client, "admin");
   await goto(client, `${baseUrl}/admin/rounds`);
   const beforeText = await bodyText(client, "admin rounds before final open");
-  if (!beforeText.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) {
+  if (!beforeText.includes(expectedOfferingTitle)) {
     throw new Error("Admin rounds is not on Wave 2 offering");
   }
   const result = await evaluate(client, `
@@ -172,7 +173,7 @@ async function openFinalRound(client) {
   if (result.status === "submitted-open") await sleep(1800);
   await goto(client, `${baseUrl}/admin/rounds`);
   const afterText = await bodyText(client, "admin rounds after final open");
-  if (!afterText.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) throw new Error("Wave 2 offering missing after final open");
+  if (!afterText.includes(expectedOfferingTitle)) throw new Error("Wave 2 offering missing after final open");
   return result;
 }
 
@@ -287,3 +288,5 @@ main().catch((error) => {
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
+
+

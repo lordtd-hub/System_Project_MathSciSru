@@ -1515,3 +1515,41 @@ The patch only adds QA-only setup and verification tooling. It does not change l
 ### Next Phase
 
 Commit and deploy the dual-state setup to QA, prepare the second Figma regression offering from `/qa-login`, then run Phase 9 mutating workflow regression with classic and figma safe states.
+
+## 2026-05-14 - Phase 9 Figma Regression Visual Density Correction
+
+### Scope
+
+Continued Phase 9 on the safe `MULTI-PILOT-R2 Redesign Figma Regression Course Offering` in `figma` mode. During Progress 1 student/schedule approval regression, live visual review showed that the student schedule KPI/summary area was duplicated and status badges/cards were too large for their operational value.
+
+### Patch
+
+- Kept the `classic` student schedule readability summary intact as fallback.
+- Hid the duplicate `StudentReadabilitySummary` on `/student/schedule` only when `figma` mode is active, leaving the Figma KPI row as the single status summary.
+- Reduced Figma metric card padding, number size, label spacing, and description height.
+- Reduced shared admin/teacher queue badge padding and font scale.
+- Added internal vertical scroll for teacher compact queue lists and admin queue sections when a list exceeds 5 items.
+- Slightly compacted the Figma role sidebar and navigation spacing.
+- Updated Phase 9 pilot scripts so the Wave 2 automation can target the Figma regression offering title without hard-coded Wave 2-only guards.
+
+### Logic Touched
+
+No business logic was changed.
+
+The patch is presentation/tooling only. It does not change lifecycle, auth, scoring, eligibility, schema, API semantics, permissions, server actions, route behavior, or production configuration.
+
+### Validation
+
+- `node --check` for the modified Wave 2 CDP scripts - passed.
+- `cmd /c npm.cmd run typecheck` - passed.
+- `cmd /c npm.cmd test -- src/app/student/schedule src/components/ui/TeacherWorkloadQueue src/components/ui/AdminOperationalQueue src/app/teacher/teacherWorkloadUxSource.test.ts src/app/admin/rounds/roundsUx.test.ts` - passed, 3 matching files / 24 tests.
+- `cmd /c npm.cmd test` - passed, 82 files / 364 tests.
+- `cmd /c npm.cmd run build` - passed.
+
+### Current Phase 9 State
+
+Figma-mode mutating regression has reached Progress 1 schedule approval for the safe regression offering. Proposal workflow, late Proposal recovery, committee assignment, Progress 1 student submissions, and Progress 1 schedule approvals have passed so far.
+
+### Next Phase
+
+Commit and deploy this visual-density/tooling correction to QA. After the new QA preview is ready, resume Phase 9 from the same database state using the new preview URL, starting with Progress 1 scoring.

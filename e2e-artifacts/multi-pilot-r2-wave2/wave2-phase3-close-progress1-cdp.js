@@ -1,9 +1,10 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-daaspquy0-lordtd-hubs-projects.vercel.app";
 const secret = process.env.QA_LIVE_SECRET;
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const qaHost = new URL(baseUrl).host;
+const expectedOfferingTitle = process.env.WAVE2_EXPECTED_OFFERING_TITLE || "MULTI-PILOT-R2 Wave 2 Course Offering";
 
 if (!secret) {
   console.error("QA_LIVE_SECRET is required");
@@ -133,11 +134,11 @@ async function main() {
     await qaLoginAdmin(client);
     await goto(client, `${baseUrl}/admin/rounds`);
     const before = await bodyText(client, "admin rounds before close progress1");
-    if (!before.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) throw new Error("Not on Wave 2 offering");
+    if (!before.includes(expectedOfferingTitle)) throw new Error("Not on Wave 2 offering");
     if (!before.includes("R2STU10") || !before.includes("MULTI-PILOT-R2 Wave 2 Project 10")) {
       throw new Error("Progress 1 close guard did not list W2-10");
     }
-    if (!before.includes("พร้อมแต่ยังไม่ครบ") || !before.includes("1")) {
+    if (!before.includes("เธเธฃเนเธญเธกเนเธ•เนเธขเธฑเธเนเธกเนเธเธฃเธ") || !before.includes("1")) {
       throw new Error("Progress 1 close guard count was not visible as expected");
     }
     const closeResult = await evaluate(client, `
@@ -147,7 +148,7 @@ async function main() {
           const button = form.querySelector('button[type="submit"]:not([disabled])');
           const section = form.closest("section") || form.parentElement;
           const text = section?.innerText || "";
-          return checkbox && button && text.includes("การสอบความก้าวหน้าครั้งที่ 1") && text.includes("R2STU10");
+          return checkbox && button && text.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 1") && text.includes("R2STU10");
         });
         const form = forms[0];
         if (!form) throw new Error("Progress 1 close form with acknowledgement not found");
@@ -164,10 +165,10 @@ async function main() {
     await sleep(2000);
     await goto(client, `${baseUrl}/admin/rounds`);
     const after = await bodyText(client, "admin rounds after close progress1");
-    if (!after.includes("การสอบความก้าวหน้าครั้งที่ 1") || !after.includes("ปิดแล้ว")) {
+    if (!after.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 1") || !after.includes("เธเธดเธ”เนเธฅเนเธง")) {
       throw new Error("Progress 1 did not show closed after close");
     }
-    if (!after.includes("การสอบความก้าวหน้าครั้งที่ 2") || !after.includes("พร้อมเข้าสู่รอบนี้")) {
+    if (!after.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 2") || !after.includes("เธเธฃเนเธญเธกเน€เธเนเธฒเธชเธนเนเธฃเธญเธเธเธตเน")) {
       throw new Error("Progress 2 bucket not visible after Progress 1 close");
     }
     console.log(JSON.stringify({ baseUrl, closeResult, before: before.slice(0, 1800), after: after.slice(0, 2600) }, null, 2));
@@ -180,3 +181,5 @@ main().catch((error) => {
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
+
+

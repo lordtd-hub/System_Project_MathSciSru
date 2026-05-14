@@ -59,7 +59,7 @@ export function TeacherWorkloadSummary({ metrics }: { metrics: TeacherWorkloadMe
 }
 
 export function TeacherQueueBadge({ children, tone = "waiting" }: { children: ReactNode; tone?: QueueTone }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[tone]}`}>{children}</span>;
+  return <span className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5 ${toneClassName[tone]}`}>{children}</span>;
 }
 
 export function TeacherQueueSection({
@@ -106,7 +106,7 @@ export function TeacherCompactQueueList({
   if (!items.length) return null;
 
   return (
-    <div className="teacher-compact-queue-list">
+    <div className="teacher-compact-queue-list" data-scrollable={items.length > 5 ? "true" : undefined}>
       {items.map((item) => {
         const primaryTone = item.badges?.[0]?.tone ?? "waiting";
         const content = (

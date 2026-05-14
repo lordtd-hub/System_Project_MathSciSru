@@ -1,9 +1,10 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app";
 const secret = process.env.QA_LIVE_SECRET;
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const qaHost = new URL(baseUrl).host;
+const expectedOfferingTitle = process.env.WAVE2_EXPECTED_OFFERING_TITLE || "MULTI-PILOT-R2 Wave 2 Course Offering";
 
 if (!secret) {
   console.error("QA_LIVE_SECRET is required");
@@ -152,13 +153,13 @@ async function main() {
       (() => {
         const select = document.querySelector('select[name="course_offering_id"]');
         if (!select) return "";
-        const option = Array.from(select.options).find((item) => item.textContent.includes("Wave 2 Course Offering")) || select.selectedOptions[0];
+        const option = Array.from(select.options).find((item) => item.textContent.includes(expectedOfferingTitle)) || select.selectedOptions[0];
         if (!option) return "";
         select.value = option.value;
         return option.value;
       })()
-    `, "selected Wave 2 offering");
-    if (!result.courseOfferingId) throw new Error("Wave 2 course offering option not found on evidence page");
+    `, "selected expected offering");
+    if (!result.courseOfferingId) throw new Error("Expected course offering option not found on evidence page");
     for (const kind of exportKinds) {
       for (const format of ["csv", "xlsx"]) {
         const query = kind === "audit"
@@ -206,3 +207,5 @@ main().catch((error) => {
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
+
+

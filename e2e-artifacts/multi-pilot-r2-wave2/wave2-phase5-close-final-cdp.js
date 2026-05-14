@@ -1,9 +1,10 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-cp2k496sw-lordtd-hubs-projects.vercel.app";
 const secret = process.env.QA_LIVE_SECRET;
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const qaHost = new URL(baseUrl).host;
+const expectedOfferingTitle = process.env.WAVE2_EXPECTED_OFFERING_TITLE || "MULTI-PILOT-R2 Wave 2 Course Offering";
 
 if (!secret) {
   console.error("QA_LIVE_SECRET is required");
@@ -144,7 +145,7 @@ async function finalRoundSection(client, label) {
       const sections = Array.from(document.querySelectorAll("section"));
       const section = sections.find((item) => {
         const text = item.innerText || "";
-        return text.includes("รอบ การสอบนำเสนอขั้นสุดท้าย") && text.includes("ส่งหลักฐานรอบนี้แล้ว");
+        return text.includes("เธฃเธญเธ เธเธฒเธฃเธชเธญเธเธเธณเน€เธชเธเธญเธเธฑเนเธเธชเธธเธ”เธ—เนเธฒเธข") && text.includes("เธชเนเธเธซเธฅเธฑเธเธเธฒเธเธฃเธญเธเธเธตเนเนเธฅเนเธง");
       });
       if (!section) return null;
       return section.innerText;
@@ -158,10 +159,10 @@ async function main() {
     await qaLoginAdmin(client);
     await goto(client, `${baseUrl}/admin/rounds`);
     const beforeText = await bodyText(client, "admin rounds before close final");
-    if (!beforeText.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) throw new Error("Not on Wave 2 offering");
+    if (!beforeText.includes(expectedOfferingTitle)) throw new Error("Not on Wave 2 offering");
     const beforeSection = await finalRoundSection(client, "final round section before close");
     if (!beforeSection) throw new Error("Final round section not visible before close");
-    for (const expected of ["เปิดอยู่", "พร้อมเข้าสู่รอบนี้\n12", "ส่งหลักฐานรอบนี้แล้ว\n12", "ประเมินรอบนี้ครบ\n12", "พร้อมแต่ยังไม่ครบ\n0", "ยังไม่พร้อมรอบนี้\n0"]) {
+    for (const expected of ["เน€เธเธดเธ”เธญเธขเธนเน", "เธเธฃเนเธญเธกเน€เธเนเธฒเธชเธนเนเธฃเธญเธเธเธตเน\n12", "เธชเนเธเธซเธฅเธฑเธเธเธฒเธเธฃเธญเธเธเธตเนเนเธฅเนเธง\n12", "เธเธฃเธฐเน€เธกเธดเธเธฃเธญเธเธเธตเนเธเธฃเธ\n12", "เธเธฃเนเธญเธกเนเธ•เนเธขเธฑเธเนเธกเนเธเธฃเธ\n0", "เธขเธฑเธเนเธกเนเธเธฃเนเธญเธกเธฃเธญเธเธเธตเน\n0"]) {
       if (!beforeSection.includes(expected)) throw new Error(`Final close guard mismatch before close: missing ${expected}`);
     }
     const closeResult = await evaluate(client, `
@@ -171,7 +172,7 @@ async function main() {
           const button = candidate.querySelector('button[type="submit"]:not([disabled])');
           const section = candidate.closest("section") || candidate.parentElement;
           const text = section?.innerText || "";
-          return button && text.includes("รอบ การสอบนำเสนอขั้นสุดท้าย") && (button.innerText || "").includes("ปิดรอบ");
+          return button && text.includes("เธฃเธญเธ เธเธฒเธฃเธชเธญเธเธเธณเน€เธชเธเธญเธเธฑเนเธเธชเธธเธ”เธ—เนเธฒเธข") && (button.innerText || "").includes("เธเธดเธ”เธฃเธญเธ");
         });
         if (!form) {
           return {
@@ -201,10 +202,10 @@ async function main() {
     await sleep(2200);
     await goto(client, `${baseUrl}/admin/rounds`);
     const afterText = await bodyText(client, "admin rounds after close final");
-    if (!afterText.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) throw new Error("Not on Wave 2 offering after close");
+    if (!afterText.includes(expectedOfferingTitle)) throw new Error("Not on Wave 2 offering after close");
     const afterSection = await finalRoundSection(client, "final round section after close");
     if (!afterSection) throw new Error("Final round section not visible after close");
-    if (!afterSection.includes("ปิดแล้ว")) throw new Error("Final round did not show closed after close");
+    if (!afterSection.includes("เธเธดเธ”เนเธฅเนเธง")) throw new Error("Final round did not show closed after close");
     console.log(JSON.stringify({ baseUrl, closeResult, beforeSection, afterSection: afterSection.slice(0, 1800) }, null, 2));
   } finally {
     client.ws.close();
@@ -215,3 +216,5 @@ main().catch((error) => {
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
+
+

@@ -1,9 +1,10 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 
 const baseUrl = process.env.QA_PREVIEW_URL || "https://system-project-math-sci-p060rlo5d-lordtd-hubs-projects.vercel.app";
 const secret = process.env.QA_LIVE_SECRET;
 const cdpUrl = process.env.EDGE_CDP_URL || "http://127.0.0.1:9333";
 const qaHost = new URL(baseUrl).host;
+const expectedOfferingTitle = process.env.WAVE2_EXPECTED_OFFERING_TITLE || "MULTI-PILOT-R2 Wave 2 Course Offering";
 
 if (!secret) {
   console.error("QA_LIVE_SECRET is required");
@@ -142,9 +143,9 @@ async function main() {
     await qaLoginAdmin(client);
     await goto(client, `${baseUrl}/admin/rounds`);
     const before = await bodyText(client, "admin rounds before close progress2");
-    if (!before.includes("MULTI-PILOT-R2 Wave 2 Course Offering")) throw new Error("Not on Wave 2 offering");
-    if (!before.includes("การสอบความก้าวหน้าครั้งที่ 2")) throw new Error("Progress 2 section not visible before close");
-    if (!before.includes("พร้อมเข้าสู่รอบนี้\n12") || !before.includes("ประเมินรอบนี้ครบ\n12")) {
+    if (!before.includes(expectedOfferingTitle)) throw new Error("Not on Wave 2 offering");
+    if (!before.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 2")) throw new Error("Progress 2 section not visible before close");
+    if (!before.includes("เธเธฃเนเธญเธกเน€เธเนเธฒเธชเธนเนเธฃเธญเธเธเธตเน\n12") || !before.includes("เธเธฃเธฐเน€เธกเธดเธเธฃเธญเธเธเธตเนเธเธฃเธ\n12")) {
       throw new Error("Progress 2 counters were not complete before close");
     }
     const closeResult = await evaluate(client, `
@@ -154,7 +155,7 @@ async function main() {
           const button = candidate.querySelector('button[type="submit"]:not([disabled])');
           const section = candidate.closest("section") || candidate.parentElement;
           const text = section?.innerText || "";
-          return button && text.includes("การสอบความก้าวหน้าครั้งที่ 2") && (button.innerText || "").includes("ปิดรอบ");
+          return button && text.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 2") && (button.innerText || "").includes("เธเธดเธ”เธฃเธญเธ");
         });
         if (!form) {
           return {
@@ -189,10 +190,10 @@ async function main() {
     await sleep(2000);
     await goto(client, `${baseUrl}/admin/rounds`);
     const after = await bodyText(client, "admin rounds after close progress2");
-    if (!after.includes("การสอบความก้าวหน้าครั้งที่ 2") || !after.includes("ปิดแล้ว")) {
+    if (!after.includes("เธเธฒเธฃเธชเธญเธเธเธงเธฒเธกเธเนเธฒเธงเธซเธเนเธฒเธเธฃเธฑเนเธเธ—เธตเน 2") || !after.includes("เธเธดเธ”เนเธฅเนเธง")) {
       throw new Error("Progress 2 did not show closed after close");
     }
-    if (!after.includes("สอบนำเสนอขั้นสุดท้าย") || !after.includes("พร้อมเข้าสู่รอบนี้\n12")) {
+    if (!after.includes("เธชเธญเธเธเธณเน€เธชเธเธญเธเธฑเนเธเธชเธธเธ”เธ—เนเธฒเธข") || !after.includes("เธเธฃเนเธญเธกเน€เธเนเธฒเธชเธนเนเธฃเธญเธเธเธตเน\n12")) {
       throw new Error("Final readiness bucket not visible after Progress 2 close");
     }
     console.log(JSON.stringify({ baseUrl, closeResult, before: before.slice(0, 2200), after: after.slice(0, 3200) }, null, 2));
@@ -205,3 +206,5 @@ main().catch((error) => {
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
+
+

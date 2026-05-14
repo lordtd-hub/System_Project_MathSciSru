@@ -30,7 +30,7 @@ export type AdminOperationalMetric = {
 };
 
 export function AdminQueueBadge({ children, tone = "locked" }: { children: ReactNode; tone?: AdminQueueTone }) {
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClassName[tone]}`}>{children}</span>;
+  return <span className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5 ${toneClassName[tone]}`}>{children}</span>;
 }
 
 export function AdminOperationalSummary({
@@ -52,12 +52,12 @@ export function AdminOperationalSummary({
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         {metrics.map((metric) => (
-          <div key={metric.label} className={`rounded-md border border-line border-l-4 p-3 ${panelToneClassName[metric.tone]}`}>
+          <div key={metric.label} className={`rounded-md border border-line border-l-[3px] p-2.5 ${panelToneClassName[metric.tone]}`}>
             <div className="flex items-center justify-between gap-2">
               <AdminQueueBadge tone={metric.tone}>{metric.label}</AdminQueueBadge>
-              <span className="text-xl font-semibold tabular-nums">{metric.count}</span>
+              <span className="text-lg font-semibold tabular-nums leading-none">{metric.count}</span>
             </div>
-            {metric.description ? <p className="mt-2 text-xs leading-5 text-muted">{metric.description}</p> : null}
+            {metric.description ? <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted">{metric.description}</p> : null}
           </div>
         ))}
       </div>
@@ -89,7 +89,9 @@ export function AdminQueueSection({
         </div>
         <AdminQueueBadge tone={tone}>{count} รายการ</AdminQueueBadge>
       </div>
-      <div>{count > 0 ? children : emptyState}</div>
+      <div className="admin-queue-scroll" data-scrollable={count > 5 ? "true" : undefined}>
+        {count > 0 ? children : emptyState}
+      </div>
     </section>
   );
 }

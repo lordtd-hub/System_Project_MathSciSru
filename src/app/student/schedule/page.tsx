@@ -320,36 +320,38 @@ export default async function StudentSchedulePage({
           />
         </div>
       ) : null}
-      <StudentReadabilitySummary
-        title="สรุปสถานะการสอบของฉัน"
-        description="แยกให้เห็นว่าส่วนไหนต้องทำต่อ ส่วนไหนรอกรรมการ และส่วนไหนยังไม่ใช่งานที่กดได้ตอนนี้"
-        items={[
-          {
-            label: "ต้องทำตอนนี้",
-            value: editableEvidenceRounds.length,
-            detail: "รอบที่ยังบันทึกหลักฐานหรือเสนอวันสอบได้จากหน้านี้",
-            tone: "action"
-          },
-          {
-            label: "รอกรรมการ",
-            value: lockedScheduleRounds.length,
-            detail: "รอบที่ส่งคำขอนัดสอบแล้วและกำลังรอผลพิจารณา",
-            tone: "waiting"
-          },
-          {
-            label: "เสร็จแล้ว",
-            value: completedScheduleRoundCount,
-            detail: "รอบที่กรรมการบันทึกคะแนนครบแล้ว",
-            tone: "done"
-          },
-          {
-            label: "ล็อก/ยังไม่พร้อม",
-            value: notCurrentlyAvailableRoundCount,
-            detail: "รอบที่ยังไม่เปิดหรือยังไม่ผ่านเงื่อนไขก่อนหน้า",
-            tone: "locked"
-          }
-        ]}
-      />
+      {uiMode === "classic" ? (
+        <StudentReadabilitySummary
+          title="สรุปสถานะการสอบของฉัน"
+          description="แยกให้เห็นว่าส่วนไหนต้องทำต่อ ส่วนไหนรอกรรมการ และส่วนไหนยังไม่ใช่งานที่กดได้ตอนนี้"
+          items={[
+            {
+              label: "ต้องทำตอนนี้",
+              value: editableEvidenceRounds.length,
+              detail: "รอบที่ยังบันทึกหลักฐานหรือเสนอวันสอบได้จากหน้านี้",
+              tone: "action"
+            },
+            {
+              label: "รอกรรมการ",
+              value: lockedScheduleRounds.length,
+              detail: "รอบที่ส่งคำขอนัดสอบแล้วและกำลังรอผลพิจารณา",
+              tone: "waiting"
+            },
+            {
+              label: "เสร็จแล้ว",
+              value: completedScheduleRoundCount,
+              detail: "รอบที่กรรมการบันทึกคะแนนครบแล้ว",
+              tone: "done"
+            },
+            {
+              label: "ล็อก/ยังไม่พร้อม",
+              value: notCurrentlyAvailableRoundCount,
+              detail: "รอบที่ยังไม่เปิดหรือยังไม่ผ่านเงื่อนไขก่อนหน้า",
+              tone: "locked"
+            }
+          ]}
+        />
+      ) : null}
       <GuidancePanel
         title="การนัดสอบ"
         current="นักศึกษาเสนอวัน เวลา ห้องสอบ และหมายเหตุให้กรรมการพิจารณา"
