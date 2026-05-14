@@ -2184,3 +2184,10 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
 - Next step: push QA preview, live-smoke `/teacher/schedules`, `/admin/schedules`, and `/admin/reports`, then decide if Wave 2 can start or whether one more small UX cleanup pass is needed.
+- QA preview deployed and live-smoked:
+  - commit `03005b3`;
+  - preview `https://system-project-math-sci-4cqk7d5hb-lordtd-hubs-projects.vercel.app`;
+  - `/teacher/schedules` confirmed schedule history is scroll-contained;
+  - `/admin/schedules` confirmed/history group is scroll-contained;
+  - `/admin/reports` renders the read-only report entrypoint and no longer returns 404.
+- Recommendation after smoke check: ready to proceed to Wave 2 with remaining UX debt logged, as long as Wave 2 continues to stop on real workflow/state blockers.

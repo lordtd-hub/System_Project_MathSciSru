@@ -134,4 +134,12 @@ Validation:
 - `npm test`: passed, 81 files / 350 tests.
 - `npm run build`: passed.
 
-Updated recommendation after patch: the system is closer to `READY_FOR_WAVE_2`, but final decision should wait for QA preview deployment/live smoke check of `/teacher/schedules`, `/admin/schedules`, and `/admin/reports`.
+QA preview/live smoke:
+
+- Commit: `03005b3`
+- QA preview: `https://system-project-math-sci-4cqk7d5hb-lordtd-hubs-projects.vercel.app`
+- `/teacher/schedules`: passed. Confirmed schedule history is scroll-contained (`overflow-y: auto`, 72 items, no shell-only/digest page).
+- `/admin/schedules`: passed. Confirmed schedule group is scroll-contained (`overflow-y: auto`, 72 items, no shell-only/digest page).
+- `/admin/reports`: passed. Route renders the read-only report entrypoint with evidence and closeout links; no 404/digest page.
+
+Updated recommendation after patch: `READY_FOR_WAVE_2_WITH_REMAINING_UX_DEBT`.

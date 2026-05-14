@@ -52,6 +52,11 @@ Completed before Wave 2:
 - Teacher/Admin queue badges and project status badges are more compact.
 - Repeated teacher queue badge stacks now have a capped internal scroll area.
 
+Validation and QA:
+
+- Local validation passed: `npm run typecheck`, `npm test`, `npm run build`.
+- QA preview `https://system-project-math-sci-4cqk7d5hb-lordtd-hubs-projects.vercel.app` passed live smoke for `/teacher/schedules`, `/admin/schedules`, and `/admin/reports`.
+
 Still recommended but deferred:
 
 - Admin proposal table compact/full-detail redesign.
