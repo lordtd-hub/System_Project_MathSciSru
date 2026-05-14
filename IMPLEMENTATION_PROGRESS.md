@@ -2303,10 +2303,10 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 ## 2026-05-14 Email notification templates prepared
 
 - Added a dedicated workflow email template layer in `src/lib/notifications/templates.ts` so subject/body/action labels can be reviewed without touching delivery or workflow mutation code.
-- Prepared Thai user-facing templates for:
+- Prepared Thai user-facing email templates for:
   - advisor request submitted: teacher opens `/teacher/advisor-requests`;
-  - Proposal submitted: teacher opens `/teacher/proposals` and the wording reflects real usage after Proposal presentation and Q&A;
   - exam schedule proposed: teacher opens `/teacher/schedules`, with round, date/time, and room details.
+- Adjusted Proposal submitted notifications to remain in-app only, with no outbound email, because normal Proposal assessment is handled after the shared presentation/Q&A session rather than as a per-submit email task.
 - Repaired mojibake in the notification email HTML wrapper and `.env.example` sender sample; source files remain UTF-8 with `.editorconfig` and `.gitattributes` already enforcing UTF-8/LF behavior.
 - Email sending remains disabled unless `EMAIL_NOTIFICATIONS_ENABLED=1` and `RESEND_API_KEY` are configured. No production env was changed.
 - No lifecycle, auth, scoring, eligibility, schema, API, permission, route behavior, QA data, or production settings were changed.

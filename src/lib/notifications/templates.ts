@@ -42,21 +42,6 @@ export function buildAdvisorRequestEmailTemplate(input: ProjectTemplateInput): W
   };
 }
 
-export function buildProposalSubmittedEmailTemplate(input: ProjectTemplateInput): WorkflowEmailTemplate {
-  const title = "มีงานประเมิน Proposal รอหลังการนำเสนอ";
-  return {
-    subject: title,
-    title,
-    body: [
-      input.projectLabel,
-      "นักศึกษาส่งเอกสาร Proposal แล้ว",
-      "หลังการนำเสนอและซักถามในรอบ Proposal กรุณาเข้าสู่ระบบเพื่อบันทึกผลประเมินตามบทบาทของท่าน"
-    ].join("\n") + recipientLine(input.recipientName),
-    actionLabel: "เปิดงานประเมิน Proposal",
-    previewText: title
-  };
-}
-
 export function buildExamScheduleProposedEmailTemplate(input: ScheduleTemplateInput): WorkflowEmailTemplate {
   const roundLabel = formatAssessmentRoundLabel(input.roundType);
   const title = `มีคำขอนัดวันสอบ ${roundLabel}`;

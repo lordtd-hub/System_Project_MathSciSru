@@ -15,7 +15,9 @@ describe("workflow email notification wiring", () => {
     expect(email).toContain('"Content-Type": "application/json; charset=utf-8"');
     expect(email).toContain('<meta charset="utf-8" />');
     expect(email).toContain("ระบบประเมินการนำเสนอโครงงาน");
-    expect(templates).toContain("หลังการนำเสนอและซักถามในรอบ Proposal");
+    expect(templates).toContain("มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา");
+    expect(templates).toContain("มีคำขอนัดวันสอบ");
+    expect(templates).not.toContain("buildProposalSubmittedEmailTemplate");
     expect(envExample).toContain('EMAIL_FROM="ระบบประเมินการนำเสนอโครงงาน <notify@example.com>"');
   });
 
@@ -32,9 +34,9 @@ describe("workflow email notification wiring", () => {
   it("keeps notification links on existing workflow routes", () => {
     const workflowEmail = read("src/lib/notifications/workflowEmail.ts");
     expect(workflowEmail).toContain('buildAppUrl("/teacher/advisor-requests")');
-    expect(workflowEmail).toContain('buildAppUrl("/teacher/proposals")');
     expect(workflowEmail).toContain('buildAppUrl("/teacher/schedules")');
-    expect(workflowEmail).toContain("buildProposalSubmittedEmailTemplate");
     expect(workflowEmail).toContain("emailReady: true");
+    expect(workflowEmail).toContain('kind: "PROPOSAL_SUBMITTED"');
+    expect(workflowEmail).toContain("emailReady: false");
   });
 });

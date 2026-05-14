@@ -3,7 +3,6 @@ import { buildAppUrl, emailNotificationsEnabled, sendEmailNotification } from ".
 import {
   buildAdvisorRequestEmailTemplate,
   buildExamScheduleProposedEmailTemplate,
-  buildProposalSubmittedEmailTemplate,
   formatAssessmentRoundLabel
 } from "./templates";
 
@@ -33,10 +32,6 @@ describe("email notification transport", () => {
       subject: "มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา",
       actionLabel: "เปิดคำขอที่ปรึกษา"
     });
-
-    expect(buildProposalSubmittedEmailTemplate({
-      projectLabel: "65123456 สมชาย ใจดี - หัวข้อทดสอบ"
-    }).body).toContain("หลังการนำเสนอและซักถามในรอบ Proposal");
 
     expect(buildExamScheduleProposedEmailTemplate({
       projectLabel: "65123456 สมชาย ใจดี - หัวข้อทดสอบ",

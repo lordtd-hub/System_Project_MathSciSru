@@ -4,8 +4,7 @@ import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { buildAppUrl, sendEmailNotification, type EmailNotificationPayload } from "@/lib/notifications/email";
 import {
   buildAdvisorRequestEmailTemplate,
-  buildExamScheduleProposedEmailTemplate,
-  buildProposalSubmittedEmailTemplate
+  buildExamScheduleProposedEmailTemplate
 } from "@/lib/notifications/templates";
 
 type TeacherRecipient = {
@@ -112,33 +111,22 @@ export async function notifyProposalSubmitted(projectId: string, teacherIds: str
   ]);
   if (!project || !teachers.length) return;
 
-  const baseTemplate = buildProposalSubmittedEmailTemplate({ projectLabel: projectLabel(project) });
+  const title = "มีเอกสาร Proposal ที่นักศึกษาส่งแล้ว";
+  const body = [
+    projectLabel(project),
+    "ใช้เป็นการแจ้งเตือนในระบบเท่านั้น ระบบจะไม่ส่งอีเมลสำหรับการส่ง Proposal ตามรอบปกติ"
+  ].join("\n");
   await prisma.notification.createMany({
     data: teachers.map((teacher) => ({
       projectId,
       userId: teacher.userId,
       teacherId: teacher.id,
       kind: "PROPOSAL_SUBMITTED",
-      title: baseTemplate.title,
-      body: baseTemplate.body,
-      emailReady: true
+      title,
+      body,
+      emailReady: false
     }))
   });
-
-  const actionUrl = buildAppUrl("/teacher/proposals");
-  if (!actionUrl) return;
-  await sendManyBestEffort(teachers.flatMap((teacher) => {
-    const to = teacherEmail(teacher);
-    if (!to) return [];
-    return [{
-      to,
-      actionUrl,
-      ...buildProposalSubmittedEmailTemplate({
-        projectLabel: projectLabel(project),
-        recipientName: teacherDisplayName(teacher)
-      })
-    }];
-  }));
 }
 
 export async function notifyExamScheduleProposed(input: {
