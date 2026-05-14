@@ -2,6 +2,11 @@ import type { AssessmentRoundType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { buildAppUrl, sendEmailNotification, type EmailNotificationPayload } from "@/lib/notifications/email";
+import {
+  buildAdvisorRequestEmailTemplate,
+  buildExamScheduleProposedEmailTemplate,
+  buildProposalSubmittedEmailTemplate
+} from "@/lib/notifications/templates";
 
 type TeacherRecipient = {
   id: string;
@@ -23,14 +28,6 @@ function teacherEmail(teacher: TeacherRecipient) {
 
 function projectLabel(project: { currentTitleTh: string | null; student: { studentCode: string; firstNameTh: string; lastNameTh: string } }) {
   return `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}${project.currentTitleTh ? ` - ${project.currentTitleTh}` : ""}`;
-}
-
-function roundLabel(roundType: string) {
-  if (roundType === "PROGRESS_1") return "สอบความก้าวหน้าครั้งที่ 1";
-  if (roundType === "PROGRESS_2") return "สอบความก้าวหน้าครั้งที่ 2";
-  if (roundType === "FINAL_PRESENTATION") return "สอบนำเสนอขั้นสุดท้าย";
-  if (roundType === "PROPOSAL") return "Proposal";
-  return roundType;
 }
 
 async function sendManyBestEffort(payloads: EmailNotificationPayload[]) {
@@ -62,16 +59,15 @@ export async function notifyAdvisorRequestSubmitted(projectId: string, advisorTe
   ]);
   if (!project || !advisor) return;
 
-  const title = "มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา";
-  const body = `${projectLabel(project)}\nกรุณาเข้าสู่ระบบเพื่อพิจารณาคำขอเป็นอาจารย์ที่ปรึกษา`;
+  const baseTemplate = buildAdvisorRequestEmailTemplate({ projectLabel: projectLabel(project) });
   await prisma.notification.create({
     data: {
       projectId,
       userId: advisor.userId,
       teacherId: advisor.id,
       kind: "ADVISOR_REQUEST_SUBMITTED",
-      title,
-      body,
+      title: baseTemplate.title,
+      body: baseTemplate.body,
       emailReady: true
     }
   });
@@ -81,12 +77,11 @@ export async function notifyAdvisorRequestSubmitted(projectId: string, advisorTe
   if (!to || !actionUrl) return;
   await sendManyBestEffort([{
     to,
-    subject: title,
-    title,
-    body: `${body}\n\nผู้รับ: ${teacherDisplayName(advisor)}`,
     actionUrl,
-    actionLabel: "เปิดคำขอที่ปรึกษา",
-    previewText: title
+    ...buildAdvisorRequestEmailTemplate({
+      projectLabel: projectLabel(project),
+      recipientName: teacherDisplayName(advisor)
+    })
   }]);
 }
 
@@ -117,16 +112,15 @@ export async function notifyProposalSubmitted(projectId: string, teacherIds: str
   ]);
   if (!project || !teachers.length) return;
 
-  const title = "มีเอกสาร Proposal รอประเมิน";
-  const body = `${projectLabel(project)}\nนักศึกษาส่งเอกสาร Proposal แล้ว กรุณาเข้าสู่ระบบเพื่อตรวจประเมิน`;
+  const baseTemplate = buildProposalSubmittedEmailTemplate({ projectLabel: projectLabel(project) });
   await prisma.notification.createMany({
     data: teachers.map((teacher) => ({
       projectId,
       userId: teacher.userId,
       teacherId: teacher.id,
       kind: "PROPOSAL_SUBMITTED",
-      title,
-      body,
+      title: baseTemplate.title,
+      body: baseTemplate.body,
       emailReady: true
     }))
   });
@@ -138,12 +132,11 @@ export async function notifyProposalSubmitted(projectId: string, teacherIds: str
     if (!to) return [];
     return [{
       to,
-      subject: title,
-      title,
-      body: `${body}\n\nผู้รับ: ${teacherDisplayName(teacher)}`,
       actionUrl,
-      actionLabel: "เปิดงานประเมิน Proposal",
-      previewText: title
+      ...buildProposalSubmittedEmailTemplate({
+        projectLabel: projectLabel(project),
+        recipientName: teacherDisplayName(teacher)
+      })
     }];
   }));
 }
@@ -183,21 +176,21 @@ export async function notifyExamScheduleProposed(input: {
   ]);
   if (!project || !teachers.length) return;
 
-  const title = `มีคำขอนัดวันสอบ ${roundLabel(input.roundType)}`;
-  const body = [
-    projectLabel(project),
-    `วันเวลา: ${formatThaiScheduleRange(input.start, input.end)}`,
-    `ห้อง: ${input.room || "ยังไม่ระบุ"}`,
-    "กรุณาเข้าสู่ระบบเพื่ออนุมัติหรือไม่อนุมัติวันสอบ"
-  ].join("\n");
+  const scheduleRange = formatThaiScheduleRange(input.start, input.end);
+  const baseTemplate = buildExamScheduleProposedEmailTemplate({
+    projectLabel: projectLabel(project),
+    roundType: input.roundType,
+    scheduleRange,
+    room: input.room
+  });
   await prisma.notification.createMany({
     data: teachers.map((teacher) => ({
       projectId: input.projectId,
       userId: teacher.userId,
       teacherId: teacher.id,
       kind: "EXAM_SCHEDULE_PROPOSED",
-      title,
-      body,
+      title: baseTemplate.title,
+      body: baseTemplate.body,
       emailReady: true
     }))
   });
@@ -209,12 +202,14 @@ export async function notifyExamScheduleProposed(input: {
     if (!to) return [];
     return [{
       to,
-      subject: title,
-      title,
-      body: `${body}\n\nผู้รับ: ${teacherDisplayName(teacher)}`,
       actionUrl,
-      actionLabel: "เปิดตารางสอบ",
-      previewText: title
+      ...buildExamScheduleProposedEmailTemplate({
+        projectLabel: projectLabel(project),
+        recipientName: teacherDisplayName(teacher),
+        roundType: input.roundType,
+        scheduleRange,
+        room: input.room
+      })
     }];
   }));
 }

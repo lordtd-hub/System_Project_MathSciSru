@@ -8,10 +8,15 @@ function read(path: string) {
 describe("workflow email notification wiring", () => {
   it("keeps email delivery best-effort and behind explicit environment flags", () => {
     const email = read("src/lib/notifications/email.ts");
+    const templates = read("src/lib/notifications/templates.ts");
+    const envExample = read(".env.example");
     expect(email).toContain('EMAIL_NOTIFICATIONS_ENABLED === "1"');
     expect(email).toContain("RESEND_API_KEY");
     expect(email).toContain('"Content-Type": "application/json; charset=utf-8"');
     expect(email).toContain('<meta charset="utf-8" />');
+    expect(email).toContain("ระบบประเมินการนำเสนอโครงงาน");
+    expect(templates).toContain("หลังการนำเสนอและซักถามในรอบ Proposal");
+    expect(envExample).toContain('EMAIL_FROM="ระบบประเมินการนำเสนอโครงงาน <notify@example.com>"');
   });
 
   it("wires advisor request, proposal, and schedule events without changing server action redirects", () => {
@@ -29,7 +34,7 @@ describe("workflow email notification wiring", () => {
     expect(workflowEmail).toContain('buildAppUrl("/teacher/advisor-requests")');
     expect(workflowEmail).toContain('buildAppUrl("/teacher/proposals")');
     expect(workflowEmail).toContain('buildAppUrl("/teacher/schedules")');
+    expect(workflowEmail).toContain("buildProposalSubmittedEmailTemplate");
     expect(workflowEmail).toContain("emailReady: true");
   });
 });
-

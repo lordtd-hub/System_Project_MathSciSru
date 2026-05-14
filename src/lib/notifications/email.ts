@@ -110,4 +110,3 @@ export async function sendEmailNotification(payload: EmailNotificationPayload): 
     return { status: "failed", reason: error instanceof Error ? error.message : "unknown email error" };
   }
 }
-

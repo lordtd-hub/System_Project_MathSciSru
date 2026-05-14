@@ -2299,3 +2299,14 @@ Historical note: The original Task 01-10 checklist below is retained as the init
   - `cmd /c npm.cmd test -- emailNotificationSource src/lib/notifications/email.test.ts`;
   - `cmd /c npm.cmd test`;
   - `cmd /c npm.cmd run build`.
+
+## 2026-05-14 Email notification templates prepared
+
+- Added a dedicated workflow email template layer in `src/lib/notifications/templates.ts` so subject/body/action labels can be reviewed without touching delivery or workflow mutation code.
+- Prepared Thai user-facing templates for:
+  - advisor request submitted: teacher opens `/teacher/advisor-requests`;
+  - Proposal submitted: teacher opens `/teacher/proposals` and the wording reflects real usage after Proposal presentation and Q&A;
+  - exam schedule proposed: teacher opens `/teacher/schedules`, with round, date/time, and room details.
+- Repaired mojibake in the notification email HTML wrapper and `.env.example` sender sample; source files remain UTF-8 with `.editorconfig` and `.gitattributes` already enforcing UTF-8/LF behavior.
+- Email sending remains disabled unless `EMAIL_NOTIFICATIONS_ENABLED=1` and `RESEND_API_KEY` are configured. No production env was changed.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, route behavior, QA data, or production settings were changed.

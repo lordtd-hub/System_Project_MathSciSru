@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildAppUrl, emailNotificationsEnabled, sendEmailNotification } from "./email";
+import {
+  buildAdvisorRequestEmailTemplate,
+  buildExamScheduleProposedEmailTemplate,
+  buildProposalSubmittedEmailTemplate,
+  formatAssessmentRoundLabel
+} from "./templates";
 
 const baseEnv = { ...process.env };
 
@@ -17,6 +23,29 @@ describe("email notification transport", () => {
   it("builds app links from configured public app URLs", () => {
     expect(buildAppUrl("/teacher/schedules", { ...process.env, APP_BASE_URL: "https://example.test/" })).toBe("https://example.test/teacher/schedules");
     expect(buildAppUrl("/teacher/proposals", { ...process.env, VERCEL_URL: "preview.vercel.app" })).toBe("https://preview.vercel.app/teacher/proposals");
+  });
+
+  it("builds Thai workflow templates from one template layer", () => {
+    expect(buildAdvisorRequestEmailTemplate({
+      projectLabel: "65123456 สมชาย ใจดี - หัวข้อทดสอบ",
+      recipientName: "ผศ.ดร.สิทธิโชค ทรงสอาด"
+    })).toMatchObject({
+      subject: "มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา",
+      actionLabel: "เปิดคำขอที่ปรึกษา"
+    });
+
+    expect(buildProposalSubmittedEmailTemplate({
+      projectLabel: "65123456 สมชาย ใจดี - หัวข้อทดสอบ"
+    }).body).toContain("หลังการนำเสนอและซักถามในรอบ Proposal");
+
+    expect(buildExamScheduleProposedEmailTemplate({
+      projectLabel: "65123456 สมชาย ใจดี - หัวข้อทดสอบ",
+      roundType: "PROGRESS_1",
+      scheduleRange: "14 พ.ค. 2569 09:00 - 10:00 น.",
+      room: "MS-501"
+    }).body).toContain("ห้อง: MS-501");
+
+    expect(formatAssessmentRoundLabel("FINAL_PRESENTATION")).toBe("สอบนำเสนอขั้นสุดท้าย");
   });
 
   it("skips sending without a provider key and never calls fetch", async () => {
@@ -39,7 +68,7 @@ describe("email notification transport", () => {
   it("posts UTF-8 HTML to Resend when configured", async () => {
     process.env.EMAIL_NOTIFICATIONS_ENABLED = "1";
     process.env.RESEND_API_KEY = "re_test";
-    process.env.EMAIL_FROM = "ระบบ <notify@example.test>";
+    process.env.EMAIL_FROM = "ระบบประเมินการนำเสนอโครงงาน <notify@example.test>";
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ id: "email_123" })
@@ -63,6 +92,7 @@ describe("email notification transport", () => {
     }));
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.html).toContain('<meta charset="utf-8" />');
+    expect(body.html).toContain("ระบบประเมินการนำเสนอโครงงาน");
     expect(body.html).toContain("นักศึกษาเสนอวันสอบแล้ว");
   });
 });
