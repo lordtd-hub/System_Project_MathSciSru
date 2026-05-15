@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { assessmentKindToRoundType, isSchedulableRoundType, parseScheduleDateTime, roundTypeToAssessmentKind } from "./scheduleRules";
 
 describe("schedule rules", () => {
@@ -21,5 +22,12 @@ describe("schedule rules", () => {
     expect(parsed.end?.getTime()).toBeGreaterThan(parsed.start.getTime());
     expect(() => parseScheduleDateTime("2026-05-06", "10:00", "09:00")).toThrow("เวลาสิ้นสุด");
     expect(() => parseScheduleDateTime("", "10:00")).toThrow("กรุณาระบุวันที่");
+  });
+  it("treats schedule form input as Bangkok civil time", () => {
+    const parsed = parseScheduleDateTime("2026-05-22", "09:00", "10:00");
+
+    expect(parsed.start.toISOString()).toBe("2026-05-22T02:00:00.000Z");
+    expect(parsed.end?.toISOString()).toBe("2026-05-22T03:00:00.000Z");
+    expect(formatThaiScheduleRange(parsed.start, parsed.end)).toContain("09:00 - 10:00");
   });
 });

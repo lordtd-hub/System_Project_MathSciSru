@@ -50,14 +50,14 @@ export function roundSequenceReasonLabelTh(reasonKey?: RoundSequenceReasonKey | 
     case "round_already_closed":
       return "รอบนี้ปิดแล้ว หากต้องเปิดใหม่ควรจัดการเป็นกรณีพิเศษ";
     case "proposal_must_close_first":
-      return "ต้องเปิดและปิดรอบ Proposal ก่อน แล้วจึงเปิด Progress 1";
+      return "ต้องเปิดและปิดรอบการเสนอหัวข้อก่อน แล้วจึงเปิดรอบสอบความก้าวหน้าครั้งที่ 1";
     case "progress_1_not_ready":
-      return "ยังไม่มี project ที่พร้อมเข้าสู่ Progress 1";
+      return "ยังไม่มีโครงงานที่พร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1";
     case "progress_1_must_close_first":
-      return "ต้องเปิดและปิดรอบ Progress 1 ก่อน แล้วจึงเปิด Progress 2";
+      return "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 1 ก่อน แล้วจึงเปิดรอบสอบความก้าวหน้าครั้งที่ 2";
     case "progress_2_must_close_first":
-      return "ต้องเปิดและปิดรอบ Progress 2 ก่อน แล้วจึงเปิด Final Presentation";
+      return "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 2 ก่อน แล้วจึงเปิดรอบสอบนำเสนอขั้นสุดท้าย";
     default:
-      return "พร้อมเปิดรอบตามลำดับ lifecycle";
+      return "พร้อมเปิดรอบตามลำดับการดำเนินงาน";
   }
 }

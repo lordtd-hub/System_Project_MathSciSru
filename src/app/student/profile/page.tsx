@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormSection } from "@/components/ui/FormSection";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -28,14 +27,8 @@ export default async function StudentProfilePage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="ข้อมูลนักศึกษา" description="ตรวจสอบข้อมูลพื้นฐานและช่องทางติดต่อก่อนเริ่มสร้างโปรเจค" />
+      <PageHeader title="ข้อมูลนักศึกษา" description="ตรวจสอบข้อมูลพื้นฐานและช่องทางติดต่อก่อนเริ่มสร้างโครงงาน" />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="ข้อมูลนี้ใช้ทำอะไร"
-        current="ตรวจสอบชื่อ รหัสนักศึกษา และกรอกช่องทางติดต่อให้ครบ"
-        next="เมื่อข้อมูลครบ ระบบจะพาไปขั้นร่างหัวข้อและเลือกอาจารย์ที่ปรึกษา"
-        actor="นักศึกษาเป็นผู้กรอกข้อมูลนี้"
-      />
       <FormSection title="ข้อมูลพื้นฐาน" description="ข้อมูลจากการนำเข้าโดยผู้ดูแลระบบ">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
@@ -57,7 +50,7 @@ export default async function StudentProfilePage({
         </div>
       </FormSection>
       <form action={saveStudentProfile}>
-      <FormSection title="ช่องทางติดต่อ" description="บันทึกข้อมูลส่วนตัวให้ครบเพื่อปลดล็อกขั้นตอนสร้างโปรเจค">
+      <FormSection title="ช่องทางติดต่อ" description="บันทึกข้อมูลส่วนตัวให้ครบเพื่อปลดล็อกขั้นตอนสร้างโครงงาน">
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <label>ชื่อเล่น/ชื่อที่ต้องการให้เรียก</label>

@@ -49,7 +49,7 @@ export function getRoleDashboardLabel(role?: GlobalRole | null) {
     case "STUDENT":
       return "Student";
     case "PENDING_TEACHER":
-      return "สถานะ claim";
+      return "สถานะคำขอผูกบัญชี";
     default:
       return "เข้าสู่ระบบ";
   }
@@ -64,10 +64,10 @@ export function getSessionDashboardLinks(user?: CapabilityUser | null) {
   const roles = getEffectiveRoles(user);
   const links: { href: string; label: string }[] = [];
 
-  if (roles.includes("ADMIN")) links.push({ href: "/admin", label: "Admin" });
-  if (hasApprovedTeacherCapability(user)) links.push({ href: "/teacher", label: "Teacher" });
-  if (roles.includes("STUDENT")) links.push({ href: "/student", label: "Student" });
-  if (roles.includes("PENDING_TEACHER")) links.push({ href: "/teacher/claim", label: "สถานะ claim" });
+  if (roles.includes("ADMIN")) links.push({ href: "/admin", label: "ผู้ดูแลระบบ" });
+  if (hasApprovedTeacherCapability(user)) links.push({ href: "/teacher", label: "อาจารย์" });
+  if (roles.includes("STUDENT")) links.push({ href: "/student", label: "นักศึกษา" });
+  if (roles.includes("PENDING_TEACHER")) links.push({ href: "/teacher/claim", label: "สถานะคำขอผูกบัญชี" });
 
   return links.length ? links : [{ href: "/login", label: "เข้าสู่ระบบ" }];
 }

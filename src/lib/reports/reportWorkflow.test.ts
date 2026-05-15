@@ -1,15 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
   allRequiredReportReviewersPassed,
+  canStudentSubmitFinalReport,
   getReportSubmissionGate,
+  getStudentReportActionLabel,
   isAssignedReportReviewer,
   latestReportVersionHasRevisionRequest,
   requiredReportReviewerIds
 } from "./reportWorkflow";
 
 describe("report workflow gates", () => {
-  it("allows the first report submission only after Final is done", () => {
+  it("allows the first report submission after Final is done or final presentation is completed", () => {
     expect(getReportSubmissionGate({ projectStatus: "FINAL_DONE", latestReportHasRevisionRequest: false })).toEqual({
+      allowed: true,
+      reason: null
+    });
+    expect(
+      getReportSubmissionGate({
+        projectStatus: "IN_PROGRESS",
+        latestReportHasRevisionRequest: false,
+        finalPresentationCompleted: true
+      })
+    ).toEqual({
       allowed: true,
       reason: null
     });
@@ -17,6 +29,38 @@ describe("report workflow gates", () => {
       allowed: false,
       reason: "NOT_FINAL_DONE"
     });
+  });
+
+  it("does not unlock report submission from an incomplete Final assessment", () => {
+    expect(
+      canStudentSubmitFinalReport({
+        projectStatus: "IN_PROGRESS",
+        latestReportHasRevisionRequest: false,
+        finalPresentationCompleted: false
+      })
+    ).toBe(false);
+    expect(
+      canStudentSubmitFinalReport({
+        projectStatus: "IN_PROGRESS",
+        latestReportHasRevisionRequest: false,
+        finalPresentationCompleted: true
+      })
+    ).toBe(true);
+  });
+
+  it("uses clear first submission and revision labels", () => {
+    expect(getStudentReportActionLabel({ hasReportVersion: false, latestReportHasRevisionRequest: false })).toBe("ส่งเล่มรายงานฉบับสมบูรณ์");
+    expect(getStudentReportActionLabel({ hasReportVersion: true, latestReportHasRevisionRequest: true })).toBe(
+      "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งฉบับใหม่"
+    );
+    expect(getStudentReportActionLabel({ hasReportVersion: true, latestReportHasRevisionRequest: false })).toBe("รอผู้ตรวจพิจารณารายงาน");
+    expect(
+      getStudentReportActionLabel({
+        hasReportVersion: true,
+        latestReportHasRevisionRequest: false,
+        projectStatus: "REPORT_APPROVED"
+      })
+    ).toBe("รายงานได้รับการอนุมัติแล้ว");
   });
 
   it("allows resubmission only after a reviewer requests revision", () => {
@@ -66,23 +110,24 @@ describe("report reviewer rules", () => {
     ).toBe(false);
   });
 
-  it("uses active HEAD/MEMBER as required approvers", () => {
-    expect(requiredReportReviewerIds(committeeAssignments)).toEqual(["head", "member"]);
+  it("uses active HEAD/MEMBER and approved advisor as required approvers", () => {
+    expect(requiredReportReviewerIds(committeeAssignments, [{ advisorTeacherId: "advisor", status: "APPROVED" as const }])).toEqual(["head", "member", "advisor"]);
     expect(
       allRequiredReportReviewersPassed({
-        requiredReviewerIds: ["head", "member"],
+        requiredReviewerIds: ["head", "member", "advisor"],
         reviews: [
           { reviewerTeacherId: "head", decision: "PASS" as const },
-          { reviewerTeacherId: "member", decision: "PASS" as const }
+          { reviewerTeacherId: "member", decision: "PASS" as const },
+          { reviewerTeacherId: "advisor", decision: "PASS" as const }
         ]
       })
     ).toBe(true);
     expect(
       allRequiredReportReviewersPassed({
-        requiredReviewerIds: ["head", "member"],
+        requiredReviewerIds: ["head", "member", "advisor"],
         reviews: [
           { reviewerTeacherId: "head", decision: "PASS" as const },
-          { reviewerTeacherId: "member", decision: "FAIL" as const }
+          { reviewerTeacherId: "member", decision: "PASS" as const }
         ]
       })
     ).toBe(false);
@@ -96,5 +141,17 @@ describe("report reviewer rules", () => {
         { decision: "FAIL" as const }
       ])
     ).toBe(true);
+  });
+
+  it("does not count historical report version approvals toward the active report version", () => {
+    const requiredReviewerIds = ["advisor", "head"];
+    const historicalReviews = [
+      { reviewerTeacherId: "advisor", decision: "PASS" as const },
+      { reviewerTeacherId: "head", decision: "PASS" as const }
+    ];
+    const latestVersionReviews = [{ reviewerTeacherId: "head", decision: "PASS" as const }];
+
+    expect(allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: historicalReviews })).toBe(true);
+    expect(allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestVersionReviews })).toBe(false);
   });
 });

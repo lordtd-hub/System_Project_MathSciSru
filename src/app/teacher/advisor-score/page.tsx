@@ -3,12 +3,14 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { submitAdvisorScore } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
+import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { advisorCriteria } from "@/lib/scoring/advisorScoring";
 
 function fieldName(key: string) {
@@ -33,6 +35,22 @@ function previousValue(score: {
   return 0;
 }
 
+function advisorScoreSummary(score: {
+  responsibilityScore: number | null;
+  researchProcessScore: number | null;
+  problemSolvingScore: number | null;
+  communicationScore: number | null;
+  professionalismScore: number | null;
+}) {
+  return [
+    { label: "ความรับผิดชอบและตรงต่อเวลา", value: score.responsibilityScore, max: 25 },
+    { label: "กระบวนการทำงานวิจัยและความเป็นอิสระ", value: score.researchProcessScore, max: 25 },
+    { label: "การแก้ปัญหาและการปรับปรุงงาน", value: score.problemSolvingScore, max: 25 },
+    { label: "การสื่อสารกับอาจารย์ที่ปรึกษา", value: score.communicationScore, max: 15 },
+    { label: "ความเป็นมืออาชีพโดยรวม", value: score.professionalismScore, max: 10 }
+  ];
+}
+
 export default async function TeacherAdvisorScorePage({
   searchParams
 }: {
@@ -45,7 +63,7 @@ export default async function TeacherAdvisorScorePage({
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) {
-    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์และรอผู้ดูแลระบบอนุมัติก่อนใช้งาน" />;
+    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีกับโปรไฟล์อาจารย์และรอผู้ดูแลระบบอนุมัติก่อนใช้งาน" />;
   }
 
   const params = (await searchParams) ?? {};
@@ -55,7 +73,7 @@ export default async function TeacherAdvisorScorePage({
         { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } },
         { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: "ADVISOR" } } }
       ],
-      status: { in: ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING"] }
+      status: { in: ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] }
     },
     include: {
       student: true,
@@ -64,29 +82,63 @@ export default async function TeacherAdvisorScorePage({
     },
     orderBy: { updatedAt: "desc" }
   });
+  const advisorQueueOrder = { action: 0, waiting: 1, completed: 2, locked: 3 } as const;
+  const advisorQueueLabels = {
+    action: "ต้องดำเนินการ",
+    waiting: "รอเงื่อนไข",
+    completed: "เสร็จแล้ว",
+    locked: "ยังไม่พร้อม"
+  } as const;
+  const advisorQueueTones = {
+    action: "action",
+    waiting: "waiting",
+    completed: "completed",
+    locked: "locked"
+  } as const;
+  const advisorQueueItems = projects.map((project) => {
+    const submitted = project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null;
+    const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
+    if (submitted) return { projectId: project.id, state: "completed" as const };
+    if (editable) return { projectId: project.id, state: "action" as const };
+    if (project.status === "REPORT_REVIEW") return { projectId: project.id, state: "waiting" as const };
+    return { projectId: project.id, state: "locked" as const };
+  });
+  const advisorQueueStateByProjectId = new Map(advisorQueueItems.map((item) => [item.projectId, item.state]));
+  const sortedProjects = [...projects].sort((a, b) => {
+    const stateA = advisorQueueStateByProjectId.get(a.id) ?? "locked";
+    const stateB = advisorQueueStateByProjectId.get(b.id) ?? "locked";
+    return advisorQueueOrder[stateA] - advisorQueueOrder[stateB];
+  });
+  const advisorQueueCount = (state: (typeof advisorQueueItems)[number]["state"]) =>
+    advisorQueueItems.filter((item) => item.state === state).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Advisor score 25%"
-        description="บันทึกคะแนนอาจารย์ที่ปรึกษาหลังเล่มรายงานผ่านแล้ว ระบบยังไม่ปิดงานเป็น COMPLETED ในขั้นตอนนี้"
+        title="คะแนนสรุปของอาจารย์ที่ปรึกษา 25%"
+        description="บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาหลังเล่มรายงานผ่านการตรวจแล้ว ระบบยังไม่ยืนยันจบโครงงานในขั้นตอนนี้"
       />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="Advisor score"
-        current="เปิดให้บันทึกเมื่อ project อยู่ที่ REPORT_APPROVED"
-        next="เมื่อบันทึกแล้ว project จะอยู่ที่ ADVISOR_SCORING เพื่อรอ final closeout โดย Admin"
-        actor="อาจารย์ที่ปรึกษาของโครงงานเท่านั้น"
+      <TeacherWorkloadSummary
+        metrics={[
+          { label: "ต้องดำเนินการ", count: advisorQueueCount("action"), tone: "action", description: "พร้อมบันทึกคะแนนที่ปรึกษา" },
+          { label: "รอ", count: advisorQueueCount("waiting"), tone: "waiting", description: "รอรายงานผ่านครบก่อน" },
+          { label: "เสร็จแล้ว", count: advisorQueueCount("completed"), tone: "completed", description: "ส่งคะแนนแล้ว อ่านย้อนหลังได้" },
+          { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับคะแนนที่ปรึกษา" },
+          { label: "ยังไม่พร้อม", count: advisorQueueCount("locked"), tone: "locked", description: "ยังไม่ถึงขั้นตอนบันทึกคะแนน" }
+        ]}
       />
 
       <div className="space-y-4">
         {projects.length ? (
-          projects.map((project) => {
-            const editable = project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING";
+          sortedProjects.map((project) => {
             const previous = project.advisorScore;
+            const submitted = previous?.status === "SUBMITTED" && previous.score != null;
+            const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
             const latestReport = project.reportVersions[0];
+            const queueState = advisorQueueStateByProjectId.get(project.id) ?? "locked";
             return (
-              <section key={project.id} className="panel">
+              <section key={project.id} className="panel teacher-review-card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
@@ -94,43 +146,74 @@ export default async function TeacherAdvisorScorePage({
                       {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                     </p>
                   </div>
-                  <StatusBadge status={project.status} />
+                  <div className="flex flex-wrap gap-2">
+                    <TeacherQueueBadge tone={advisorQueueTones[queueState]}>{advisorQueueLabels[queueState]}</TeacherQueueBadge>
+                    <StatusBadge status={project.status} />
+                  </div>
                 </div>
 
                 <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
-                  Report: {latestReport ? `version ${latestReport.versionNo}` : "ยังไม่มีเล่มรายงาน"} · Advisor score:{" "}
+                  รายงาน: {latestReport ? `ฉบับที่ ${latestReport.versionNo}` : "ยังไม่มีเล่มรายงาน"} · คะแนนที่ปรึกษา:{" "}
                   {previous?.status === "SUBMITTED" ? `บันทึกแล้ว ${Number(previous.score ?? 0)}/100` : editable ? "พร้อมบันทึก" : "ยังล็อก"}
                 </div>
 
-                {!editable ? (
+                {submitted ? (
+                  <div className="mt-4 space-y-4 rounded-md border border-line bg-paper p-3 text-sm">
+                    <div>
+                      <div className="font-semibold text-ink">บันทึกคะแนนสรุปแล้ว</div>
+                      <p className="mt-1 text-muted">
+                        คะแนนรวม {Number(previous.score ?? 0)}/100
+                        {previous.submittedAt ? ` · ${formatThaiDateTime24(previous.submittedAt)}` : ""}
+                      </p>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {advisorScoreSummary(previous).map((item) => (
+                        <div key={item.label} className="rounded-md border border-line bg-surface p-2">
+                          <div className="font-medium">{item.label}</div>
+                          <div className="mt-1 text-muted">{item.value ?? 0}/{item.max}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {previous.comment ? (
+                      <div className="rounded-md border border-line bg-surface p-3">
+                        <div className="font-semibold text-ink">ข้อเสนอแนะสำหรับนักศึกษา</div>
+                        <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={previous.comment} />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : !editable ? (
                   <div className="mt-4 rounded-md border border-line p-3 text-sm text-muted">
-                    ยังไม่สามารถให้คะแนน Advisor ได้ ต้องรอให้เล่มรายงานผ่านเป็น REPORT_APPROVED ก่อน
+                    ยังไม่สามารถบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาได้ ต้องรอให้เล่มรายงานผ่านการตรวจก่อน
                   </div>
                 ) : (
-                  <form action={submitAdvisorScore} className="mt-4 grid gap-4 md:grid-cols-5">
+                  <form action={submitAdvisorScore} className="mt-4 space-y-4">
                     <input type="hidden" name="project_id" value={project.id} />
-                    {advisorCriteria.map((criterion) => (
-                      <div key={criterion.key}>
-                        <label>
-                          {criterion.label} ({criterion.max})
-                        </label>
-                        <input
-                          name={fieldName(criterion.key)}
-                          type="number"
-                          min="0"
-                          max={criterion.max}
-                          step="1"
-                          defaultValue={previousValue(previous, criterion.key)}
-                          required
-                        />
+                    <div className="rounded-md border border-line bg-paper p-3">
+                      <h3 className="text-sm font-semibold">เกณฑ์คะแนนสรุปของอาจารย์ที่ปรึกษา</h3>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        {advisorCriteria.map((criterion) => (
+                          <label key={criterion.key} className="rounded-md border border-line bg-surface p-3 text-sm">
+                            <span className="font-medium">{criterion.labelTh}</span>
+                            <span className="ml-2 text-xs text-muted">{criterion.labelEn}</span>
+                            <span className="ml-2 text-muted">เต็ม {criterion.max}</span>
+                            <input
+                              className="mt-2"
+                              name={fieldName(criterion.key)}
+                              type="number"
+                              min="0"
+                              max={criterion.max}
+                              step="1"
+                              defaultValue={previousValue(previous, criterion.key)}
+                              required
+                            />
+                          </label>
+                        ))}
                       </div>
-                    ))}
-                    <div className="md:col-span-5">
-                      <MarkdownLatexEditor name="comment" label="Comment / feedback" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
                     </div>
-                    <div className="md:col-span-5">
-                      <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึก Advisor score 25% หรือไม่?">
-                        บันทึก Advisor score 25%
+                    <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
+                    <div>
+                      <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?">
+                        บันทึกคะแนนสรุป 25%
                       </SubmitButton>
                     </div>
                   </form>
@@ -141,7 +224,7 @@ export default async function TeacherAdvisorScorePage({
         ) : (
           <EmptyState
             title="ยังไม่มีโครงงานที่เป็นที่ปรึกษา"
-            description="รายการจะแสดงเมื่อท่านเป็น advisor ของโครงงานที่เข้าสู่ช่วง report / advisor scoring"
+            description="รายการจะแสดงเมื่อท่านเป็นอาจารย์ที่ปรึกษาของโครงงานที่เข้าสู่ช่วงตรวจรายงานหรือบันทึกคะแนนสรุป"
           />
         )}
       </div>

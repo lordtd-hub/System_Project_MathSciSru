@@ -11,10 +11,10 @@ describe("admin closeout source guards", () => {
     expect(page).toContain("auth()");
     expect(page).toContain('session?.user.role !== "ADMIN"');
     expect(page).toContain("getCompletionEligibility");
-    expect(page).toContain("Progress 1 score");
-    expect(page).toContain("Progress 2 score");
-    expect(page).toContain("Final Presentation score");
-    expect(page).toContain("Advisor score 25%");
+    expect(page).toContain("คะแนนสอบความก้าวหน้าครั้งที่ 1");
+    expect(page).toContain("คะแนนสอบความก้าวหน้าครั้งที่ 2");
+    expect(page).toContain("คะแนนสอบนำเสนอขั้นสุดท้าย");
+    expect(page).toContain("คะแนนสรุปของอาจารย์ที่ปรึกษา 25%");
     expect(page).toContain("completeProjectCloseout");
   });
 

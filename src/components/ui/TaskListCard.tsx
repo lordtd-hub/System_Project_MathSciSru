@@ -18,7 +18,7 @@ function urgencyTone(urgency?: string) {
 export function TaskListCard({ title, tasks, compact = false }: { title: string; tasks: TaskListItem[]; compact?: boolean }) {
   return (
     <section className={`panel action-list-card ${compact ? "dashboard-console-panel" : ""}`}>
-      <SectionHeading title={title} description="Action queue" compact />
+      <SectionHeading title={title} description="งานที่ต้องดำเนินการ" compact />
       <div className={`${compact ? "mt-3 space-y-2" : "mt-4 space-y-3"}`}>
         {tasks.length ? (
           tasks.map((task) => (

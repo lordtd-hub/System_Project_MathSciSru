@@ -17,13 +17,13 @@ export type CompletionEligibility = CompletionCheckInput & {
 };
 
 export const completionRequirementLabels = {
-  state: "สถานะต้องเป็น ADVISOR_SCORING",
-  progress1: "ยังไม่มีคะแนน Progress 1",
-  progress2: "ยังไม่มีคะแนน Progress 2",
-  final: "ยังไม่มีคะแนน Final Presentation",
+  state: "โครงงานต้องอยู่ในขั้นตอนบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา",
+  progress1: "ยังไม่มีคะแนนสอบความก้าวหน้าครั้งที่ 1",
+  progress2: "ยังไม่มีคะแนนสอบความก้าวหน้าครั้งที่ 2",
+  final: "ยังไม่มีคะแนนสอบนำเสนอขั้นสุดท้าย",
   reportApproved: "ยังไม่พบหลักฐานว่าเล่มรายงานผ่านแล้ว",
-  advisorScore: "ยังไม่มี Advisor score 25%",
-  reportRevision: "ยังมี report revision ที่ยังไม่ปิด"
+  advisorScore: "ยังไม่มีคะแนนสรุปของอาจารย์ที่ปรึกษา 25%",
+  reportRevision: "ยังมีคำขอแก้ไขรายงานที่ยังไม่เสร็จสิ้น"
 } as const;
 
 export function evaluateCompletionEligibility(input: CompletionCheckInput): CompletionEligibility {
