@@ -8,6 +8,9 @@ describe("admin course offering workflow source", () => {
   it("renders academic year and term inputs before student import", () => {
     const page = read("src/app/admin/import-students/page.tsx");
     expect(page).toContain("openCourseOffering");
+    expect(page).toContain("importManualDemoStudents");
+    expect(page).toContain("resetCourseOfferingTestData");
+    expect(page).toContain("isAdminTestingToolsEnabled");
     expect(page).toContain('name="year_be"');
     expect(page).toContain('name="term_type"');
     expect(page).toContain('value="1"');
@@ -56,5 +59,33 @@ describe("admin course offering workflow source", () => {
     expect(importAction).toContain("course_offering_missing");
     expect(importAction).toContain("courseOfferingId_studentId");
     expect(importAction).toContain("students_imported");
+  });
+
+  it("keeps manual guide roster import gated as an admin testing tool", () => {
+    const actions = read("src/app/admin/actions.ts");
+    const manualStart = actions.indexOf("export async function importManualDemoStudents");
+    const confirmStart = actions.indexOf("export async function confirmProjectAdvisor");
+    const manualAction = actions.slice(manualStart, confirmStart);
+
+    expect(manualAction).toContain("requireAdminUserId()");
+    expect(manualAction).toContain("isAdminTestingToolsEnabled()");
+    expect(manualAction).toContain("manualDemoStudents");
+    expect(manualAction).toContain("courseOfferingId_studentId");
+    expect(manualAction).toContain("MANUAL_DEMO_STUDENTS_IMPORTED");
+    expect(manualAction).toContain("manual_students_imported");
+  });
+
+  it("shows course deletion only through the existing testing cleanup gate", () => {
+    const page = read("src/app/admin/import-students/page.tsx");
+    const actions = read("src/app/admin/actions.ts");
+    const resetStart = actions.indexOf("export async function resetCourseOfferingTestData");
+    const importStart = actions.indexOf("export async function importStudents");
+    const resetAction = actions.slice(resetStart, importStart);
+
+    expect(page).toContain("return_to");
+    expect(page).toContain("ลบรายวิชานี้");
+    expect(resetAction).toContain("isAdminTestingToolsEnabled()");
+    expect(resetAction).toContain("resetCourseOfferingForTesting");
+    expect(resetAction).toContain("course_offering_deleted");
   });
 });

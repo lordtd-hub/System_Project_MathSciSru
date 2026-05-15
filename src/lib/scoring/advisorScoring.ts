@@ -7,11 +7,46 @@ export type AdvisorScoreInput = {
 };
 
 export const advisorCriteria = [
-  { key: "responsibility", label: "Responsibility / punctuality", max: 25, order: 1 },
-  { key: "researchProcess", label: "Research process and independence", max: 25, order: 2 },
-  { key: "problemSolving", label: "Problem-solving and improvement", max: 25, order: 3 },
-  { key: "communication", label: "Communication with advisor", max: 15, order: 4 },
-  { key: "professionalism", label: "Overall professionalism", max: 10, order: 5 }
+  {
+    key: "responsibility",
+    label: "ความรับผิดชอบและตรงต่อเวลา",
+    labelTh: "ความรับผิดชอบและตรงต่อเวลา",
+    labelEn: "Responsibility / punctuality",
+    max: 25,
+    order: 1
+  },
+  {
+    key: "researchProcess",
+    label: "กระบวนการทำงานวิจัยและความเป็นอิสระ",
+    labelTh: "กระบวนการทำงานวิจัยและความเป็นอิสระ",
+    labelEn: "Research process and independence",
+    max: 25,
+    order: 2
+  },
+  {
+    key: "problemSolving",
+    label: "การแก้ปัญหาและการปรับปรุงงาน",
+    labelTh: "การแก้ปัญหาและการปรับปรุงงาน",
+    labelEn: "Problem-solving and improvement",
+    max: 25,
+    order: 3
+  },
+  {
+    key: "communication",
+    label: "การสื่อสารกับอาจารย์ที่ปรึกษา",
+    labelTh: "การสื่อสารกับอาจารย์ที่ปรึกษา",
+    labelEn: "Communication with advisor",
+    max: 15,
+    order: 4
+  },
+  {
+    key: "professionalism",
+    label: "ความเป็นมืออาชีพโดยรวม",
+    labelTh: "ความเป็นมืออาชีพโดยรวม",
+    labelEn: "Overall professionalism",
+    max: 10,
+    order: 5
+  }
 ] as const;
 
 export function validateAdvisorScore(input: AdvisorScoreInput) {

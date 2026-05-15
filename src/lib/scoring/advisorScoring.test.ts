@@ -23,7 +23,7 @@ describe("Advisor scoring", () => {
         communication: 15,
         professionalism: 10
       }).join("\n")
-    ).toContain("Responsibility");
+    ).toContain("ความรับผิดชอบและตรงต่อเวลา");
     expect(
       validateAdvisorScore({
         responsibility: 25,
@@ -32,6 +32,6 @@ describe("Advisor scoring", () => {
         communication: 15,
         professionalism: 10
       }).join("\n")
-    ).toContain("Research process");
+    ).toContain("กระบวนการทำงานวิจัยและความเป็นอิสระ");
   });
 });

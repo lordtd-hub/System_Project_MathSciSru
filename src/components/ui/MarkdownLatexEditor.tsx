@@ -36,12 +36,30 @@ export function MarkdownLatexEditor({
     if (value !== undefined) setDraft(value);
   }, [value]);
 
+  useEffect(() => {
+    function restoreDraft(event: Event) {
+      const values = (event as CustomEvent<Record<string, string | boolean>>).detail;
+      const restored = values?.[name];
+      if (typeof restored === "string") setDraft(restored);
+    }
+
+    window.addEventListener("draft-form-restore", restoreDraft);
+    window.addEventListener("proposal-draft-restore", restoreDraft);
+    return () => {
+      window.removeEventListener("draft-form-restore", restoreDraft);
+      window.removeEventListener("proposal-draft-restore", restoreDraft);
+    };
+  }, [name]);
+
   const helper = helpText ?? "ใช้ `$...$` สำหรับสมการในบรรทัด และใช้ `$$...$$` สำหรับสมการแยกบรรทัด ไม่อนุญาต raw HTML";
 
   return (
     <div className="markdown-latex-editor grid gap-3 lg:grid-cols-2">
       <div className="space-y-1.5">
-        <label htmlFor={name}>{label}</label>
+        <label htmlFor={name}>
+          {label}
+          {required ? <span className="ml-1 text-brand" aria-label="จำเป็นต้องกรอก">*</span> : null}
+        </label>
         <div className="rounded-t-md border border-b-0 border-line bg-paper px-3 py-2 text-xs font-medium">เขียน</div>
         <textarea
           id={name}

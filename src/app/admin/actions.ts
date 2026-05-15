@@ -6,16 +6,25 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
+import { seedBaselineRubrics } from "@/lib/admin/rubricBaseline";
 import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { parseStudentImportCsv } from "@/lib/admin/studentImportCsv";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
+import { manualDemoStudents } from "@/lib/qa/manualDemo";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
+import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
 import { getRoundOpenGate } from "@/lib/assessments/roundSequence";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
+import {
+  LATE_ROUND_EXCEPTION_TYPE,
+  LATE_ROUND_EXCUSED_EXCEPTION_TYPE,
+  lateRoundPenaltyNotice,
+  roundExceptionLabel
+} from "@/lib/assessments/roundExceptions";
 import { termDisplayName } from "@/lib/terms/display";
 import { generatedStudentEmail, hasImportErrors, validateStudentImportRows } from "@/lib/validators/studentImport";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
@@ -31,6 +40,31 @@ async function requireAdminUserId() {
     throw new Error("ไม่อนุญาตให้เข้าถึง");
   }
   return session.user.id;
+}
+
+type CourseRoundType = (typeof courseLevelRoundTypes)[number];
+
+async function getMissingProposalProjects(courseOfferingId: string) {
+  return prisma.project.findMany({
+    where: {
+      courseOfferingId,
+      presentationSubmissions: { none: {} }
+    },
+    select: {
+      id: true,
+      currentTitleTh: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
+    },
+    orderBy: { student: { studentCode: "asc" } }
+  });
+}
+
+function parseCourseRoundType(value: FormDataEntryValue | null): CourseRoundType {
+  const roundType = String(value ?? "");
+  if (!courseLevelRoundTypes.includes(roundType as CourseRoundType)) {
+    throw new Error("รอบสอบไม่ถูกต้อง");
+  }
+  return roundType as CourseRoundType;
 }
 
 export async function openCourseOffering(formData: FormData) {
@@ -154,6 +188,8 @@ export async function resetCourseOfferingTestData(formData: FormData) {
 
   const courseOfferingId = String(formData.get("course_offering_id") ?? "");
   if (!courseOfferingId) redirect("/admin?error=course_offering_missing");
+  const returnTo = String(formData.get("return_to") ?? "");
+  const redirectPath = returnTo === "/admin/import-students" ? "/admin/import-students" : "/admin";
 
   await resetCourseOfferingForTesting(prisma, courseOfferingId, adminUserId);
 
@@ -162,7 +198,7 @@ export async function resetCourseOfferingTestData(formData: FormData) {
   revalidatePath("/admin/students");
   revalidatePath("/admin/rounds");
   revalidatePath("/admin/proposals");
-  redirect("/admin?success=test_course_reset");
+  redirectWithQuery(redirectPath, { success: returnTo === "/admin/import-students" ? "course_offering_deleted" : "test_course_reset" });
 }
 
 export async function importStudents(formData: FormData) {
@@ -233,13 +269,62 @@ export async function importStudents(formData: FormData) {
   redirectWithQuery("/admin/import-students", { success: "students_imported", course_offering_id: courseOfferingId });
 }
 
+export async function importManualDemoStudents(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:importManualDemoStudents`, pilotRateLimits.importExport);
+  if (!isAdminTestingToolsEnabled()) redirect("/admin/import-students?error=test_tools_disabled");
+
+  const courseOfferingId = String(formData.get("course_offering_id") ?? "");
+  const offering = await prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } });
+  if (!offering) redirect("/admin/import-students?error=course_offering_missing");
+
+  for (const row of manualDemoStudents) {
+    const student = await prisma.student.upsert({
+      where: { generatedEmail: row.email },
+      update: {
+        studentCode: row.studentCode,
+        firstNameTh: row.firstNameTh,
+        lastNameTh: row.lastNameTh,
+        active: true
+      },
+      create: {
+        studentCode: row.studentCode,
+        firstNameTh: row.firstNameTh,
+        lastNameTh: row.lastNameTh,
+        generatedEmail: row.email,
+        active: true
+      }
+    });
+
+    await prisma.project.upsert({
+      where: { courseOfferingId_studentId: { courseOfferingId, studentId: student.id } },
+      update: {},
+      create: { courseOfferingId, studentId: student.id, status: "STUDENT_PROFILE" }
+    });
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "MANUAL_DEMO_STUDENTS_IMPORTED",
+      entityType: "CourseOffering",
+      entityId: courseOfferingId,
+      afterJson: { importedCount: manualDemoStudents.length }
+    }
+  });
+
+  revalidatePath("/admin/import-students");
+  revalidatePath("/admin/students");
+  redirectWithQuery("/admin/import-students", { success: "manual_students_imported", course_offering_id: courseOfferingId });
+}
+
 export async function confirmProjectAdvisor(formData: FormData) {
   const adminUserId = await requireAdminUserId();
   assertRateLimit(`admin:${adminUserId}:confirmProjectAdvisor`, pilotRateLimits.workflowMutation);
   const projectId = String(formData.get("project_id"));
   const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
   const transition = adminConfirmProjectTransition(project.status);
-  if (project.status !== "PENDING_ADMIN") throw new Error("โปรเจคนี้ยังไม่พร้อมให้ Admin ยืนยัน");
+  if (project.status !== "PENDING_ADMIN") throw new Error("โครงงานนี้ยังไม่พร้อมให้ผู้ดูแลระบบยืนยัน");
 
   await prisma.$transaction([
     prisma.project.update({ where: { id: projectId }, data: { status: transition.to } }),
@@ -256,7 +341,7 @@ export async function confirmProjectAdvisor(formData: FormData) {
       data: {
         projectId,
         eventType: "ADMIN_CONFIRMED_PROJECT_ADVISOR",
-        eventTitle: "ผู้ดูแลระบบยืนยันโปรเจคและอาจารย์ที่ปรึกษา",
+        eventTitle: "ผู้ดูแลระบบยืนยันโครงงานและอาจารย์ที่ปรึกษา",
         actorUserId: adminUserId,
         relatedEntityType: "Project",
         relatedEntityId: projectId
@@ -273,7 +358,7 @@ export async function reviewTeacherClaim(formData: FormData) {
   const claimId = String(formData.get("claim_id"));
   const decision = String(formData.get("decision"));
   const adminNote = String(formData.get("admin_note") ?? "");
-  assertTextSize(adminNote, requestSizeLimits.commentTextBytes, "admin note");
+  assertTextSize(adminNote, requestSizeLimits.commentTextBytes, "บันทึกของผู้ดูแลระบบ");
 
   const claim = await prisma.teacherAccountClaim.findUniqueOrThrow({
     where: { id: claimId },
@@ -397,19 +482,44 @@ export async function seedTeacherBaselineFromAdmin() {
   redirect("/admin/teachers?success=teacher_baseline_seeded");
 }
 
+export async function seedRubricBaselineFromAdmin() {
+  const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:seedRubricBaselineFromAdmin`, pilotRateLimits.workflowMutation);
+  const result = await seedBaselineRubrics(prisma);
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserId: adminUserId,
+      action: "RUBRIC_BASELINE_SEEDED",
+      entityType: "Rubric",
+      entityId: "baseline",
+      afterJson: { seeded: result.seeded }
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/rounds");
+  revalidatePath("/teacher");
+  redirect("/admin/rounds?success=rubric_baseline_seeded");
+}
+
 export async function closeProposalRound(formData: FormData) {
   const adminUserId = await requireAdminUserId();
   assertRateLimit(`admin:${adminUserId}:closeProposalRound`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.closeProposalRound");
   const roundId = String(formData.get("round_id"));
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } }));
-  if (isRoundClosed(round.status)) throw new Error("รอบ Proposal ปิดแล้ว");
+  if (isRoundClosed(round.status)) throw new Error("รอบการเสนอหัวข้อปิดแล้ว");
   const attempts = await timer.measure("load_attempts", () => prisma.assessmentAttempt.findMany({
     where: { assessmentRoundId: roundId },
     select: { id: true, projectId: true }
   }));
+  const missingProjects = await timer.measure("load_missing_proposal_projects", () => getMissingProposalProjects(round.courseOfferingId));
+  if (missingProjects.length && String(formData.get("acknowledge_missing_projects") ?? "") !== "yes") {
+    redirectWithQuery("/admin/proposals", { error: "round_close_missing_ack_required" });
+  }
 
-  const closedRoundData = buildCloseAssessmentRoundData(adminUserId);
+  const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
   await timer.measure("close_round", () => prisma.$transaction([
     prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
     prisma.auditLog.create({
@@ -425,7 +535,13 @@ export async function closeProposalRound(formData: FormData) {
           closedByAdminId: round.closedByAdminId
         },
         afterJson: closedRoundData,
-        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId, attemptCount: attempts.length }
+        metadataJson: {
+          roundType: round.roundType,
+          courseOfferingId: round.courseOfferingId,
+          attemptCount: attempts.length,
+          missingProjectCount: missingProjects.length,
+          missingProjectIds: missingProjects.map((project) => project.id)
+        }
       }
     })
   ]));
@@ -435,7 +551,7 @@ export async function closeProposalRound(formData: FormData) {
         data: {
           projectId: attempt.projectId,
           eventType: "PROPOSAL_CLOSED",
-          eventTitle: "ปิดรอบประเมิน Proposal",
+          eventTitle: "ปิดรอบประเมินการเสนอหัวข้อ",
           relatedEntityType: "AssessmentRound",
           relatedEntityId: roundId
         }
@@ -446,6 +562,101 @@ export async function closeProposalRound(formData: FormData) {
   revalidatePath("/admin/proposals");
   timer.end("redirect");
   redirect("/admin/proposals?success=proposal_round_closed");
+}
+
+export async function openLateRoundSubmissionForProject(formData: FormData) {
+  const adminUserId = await requireAdminUserId();
+  assertRateLimit(`admin:${adminUserId}:openLateRoundSubmissionForProject`, pilotRateLimits.workflowMutation);
+
+  const projectId = String(formData.get("project_id") ?? "");
+  const roundType = parseCourseRoundType(formData.get("round_type"));
+  const returnTo = String(formData.get("return_to") ?? "");
+  const redirectPath = returnTo === "/admin/round-exceptions" ? "/admin/round-exceptions" : "/admin/rounds";
+  const reason = String(formData.get("reason") ?? "").trim() || lateRoundPenaltyNotice;
+  const excused = String(formData.get("excused") ?? "") === "yes";
+  const exceptionType = excused ? LATE_ROUND_EXCUSED_EXCEPTION_TYPE : LATE_ROUND_EXCEPTION_TYPE;
+
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    select: {
+      id: true,
+      courseOfferingId: true,
+      currentTitleTh: true,
+      student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } }
+    }
+  });
+  const round = await prisma.assessmentRound.findUniqueOrThrow({
+    where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType } }
+  });
+  if (!isRoundClosed(round.status)) redirectWithQuery(redirectPath, { error: "late_round_requires_closed_round" });
+
+  const existing = await prisma.projectRoundException.findFirst({
+    where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
+    orderBy: { createdAt: "desc" }
+  });
+  const exception = existing
+    ? await prisma.projectRoundException.update({
+        where: { id: existing.id },
+        data: { exceptionType, reason, reopenedAt: new Date(), reopenedById: adminUserId }
+      })
+    : await prisma.projectRoundException.create({
+        data: {
+          projectId: project.id,
+          assessmentRoundId: round.id,
+          exceptionType,
+          reason,
+          reopenedAt: new Date(),
+          reopenedById: adminUserId
+        }
+      });
+
+  const roundLabel = roundExceptionLabel(round.roundType);
+  await prisma.$transaction([
+    prisma.projectTimelineEvent.create({
+      data: {
+        projectId: project.id,
+        eventType: "LATE_ROUND_SUBMISSION_OPENED",
+        eventTitle: `เปิดให้ดำเนินการย้อนหลัง: ${roundLabel}`,
+        eventDescription: excused
+          ? `ผู้ดูแลระบบเปิดให้ดำเนินการย้อนหลังเป็นกรณีพิเศษโดยไม่หักคะแนน: ${reason}`
+          : `ผู้ดูแลระบบเปิดให้ดำเนินการย้อนหลังเป็นกรณีพิเศษ และระบบจะหักคะแนน 10% ของรอบนี้: ${reason}`,
+        actorUserId: adminUserId,
+        relatedEntityType: "ProjectRoundException",
+        relatedEntityId: exception.id,
+        metadataJson: {
+          roundType: round.roundType,
+          assessmentRoundId: round.id,
+          exceptionType,
+          penaltyPercent: excused ? 0 : 10,
+          studentCode: project.student?.studentCode
+        }
+      }
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorUserId: adminUserId,
+        action: "LATE_ROUND_SUBMISSION_OPENED",
+        entityType: "ProjectRoundException",
+        entityId: exception.id,
+        afterJson: {
+          projectId: project.id,
+          assessmentRoundId: round.id,
+          roundType: round.roundType,
+          exceptionType,
+          penaltyPercent: excused ? 0 : 10,
+          reason
+        }
+      }
+    })
+  ]);
+
+  revalidatePath("/admin/rounds");
+  revalidatePath("/admin/round-exceptions");
+  revalidatePath("/admin/proposals");
+  revalidatePath("/student");
+  revalidatePath("/student/proposal");
+  revalidatePath("/teacher");
+  redirectWithQuery(redirectPath, { success: "late_round_opened" });
 }
 
 export async function openCourseRound(formData: FormData) {
@@ -472,7 +683,10 @@ export async function openCourseRound(formData: FormData) {
       closedAt: null,
       closedByAdminId: null,
       courseWeight: defaultCourseRoundWeight(roundType),
-      rawScoreMax: 100
+      rawScoreMax: 100,
+      showScoreToStudent: false,
+      showFeedbackToStudent: false,
+      showEvaluatorNameToStudent: false
     },
     create: {
       courseOfferingId,
@@ -481,7 +695,10 @@ export async function openCourseRound(formData: FormData) {
       status: roundType === "PROPOSAL" ? "SCORING_OPEN" : "SUBMISSION_OPEN",
       submissionOpenAt: new Date(),
       courseWeight: defaultCourseRoundWeight(roundType),
-      rawScoreMax: 100
+      rawScoreMax: 100,
+      showScoreToStudent: false,
+      showFeedbackToStudent: false,
+      showEvaluatorNameToStudent: false
     }
   });
   await prisma.auditLog.create({
@@ -509,12 +726,60 @@ export async function closeCourseRound(formData: FormData) {
   assertRateLimit(`admin:${adminUserId}:closeCourseRound`, pilotRateLimits.workflowMutation);
   const roundId = String(formData.get("round_id"));
   const round = await prisma.assessmentRound.findUniqueOrThrow({ where: { id: roundId } });
+  const finalDoneProjectIds = round.roundType === "FINAL_PRESENTATION"
+    ? [
+        ...new Set(
+          (await prisma.assessmentAttempt.findMany({
+            where: {
+              assessmentRoundId: roundId,
+              project: { status: "IN_PROGRESS" }
+            },
+            select: {
+              projectId: true,
+              project: { select: { committeeAssignments: { select: { teacherId: true, role: true, active: true } } } },
+              evaluatorAssignments: {
+                select: {
+                  teacherId: true,
+                  scoreSubmission: { select: { status: true } }
+                }
+              }
+            }
+          }))
+            .filter((attempt) =>
+              isPresentationAssessmentComplete({
+                roundStatus: round.status,
+                committeeAssignments: attempt.project.committeeAssignments,
+                scoreSubmissions: attempt.evaluatorAssignments.map((assignment) => ({
+                  teacherId: assignment.teacherId,
+                  status: assignment.scoreSubmission?.status ?? null
+                }))
+              })
+            )
+            .map((attempt) => attempt.projectId)
+        )
+      ]
+    : [];
   if (isRoundClosed(round.status)) throw new Error("รอบสอบนี้ปิดแล้ว");
 
-  const closedRoundData = buildCloseAssessmentRoundData(adminUserId);
-  await prisma.$transaction([
-    prisma.assessmentRound.update({ where: { id: roundId }, data: closedRoundData }),
-    prisma.auditLog.create({
+  const missingProposalProjects = round.roundType === "PROPOSAL"
+    ? await getMissingProposalProjects(round.courseOfferingId)
+    : [];
+  if (missingProposalProjects.length && String(formData.get("acknowledge_missing_projects") ?? "") !== "yes") {
+    redirectWithQuery("/admin/rounds", { error: "round_close_missing_ack_required" });
+  }
+  const incompleteEligibleProjects = round.roundType !== "PROPOSAL"
+    ? (await getRoundEligibility(round.courseOfferingId, round.roundType)).eligibleButIncomplete.map((item) => item.project)
+    : [];
+  if (incompleteEligibleProjects.length && String(formData.get("acknowledge_incomplete_projects") ?? "") !== "yes") {
+    redirectWithQuery("/admin/rounds", {
+      error: round.roundType === "FINAL_PRESENTATION" ? "round_close_final_incomplete_ack_required" : "round_close_incomplete_ack_required"
+    });
+  }
+
+  const closedRoundData = buildCloseAssessmentRoundData(adminUserId, round.roundType);
+  await prisma.$transaction(async (tx) => {
+    await tx.assessmentRound.update({ where: { id: roundId }, data: closedRoundData });
+    await tx.auditLog.create({
       data: {
         actorUserId: adminUserId,
         action: "ASSESSMENT_ROUND_CLOSED",
@@ -527,12 +792,58 @@ export async function closeCourseRound(formData: FormData) {
           closedByAdminId: round.closedByAdminId
         },
         afterJson: closedRoundData,
-        metadataJson: { roundType: round.roundType, courseOfferingId: round.courseOfferingId }
+        metadataJson: {
+          roundType: round.roundType,
+          courseOfferingId: round.courseOfferingId,
+          missingProjectCount: missingProposalProjects.length,
+          missingProjectIds: missingProposalProjects.map((project) => project.id),
+          eligibleIncompleteProjectCount: incompleteEligibleProjects.length,
+          eligibleIncompleteProjectIds: incompleteEligibleProjects.map((project) => project.id)
+        }
       }
-    })
-  ]);
+    });
+
+    if (finalDoneProjectIds.length) {
+      await tx.project.updateMany({
+        where: { id: { in: finalDoneProjectIds }, status: "IN_PROGRESS" },
+        data: { status: "FINAL_DONE" }
+      });
+      await Promise.all(
+        finalDoneProjectIds.map((projectId) =>
+          tx.projectStatusHistory.create({
+            data: {
+              projectId,
+              fromStatus: "IN_PROGRESS",
+              toStatus: "FINAL_DONE",
+              reason: "FINAL_PRESENTATION_ROUND_CLOSED",
+              actorUserId: adminUserId,
+              metadataJson: { assessmentRoundId: roundId }
+            }
+          })
+        )
+      );
+      await Promise.all(
+        finalDoneProjectIds.map((projectId) =>
+          tx.projectTimelineEvent.create({
+            data: {
+              projectId,
+              eventType: "FINAL_PRESENTATION_DONE",
+              eventTitle: "การสอบนำเสนอขั้นสุดท้ายเสร็จสิ้น",
+              eventDescription: "ปิดรอบสอบนำเสนอขั้นสุดท้ายแล้ว นักศึกษาสามารถส่งรายงานฉบับสมบูรณ์ให้ที่ปรึกษาและกรรมการตรวจได้",
+              actorUserId: adminUserId,
+              relatedEntityType: "AssessmentRound",
+              relatedEntityId: roundId
+            }
+          })
+        )
+      );
+    }
+  });
 
   revalidatePath("/admin/rounds");
+  revalidatePath("/student");
+  revalidatePath("/student/report");
+  revalidatePath("/teacher/reports");
   redirectWithQuery("/admin/rounds", { success: round.roundType === "PROGRESS_1" ? "progress_1_closed" : "round_closed" });
 }
 
@@ -605,7 +916,7 @@ export async function saveFinalDecision(formData: FormData) {
   const attemptId = String(formData.get("attempt_id"));
   const finalDecision = String(formData.get("final_decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
   const reason = String(formData.get("final_decision_reason") ?? "");
-  assertTextSize(reason, requestSizeLimits.commentTextBytes, "final decision reason");
+  assertTextSize(reason, requestSizeLimits.commentTextBytes, "เหตุผลประกอบผลตัดสินการเสนอหัวข้อ");
 
   const attempt = await timer.measure("load_attempt_scores", () => prisma.assessmentAttempt.findUniqueOrThrow({
     where: { id: attemptId },
@@ -685,7 +996,7 @@ export async function saveFinalDecision(formData: FormData) {
     data: {
       projectId: attempt.projectId,
       eventType: "ADMIN_FINAL_DECISION",
-      eventTitle: "ผู้ดูแลระบบบันทึกผล Proposal",
+      eventTitle: "ผู้ดูแลระบบบันทึกผลการเสนอหัวข้อ",
       eventDescription: finalDecision,
       actorUserId: adminUserId,
       relatedEntityType: "AssessmentAttempt",
@@ -720,8 +1031,8 @@ export async function assignProjectCommittee(formData: FormData) {
   const projectId = String(formData.get("project_id"));
   const headTeacherId = String(formData.get("head_teacher_id") ?? "");
   const memberTeacherIds = formData.getAll("member_teacher_id").map(String).filter(Boolean);
-  if (!headTeacherId) throw new Error("กรุณาเลือก HEAD");
-  if (!memberTeacherIds.length) throw new Error("กรุณาเลือก MEMBER อย่างน้อย 1 คน");
+  if (!headTeacherId) throw new Error("กรุณาเลือกประธานกรรมการ");
+  if (!memberTeacherIds.length) throw new Error("กรุณาเลือกกรรมการอย่างน้อย 1 คน");
 
   const project = await timer.measure("load_project_advisor", () => prisma.project.findUniqueOrThrow({
     where: { id: projectId },
@@ -733,13 +1044,13 @@ export async function assignProjectCommittee(formData: FormData) {
       }
     }
   }));
-  if (project.status !== "TOPIC_APPROVED") throw new Error("แต่งตั้งกรรมการได้เฉพาะโปรเจคที่หัวข้อผ่านแล้ว");
+  if (project.status !== "TOPIC_APPROVED") throw new Error("แต่งตั้งกรรมการได้เฉพาะโครงงานที่หัวข้อผ่านแล้ว");
   const advisorTeacherId = project.advisorRequests[0]?.advisorTeacherId;
   if (!advisorTeacherId) throw new Error("ไม่พบที่ปรึกษาที่อนุมัติแล้ว");
   if (headTeacherId === advisorTeacherId || memberTeacherIds.includes(advisorTeacherId)) {
-    throw new Error("Advisor ไม่ควรเป็น HEAD/MEMBER ในโปรเจคเดียวกัน");
+    throw new Error("อาจารย์ที่ปรึกษาไม่ควรเป็นประธานกรรมการหรือกรรมการในโครงงานเดียวกัน");
   }
-  if (memberTeacherIds.includes(headTeacherId)) throw new Error("HEAD และ MEMBER ต้องไม่ซ้ำกัน");
+  if (memberTeacherIds.includes(headTeacherId)) throw new Error("ประธานกรรมการและกรรมการต้องไม่ซ้ำกัน");
 
   await timer.measure("committee_transaction", () => prisma.$transaction([
     prisma.committeeAssignment.upsert({
@@ -822,7 +1133,7 @@ export async function releaseFeedback(formData: FormData) {
       data: {
         projectId: attempt.projectId,
         eventType: "FEEDBACK_RELEASED",
-        eventTitle: "เปิด feedback ให้นักศึกษาเห็น",
+        eventTitle: "เปิดข้อเสนอแนะให้นักศึกษาเห็น",
         actorUserId: adminUserId,
         relatedEntityType: "AssessmentAttempt",
         relatedEntityId: attemptId
@@ -849,7 +1160,7 @@ export async function completeProjectCloseout(formData: FormData) {
   assertRateLimit(`admin:${adminUserId}:completeProjectCloseout`, pilotRateLimits.workflowMutation);
   const timer = createActionTimer("admin.completeProjectCloseout");
   const projectId = String(formData.get("project_id") ?? "");
-  if (!projectId) throw new Error("ไม่พบ project ที่ต้องการปิดงาน");
+  if (!projectId) throw new Error("ไม่พบโครงงานที่ต้องการยืนยันจบ");
 
   const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({ where: { id: projectId } }));
   if (project.status === "COMPLETED") {
@@ -858,7 +1169,7 @@ export async function completeProjectCloseout(formData: FormData) {
 
   const eligibility = await timer.measure("completion_eligibility", () => getCompletionEligibility(projectId));
   if (!eligibility.eligible) {
-    throw new Error(`ยังปิดงานไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
+    throw new Error(`ยังยืนยันจบโครงงานไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
   }
 
   await timer.measure("closeout_transaction", () => prisma.$transaction(async (tx) => {
@@ -866,7 +1177,7 @@ export async function completeProjectCloseout(formData: FormData) {
       where: { id: projectId, status: "ADVISOR_SCORING" },
       data: { status: "COMPLETED" }
     });
-    if (updated.count !== 1) throw new Error("โครงงานนี้ถูกปิดงานไปแล้วหรือสถานะเปลี่ยนไป กรุณารีเฟรชหน้า");
+    if (updated.count !== 1) throw new Error("โครงงานนี้ถูกยืนยันจบแล้วหรือสถานะเปลี่ยนไป กรุณารีเฟรชหน้า");
 
     await tx.projectStatusHistory.create({
       data: {
@@ -889,7 +1200,7 @@ export async function completeProjectCloseout(formData: FormData) {
         projectId,
         eventType: "PROJECT_COMPLETED",
         eventTitle: "โครงงานเสร็จสมบูรณ์",
-        eventDescription: "ผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้วและปิดงานเป็น COMPLETED",
+        eventDescription: "ผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้วและยืนยันจบโครงงานเสร็จสมบูรณ์",
         actorUserId: adminUserId,
         relatedEntityType: "Project",
         relatedEntityId: projectId

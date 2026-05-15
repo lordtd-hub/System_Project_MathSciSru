@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminOperationalSummary } from "@/components/ui/AdminOperationalQueue";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
@@ -10,6 +11,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
+import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { closeProposalRound, releaseFeedback, saveFinalDecision } from "../actions";
@@ -21,17 +23,23 @@ function decisionLabel(decision?: string | null) {
   return "ยังไม่ตัดสิน";
 }
 
+function proposalVoteLabel(vote: "PASS" | "REVISE" | "FAIL") {
+  if (vote === "PASS") return "ผ่าน";
+  if (vote === "REVISE") return "ให้แก้ไข";
+  return "ไม่ผ่าน";
+}
+
 function nextDecisionStep(decision?: string | null) {
-  if (decision === "PASS") return "ขั้นถัดไป: แต่งตั้ง HEAD และ MEMBER";
+  if (decision === "PASS") return "ขั้นถัดไป: แต่งตั้งประธานกรรมการและกรรมการ";
   if (decision === "PASS_WITH_REVISION") return "ขั้นถัดไป: ให้นักศึกษาแก้ไขและส่งใหม่";
-  if (decision === "NOT_PASS") return "ขั้นถัดไป: กลับสู่ DRAFT พร้อมเก็บประวัติ";
-  return "ตรวจสอบผลและบันทึก final decision";
+  if (decision === "NOT_PASS") return "ขั้นถัดไป: กลับสู่ขั้นร่างหัวข้อพร้อมเก็บประวัติ";
+  return "ตรวจสอบผลและบันทึกผลตัดสินสุดท้าย";
 }
 
 function roundStatusLabel(status: string) {
   if (status === "SCORING_CLOSED") return "ปิดรอบแล้ว";
   if (status === "SCORING_OPEN") return "เปิดให้ประเมิน";
-  if (status === "RELEASED") return "เผยแพร่ feedback แล้ว";
+  if (status === "RELEASED") return "เผยแพร่ข้อเสนอแนะแล้ว";
   return status;
 }
 
@@ -72,6 +80,13 @@ export default async function AdminProposalsPage({
   const hasProposalAttempts = allAttempts.length > 0;
   const latestProposalRound = rounds[0];
   const progress1Eligibility = latestProposalRound ? await getRoundEligibility(latestProposalRound.courseOfferingId, "PROGRESS_1") : { eligible: [], notReady: [] };
+  const missingProposalProjects = latestProposalRound
+    ? await prisma.project.findMany({
+        where: { courseOfferingId: latestProposalRound.courseOfferingId, presentationSubmissions: { none: {} } },
+        orderBy: { student: { studentCode: "asc" } },
+        select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } }
+      })
+    : [];
   const waitingDecisionCount = allAttempts.filter((attempt) => !attempt.proposalResult).length;
   const approvedWithoutCommitteeCount = allAttempts.filter((attempt) => {
     if (attempt.project.status !== "TOPIC_APPROVED") return false;
@@ -83,53 +98,66 @@ export default async function AdminProposalsPage({
     const submitted = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED").length;
     return submitted < attempt.evaluatorAssignments.length;
   }).length;
+  const releasedCount = allAttempts.filter((attempt) => attempt.scoreRelease).length;
+  const decidedCount = allAttempts.filter((attempt) => attempt.proposalResult).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="สรุปผลการสอบหัวข้อ"
-        description="หน้านี้ใช้สำหรับปิดรอบ Proposal ตรวจสอบคะแนนและ vote แล้วบันทึกผลการตัดสินสุดท้ายเท่านั้น"
+        description="หน้านี้ใช้สำหรับปิดรอบการเสนอหัวข้อ ตรวจสอบคะแนนและผลพิจารณา แล้วบันทึกผลการตัดสินสุดท้ายเท่านั้น"
       />
       <ActionFeedback success={params.success} error={params.error} />
 
       {hasProposalAttempts ? (
         <>
+          <AdminOperationalSummary
+            title="สรุปปฏิบัติการ Proposal"
+            description="แยกงานที่ Admin ต้องตัดสิน ออกจากงานที่รอคะแนนอาจารย์หรือเสร็จแล้ว"
+            metrics={[
+              { label: "รอตัดสิน", count: waitingDecisionCount, tone: waitingDecisionCount ? "action" : "completed", description: "มีคะแนน/เอกสารแล้วแต่ยังไม่มีมติสุดท้าย" },
+              { label: "คะแนนยังไม่ครบ", count: missingScoreCount, tone: missingScoreCount ? "waiting" : "completed", description: "ไม่ใช่ blocker เสมอไป แต่ควรตรวจสอบก่อนปิดรอบ" },
+              { label: "ไม่ผ่านตั้งแต่ 50%", count: failAlertCount, tone: failAlertCount ? "exception" : "completed", description: "ต้องอ่านเหตุผลและมติประชุมอย่างระมัดระวัง" },
+              { label: "ตัดสินแล้ว", count: decidedCount, tone: "completed", description: "มี final decision แล้ว" },
+              { label: "เปิดผลแล้ว", count: releasedCount, tone: "completed", description: "นักศึกษาเห็นข้อเสนอแนะแล้ว" }
+            ]}
+          />
           <NextActionCard
             action={{
-              title: waitingDecisionCount ? "ตรวจสอบผลและบันทึก final decision" : "พร้อมเข้าสู่ขั้นตอนถัดไป",
+              title: waitingDecisionCount ? "ตรวจสอบผลและบันทึกผลตัดสินสุดท้าย" : "พร้อมเข้าสู่ขั้นตอนถัดไป",
               description: waitingDecisionCount
-                ? `มี ${waitingDecisionCount} โปรเจคที่ยังรอผู้ดูแลระบบตัดสินผลสุดท้าย`
-                : "รายการที่ตัดสินผ่านแล้วสามารถไปแต่งตั้ง HEAD และ MEMBER ได้",
+                ? `มี ${waitingDecisionCount} โครงงานที่ยังรอผู้ดูแลระบบตัดสินผลสุดท้าย`
+                : "รายการที่ตัดสินผ่านแล้วสามารถไปแต่งตั้งประธานและกรรมการได้",
               href: waitingDecisionCount ? undefined : "/admin/committee",
               actionLabel: "ไปหน้าแต่งตั้งกรรมการ",
               tone: waitingDecisionCount ? "warning" : "success"
             }}
           />
           {latestProposalRound && ["SCORING_CLOSED", "RELEASED"].includes(latestProposalRound.status) ? (
-            <InfoAlert title="ขั้นตอนถัดไปหลังปิดรอบ Proposal">
-              {waitingDecisionCount ? "ยังมี project รอผู้ดูแลระบบตัดสินผล Proposal" : approvedWithoutCommitteeCount ? "มี project ที่ผ่านแล้วรอแต่งตั้ง HEAD/MEMBER" : progress1Eligibility.eligible.length ? (
-                <Link className="button mt-2 inline-flex" href="/admin/rounds">ไปเปิดรอบ Progress 1</Link>
-              ) : "ตรวจสอบ project ที่ยังไม่พร้อมก่อนเปิดรอบ Progress 1"}
+            <InfoAlert title="ขั้นตอนถัดไปหลังปิดรอบการเสนอหัวข้อ">
+              {waitingDecisionCount ? "ยังมีโครงงานรอผู้ดูแลระบบตัดสินผลการเสนอหัวข้อ" : approvedWithoutCommitteeCount ? "มีโครงงานที่ผ่านแล้วรอแต่งตั้งประธานและกรรมการ" : progress1Eligibility.eligible.length ? (
+                <Link className="button mt-2 inline-flex" href="/admin/rounds">ไปเปิดรอบสอบความก้าวหน้าครั้งที่ 1</Link>
+              ) : "ตรวจสอบโครงงานที่ยังไม่พร้อมก่อนเปิดรอบสอบความก้าวหน้าครั้งที่ 1"}
             </InfoAlert>
           ) : null}
 
           <div className="grid gap-3 md:grid-cols-3">
             {failAlertCount ? (
-              <WarningAlert title={`มี Proposal ที่ FAIL อย่างน้อย 50% จำนวน ${failAlertCount} รายการ`}>
-                กรุณาตรวจ vote, comment และเหตุผลก่อนเลือก final decision
+              <WarningAlert title={`มีเอกสารเสนอหัวข้อที่มีผลไม่ผ่านอย่างน้อย 50% จำนวน ${failAlertCount} รายการ`}>
+                กรุณาตรวจผลโหวต ข้อเสนอแนะ และเหตุผลก่อนเลือกมติสุดท้าย
               </WarningAlert>
             ) : (
-              <InfoAlert title="ไม่มีรายการ FAIL ≥ 50%" />
+              <InfoAlert title="ไม่มีรายการไม่ผ่านตั้งแต่ 50%" />
             )}
             {missingScoreCount ? (
               <WarningAlert title={`มีรายการที่คะแนนยังไม่ครบ ${missingScoreCount} รายการ`}>
-                คะแนนที่ขาดจะไม่ถูกนำเข้า average แต่ควรตรวจสอบก่อนปิดรอบ
+                คะแนนที่ขาดจะไม่ถูกนำไปคำนวณค่าเฉลี่ย แต่ควรตรวจสอบก่อนปิดรอบ
               </WarningAlert>
             ) : (
               <InfoAlert title="ไม่มีรายการคะแนนขาด" />
             )}
             {waitingDecisionCount ? (
-              <WarningAlert title={`รอ Admin ตัดสิน ${waitingDecisionCount} รายการ`} />
+              <WarningAlert title={`รอผู้ดูแลระบบตัดสิน ${waitingDecisionCount} รายการ`} />
             ) : (
               <InfoAlert title="ไม่มีรายการรอ Admin ตัดสิน" />
             )}
@@ -138,8 +166,8 @@ export default async function AdminProposalsPage({
       ) : (
         <section className="panel">
           <EmptyState
-            title="ยังไม่มีรายการ Proposal ในรอบนี้"
-            description={rounds.length ? "มีรอบ Proposal แล้ว แต่ยังไม่มีนักศึกษาส่ง Proposal เข้ามา จึงยังไม่มีคะแนน Vote หรือ final decision ให้สรุป" : "ยังไม่มีรอบ Proposal เมื่อเปิดรอบและมีนักศึกษาส่ง Proposal แล้ว รายการสรุปผลจะแสดงที่นี่"}
+            title="ยังไม่มีรายการเสนอหัวข้อในรอบนี้"
+            description={rounds.length ? "มีรอบการเสนอหัวข้อแล้ว แต่ยังไม่มีนักศึกษาส่งเอกสารเสนอหัวข้อเข้ามา จึงยังไม่มีคะแนน ผลพิจารณา หรือผลตัดสินสุดท้ายให้สรุป" : "ยังไม่มีรอบการเสนอหัวข้อ เมื่อเปิดรอบและมีนักศึกษาส่งเอกสารเสนอหัวข้อแล้ว รายการสรุปผลจะแสดงที่นี่"}
           />
         </section>
       )}
@@ -159,8 +187,8 @@ export default async function AdminProposalsPage({
                   </div>
                   {closed && round.closedAt ? (
                     <p className="mt-1 text-sm text-muted">
-                      closed_at: {round.closedAt.toLocaleString("th-TH")}
-                      {round.closedByAdmin ? ` | closed_by: ${round.closedByAdmin.email ?? round.closedByAdmin.name ?? "Admin"}` : ""}
+                      ปิดรอบเมื่อ: {formatThaiDateTime24(round.closedAt)}
+                      {round.closedByAdmin ? ` | ผู้ปิดรอบ: ${round.closedByAdmin.email ?? round.closedByAdmin.name ?? "ผู้ดูแลระบบ"}` : ""}
                     </p>
                   ) : (
                     <p className="mt-1 text-sm text-muted">
@@ -170,19 +198,38 @@ export default async function AdminProposalsPage({
                 </div>
                 <form action={closeProposalRound}>
                   <input type="hidden" name="round_id" value={round.id} />
+                  {!closed && missingProposalProjects.length ? (
+                    <label className="mb-2 flex items-center gap-2 text-xs text-muted">
+                      <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
+                      รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+                    </label>
+                  ) : null}
                   <SubmitButton
                     disabled={closed}
                     pendingText="กำลังปิดรอบ..."
-                    confirmMessage="ยืนยันการปิดรอบ Proposal หรือไม่? หลังจากปิดรอบแล้ว อาจารย์จะไม่สามารถแก้คะแนนได้ เว้นแต่ผู้ดูแลระบบเปิดสิทธิ์ใหม่"
+                    confirmMessage="ยืนยันการปิดรอบการเสนอหัวข้อหรือไม่? หลังจากปิดรอบแล้ว อาจารย์จะไม่สามารถแก้คะแนนได้ เว้นแต่ผู้ดูแลระบบเปิดสิทธิ์ใหม่"
                   >
-                    {closed ? "ปิดรอบแล้ว" : "ปิดรอบ Proposal"}
+                    {closed ? "ปิดรอบแล้ว" : "ปิดรอบการเสนอหัวข้อ"}
                   </SubmitButton>
                 </form>
               </div>
 
+              {!closed && missingProposalProjects.length ? (
+                <WarningAlert title={`มีนักศึกษายังไม่ส่ง Proposal ${missingProposalProjects.length} ราย`}>
+                  <div className="space-y-1">
+                    <p>ก่อนปิดรอบ โปรดยืนยันว่ารับทราบรายชื่อนักศึกษาที่ค้างส่งแล้ว</p>
+                    <ul className="list-disc pl-5">
+                      {missingProposalProjects.slice(0, 10).map((project) => (
+                        <li key={project.id}>{project.student?.studentCode} {project.student?.firstNameTh} {project.student?.lastNameTh}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </WarningAlert>
+              ) : null}
+
               {closed ? (
                 <InfoAlert title="ปิดรอบแล้ว">
-                  ตรวจสอบผลและบันทึก final decision หรือไปขั้นตอนแต่งตั้งกรรมการสำหรับหัวข้อที่ผ่าน
+                  ตรวจสอบผลและบันทึกผลตัดสินสุดท้าย หรือไปขั้นตอนแต่งตั้งกรรมการสำหรับหัวข้อที่ผ่าน
                 </InfoAlert>
               ) : null}
 
@@ -247,23 +294,23 @@ export default async function AdminProposalsPage({
                             </dd>
                           </div>
                           <div className="rounded-lg border border-line bg-paperSoft p-3">
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Vote</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">ผลโหวต</dt>
                             <dd className="mt-2 space-y-1">
-                              <div>PASS {passVotes}</div>
-                              <div>REVISE {reviseVotes}</div>
-                              <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>FAIL {failVotes} ({failRatio}%)</div>
+                              <div>{proposalVoteLabel("PASS")} {passVotes}</div>
+                              <div>{proposalVoteLabel("REVISE")} {reviseVotes}</div>
+                              <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>{proposalVoteLabel("FAIL")} {failVotes} ({failRatio}%)</div>
                             </dd>
                           </div>
                         </div>
                         <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Final decision</dt>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">มติสุดท้าย</dt>
                           <dd className="mt-1">
                             <div className="font-semibold">{decisionLabel(finalDecision)}</div>
                             {attempt.proposalResult ? (
                               <div className="mt-1 break-words text-xs leading-5 text-muted">
-                                decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
+                                ผู้บันทึก: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
                                 <br />
-                                decided_at: {attempt.proposalResult.decidedAt.toLocaleString("th-TH")}
+                                เวลาบันทึก: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
                               </div>
                             ) : null}
                             {attempt.proposalResult?.finalDecisionReason ? (
@@ -279,30 +326,30 @@ export default async function AdminProposalsPage({
                         <form action={saveFinalDecision} className="grid gap-2">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
                           <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                            <option value="PASS">PASS - ผ่าน</option>
-                            <option value="PASS_WITH_REVISION">PASS_WITH_REVISION - แก้ไข</option>
-                            <option value="NOT_PASS">NOT_PASS - ไม่ผ่าน</option>
+                            <option value="PASS">ผ่าน</option>
+                            <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
+                            <option value="NOT_PASS">ไม่ผ่าน</option>
                           </select>
                           <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
                           <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
-                            {decided ? "บันทึกผลการตัดสินอีกครั้ง" : "บันทึกผลการตัดสิน"}
+                            {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
                           </SubmitButton>
                         </form>
                         <form action={releaseFeedback} className="mt-2">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
-                          <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิด feedback...">
-                            {attempt.scoreRelease ? "เปิด feedback แล้ว" : "เปิด feedback ให้นักศึกษาเห็น"}
+                          <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
+                            {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                           </SubmitButton>
                         </form>
                         <details className="mt-3 rounded-md border border-line bg-surface p-2">
-                          <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / comment / timeline</summary>
+                          <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
                           <div className="mt-2 space-y-2 text-xs text-muted">
                             {attempt.evaluatorAssignments.map((assignment) => (
                               <div key={assignment.id} className="rounded border border-line p-2">
                                 <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
-                                <div>status: {assignment.scoreSubmission?.status ?? "ยังไม่ส่ง"}</div>
-                                <div>score: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
-                                <div>comment:</div>
+                                <div>สถานะ: {assignment.scoreSubmission?.status === "SUBMITTED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
+                                <div>ข้อเสนอแนะ:</div>
                                 <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />
                               </div>
                             ))}
@@ -322,8 +369,8 @@ export default async function AdminProposalsPage({
                       <th className="py-2 pr-3">หัวข้อ</th>
                       <th className="py-2 pr-3">สถานะ</th>
                       <th className="py-2 pr-3">คะแนน</th>
-                      <th className="py-2 pr-3">Vote</th>
-                      <th className="py-2 pr-3">Final decision</th>
+                      <th className="py-2 pr-3">ผลโหวต</th>
+                      <th className="py-2 pr-3">มติสุดท้าย</th>
                       <th className="py-2 pr-3">การทำงาน</th>
                     </tr>
                   </thead>
@@ -376,17 +423,17 @@ export default async function AdminProposalsPage({
                             <div>เฉลี่ย {summary.averageScore}</div>
                           </td>
                           <td className="py-3 pr-3 whitespace-nowrap">
-                            <div>PASS {passVotes}</div>
-                            <div>REVISE {reviseVotes}</div>
-                            <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>FAIL {failVotes} ({failRatio}%)</div>
+                            <div>{proposalVoteLabel("PASS")} {passVotes}</div>
+                            <div>{proposalVoteLabel("REVISE")} {reviseVotes}</div>
+                            <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>{proposalVoteLabel("FAIL")} {failVotes} ({failRatio}%)</div>
                           </td>
                           <td className="py-3 pr-3 min-w-56">
                             <div className="font-semibold">{decisionLabel(finalDecision)}</div>
                             {attempt.proposalResult ? (
                               <div className="mt-1 text-xs leading-5 text-muted">
-                                decided_by: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
+                                ผู้บันทึก: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
                                 <br />
-                                decided_at: {attempt.proposalResult.decidedAt.toLocaleString("th-TH")}
+                                เวลาบันทึก: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
                               </div>
                             ) : null}
                             {attempt.proposalResult?.finalDecisionReason ? (
@@ -398,30 +445,30 @@ export default async function AdminProposalsPage({
                             <form action={saveFinalDecision} className="grid gap-2">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
                               <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                                <option value="PASS">PASS - ผ่าน</option>
-                                <option value="PASS_WITH_REVISION">PASS_WITH_REVISION - แก้ไข</option>
-                                <option value="NOT_PASS">NOT_PASS - ไม่ผ่าน</option>
+                                <option value="PASS">ผ่าน</option>
+                                <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
+                                <option value="NOT_PASS">ไม่ผ่าน</option>
                               </select>
                               <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
                               <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
-                                {decided ? "บันทึกผลการตัดสินอีกครั้ง" : "บันทึกผลการตัดสิน"}
+                                {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
                               </SubmitButton>
                             </form>
                             <form action={releaseFeedback} className="mt-2">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
-                              <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิด feedback...">
-                                {attempt.scoreRelease ? "เปิด feedback แล้ว" : "เปิด feedback ให้นักศึกษาเห็น"}
+                              <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
+                                {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                               </SubmitButton>
                             </form>
                             <details className="mt-3 rounded-md border border-line p-2">
-                              <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / comment / timeline</summary>
+                              <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
                               <div className="mt-2 space-y-2 text-xs text-muted">
                                 {attempt.evaluatorAssignments.map((assignment) => (
                                   <div key={assignment.id} className="rounded border border-line p-2">
                                     <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
-                                    <div>status: {assignment.scoreSubmission?.status ?? "ยังไม่ส่ง"}</div>
-                                    <div>score: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
-                                    <div>comment:</div>
+                                    <div>สถานะ: {assignment.scoreSubmission?.status === "SUBMITTED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                    <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
+                                    <div>ข้อเสนอแนะ:</div>
                                     <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />
                                   </div>
                                 ))}
@@ -436,13 +483,13 @@ export default async function AdminProposalsPage({
               </div>
                 </>
               ) : (
-                <EmptyState title="ยังไม่มีรายการ Proposal ในรอบนี้" description="เมื่อมีนักศึกษาส่ง Proposal รายการคะแนน Vote และ final decision จะแสดงในรอบนี้" />
+                <EmptyState title="ยังไม่มีรายการเสนอหัวข้อในรอบนี้" description="เมื่อมีนักศึกษาส่งเอกสารเสนอหัวข้อ รายการคะแนน ผลพิจารณา และผลตัดสินสุดท้ายจะแสดงในรอบนี้" />
               )}
             </section>
           );
         })
       ) : (
-        <EmptyState title="ยังไม่มีรอบ Proposal" description="เมื่อสร้างรอบ Proposal แล้ว รายการสรุปผลจะแสดงที่หน้านี้" />
+        <EmptyState title="ยังไม่มีรอบการเสนอหัวข้อ" description="เมื่อสร้างรอบการเสนอหัวข้อแล้ว รายการสรุปผลจะแสดงที่หน้านี้" />
       )}
     </div>
   );

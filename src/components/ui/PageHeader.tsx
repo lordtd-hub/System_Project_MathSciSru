@@ -10,7 +10,7 @@ export function PageHeader({
   return (
     <div className="page-header">
       <div className="min-w-0">
-        <div className="page-kicker">Workflow console</div>
+        <div className="page-kicker">ระบบจัดการโครงงาน</div>
         <div className="mt-2 flex gap-3">
           <span className="page-header-accent" aria-hidden="true" />
           <div className="min-w-0">

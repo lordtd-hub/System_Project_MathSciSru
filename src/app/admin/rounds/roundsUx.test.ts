@@ -10,8 +10,9 @@ describe("admin course round management UX", () => {
   it("adds a course-level round management page with Progress 1 actions", () => {
     expect(pageSource).toContain("รอบสอบของรายวิชา");
     expect(pageSource).toContain("เปิดรอบ");
-    expect(pageSource).toContain("ดูโปรเจคที่ยังไม่พร้อม");
-    expect(pageSource).toContain("getRoundEligibility(offering.id, \"PROGRESS_1\")");
+    expect(pageSource).toContain("ดูสรุปกลุ่มที่ยังไม่พร้อม");
+    expect(pageSource).toContain("courseLevelRoundTypes.map(async (roundType)");
+    expect(pageSource).toContain("getRoundEligibility(offering.id, roundType)");
   });
 
   it("opens Progress 1 through one course-level upsert", () => {
@@ -26,6 +27,12 @@ describe("admin course round management UX", () => {
     expect(pageSource).toContain("disabled={!openGate.canOpen}");
     expect(actionSource).toContain("getRoundOpenGate");
     expect(actionSource).toContain('redirectWithQuery("/admin/rounds", { error: openGate.reasonKey })');
+  });
+
+  it("checks active rubric versions instead of only version 1", () => {
+    expect(pageSource).toContain("active: true");
+    expect(pageSource).toContain('orderBy: [{ roundType: "asc" }, { version: "desc" }]');
+    expect(pageSource).not.toContain("version: 1");
   });
 
   it("offers a safe reset only through the guarded course round reset action", () => {
@@ -45,8 +52,48 @@ describe("admin course round management UX", () => {
   });
 
   it("gates student Progress 1 scheduling on the course-level round", () => {
-    expect(scheduleSource).toContain("รอบ Progress 1 ยังไม่เปิด");
-    expect(scheduleSource).toContain("isRoundOpen(progress1Round.status)");
+    expect(scheduleSource).toContain("รอบสอบความก้าวหน้าครั้งที่ 1 ยังไม่เปิด");
+    expect(scheduleSource).toContain("isRoundAvailable(\"PROGRESS_1\")");
+    expect(scheduleSource).toContain("hasOpenLateRoundException");
     expect(scheduleSource).toContain("getProgress1Readiness(project)");
+  });
+  it("counts Progress and Final submissions from assessment evidence instead of Proposal submissions", () => {
+    expect(pageSource).toContain("roundEligibilityByType");
+    expect(pageSource).toContain("eligibility.submitted.length");
+    expect(pageSource).toContain("eligibility.completed.length");
+    expect(pageSource).toContain("พร้อมเข้าสู่รอบนี้");
+    expect(pageSource).toContain("ยังไม่พร้อมรอบนี้");
+  });
+
+  it("requires close acknowledgement only for eligible but incomplete non-Proposal projects", () => {
+    expect(pageSource).toContain("eligibility.eligibleButIncomplete.length");
+    expect(pageSource).toContain("requireIncompleteCloseAck");
+    expect(pageSource).toContain("isRoundOpen(round.status)");
+    expect(pageSource).toContain("acknowledge_incomplete_projects");
+    expect(pageSource).toContain("ยืนยันก่อนปิดรอบ");
+    expect(pageSource).toContain("โครงงานที่ยังไม่ผ่านรอบก่อนหน้าจะแยกอยู่ในกลุ่ม");
+    expect(actionSource).toContain("eligibleButIncomplete");
+    expect(actionSource).toContain("round_close_incomplete_ack_required");
+  });
+
+  it("uses the same warning pattern for close blockers and closed-round late management", () => {
+    expect(pageSource).toContain('<WarningAlert title="จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ">');
+    expect(pageSource).toContain("requireProposalCloseAck");
+    expect(pageSource).toContain("requiresCloseAck ? \"basis-full space-y-2\" : \"\"");
+  });
+
+  it("warns about grade I risk when closing Final with eligible incomplete projects", () => {
+    expect(pageSource).toContain("นักศึกษาอาจได้รับเกรด I");
+    expect(actionSource).toContain("round_close_final_incomplete_ack_required");
+  });
+
+  it("summarizes not-ready projects by reason instead of rendering a long project list", () => {
+    expect(pageSource).toContain("readinessReasonGroups");
+    expect(pageSource).toContain("readinessReasonGroup");
+    expect(pageSource).toContain("readinessActionForReason");
+    expect(pageSource).toContain("ใช้ส่วนนี้เพื่อดูภาพรวมว่าโครงงานที่ยังไม่พร้อมติดเงื่อนไขใด");
+    expect(pageSource).toContain("ยังไม่ได้แต่งตั้งกรรมการครบ");
+    expect(pageSource).toContain("และรายการอื่นอีก");
+    expect(pageSource).not.toContain("progress1Eligibility.notReady.map((item)");
   });
 });

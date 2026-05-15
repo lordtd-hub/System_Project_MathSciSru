@@ -390,10 +390,135 @@
     background: var(--surface);
   }
 
+  .compact-metric-row-panel {
+    @apply p-3;
+  }
+
+  .compact-metric-grid {
+    @apply -mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-6;
+  }
+
+  .compact-metric-card {
+    @apply min-w-[8rem] snap-start rounded-md border border-line bg-surface px-2 py-1.5 transition hover:border-brand/40 hover:bg-paperSoft lg:min-w-0;
+    border-left-width: 3px;
+  }
+
+  .admin-compact-schedule-row {
+    @apply grid gap-3 rounded-md border border-line bg-surface p-3 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start;
+  }
+
+  .admin-compact-schedule-details {
+    @apply max-w-full rounded-md border border-line bg-paperSoft px-2 py-1 text-xs text-muted;
+  }
+
+  .admin-compact-schedule-details summary {
+    @apply cursor-pointer font-semibold text-ink;
+  }
+
+  .teacher-agenda-list {
+    max-height: 15rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .dashboard-agenda-panel {
+    min-height: 13.5rem;
+  }
+
   .action-list-item {
     @apply rounded-lg border border-line bg-paperSoft p-3 shadow-sm;
     border-left-width: 4px;
     border-left-color: var(--red-700);
+  }
+
+  .teacher-workload-summary {
+    @apply rounded-lg border border-line bg-surface p-2.5 shadow-sm;
+    background: linear-gradient(180deg, var(--surface), var(--paper-2));
+  }
+
+  .teacher-workload-total {
+    @apply flex min-w-32 items-center justify-between gap-2 rounded-md border border-line bg-paperSoft px-2.5 py-1.5 text-xs shadow-sm;
+  }
+
+  .teacher-workload-total strong {
+    @apply text-xl font-semibold leading-none text-ink;
+    font-feature-settings: "tnum";
+  }
+
+  .teacher-workload-metric-grid {
+    @apply -mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-6 lg:overflow-visible lg:px-0 lg:pb-0;
+  }
+
+  .teacher-workload-metric {
+    @apply min-w-[6.75rem] snap-start rounded-md border border-line bg-paperSoft px-2 py-1 shadow-sm lg:min-w-0;
+    border-left-width: 3px;
+  }
+
+  .teacher-workload-metric p {
+    @apply hidden xl:block;
+  }
+
+  .teacher-workload-action {
+    border-left-color: var(--red-700);
+  }
+
+  .teacher-workload-waiting,
+  .teacher-workload-locked {
+    border-left-color: var(--lock-700);
+  }
+
+  .teacher-workload-completed {
+    border-left-color: var(--ok-700);
+  }
+
+  .teacher-workload-returned {
+    border-left-color: var(--warn-700);
+  }
+
+  .teacher-queue-section {
+    @apply rounded-lg border border-line bg-surface p-5 shadow-sm;
+    border-left-width: 4px;
+  }
+
+  .teacher-compact-queue-list {
+    @apply overflow-hidden rounded-lg border border-line bg-surface shadow-sm;
+  }
+
+  .teacher-scroll-list {
+    @apply max-h-[24rem] overflow-y-auto pr-2;
+  }
+
+  .evidence-scroll-panel {
+    @apply max-h-[24rem] overflow-y-auto pr-2;
+    scrollbar-width: thin;
+  }
+
+  .evidence-scroll-panel-tight {
+    @apply max-h-[18rem] overflow-y-auto pr-2;
+    scrollbar-width: thin;
+  }
+
+  .teacher-compact-badge-stack {
+    @apply flex max-h-12 shrink-0 flex-wrap justify-end gap-1 overflow-y-auto pr-1;
+  }
+
+  .teacher-compact-queue-item {
+    @apply flex flex-col gap-3 border-b border-line bg-paperSoft p-3 text-sm last:border-b-0 hover:bg-surface sm:flex-row sm:items-center sm:justify-between;
+    border-left-width: 4px;
+  }
+
+  .admin-scroll-list {
+    @apply max-h-[32rem] overflow-y-auto pr-2;
+  }
+
+  .teacher-review-card {
+    background: linear-gradient(180deg, var(--surface), var(--paper-2));
+    border-left-width: 4px;
+    border-left-color: var(--red-700);
+  }
+
+  .teacher-review-card :where(form, .markdown-latex-viewer, .state-surface, .rounded-md.border.border-line) {
+    max-width: 100%;
   }
 
   .panel > h2:first-child,
@@ -449,12 +574,67 @@
     box-shadow: var(--shadow-soft);
   }
 
+  .student-project-dashboard-grid {
+    @apply grid gap-4 lg:grid-cols-3;
+  }
+
+  .student-project-panel {
+    @apply p-4;
+  }
+
+  .student-project-summary-grid {
+    @apply mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .student-project-summary-card {
+    @apply min-w-0 rounded-md border border-line bg-paper px-3 py-2.5;
+  }
+
+  .student-project-workflow-stack {
+    @apply mt-3 grid gap-2;
+  }
+
+  .student-project-workflow-secondary {
+    @apply grid gap-2 md:grid-cols-2;
+  }
+
+  .student-workflow-group {
+    @apply p-3;
+    box-shadow: none;
+  }
+
+  .student-workflow-count {
+    @apply inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface px-1.5 text-xs font-semibold text-muted;
+  }
+
+  .student-workflow-chip {
+    @apply inline-flex min-h-8 items-center rounded-md border border-lineStrong bg-surface px-2.5 py-1 text-xs font-semibold;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .student-workflow-chip-history {
+    @apply text-muted;
+  }
+
+  .student-workflow-primary-action {
+    @apply min-h-10;
+  }
+
   .lifecycle-panel {
     background: linear-gradient(180deg, var(--surface), var(--paper-2));
   }
 
+  .lifecycle-step-scroll {
+    @apply -mx-2 mt-4 overflow-x-auto px-2 pb-2;
+    scrollbar-width: thin;
+  }
+
+  .lifecycle-step-track {
+    @apply flex snap-x gap-2;
+  }
+
   .lifecycle-step-card {
-    @apply rounded-lg border p-3;
+    @apply min-h-[7.25rem] w-[7.5rem] shrink-0 snap-start rounded-lg border p-2.5 sm:w-[8rem] lg:w-[8.75rem];
   }
 
   .timeline-event {
@@ -470,7 +650,15 @@
   }
 
   .role-dashboard-nav {
-    @apply mb-4 flex flex-col gap-2 rounded-lg border border-line bg-paperSoft p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between;
+    @apply mb-3 flex justify-end;
+  }
+
+  .role-dashboard-nav-copy {
+    @apply flex w-full min-w-0 justify-end;
+  }
+
+  .role-dashboard-return {
+    @apply w-fit justify-center px-3 py-2 text-sm shadow-sm;
   }
 
   .responsive-scroll {
@@ -601,5 +789,21 @@
 
   .responsive-table td + td {
     @apply border-t border-line;
+  }
+
+  .teacher-workload-summary {
+    @apply p-3;
+  }
+
+  .teacher-workload-total {
+    @apply w-full justify-start;
+  }
+
+  .teacher-queue-section {
+    @apply p-4;
+  }
+
+  .teacher-compact-queue-item {
+    @apply rounded-none;
   }
 }

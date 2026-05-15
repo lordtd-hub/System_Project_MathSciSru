@@ -1,0 +1,43 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const source = () => readFileSync(join(process.cwd(), "src/app/student/page.tsx"), "utf8");
+
+describe("student dashboard source", () => {
+  it("surfaces current date and a compact combined assessment status module", () => {
+    const page = source();
+
+    expect(page).toContain("todayText");
+    expect(page).toContain("สถานะกรรมการ วันสอบ และผลประเมิน");
+    expect(page).not.toContain("รวมข้อมูลกรรมการ การอนุมัติวันสอบ และผลประเมินที่เปิดเผยแล้วไว้ในโมดูลเดียว");
+    expect(page).not.toContain("Assessment & Committee Status");
+    expect(page).not.toContain("Assessment results");
+    expect(page).not.toContain("กรรมการและการนัดสอบ");
+    expect(page).toContain("วันสอบล่าสุด:");
+    expect(page).toContain("ผลการประเมินรอบสอบ");
+    expect(page).toContain("assessmentResultCards");
+    expect(page).toContain("/student/feedback?round=progress-1#progress-1");
+    expect(page).toContain("/student/feedback?round=progress-2#progress-2");
+    expect(page).toContain("/student/feedback?round=final#final");
+  });
+
+  it("does not render the tracking card when it only repeats one current task", () => {
+    const page = source();
+
+    expect(page).toContain("shouldShowStudentTrackingCard");
+    expect(page).toContain("displayStudentTrackingTasks.length > 1");
+    expect(page).toContain("shouldShowStudentTrackingCard ? <TaskListCard");
+  });
+
+  it("lets the project panel fill the dashboard when the tracking card is hidden", () => {
+    const page = source();
+
+    expect(page).toContain("student-project-dashboard-grid");
+    expect(page).toContain("student-project-panel");
+    expect(page).toContain('shouldShowStudentTrackingCard ? "lg:col-span-2" : "lg:col-span-3"');
+    expect(page).toContain("student-project-summary-grid");
+    expect(page).toContain("student-project-workflow-secondary");
+    expect(page).toContain("student-workflow-group");
+  });
+});

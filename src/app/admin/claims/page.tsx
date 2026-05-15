@@ -55,7 +55,7 @@ export default async function ClaimsPage({
             ) : null}
           </form>
         )) : (
-          <EmptyState title="ยังไม่มีคำขอผูกบัญชีอาจารย์" description="Teacher claims เป็นเพียงขั้นตอนเชื่อมบัญชี Google @sru.ac.th กับรายชื่ออาจารย์ ไม่ใช่ส่วนหนึ่งของการประเมิน Proposal" />
+          <EmptyState title="ยังไม่มีคำขอผูกบัญชีอาจารย์" description="คำขอผูกบัญชีอาจารย์เป็นเพียงขั้นตอนเชื่อมบัญชี Google @sru.ac.th กับรายชื่ออาจารย์ ไม่ใช่ส่วนหนึ่งของการประเมินการเสนอหัวข้อ" />
         )}
       </div>
     </div>

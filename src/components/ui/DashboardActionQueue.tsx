@@ -132,27 +132,27 @@ export function CompactMetricRow({
   metrics: Array<{ label: string; value: number; href: string; tone?: QueueTone }>;
 }) {
   return (
-    <section className="panel dashboard-console-panel">
+    <section className="panel dashboard-console-panel compact-metric-row-panel">
       <DashboardSectionHeader title={title} description={description} />
-      <div className="-mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:mt-4 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
+      <div className="compact-metric-grid">
         {metrics.map((metric) => {
           const tone = metric.tone ?? "quiet";
-          const className = `min-w-[9.5rem] snap-start rounded-lg border border-line bg-surface p-2.5 transition hover:border-brand/40 hover:bg-paperSoft sm:min-w-0 ${tone === "urgent" || tone === "ready" ? "border-l-4 border-l-[var(--red-700)]" : tone === "waiting" ? "border-l-4 border-l-[var(--warn-700)]" : tone === "complete" ? "border-l-4 border-l-[var(--ok-700)]" : "border-l-4 border-l-[var(--ink-300)]"}`;
+          const className = `compact-metric-card ${tone === "urgent" || tone === "ready" ? "border-l-[var(--red-700)]" : tone === "waiting" ? "border-l-[var(--warn-700)]" : tone === "complete" ? "border-l-[var(--ok-700)]" : "border-l-[var(--ink-300)]"}`;
           const content = (
-            <>
-              <div className="text-lg font-semibold leading-none text-ink">{metric.value}</div>
-              <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{metric.label}</div>
-            </>
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-[11px] font-semibold leading-5 text-muted">{metric.label}</span>
+              <span className="shrink-0 text-lg font-semibold leading-none text-ink">{metric.value}</span>
+            </div>
           );
           if (metric.href.startsWith("#")) {
             return (
-              <a key={metric.label} href={metric.href} className={className}>
+              <a key={metric.label} href={metric.href} className={className} title={metric.label}>
                 {content}
               </a>
             );
           }
           return (
-            <Link key={metric.label} href={metric.href} className={className}>
+            <Link key={metric.label} href={metric.href} className={className} title={metric.label}>
               {content}
             </Link>
           );

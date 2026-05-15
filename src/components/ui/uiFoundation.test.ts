@@ -52,5 +52,7 @@ describe("UI foundation", () => {
 
     expect(lifecycle).toContain("CompactLifecycleBadge");
     expect(lifecycle).toContain("currentStepIndex(status)");
+    expect(lifecycle).toContain("lifecycle-step-scroll");
+    expect(lifecycle).toContain("lifecycle-step-track");
   });
 });

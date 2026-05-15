@@ -1,0 +1,64 @@
+import type { AssessmentRoundType } from "@prisma/client";
+import type { EmailNotificationPayload } from "@/lib/notifications/email";
+
+export const NOTIFICATION_BRAND_NAME = "ระบบประเมินการนำเสนอโครงงาน";
+export const EMAIL_BRAND_NAME = NOTIFICATION_BRAND_NAME;
+
+type WorkflowNotificationTemplate = Omit<EmailNotificationPayload, "to" | "actionUrl">;
+
+type ProjectTemplateInput = {
+  projectLabel: string;
+  advisorName?: string;
+  recipientName?: string;
+};
+
+type ScheduleTemplateInput = ProjectTemplateInput & {
+  roundType: AssessmentRoundType | string;
+  scheduleRange: string;
+  room: string | null;
+};
+
+function recipientLine(recipientName?: string) {
+  return recipientName ? `\n\nผู้รับ: ${recipientName}` : "";
+}
+
+export function formatAssessmentRoundLabel(roundType: AssessmentRoundType | string) {
+  if (roundType === "PROGRESS_1") return "สอบความก้าวหน้าครั้งที่ 1";
+  if (roundType === "PROGRESS_2") return "สอบความก้าวหน้าครั้งที่ 2";
+  if (roundType === "FINAL_PRESENTATION") return "สอบนำเสนอขั้นสุดท้าย";
+  if (roundType === "PROPOSAL") return "สอบนำเสนอหัวข้อ";
+  return String(roundType);
+}
+
+export function buildAdvisorRequestEmailTemplate(input: ProjectTemplateInput): WorkflowNotificationTemplate {
+  const title = "มีนักศึกษาขอเลือกท่านเป็นอาจารย์ที่ปรึกษา";
+  return {
+    subject: title,
+    title,
+    body: [
+      input.projectLabel,
+      ...(input.advisorName ? [`อาจารย์ที่ถูกขอเป็นที่ปรึกษา: ${input.advisorName}`] : []),
+      "กรุณาเข้าสู่ระบบเพื่อพิจารณาคำขอเป็นอาจารย์ที่ปรึกษา"
+    ].join("\n") + recipientLine(input.recipientName),
+    actionLabel: "เปิดคำขอที่ปรึกษา",
+    previewText: title
+  };
+}
+
+export function buildExamScheduleProposedEmailTemplate(input: ScheduleTemplateInput): WorkflowNotificationTemplate {
+  const roundLabel = formatAssessmentRoundLabel(input.roundType);
+  const title = `มีคำขอนัดวันสอบ ${roundLabel}`;
+  return {
+    subject: title,
+    title,
+    body: [
+      input.projectLabel,
+      `รอบสอบ: ${roundLabel}`,
+      `วันเวลา: ${input.scheduleRange}`,
+      `ห้อง: ${input.room || "ยังไม่ระบุ"}`,
+      "กรุณาเข้าสู่ระบบเพื่ออนุมัติหรือไม่อนุมัติวันสอบ"
+    ].join("\n") + recipientLine(input.recipientName),
+    actionLabel: "เปิดตารางสอบ",
+    previewText: title
+  };
+}

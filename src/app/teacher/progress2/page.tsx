@@ -2,13 +2,23 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { GuidancePanel } from "@/components/ui/GuidancePanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
+import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ConditionBasedRubricView } from "@/components/ui/ConditionBasedRubricView";
+import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
-import { progress2Criteria } from "@/lib/scoring/progress1Scoring";
+import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
+import { findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
 import { submitProgress2Score } from "../actions";
+
+function legacyFieldName(itemKey: string) {
+  if (itemKey === "problemSolving") return "problem_solving";
+  if (itemKey === "researchResults") return "research_results";
+  return itemKey;
+}
 
 export default async function TeacherProgress2Page({
   searchParams
@@ -16,25 +26,60 @@ export default async function TeacherProgress2Page({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
-  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
-  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
-  const params = (await searchParams) ?? {};
+  if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) {
+    return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
+  }
 
-  const progress2Round = await prisma.assessmentRound.findFirst({
-    where: { roundType: "PROGRESS_2" },
-    orderBy: { createdAt: "desc" }
-  });
+  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
+  if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" />;
+
+  const params = (await searchParams) ?? {};
+  const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
+  const progressRubricItemLabels = new Map(progressQaRubricItems().map((item) => [item.itemKey, item]));
+  const [progress2Round, rubric] = await Promise.all([
+    prisma.assessmentRound.findFirst({
+      where: { roundType: "PROGRESS_2" },
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.rubric.findFirst({
+      where: { roundType: "PROGRESS_2", active: true },
+      include: { items: { orderBy: { displayOrder: "asc" } } }
+    })
+  ]);
 
   const projects = progress2Round
     ? await prisma.project.findMany({
         where: {
           status: "IN_PROGRESS",
           courseOfferingId: progress2Round.courseOfferingId,
-          committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } }
+          scheduleProposals: { some: { assessmentKind: "PROGRESS_2", status: "CONFIRMED" } },
+          committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
+          NOT: {
+            attempts: {
+              some: {
+                assessmentRound: { roundType: "PROGRESS_2" },
+                evaluatorAssignments: {
+                  some: {
+                    teacherId: teacher.id,
+                    scoreSubmission: { is: { status: "SUBMITTED" } }
+                  }
+                }
+              }
+            }
+          }
         },
         include: {
           student: true,
+          presentationSubmissions: {
+            orderBy: { submittedAt: "desc" },
+            take: 1,
+            select: { contentJson: true }
+          },
+          assessmentSubmissions: {
+            where: { kind: "PROGRESS_2" },
+            orderBy: { submittedAt: "desc" },
+            take: 1
+          },
           attempts: {
             where: { assessmentRound: { roundType: "PROGRESS_2" } },
             include: {
@@ -51,23 +96,47 @@ export default async function TeacherProgress2Page({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="บันทึกคะแนน Progress 2" description="สำหรับ HEAD/MEMBER ที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
+      <PageHeader title="บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2" description="สำหรับประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
-      <GuidancePanel
-        title="Progress 2 scoring"
-        current="ให้คะแนน 5 หมวด รวม 100 คะแนน และบันทึก comment ได้ด้วย Markdown/LaTeX"
-        next="ระบบบันทึกคะแนนไว้ก่อน ยังไม่เปลี่ยน lifecycle อัตโนมัติ"
-        actor="HEAD หรือ MEMBER ที่ได้รับแต่งตั้ง"
-      />
       {!progress2Round ? (
-        <EmptyState title="ยังไม่มีรอบ Progress 2" description="ผู้ดูแลระบบต้องเปิดรอบ Progress 2 ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
+        <EmptyState title="ยังไม่มีรอบสอบความก้าวหน้าครั้งที่ 2" description="ผู้ดูแลระบบต้องเปิดรอบสอบความก้าวหน้าครั้งที่ 2 ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
       ) : null}
+      {progress2Round ? (
+        <>
+          <TeacherWorkloadSummary
+            metrics={[
+              { label: "ต้องดำเนินการ", count: projects.length, tone: "action", description: "พร้อมให้คะแนน Progress 2" },
+              { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
+              { label: "เสร็จแล้ว", count: 0, tone: "completed", description: "คะแนนที่ส่งแล้วถูกนำออกจากคิวนี้" },
+              { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
+              { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ยังไม่พร้อมไม่แสดง" }
+            ]}
+          />
+          <TeacherCompactQueueList
+            items={projects.map((project) => ({
+              id: project.id,
+              href: `#project-${project.id}`,
+              title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
+              description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
+              meta: "Progress 2",
+              badges: [{ label: "ต้องให้คะแนน", tone: "action" }, { label: "กรรมการ", tone: "waiting" }]
+            }))}
+          />
+        </>
+      ) : null}
+
       <div className="space-y-4">
         {projects.length ? projects.map((project) => {
           const previous = project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission;
           const previousItems = new Map(previous?.scoreItems.map((item) => [item.rubricItem.itemKey, item.pointsAwarded]) ?? []);
+          const proposalContent = project.presentationSubmissions[0]?.contentJson as Record<string, unknown> | undefined;
+          const evidenceSubmission = project.assessmentSubmissions[0];
+          const evidenceSummary = typeof evidenceSubmission?.contentJson === "object" && evidenceSubmission?.contentJson && "summary" in evidenceSubmission.contentJson
+            ? String((evidenceSubmission.contentJson as { summary?: unknown }).summary ?? "")
+            : "";
+
           return (
-            <section key={project.id} className="panel">
+            <section key={project.id} id={`project-${project.id}`} className="panel teacher-review-card scroll-mt-24">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
@@ -75,37 +144,90 @@ export default async function TeacherProgress2Page({
                     {project.student.studentCode} {project.student.firstNameTh} {project.student.lastNameTh}
                   </p>
                 </div>
-                <span className="rounded-full border border-line px-3 py-1 text-xs">{previous ? `บันทึกแล้ว ${Number(previous.totalScore)}/100` : "ยังไม่บันทึก"}</span>
+                <TeacherQueueBadge tone={previous ? "completed" : "action"}>
+                  {previous ? `บันทึกแล้ว ${Number(previous.totalScore)}/100` : "ยังไม่บันทึก"}
+                </TeacherQueueBadge>
               </div>
-              <form action={submitProgress2Score} className="mt-4 grid gap-4 md:grid-cols-5">
-                <input type="hidden" name="project_id" value={project.id} />
-                {progress2Criteria.map((criterion) => (
-                  <div key={criterion.key}>
-                    <label>{criterion.label} ({criterion.max})</label>
-                    <input
-                      name={criterion.key === "problemSolving" ? "problem_solving" : criterion.key === "researchResults" ? "research_results" : criterion.key}
-                      type="number"
-                      min="0"
-                      max={criterion.max}
-                      step="1"
-                      defaultValue={previousItems.get(criterion.key) ?? 0}
-                      required
-                    />
+
+              {showQaProgressPlanCheck ? (
+                <div className="mt-4">
+                  <ProgressPlanCheckpointPanel roundType="PROGRESS_2" timelineItems={proposalContent?.timelineItems} audience="evaluator" />
+                </div>
+              ) : null}
+
+              <div className="mt-4 rounded-md border border-line bg-surface p-3 text-sm">
+                <div className="font-semibold">เอกสาร/หลักฐานที่นักศึกษาส่งสำหรับการสอบความก้าวหน้าครั้งที่ 2</div>
+                {evidenceSubmission ? (
+                  <div className="mt-2 space-y-2 text-muted">
+                    <div>{evidenceSubmission.title ?? "เอกสารการสอบความก้าวหน้าครั้งที่ 2"}</div>
+                    <a className="inline-flex text-brand hover:underline" href={evidenceSubmission.materialLink} target="_blank" rel="noreferrer">
+                      เปิดเอกสาร/หลักฐาน
+                    </a>
+                    {evidenceSummary ? <MarkdownLatexViewer className="border-0 bg-transparent p-0" value={evidenceSummary} /> : null}
                   </div>
-                ))}
-                <div className="md:col-span-5">
-                  <MarkdownLatexEditor name="comment" label="Comment / feedback" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
-                </div>
-                <div className="md:col-span-5">
-                  <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนน Progress 2 หรือไม่?">
-                    บันทึกคะแนน Progress 2
-                  </SubmitButton>
-                </div>
+                ) : (
+                  <div className="mt-2 text-muted">ยังไม่พบเอกสารการสอบความก้าวหน้าครั้งที่ 2 จากนักศึกษา</div>
+                )}
+              </div>
+
+              <ConditionBasedRubricView
+                title="เกณฑ์ประเมินการสอบความก้าวหน้าครั้งที่ 2"
+                description="ใช้เกณฑ์นี้เป็นเกณฑ์คะแนนจริงของการสอบความก้าวหน้าครั้งที่ 2"
+                sections={progressQaRubric}
+              />
+
+              <form action={submitProgress2Score} className="mt-4 space-y-4">
+                <input type="hidden" name="project_id" value={project.id} />
+                {rubric?.items.length ? (
+                  <div className="space-y-3">
+                    {rubric.items.map((item) => {
+                      const progressCriterion = findProgressQaCriterion(item.itemKey);
+                      const displayItem = progressRubricItemLabels.get(item.itemKey) ?? item;
+                      const previousPoints = previousItems.get(item.itemKey) ?? 0;
+                      const previousConditionCount = progressCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
+
+                      if (progressCriterion) {
+                        const conditionMax = progressCriterion.conditions.length;
+                        return (
+                          <div key={item.id} className="rounded-md border border-line p-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium">{displayItem.itemLabelTh} ({item.points} คะแนน)</div>
+                                {displayItem.evidenceHint ? <div className="mt-1 text-xs text-muted">{displayItem.evidenceHint}</div> : null}
+                              </div>
+                              <label className="min-w-44 text-sm font-medium">
+                                เงื่อนไขที่ผ่าน
+                                <select name={`condition_count:${item.id}`} defaultValue={previousConditionCount} className="mt-1">
+                                  {Array.from({ length: conditionMax + 1 }, (_, count) => (
+                                    <option key={count} value={count}>{count}/{conditionMax} เงื่อนไข</option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={item.id}>
+                          <label>{displayItem.itemLabelTh} ({item.points})</label>
+                          <input name={legacyFieldName(item.itemKey)} type="number" min="0" max={item.points} step="1" defaultValue={previousPoints} required />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState title="ยังไม่มีเกณฑ์ประเมินสำหรับการสอบความก้าวหน้าครั้งที่ 2" description="ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนจึงจะบันทึกคะแนนได้" />
+                )}
+                <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
+                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2 หรือไม่?">
+                  บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2
+                </SubmitButton>
               </form>
             </section>
           );
         }) : progress2Round ? (
-          <EmptyState title="ยังไม่มีโครงงาน Progress 2 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านได้รับแต่งตั้งเป็น HEAD/MEMBER ของโครงงานที่อยู่ใน IN_PROGRESS" />
+          <EmptyState title="ยังไม่มีโครงงานการสอบความก้าวหน้าครั้งที่ 2 ที่ต้องให้คะแนน" description="รายการจะแสดงเมื่อท่านเป็นประธานกรรมการหรือกรรมการ และกรรมการยืนยันวันสอบความก้าวหน้าครั้งที่ 2 ครบแล้ว" />
         ) : null}
       </div>
     </div>

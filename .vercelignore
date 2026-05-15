@@ -1,0 +1,7 @@
+.playwright-cli/
+.edgepilot-cdp/
+.edge-cdp-visible/
+.edgepilot-visible-profile/
+.qa-chrome-profile/
+.tmp-vercel-qa-env.local
+test-results/

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminOperationalSummary, AdminQueueSection } from "@/components/ui/AdminOperationalQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -31,6 +31,8 @@ function ChecklistRow({ label, done }: { label: string; done: boolean }) {
 
 function CloseoutCard({ project, eligibility }: { project: CloseoutProject; eligibility: CompletionEligibility }) {
   const completed = project.status === "COMPLETED";
+  const displayStatus =
+    completed ? "โครงงานเสร็จสมบูรณ์" : eligibility.hasAdvisorScore ? "พร้อมให้ผู้ดูแลระบบยืนยันจบโครงงาน" : undefined;
   return (
     <article className="panel space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -40,16 +42,16 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
           </div>
           <h2 className="mt-1 text-lg font-semibold">{project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ"}</h2>
         </div>
-        <StatusBadge status={project.status} />
+        <StatusBadge status={project.status} label={displayStatus} />
       </div>
 
       <div className="grid gap-2 md:grid-cols-2">
-        <ChecklistRow label="Progress 1 score" done={eligibility.hasProgress1Score} />
-        <ChecklistRow label="Progress 2 score" done={eligibility.hasProgress2Score} />
-        <ChecklistRow label="Final Presentation score" done={eligibility.hasFinalPresentationScore} />
-        <ChecklistRow label="Report approved" done={eligibility.hasReachedReportApproved} />
-        <ChecklistRow label="Advisor score 25%" done={eligibility.hasAdvisorScore} />
-        <ChecklistRow label="ไม่มี report revision ที่ค้างอยู่" done={!eligibility.hasUnresolvedReportRevision} />
+        <ChecklistRow label="คะแนนสอบความก้าวหน้าครั้งที่ 1" done={eligibility.hasProgress1Score} />
+        <ChecklistRow label="คะแนนสอบความก้าวหน้าครั้งที่ 2" done={eligibility.hasProgress2Score} />
+        <ChecklistRow label="คะแนนสอบนำเสนอขั้นสุดท้าย" done={eligibility.hasFinalPresentationScore} />
+        <ChecklistRow label="รายงานฉบับสมบูรณ์ผ่านการตรวจ" done={eligibility.hasReachedReportApproved} />
+        <ChecklistRow label="คะแนนสรุปของอาจารย์ที่ปรึกษา 25%" done={eligibility.hasAdvisorScore} />
+        <ChecklistRow label="ไม่มีคำขอแก้ไขรายงานที่ค้างอยู่" done={!eligibility.hasUnresolvedReportRevision} />
       </div>
 
       {completed ? (
@@ -57,8 +59,8 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
       ) : eligibility.eligible ? (
         <form action={completeProjectCloseout} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <input type="hidden" name="project_id" value={project.id} />
-          <SubmitButton confirmMessage="ยืนยันปิดงานโครงงานเป็น COMPLETED หรือไม่? ระบบจะบันทึก timeline ว่า Admin ตรวจสอบเงื่อนไขครบแล้ว" pendingText="กำลังปิดงาน...">
-            ปิดงานเป็น COMPLETED
+          <SubmitButton confirmMessage="ยืนยันว่าโครงงานเสร็จสมบูรณ์หรือไม่? ระบบจะบันทึกประวัติว่าผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้ว" pendingText="กำลังยืนยัน...">
+            ยืนยันจบโครงงาน
           </SubmitButton>
         </form>
       ) : (
@@ -90,24 +92,39 @@ export default async function AdminCloseoutPage({
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }]
   });
   const projectCards = await Promise.all(projects.map(async (project) => ({ project, eligibility: await getCompletionEligibility(project.id) })));
+  const readyToClose = projectCards.filter(({ project, eligibility }) => project.status !== "COMPLETED" && eligibility.eligible);
+  const waiting = projectCards.filter(({ project, eligibility }) => project.status !== "COMPLETED" && !eligibility.eligible);
+  const completed = projectCards.filter(({ project }) => project.status === "COMPLETED");
+  const waitingAdvisorScore = waiting.filter(({ eligibility }) => !eligibility.hasAdvisorScore).length;
+  const waitingReport = waiting.filter(({ eligibility }) => !eligibility.hasReachedReportApproved || eligibility.hasUnresolvedReportRevision).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ปิดงานโครงงาน"
-        description="ผู้ดูแลระบบตรวจสอบว่า Progress 1, Progress 2, Final Presentation, เล่มรายงาน และ Advisor score ครบแล้ว ก่อนย้ายสถานะเป็น COMPLETED"
-        actions={<Link className="button-secondary" href="/admin">กลับแดชบอร์ดผู้ดูแลระบบ</Link>}
+        title="ยืนยันจบโครงงาน"
+        description="ผู้ดูแลระบบตรวจสอบว่าคะแนนสอบความก้าวหน้า คะแนนสอบขั้นสุดท้าย เล่มรายงาน และคะแนนสรุปของอาจารย์ที่ปรึกษาครบแล้ว ก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์"
       />
       <ActionFeedback success={params.success} error={params.error} />
+
+      <AdminOperationalSummary
+        title="สรุปการปิดโครงงาน"
+        description="รายการที่พร้อมให้ผู้ดูแลระบบกดยืนยันจบจะแยกออกจากรายการที่ยังรอรายงานหรือคะแนนอาจารย์ที่ปรึกษา"
+        metrics={[
+          { label: "ต้องกดยืนยัน", count: readyToClose.length, tone: readyToClose.length ? "action" : "completed", description: "ครบเงื่อนไขและยังไม่เป็น COMPLETED" },
+          { label: "รอคะแนนที่ปรึกษา", count: waitingAdvisorScore, tone: waitingAdvisorScore ? "waiting" : "completed", description: "รายงานผ่านแล้วหรืออยู่ช่วงก่อนบันทึกคะแนนสรุป" },
+          { label: "รอรายงาน/แก้ไข", count: waitingReport, tone: waitingReport ? "waiting" : "completed", description: "ยังไม่ผ่านรายงานฉบับล่าสุด หรือมี revision ค้าง" },
+          { label: "เสร็จสมบูรณ์", count: completed.length, tone: "completed", description: "Admin closeout เสร็จแล้ว" }
+        ]}
+      />
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="panel">
           <div className="text-2xl font-semibold">{projects.filter((project) => project.status === "REPORT_APPROVED").length}</div>
-          <div className="mt-1 text-sm text-muted">เล่มผ่านแล้ว รอ Advisor score</div>
+          <div className="mt-1 text-sm text-muted">รายงานผ่านแล้ว รอคะแนนที่ปรึกษา</div>
         </div>
         <div className="panel">
           <div className="text-2xl font-semibold">{projects.filter((project) => project.status === "ADVISOR_SCORING").length}</div>
-          <div className="mt-1 text-sm text-muted">รอปิดงานโดยผู้ดูแลระบบ</div>
+          <div className="mt-1 text-sm text-muted">รอผู้ดูแลระบบยืนยันจบ</div>
         </div>
         <div className="panel">
           <div className="text-2xl font-semibold">{projects.filter((project) => project.status === "COMPLETED").length}</div>
@@ -115,13 +132,49 @@ export default async function AdminCloseoutPage({
         </div>
       </section>
 
-      <section className="space-y-4">
-        {projectCards.length ? (
-          projectCards.map(({ project, eligibility }) => <CloseoutCard key={project.id} project={project as CloseoutProject} eligibility={eligibility} />)
-        ) : (
-          <EmptyState title="ยังไม่มีโครงงานที่อยู่ช่วงปิดงาน" description="เมื่อเล่มรายงานผ่านและถึงขั้น Advisor score รายการจะปรากฏที่นี่" />
-        )}
-      </section>
+      {projectCards.length ? (
+        <div className="space-y-4">
+          <AdminQueueSection
+            title="Needs admin action"
+            description="ครบเงื่อนไขแล้ว ผู้ดูแลระบบต้องตรวจและยืนยันจบโครงงาน"
+            count={readyToClose.length}
+            tone={readyToClose.length ? "action" : "completed"}
+            emptyState={<EmptyState title="ไม่มีรายการที่ต้องกดยืนยันตอนนี้" description="รายการที่ยังไม่ครบจะแสดงในกลุ่มรอด้านล่าง" />}
+          >
+            <div className="space-y-3">
+              {readyToClose.map(({ project, eligibility }) => <CloseoutCard key={project.id} project={project as CloseoutProject} eligibility={eligibility} />)}
+            </div>
+          </AdminQueueSection>
+
+          <AdminQueueSection
+            title="Waiting"
+            description="ยังไม่ควรแสดงเป็นงานให้กดปิด เพราะมีเงื่อนไขรายงานหรือคะแนนที่ยังไม่ครบ"
+            count={waiting.length}
+            tone={waiting.length ? "waiting" : "completed"}
+            emptyState={<EmptyState title="ไม่มีรายการค้างเงื่อนไขปิดโครงงาน" />}
+          >
+            <div className="space-y-3">
+              {waiting.map(({ project, eligibility }) => <CloseoutCard key={project.id} project={project as CloseoutProject} eligibility={eligibility} />)}
+            </div>
+          </AdminQueueSection>
+
+          <AdminQueueSection
+            title="Completed"
+            description="แยกออกจากงานที่ต้องกด เพื่อไม่ให้รายการที่เสร็จแล้วบังรายการที่ยังต้องดำเนินการ"
+            count={completed.length}
+            tone="completed"
+            emptyState={<EmptyState title="ยังไม่มีโครงงานที่ปิดจบแล้ว" />}
+          >
+            <div className="space-y-3">
+              {completed.map(({ project, eligibility }) => <CloseoutCard key={project.id} project={project as CloseoutProject} eligibility={eligibility} />)}
+            </div>
+          </AdminQueueSection>
+        </div>
+      ) : (
+        <section className="panel">
+          <EmptyState title="ยังไม่มีโครงงานที่อยู่ช่วงยืนยันจบ" description="เมื่อรายงานผ่านและถึงขั้นบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา รายการจะปรากฏที่นี่" />
+        </section>
+      )}
     </div>
   );
 }

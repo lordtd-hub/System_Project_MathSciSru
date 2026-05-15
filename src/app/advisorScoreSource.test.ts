@@ -9,8 +9,16 @@ describe("advisor score workflow source guards", () => {
     const page = read("src/app/teacher/advisor-score/page.tsx");
     expect(page).toContain("auth()");
     expect(page).toContain("hasApprovedTeacherCapability(session?.user)");
-    expect(page).toContain("Advisor score 25%");
+    expect(page).toContain("คะแนนสรุปของอาจารย์ที่ปรึกษา 25%");
     expect(page).toContain("submitAdvisorScore");
+  });
+
+  it("shows advisor score as read-only after the advisor has submitted", () => {
+    const page = read("src/app/teacher/advisor-score/page.tsx");
+    expect(page).toContain("const submitted = previous?.status === \"SUBMITTED\" && previous.score != null");
+    expect(page).toContain('"COMPLETED"');
+    expect(page).toContain("บันทึกคะแนนสรุปแล้ว");
+    expect(page).toContain("advisorScoreSummary(previous)");
   });
 
   it("keeps advisor score action advisor-only and report-approved gated", () => {

@@ -10,8 +10,9 @@ export type ReportSubmissionBlockReason =
 export function getReportSubmissionGate(input: {
   projectStatus: ProjectStatus;
   latestReportHasRevisionRequest: boolean;
+  finalPresentationCompleted?: boolean;
 }) {
-  if (input.projectStatus === "FINAL_DONE") {
+  if (input.projectStatus === "FINAL_DONE" || (input.projectStatus === "IN_PROGRESS" && input.finalPresentationCompleted)) {
     return { allowed: true, reason: null };
   }
   if (input.projectStatus === "REPORT_REVIEW") {
@@ -29,6 +30,27 @@ export function getReportSubmissionGate(input: {
     return { allowed: false, reason: "COMPLETED" as const };
   }
   return { allowed: false, reason: "NOT_FINAL_DONE" as const };
+}
+
+export function canStudentSubmitFinalReport(input: {
+  projectStatus: ProjectStatus;
+  latestReportHasRevisionRequest: boolean;
+  finalPresentationCompleted?: boolean;
+}) {
+  return getReportSubmissionGate(input).allowed;
+}
+
+export function getStudentReportActionLabel(input: {
+  hasReportVersion: boolean;
+  latestReportHasRevisionRequest: boolean;
+  projectStatus?: ProjectStatus;
+}) {
+  if (!input.hasReportVersion) return "ส่งเล่มรายงานฉบับสมบูรณ์";
+  if (input.latestReportHasRevisionRequest) return "แก้ไขเล่มรายงานตามข้อเสนอแนะของผู้ตรวจ และส่งฉบับใหม่";
+  if (input.projectStatus === "REPORT_APPROVED" || input.projectStatus === "ADVISOR_SCORING" || input.projectStatus === "COMPLETED") {
+    return "รายงานได้รับการอนุมัติแล้ว";
+  }
+  return "รอผู้ตรวจพิจารณารายงาน";
 }
 
 export function reportSubmissionReasonLabel(reason: ReportSubmissionBlockReason | null) {
@@ -77,12 +99,20 @@ export function isAssignedReportReviewer(input: {
   return committeeReviewer || advisorReviewer;
 }
 
-export function requiredReportReviewerIds(assignments: ReportCommitteeAssignment[]) {
+export function requiredReportReviewerIds(
+  assignments: ReportCommitteeAssignment[],
+  advisorRequests: ReportAdvisorRequest[] = []
+) {
   return [
     ...new Set(
-      assignments
+      [
+        ...assignments
         .filter((assignment) => assignment.active && (assignment.role === "HEAD" || assignment.role === "MEMBER"))
-        .map((assignment) => assignment.teacherId)
+        .map((assignment) => assignment.teacherId),
+        ...advisorRequests
+          .filter((request) => request.status === "APPROVED")
+          .map((request) => request.advisorTeacherId)
+      ]
     )
   ];
 }
