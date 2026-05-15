@@ -5,6 +5,7 @@ import { InfoAlert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { isDevLoginEnabled } from "@/lib/auth/devSession";
+import { getSessionDashboardLinks } from "@/lib/auth/sessionUi";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 
 const roleGuides = [
@@ -62,6 +63,7 @@ export default async function HomePage() {
   const session = await auth();
   timer.endBlock("auth_session", authStart);
   const user = session?.user;
+  const dashboardLinks = getSessionDashboardLinks(user);
   timer.end();
 
   return (
@@ -84,6 +86,14 @@ export default async function HomePage() {
             <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
               ออกแบบให้ผู้ดูแลระบบ อาจารย์ และนักศึกษาเห็นสถานะงานที่ต้องทำตามขั้นตอนเดียวกัน ตั้งแต่การเสนอหัวข้อจนถึงการสอบความก้าวหน้า การสอบขั้นสุดท้าย รายงาน และการยืนยันจบโครงงาน
             </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Link className="button w-full sm:w-auto" href={user ? dashboardLinks[0]?.href ?? "/login" : "/login"}>
+                {user ? "ไปยังแดชบอร์ดของฉัน" : "เข้าสู่ระบบด้วย Google"}
+              </Link>
+              <Link className="button-secondary w-full sm:w-auto" href="/manual">
+                เปิดคู่มือการใช้งาน
+              </Link>
+            </div>
           </div>
           <div className="flex items-center justify-center border-t border-line bg-paperSoft p-6 lg:border-l lg:border-t-0">
             <div className="rounded-lg border border-line bg-surface p-3 shadow-md">
@@ -115,7 +125,24 @@ export default async function HomePage() {
             เข้าสู่ระบบด้วย Google
           </Link>
         </div>
-      ) : null}
+      ) : (
+        <div className="next-action-card sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div className="next-action-rail" aria-hidden="true" />
+          <div>
+            <h2 className="text-lg font-semibold text-ink">เลือกแดชบอร์ดที่เกี่ยวข้องกับบัญชีนี้</h2>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              ระบบแสดงทางเข้าตามสิทธิ์ของบัญชีที่เข้าสู่ระบบไว้แล้ว หากมีหลายบทบาทให้เลือกหน้าที่ต้องทำงานต่อ
+            </p>
+          </div>
+          <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row">
+            {dashboardLinks.map((link) => (
+              <Link key={link.href} className="button-secondary whitespace-nowrap" href={link.href}>
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <section className="panel">
         <SectionHeading title="ระบบนี้ใช้ทำอะไร" description="What this system does" compact />
