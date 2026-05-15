@@ -34,6 +34,11 @@ const roleGuides = [
 
 const quickLinks = [
   {
+    href: "/manual",
+    title: "คู่มือการใช้งาน",
+    description: "อ่านขั้นตอนใช้งานสำหรับนักศึกษาและอาจารย์ พร้อมกรณีเสนอวันสอบใหม่และแก้ไขรายงาน"
+  },
+  {
     href: "/admin",
     title: "ผู้ดูแลระบบ",
     description: "เปิดรายวิชา นำเข้านักศึกษา จัดการอาจารย์ เปิด/ปิดรอบสอบ และตรวจงานที่ต้องตัดสิน"
@@ -161,7 +166,7 @@ export default async function HomePage() {
             <p className="mt-1 text-sm leading-6 text-muted">เลือกหน้าทำงานให้ตรงกับสิทธิ์ของบัญชีที่เข้าสู่ระบบ</p>
           </div>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {quickLinks.map((item) => (
             <Link
               key={item.href}

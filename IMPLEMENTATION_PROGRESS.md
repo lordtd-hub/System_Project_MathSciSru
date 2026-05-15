@@ -2350,3 +2350,76 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Repaired notification template/email text in the touched notification files so Thai message text remains UTF-8 and readable, not mojibake.
 - Failed LINE sends do not block the original student workflow action.
 - No lifecycle, auth, scoring, eligibility, schema, route behavior, or API semantics were changed.
+
+## 2026-05-15 Student/Teacher HTML manual scaffold
+
+- Added public manual routes for the two requested roles:
+  - `/manual`;
+  - `/manual/student`;
+  - `/manual/teacher`.
+- Manual content now covers:
+  - Student normal path through course completion;
+  - schedule reject/resubmit;
+  - report revision and resubmission;
+  - Teacher dashboard, advisor requests, advicees, schedule review/reject/approve, Proposal/Progress/Final scoring, report review/revision/approval, advisor score, and project record.
+- Added screenshot slots under `public/manual/screenshots/` with placeholder rendering until real cropped QA screenshots are captured.
+- Updated `e2e-artifacts/manual-guide/MANUAL_CAPTURE_PLAN.md` from the older 3-role plan to the current 2-role Student/Teacher manual scope.
+- Updated `e2e-artifacts/manual-guide/QA_MANUAL_DATA_PREP.md` to clarify that Admin is only used behind the scenes for manual state preparation.
+- No lifecycle, auth, scoring, eligibility, schema, API, permission, QA data, or production behavior was changed.
+- Remaining work: capture real QA screenshots into `public/manual/screenshots/student/` and `public/manual/screenshots/teacher/`, then re-check manual pages for placeholders and mobile readability.
+
+## 2026-05-15 Student/Teacher manual screenshots captured
+
+- Captured real QA screenshots for the Student/Teacher manual without using `/qa-login` screenshots in the user-facing manual.
+- Captured the requested normal and exception teaching paths:
+  - normal student path through Proposal, Progress, Final, report, advisor score/project record;
+  - schedule reject/resubmit;
+  - report revision and resubmission;
+  - teacher schedule review/reject/approve, Proposal/Progress/Final scoring, report revision/latest approval, advisor score, and project record.
+- Corrected manual wording to match the real app flow discovered during capture:
+  - Final evidence uses Final-specific fields;
+  - Final evidence and Final schedule use different internal round values in the UI flow;
+  - report approval completes only after required related reviewers approve the latest report version.
+- Added the handoff note `e2e-artifacts/manual-guide/HANDOFF_2026-05-15.md` so the next session can resume safely after shutdown.
+- Validation passed:
+  - `cmd /c npm.cmd run typecheck`;
+  - `cmd /c npm.cmd test -- manualPagesSource`;
+  - `cmd /c npm.cmd test`;
+  - `cmd /c npm.cmd run build`.
+- Remaining work:
+  - open `/manual`, `/manual/student`, and `/manual/teacher` after the next deploy/local preview;
+  - confirm all required screenshots render and no placeholders remain;
+  - check Thai text in browser for UTF-8/mojibake issues;
+  - check mobile readability around 390px;
+  - commit/push to `qa-preview` after final review.
+
+## 2026-05-15 Student/Teacher manual local verification passed
+
+- Added Student manual wording that emphasizes:
+  - Proposal must include a clear work plan;
+  - students should read the assessment criteria before planning Progress and Final presentations;
+  - committee scoring follows the defined criteria, so evidence and presentation structure should align with those criteria.
+- Added Student manual coverage for the 16-week work-plan table:
+  - real QA screenshot with 4 overlapping tasks and selectable week ranges;
+  - focused export/preview screenshot showing `Export แผนงาน CSV`;
+  - wording that students can reuse the CSV/table in the Proposal document or report book.
+- Added `e2e-artifacts/manual-guide/validate-manual-assets.mjs` to check manual screenshot references and UTF-8/mojibake markers.
+- Added `e2e-artifacts/manual-guide/cdp-verify-manual-pages.mjs` to verify rendered manual pages in the visible Edge/CDP browser.
+- Local verification passed for:
+  - `/manual`;
+  - `/manual/student`;
+  - `/manual/teacher`;
+  - desktop width 1366px;
+  - mobile width 390px.
+- Verification result:
+  - no broken screenshots;
+  - no screenshot placeholders;
+  - no rendered mojibake markers;
+  - no horizontal overflow;
+  - Student criteria-reading wording is present.
+- Removed unused temporary teacher screenshot files from the public manual screenshot folder.
+- Remaining work:
+  - rerun full validation after these final doc/content edits;
+  - stage intended manual changes only;
+  - commit and push to `qa-preview`;
+  - verify the deployed QA manual URLs.
