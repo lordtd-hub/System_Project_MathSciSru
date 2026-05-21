@@ -1,0 +1,43 @@
+name: Supabase heartbeat
+
+on:
+  schedule:
+    # 09:15 Thailand time. This is intentionally read-only and only runs SELECT 1.
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    name: Ping production and QA databases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_PROD_DATABASE_URL: ${{ secrets.SUPABASE_PROD_DATABASE_URL }}
+      SUPABASE_QA_DATABASE_URL: ${{ secrets.SUPABASE_QA_DATABASE_URL }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify heartbeat secrets are configured
+        run: |
+          test -n "$SUPABASE_PROD_DATABASE_URL"
+          test -n "$SUPABASE_QA_DATABASE_URL"
+
+      - name: Run read-only Supabase heartbeat
+        run: npm run supabase:heartbeat
