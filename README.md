@@ -359,6 +359,16 @@ Required production environment variables:
 
 Supabase inactivity note: `vercel.json` registers `/api/cron/heartbeat` once per day at `0 2 * * *` UTC, which is 09:00 in Thailand. The route only runs a guarded read-only `SELECT 1` database query and returns `401` unless Vercel sends `Authorization: Bearer $CRON_SECRET`. Vercel Cron runs on production deployments, so set `CRON_SECRET` in the Vercel Production environment before relying on it to keep a Supabase Free project active.
 
+For separated production and QA Supabase projects, use the operator heartbeat script from a trusted scheduler instead of putting both database URLs into the production runtime. Configure private scheduler secrets `SUPABASE_PROD_DATABASE_URL` and `SUPABASE_QA_DATABASE_URL`, then run:
+
+```bash
+npm run supabase:heartbeat
+```
+
+The script performs only `SELECT 1`, refuses local database URLs by default, does not print database URLs, and fails if production and QA point to the same URL.
+
+`.github/workflows/supabase-heartbeat.yml` runs the same read-only script every day at 09:15 Thailand time and also supports manual `workflow_dispatch`. Add `SUPABASE_PROD_DATABASE_URL` and `SUPABASE_QA_DATABASE_URL` as GitHub Actions repository secrets before relying on the workflow.
+
 Email notification note: notification emails are off unless `EMAIL_NOTIFICATIONS_ENABLED=1`. When enabled, the app sends best-effort Resend API emails for advisor requests and exam schedule proposals. Proposal submissions keep an in-app notification only and do not send email by design. Templates live in `src/lib/notifications/templates.ts`, use Thai user-facing wording, include direct workflow links, and keep email failures from blocking the original workflow action.
 
 Google OAuth redirect URIs:

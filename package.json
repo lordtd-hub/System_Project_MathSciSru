@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "supabase:heartbeat": "tsx scripts/supabase-heartbeat.ts",
     "preflight:production": "tsx scripts/validate-production-env.ts",
     "verify:production:tables": "tsx scripts/verify-production-tables.ts",
     "prisma:format": "prisma format",
