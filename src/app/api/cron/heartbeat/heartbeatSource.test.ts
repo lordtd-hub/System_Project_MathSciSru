@@ -37,4 +37,28 @@ describe("Supabase heartbeat cron source", () => {
     const envExample = read(".env.example");
     expect(envExample).toContain("CRON_SECRET");
   });
+
+  it("keeps the multi-database operator heartbeat read-only and separated by env names", () => {
+    const script = read("scripts/supabase-heartbeat.ts");
+    const packageJson = JSON.parse(read("package.json")) as { scripts?: Record<string, string> };
+    const envExample = read(".env.example");
+    const workflow = read(".github/workflows/supabase-heartbeat.yml");
+
+    expect(packageJson.scripts?.["supabase:heartbeat"]).toBe("tsx scripts/supabase-heartbeat.ts");
+    expect(script).toContain("SUPABASE_PROD_DATABASE_URL");
+    expect(script).toContain("SUPABASE_QA_DATABASE_URL");
+    expect(script).toContain(".env.heartbeat.local");
+    expect(script).toContain("loadHeartbeatEnvFile");
+    expect(script).toContain("prisma.$queryRaw`SELECT 1`");
+    expect(script).toContain("Refusing to heartbeat local database");
+    expect(script).toContain("point to the same database URL");
+    expect(script).not.toContain("project.update");
+    expect(script).not.toContain("deleteMany");
+    expect(envExample).toContain("SUPABASE_PROD_DATABASE_URL");
+    expect(envExample).toContain("SUPABASE_QA_DATABASE_URL");
+    expect(workflow).toContain('cron: "15 2 * * *"');
+    expect(workflow).toContain("npm run supabase:heartbeat");
+    expect(workflow).toContain("secrets.SUPABASE_PROD_DATABASE_URL");
+    expect(workflow).toContain("secrets.SUPABASE_QA_DATABASE_URL");
+  });
 });
