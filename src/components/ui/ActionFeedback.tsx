@@ -32,6 +32,7 @@ const successMessages: Record<string, string> = {
 
 const errorMessages: Record<string, string> = {
   action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง",
+  material_link_invalid: "อนุญาตเฉพาะลิงก์ https จาก Google Drive, Google Docs หรือ Google Classroom เท่านั้น กรุณาอัปโหลดไฟล์ไว้ใน Google Drive/Docs/Classroom แล้วส่งลิงก์ใหม่",
   schedule_request_locked: "ส่งขอนัดวันสอบแล้ว จึงแก้ไขวัน เวลา หรือห้องสอบไม่ได้ ต้องรอกรรมการอนุมัติหรือไม่อนุมัติก่อน"
 };
 

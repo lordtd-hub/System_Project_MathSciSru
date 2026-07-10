@@ -164,7 +164,7 @@ export async function saveProjectOrigin(formData: FormData) {
   if (project.status !== "DRAFT") throw new Error("ขั้นตอนนี้ยังไม่เปิดให้แก้ไขข้อมูลโครงงาน");
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
   const linkResult = validateMaterialLink(materialLink);
-  if (!linkResult.ok) throw new Error(linkResult.reason);
+  if (!linkResult.ok) redirectWithQuery("/student/project", { error: "material_link_invalid" });
   if (formData.get("student_declaration") !== "on") throw new Error("กรุณายืนยันคำรับรองของนักศึกษา");
 
   const data = {
@@ -288,7 +288,7 @@ export async function saveProposalSubmission(formData: FormData) {
 
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
   const linkResult = validateMaterialLink(materialLink);
-  if (!linkResult.ok) throw new Error(linkResult.reason);
+  if (!linkResult.ok) redirectWithQuery("/student/proposal", { error: "material_link_invalid" });
   if (formData.get("student_declaration") !== "on") throw new Error("กรุณายืนยันคำรับรองของนักศึกษา");
 
   const timelineItems = parseProposalTimelineItems(formData.get("timeline_items_json"));
@@ -468,7 +468,7 @@ export async function saveAssessmentEvidence(formData: FormData) {
 
   const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบการสอบ");
   const linkResult = validateMaterialLink(materialLink);
-  if (!linkResult.ok) throw new Error(linkResult.reason);
+  if (!linkResult.ok) redirectWithQuery("/student/schedule", { error: "material_link_invalid" });
   const title = String(formData.get("submission_title") ?? "").trim() || null;
   const content = kind === "FINAL_PRESENT"
     ? {
@@ -700,7 +700,7 @@ export async function submitReportVersion(formData: FormData) {
 
   const reportLink = requiredText(formData, "report_drive_link", "ลิงก์เล่มรายงาน");
   const linkResult = validateMaterialLink(reportLink);
-  if (!linkResult.ok) throw new Error(linkResult.reason);
+  if (!linkResult.ok) redirectWithQuery("/student/report", { error: "material_link_invalid" });
   const note = String(formData.get("report_note") ?? "").trim();
   assertTextSize(note, requestSizeLimits.commentTextBytes, "report note");
   if (note) {
