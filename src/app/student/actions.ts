@@ -15,7 +15,7 @@ import { validateMaterialLink } from "@/lib/validators/materialLink";
 import { validateMarkdownInput } from "@/lib/validators/submissionContent";
 import { canStudentSubmitFinalReport } from "@/lib/reports/reportWorkflow";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
-import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
+import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { parseSelectableSourceType } from "@/lib/projects/sourceType";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { notifyAdvisorRequestSubmitted, notifyExamScheduleProposed, notifyProposalSubmitted } from "@/lib/notifications/workflowEmail";
@@ -35,10 +35,24 @@ async function requireStudentContext() {
   return { userId: session.user.id, student, project };
 }
 
-function requiredText(formData: FormData, key: string, label: string): string {
+type StudentFormPath = "/student/project" | "/student/proposal" | "/student/schedule" | "/student/report";
+
+function requiredText(formData: FormData, key: string, label: string, path: StudentFormPath): string {
   const value = String(formData.get(key) ?? "").trim();
-  if (!value) throw new Error(`กรุณากรอก${label}`);
+  if (!value) redirectWithQuery(path, { error: "student_required_field_missing" });
   return value;
+}
+
+function requireStudentDeclaration(formData: FormData, path: StudentFormPath) {
+  if (formData.get("student_declaration") !== "on") redirectWithQuery(path, { error: "student_declaration_missing" });
+}
+
+function ensureStudentTextSize(value: string, maxBytes: number, label: string, path: StudentFormPath) {
+  if (sizeError(value, maxBytes, label)) redirectWithQuery(path, { error: "student_text_too_long" });
+}
+
+function ensureStudentMarkdown(errors: string[], path: StudentFormPath) {
+  if (errors.length) redirectWithQuery(path, { error: "student_markdown_invalid" });
 }
 
 async function hasCompletedPresentationScores(projectId: string, attemptType: Extract<AttemptType, "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION">) {
@@ -94,17 +108,22 @@ type ProposalTimelineItem = {
   deliverable: string;
 };
 
-function parseProposalTimelineItems(value: FormDataEntryValue | null): ProposalTimelineItem[] {
+function parseProposalTimelineItems(value: FormDataEntryValue | null, path: StudentFormPath): ProposalTimelineItem[] {
   if (typeof value !== "string" || !value.trim()) return [];
-  const parsed = JSON.parse(value) as Array<Partial<ProposalTimelineItem>>;
+  let parsed: Array<Partial<ProposalTimelineItem>>;
+  try {
+    parsed = JSON.parse(value) as Array<Partial<ProposalTimelineItem>>;
+  } catch {
+    redirectWithQuery(path, { error: "student_timeline_invalid" });
+  }
   return parsed
     .map((item) => {
       const startWeek = Number(item.startWeek);
       const endWeek = Number(item.endWeek);
       if (!Number.isInteger(startWeek) || !Number.isInteger(endWeek) || startWeek < 1 || startWeek > 16 || endWeek < 1 || endWeek > 16) {
-        throw new Error("สัปดาห์ในแผนดำเนินงานต้องอยู่ระหว่าง 1-16");
+        redirectWithQuery(path, { error: "student_timeline_invalid" });
       }
-      if (endWeek < startWeek) throw new Error("สัปดาห์สิ้นสุดต้องไม่อยู่ก่อนสัปดาห์เริ่ม");
+      if (endWeek < startWeek) redirectWithQuery(path, { error: "student_timeline_invalid" });
       return {
         activity: String(item.activity ?? "").trim(),
         startWeek,
@@ -161,31 +180,31 @@ export async function saveStudentProfile(formData: FormData) {
 export async function saveProjectOrigin(formData: FormData) {
   const { userId, student, project } = await requireStudentContext();
   assertRateLimit(`student:${userId}:saveProjectOrigin`, pilotRateLimits.workflowMutation);
-  if (project.status !== "DRAFT") throw new Error("ขั้นตอนนี้ยังไม่เปิดให้แก้ไขข้อมูลโครงงาน");
-  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
+  if (project.status !== "DRAFT") redirectWithQuery("/student/project", { error: "project_not_editable" });
+  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ", "/student/project");
   const linkResult = validateMaterialLink(materialLink);
   if (!linkResult.ok) redirectWithQuery("/student/project", { error: "material_link_invalid" });
-  if (formData.get("student_declaration") !== "on") throw new Error("กรุณายืนยันคำรับรองของนักศึกษา");
+  requireStudentDeclaration(formData, "/student/project");
 
   const data = {
-    initialProjectTitleTh: requiredText(formData, "initial_project_title_th", "ชื่อหัวข้อภาษาไทย"),
+    initialProjectTitleTh: requiredText(formData, "initial_project_title_th", "ชื่อหัวข้อภาษาไทย", "/student/project"),
     initialProjectTitleEn: String(formData.get("initial_project_title_en") ?? "").trim() || null,
     sourceType: parseSelectableSourceType(formData.get("source_type")),
-    reasonForTopic: requiredText(formData, "reason_for_topic", "เหตุผลที่เลือกหัวข้อ"),
-    expectedMathArea: requiredText(formData, "expected_math_area", "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง"),
+    reasonForTopic: requiredText(formData, "reason_for_topic", "เหตุผลที่เลือกหัวข้อ", "/student/project"),
+    expectedMathArea: requiredText(formData, "expected_math_area", "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง", "/student/project"),
     tentativeAdvisorId: String(formData.get("tentative_advisor_id") ?? "") || null,
-    consultationSummary: requiredText(formData, "consultation_summary", "สรุปการปรึกษา"),
-    initialReferences: requiredText(formData, "initial_references", "เอกสารอ้างอิงเบื้องต้น"),
+    consultationSummary: requiredText(formData, "consultation_summary", "สรุปการปรึกษา", "/student/project"),
+    initialReferences: requiredText(formData, "initial_references", "เอกสารอ้างอิงเบื้องต้น", "/student/project"),
     materialLink: linkResult.normalizedUrl,
     declarationAccepted: true,
     status: "SUBMITTED" as const,
     submittedAt: new Date()
   };
-  assertTextSize(data.reasonForTopic, requestSizeLimits.markdownTextBytes, "เหตุผลที่เลือกหัวข้อ");
-  assertTextSize(data.expectedMathArea, requestSizeLimits.markdownTextBytes, "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง");
-  assertTextSize(data.consultationSummary, requestSizeLimits.commentTextBytes, "สรุปการปรึกษา");
-  assertTextSize(data.initialReferences, requestSizeLimits.markdownTextBytes, "เอกสารอ้างอิงเบื้องต้น");
-  if (!data.tentativeAdvisorId) throw new Error("กรุณาเลือกอาจารย์ที่ปรึกษาก่อนส่งคำขอ");
+  ensureStudentTextSize(data.reasonForTopic, requestSizeLimits.markdownTextBytes, "เหตุผลที่เลือกหัวข้อ", "/student/project");
+  ensureStudentTextSize(data.expectedMathArea, requestSizeLimits.markdownTextBytes, "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง", "/student/project");
+  ensureStudentTextSize(data.consultationSummary, requestSizeLimits.commentTextBytes, "สรุปการปรึกษา", "/student/project");
+  ensureStudentTextSize(data.initialReferences, requestSizeLimits.markdownTextBytes, "เอกสารอ้างอิงเบื้องต้น", "/student/project");
+  if (!data.tentativeAdvisorId) redirectWithQuery("/student/project", { error: "student_advisor_required" });
 
   const origin = await prisma.projectOrigin.upsert({
     where: { projectId: project.id },
@@ -286,28 +305,28 @@ export async function saveProposalSubmission(formData: FormData) {
   if (!isRoundOpen(round.status) && !hasLateOverride) redirectWithQuery("/student/proposal", { error: "proposal_round_closed_contact_admin" });
   if (!hasLateOverride && !canEditUntilDeadline(new Date(), round.submissionDeadline)) redirectWithQuery("/student/proposal", { error: "proposal_deadline_passed" });
 
-  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
+  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ", "/student/proposal");
   const linkResult = validateMaterialLink(materialLink);
   if (!linkResult.ok) redirectWithQuery("/student/proposal", { error: "material_link_invalid" });
-  if (formData.get("student_declaration") !== "on") throw new Error("กรุณายืนยันคำรับรองของนักศึกษา");
+  requireStudentDeclaration(formData, "/student/proposal");
 
-  const timelineItems = parseProposalTimelineItems(formData.get("timeline_items_json"));
+  const timelineItems = parseProposalTimelineItems(formData.get("timeline_items_json"), "/student/proposal");
   const content = {
-    motivationBackground: requiredText(formData, "motivation_background", "ที่มาและความสำคัญ"),
-    objectives: requiredText(formData, "objectives", "วัตถุประสงค์"),
-    proposedMethods: requiredText(formData, "proposed_methods", "วิธีดำเนินงาน"),
-    expectedOutcomes: requiredText(formData, "expected_outcomes", "ผลที่คาดว่าจะได้รับ"),
-    timeline: requiredText(formData, "timeline", "แผนดำเนินงาน"),
+    motivationBackground: requiredText(formData, "motivation_background", "ที่มาและความสำคัญ", "/student/proposal"),
+    objectives: requiredText(formData, "objectives", "วัตถุประสงค์", "/student/proposal"),
+    proposedMethods: requiredText(formData, "proposed_methods", "วิธีดำเนินงาน", "/student/proposal"),
+    expectedOutcomes: requiredText(formData, "expected_outcomes", "ผลที่คาดว่าจะได้รับ", "/student/proposal"),
+    timeline: requiredText(formData, "timeline", "แผนดำเนินงาน", "/student/proposal"),
     timelineItems,
     questionsForTeachers: String(formData.get("questions_for_teachers") ?? "").trim()
   };
-  assertTextSize(content.questionsForTeachers, requestSizeLimits.commentTextBytes, "questions for teachers");
+  ensureStudentTextSize(content.questionsForTeachers, requestSizeLimits.commentTextBytes, "questions for teachers", "/student/proposal");
 
   const markdownErrors = [
-    ...validateMarkdownInput(requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ"), "บทคัดย่อการนำเสนอ"),
+    ...validateMarkdownInput(requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ", "/student/proposal"), "บทคัดย่อการนำเสนอ"),
     ...Object.entries(content).flatMap(([key, value]) => (key === "questionsForTeachers" || key === "timelineItems" || typeof value !== "string" ? [] : validateMarkdownInput(value, key)))
   ];
-  if (markdownErrors.length) throw new Error(markdownErrors.join("\n"));
+  ensureStudentMarkdown(markdownErrors, "/student/proposal");
 
   const attempt = await prisma.assessmentAttempt.upsert({
     where: {
@@ -330,9 +349,9 @@ export async function saveProposalSubmission(formData: FormData) {
   const submissionData = {
     projectId: project.id,
     studentId: student.id,
-    titleTh: requiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย"),
+    titleTh: requiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย", "/student/proposal"),
     titleEn: String(formData.get("project_title_en") ?? "").trim() || null,
-    abstractText: requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ"),
+    abstractText: requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ", "/student/proposal"),
     contentJson: content,
     materialLink: linkResult.normalizedUrl,
     declarationAccepted: true,
@@ -466,31 +485,31 @@ export async function saveAssessmentEvidence(formData: FormData) {
   });
   if (lockedSchedule) redirectWithQuery("/student/schedule", { error: "assessment_evidence_locked" });
 
-  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบการสอบ");
+  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบการสอบ", "/student/schedule");
   const linkResult = validateMaterialLink(materialLink);
   if (!linkResult.ok) redirectWithQuery("/student/schedule", { error: "material_link_invalid" });
   const title = String(formData.get("submission_title") ?? "").trim() || null;
   const content = kind === "FINAL_PRESENT"
     ? {
-        finalObjectivesEvidence: requiredText(formData, "final_objectives_evidence", "วัตถุประสงค์ที่ทำสำเร็จและหลักฐาน"),
-        finalMethodsResults: requiredText(formData, "final_methods_results", "วิธีการ ผลลัพธ์ และการวิเคราะห์"),
-        finalTimelineAdaptation: requiredText(formData, "final_timeline_adaptation", "การดำเนินงานเทียบแผนและการปรับแผน"),
-        finalReportReadiness: requiredText(formData, "final_report_readiness", "รายงาน บทความ และประเด็นตอบคำถาม")
+        finalObjectivesEvidence: requiredText(formData, "final_objectives_evidence", "วัตถุประสงค์ที่ทำสำเร็จและหลักฐาน", "/student/schedule"),
+        finalMethodsResults: requiredText(formData, "final_methods_results", "วิธีการ ผลลัพธ์ และการวิเคราะห์", "/student/schedule"),
+        finalTimelineAdaptation: requiredText(formData, "final_timeline_adaptation", "การดำเนินงานเทียบแผนและการปรับแผน", "/student/schedule"),
+        finalReportReadiness: requiredText(formData, "final_report_readiness", "รายงาน บทความ และประเด็นตอบคำถาม", "/student/schedule")
       }
     : {
-        progressPlanTasks: requiredText(formData, "progress_plan_tasks", "งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้"),
-        progressEvidence: requiredText(formData, "progress_evidence", "หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า"),
-        progressStatus: requiredText(formData, "progress_status", "สถานะงาน"),
-        progressChallengesNext: requiredText(formData, "progress_challenges_next", "ปัญหา วิธีแก้ และขั้นตอนถัดไป")
+        progressPlanTasks: requiredText(formData, "progress_plan_tasks", "งานตามแผน 16 สัปดาห์ที่รายงานในรอบนี้", "/student/schedule"),
+        progressEvidence: requiredText(formData, "progress_evidence", "หลักฐาน/ชิ้นงานที่รองรับความก้าวหน้า", "/student/schedule"),
+        progressStatus: requiredText(formData, "progress_status", "สถานะงาน", "/student/schedule"),
+        progressChallengesNext: requiredText(formData, "progress_challenges_next", "ปัญหา วิธีแก้ และขั้นตอนถัดไป", "/student/schedule")
       };
   const summary = kind === "FINAL_PRESENT"
     ? [content.finalObjectivesEvidence, content.finalMethodsResults, content.finalTimelineAdaptation, content.finalReportReadiness].join("\n\n")
     : [content.progressPlanTasks, content.progressEvidence, content.progressStatus, content.progressChallengesNext].join("\n\n");
   for (const [field, value] of Object.entries(content)) {
-    assertTextSize(value, requestSizeLimits.markdownTextBytes, field);
+    ensureStudentTextSize(value, requestSizeLimits.markdownTextBytes, field, "/student/schedule");
   }
   const markdownErrors = Object.entries(content).flatMap(([field, value]) => validateMarkdownInput(value, field));
-  if (markdownErrors.length) throw new Error(markdownErrors.join("\n"));
+  ensureStudentMarkdown(markdownErrors, "/student/schedule");
 
   const existing = await prisma.assessmentSubmission.findFirst({
     where: { projectId: project.id, kind: kind as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT" },
@@ -581,17 +600,23 @@ export async function submitExamSchedule(formData: FormData) {
     if (!readiness.eligible) redirectWithQuery("/student/schedule", { error: "progress_1_project_not_ready" });
   }
 
-  const { start, end } = parseScheduleDateTime(
-    String(formData.get("schedule_date") ?? ""),
-    String(formData.get("start_time") ?? ""),
-    String(formData.get("end_time") ?? "")
-  );
+  let parsedSchedule: ReturnType<typeof parseScheduleDateTime>;
+  try {
+    parsedSchedule = parseScheduleDateTime(
+      String(formData.get("schedule_date") ?? ""),
+      String(formData.get("start_time") ?? ""),
+      String(formData.get("end_time") ?? "")
+    );
+  } catch {
+    redirectWithQuery("/student/schedule", { error: "schedule_time_invalid" });
+  }
+  const { start, end } = parsedSchedule;
   const room = String(formData.get("room") ?? "").trim() || null;
   const note = String(formData.get("schedule_note") ?? "").trim() || null;
-  assertTextSize(note ?? "", requestSizeLimits.commentTextBytes, "หมายเหตุการนัดสอบ");
+  ensureStudentTextSize(note ?? "", requestSizeLimits.commentTextBytes, "หมายเหตุการนัดสอบ", "/student/schedule");
   if (note) {
     const noteErrors = validateMarkdownInput(note, "หมายเหตุการนัดสอบ");
-    if (noteErrors.length) throw new Error(noteErrors.join("\n"));
+    ensureStudentMarkdown(noteErrors, "/student/schedule");
   }
 
   const existing = await prisma.examScheduleProposal.findFirst({
@@ -698,14 +723,14 @@ export async function submitReportVersion(formData: FormData) {
     finalPresentationCompleted
   })) redirectWithQuery("/student/report", { error: "report_not_available" });
 
-  const reportLink = requiredText(formData, "report_drive_link", "ลิงก์เล่มรายงาน");
+  const reportLink = requiredText(formData, "report_drive_link", "ลิงก์เล่มรายงาน", "/student/report");
   const linkResult = validateMaterialLink(reportLink);
   if (!linkResult.ok) redirectWithQuery("/student/report", { error: "material_link_invalid" });
   const note = String(formData.get("report_note") ?? "").trim();
-  assertTextSize(note, requestSizeLimits.commentTextBytes, "report note");
+  ensureStudentTextSize(note, requestSizeLimits.commentTextBytes, "report note", "/student/report");
   if (note) {
     const noteErrors = validateMarkdownInput(note, "report note");
-    if (noteErrors.length) throw new Error(noteErrors.join("\n"));
+    ensureStudentMarkdown(noteErrors, "/student/report");
   }
 
   const maxVersion = await prisma.reportVersion.aggregate({

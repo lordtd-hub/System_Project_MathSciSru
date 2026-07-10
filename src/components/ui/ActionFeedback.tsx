@@ -33,6 +33,14 @@ const successMessages: Record<string, string> = {
 const errorMessages: Record<string, string> = {
   action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง",
   material_link_invalid: "อนุญาตเฉพาะลิงก์ https จาก Google Drive, Google Docs หรือ Google Classroom เท่านั้น กรุณาอัปโหลดไฟล์ไว้ใน Google Drive/Docs/Classroom แล้วส่งลิงก์ใหม่",
+  project_not_editable: "ขั้นตอนนี้ยังไม่เปิดให้แก้ไขข้อมูลโครงงาน กรุณาตรวจสอบสถานะล่าสุดของโครงงาน",
+  student_required_field_missing: "กรุณากรอกข้อมูลในช่องที่จำเป็นให้ครบถ้วนก่อนส่งอีกครั้ง",
+  student_declaration_missing: "กรุณาติ๊กยืนยันคำรับรองของนักศึกษาก่อนส่งข้อมูล",
+  student_text_too_long: "ข้อความที่กรอกยาวเกินกว่าที่ระบบรองรับ กรุณาย่อข้อความหรือแนบรายละเอียดเพิ่มเติมเป็นลิงก์ Google Drive/Docs",
+  student_markdown_invalid: "ข้อความที่กรอกมีรูปแบบที่ระบบไม่รองรับ กรุณาลบ HTML หรือปรับข้อความแล้วส่งใหม่อีกครั้ง",
+  student_timeline_invalid: "แผนดำเนินงานไม่ถูกต้อง กรุณาระบุสัปดาห์เป็นตัวเลข 1-16 และให้สัปดาห์สิ้นสุดไม่อยู่ก่อนสัปดาห์เริ่ม",
+  student_advisor_required: "กรุณาเลือกอาจารย์ที่ปรึกษาก่อนส่งคำขอโครงงาน",
+  schedule_time_invalid: "วันหรือเวลาสอบไม่ถูกต้อง กรุณาเลือกวันที่ เวลาเริ่ม และเวลาสิ้นสุดให้ถูกต้อง",
   schedule_request_locked: "ส่งขอนัดวันสอบแล้ว จึงแก้ไขวัน เวลา หรือห้องสอบไม่ได้ ต้องรอกรรมการอนุมัติหรือไม่อนุมัติก่อน"
 };
 

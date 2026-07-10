@@ -9,7 +9,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     const actions = read("src/app/student/actions.ts");
     expect(actions).toContain("requireStudentContext()");
     expect(actions).toContain("submitExamSchedule");
-    expect(actions).toContain("กรุณาเลือกอาจารย์ที่ปรึกษาก่อนส่งคำขอ");
+    expect(actions).toContain("student_advisor_required");
     expect(actions).toContain("proposal_round_not_open");
     expect(actions).toContain("courseOfferingId_roundType");
     expect(actions).toContain("isRoundOpen(round.status)");
