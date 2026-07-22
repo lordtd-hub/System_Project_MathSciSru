@@ -11,7 +11,7 @@ import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
-import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
+import { assertTextSize, requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
@@ -176,9 +176,15 @@ export async function reviewAdvisorRequest(formData: FormData) {
   const requestId = String(formData.get("request_id"));
   const decision = String(formData.get("decision"));
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะต่อคำขอที่ปรึกษา");
-  if (!["APPROVE", "REJECT"].includes(decision)) throw new Error("ผลการพิจารณาไม่ถูกต้อง");
-  if (decision === "REJECT" && !comment) throw new Error("กรุณาระบุเหตุผลเมื่อปฏิเสธคำขอที่ปรึกษา");
+  if (sizeError(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะต่อคำขอที่ปรึกษา")) {
+    redirectWithQuery("/teacher/advisor-requests", { error: "advisor_request_comment_too_long" });
+  }
+  if (!["APPROVE", "REJECT"].includes(decision)) {
+    redirectWithQuery("/teacher/advisor-requests", { error: "advisor_request_decision_invalid" });
+  }
+  if (decision === "REJECT" && !comment) {
+    redirectWithQuery("/teacher/advisor-requests", { error: "advisor_reject_reason_required" });
+  }
 
   const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
   const request = await prisma.advisorRequest.findUniqueOrThrow({
