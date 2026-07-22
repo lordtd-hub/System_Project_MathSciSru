@@ -11,7 +11,7 @@ import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
-import { assertTextSize, requestSizeLimits, sizeError } from "@/lib/security/requestSize";
+import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
@@ -35,6 +35,24 @@ import {
 
 function uniqueIds(ids: string[]) {
   return [...new Set(ids)];
+}
+
+function redirectIfTeacherTextTooLong(value: string, maxBytes: number, label: string, path: string, error = "teacher_text_too_long") {
+  if (sizeError(value, maxBytes, label)) {
+    redirectWithQuery(path, { error });
+  }
+}
+
+function redirectIfTeacherMarkdownInvalid(errors: string[], path: string) {
+  if (errors.length) {
+    redirectWithQuery(path, { error: "teacher_markdown_invalid" });
+  }
+}
+
+function redirectIfTeacherFormInvalid(errors: string[], path: string, error = "teacher_score_invalid") {
+  if (errors.length) {
+    redirectWithQuery(path, { error });
+  }
 }
 
 async function requireTeacherUser() {
@@ -247,12 +265,16 @@ export async function reviewExamSchedule(formData: FormData) {
   const scheduleId = String(formData.get("schedule_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ความเห็นต่อคำขอวันสอบ");
-  if (decision !== "APPROVE" && decision !== "REJECT") throw new Error("ผลการพิจารณาวันสอบไม่ถูกต้อง");
-  if (decision === "REJECT" && !comment) throw new Error("กรุณาระบุเหตุผลเมื่อไม่อนุมัติวันสอบ");
+  redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ความเห็นต่อคำขอวันสอบ", "/teacher/schedules");
+  if (decision !== "APPROVE" && decision !== "REJECT") {
+    redirectWithQuery("/teacher/schedules", { error: "schedule_review_decision_invalid" });
+  }
+  if (decision === "REJECT" && !comment) {
+    redirectWithQuery("/teacher/schedules", { error: "schedule_reject_reason_required" });
+  }
   if (comment) {
     const commentErrors = validateMarkdownInput(comment, "ความเห็นต่อคำขอวันสอบ");
-    if (commentErrors.length) throw new Error(commentErrors.join("\n"));
+    redirectIfTeacherMarkdownInvalid(commentErrors, "/teacher/schedules");
   }
 
   const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
@@ -381,12 +403,16 @@ export async function submitProposalScore(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
 
   const assignmentId = String(formData.get("assignment_id"));
+  const scoringPath = `/teacher/scoring/${encodeURIComponent(assignmentId)}`;
   const decision = String(formData.get("decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
   const reason = String(formData.get("reason") ?? "").trim();
   const overallComment = String(formData.get("overall_comment") ?? "").trim();
-  assertTextSize(reason, requestSizeLimits.shortReasonBytes, "proposal decision reason");
-  assertTextSize(overallComment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะภาพรวมการเสนอหัวข้อ");
+  redirectIfTeacherTextTooLong(reason, requestSizeLimits.shortReasonBytes, "proposal decision reason", scoringPath, "proposal_reason_too_long");
+  redirectIfTeacherTextTooLong(overallComment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะภาพรวมการเสนอหัวข้อ", scoringPath);
   const submitMode = String(formData.get("submit_mode"));
+  if (!["PASS", "PASS_WITH_REVISION", "NOT_PASS"].includes(decision)) {
+    redirectWithQuery(scoringPath, { error: "proposal_decision_invalid" });
+  }
 
   const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
     where: { id: assignmentId },
@@ -444,10 +470,12 @@ export async function submitProposalScore(formData: FormData) {
     scoreResult.totalScore
   );
   const decisionErrors = submitMode === "submit" ? validateProposalDecision(decision, reason) : [];
-  if (submitMode === "submit" && !overallComment) {
-    decisionErrors.push("กรุณาระบุข้อเสนอแนะเพื่อให้นักศึกษาใช้ปรับปรุงงาน");
+  if (decisionErrors.length) {
+    redirectWithQuery(scoringPath, { error: "proposal_decision_reason_required" });
   }
-  if (decisionErrors.length) throw new Error(decisionErrors.join("\n"));
+  if (submitMode === "submit" && !overallComment) {
+    redirectWithQuery(scoringPath, { error: "proposal_feedback_required" });
+  }
 
   const scoreSubmission = await timer.measure("upsert_score_submission", () => prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignmentId },
@@ -707,7 +735,7 @@ export async function submitProgress1Score(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 1");
+  redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 1", "/teacher/progress1");
   const input: Progress1ScoreInput = {
     progress: Number(formData.get("progress")),
     problemSolving: Number(formData.get("problem_solving")),
@@ -717,7 +745,7 @@ export async function submitProgress1Score(formData: FormData) {
   };
   const errors = validateProgress1Score(input);
   if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 1"));
-  if (errors.length) throw new Error(errors.join("\n"));
+  redirectIfTeacherFormInvalid(errors, "/teacher/progress1");
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
   const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
@@ -831,7 +859,7 @@ export async function submitProgress2Score(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 2");
+  redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 2", "/teacher/progress2");
   const input: Progress2ScoreInput = {
     progress: Number(formData.get("progress")),
     problemSolving: Number(formData.get("problem_solving")),
@@ -841,7 +869,7 @@ export async function submitProgress2Score(formData: FormData) {
   };
   const errors = validateProgress2Score(input);
   if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะการสอบความก้าวหน้าครั้งที่ 2"));
-  if (errors.length) throw new Error(errors.join("\n"));
+  redirectIfTeacherFormInvalid(errors, "/teacher/progress2");
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
   const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
@@ -955,10 +983,10 @@ export async function submitFinalPresentationScore(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบนำเสนอขั้นสุดท้าย");
+  redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการสอบนำเสนอขั้นสุดท้าย", "/teacher/final");
   const errors: string[] = [];
   if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะการสอบนำเสนอขั้นสุดท้าย"));
-  if (errors.length) throw new Error(errors.join("\n"));
+  redirectIfTeacherMarkdownInvalid(errors, "/teacher/final");
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
   const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
@@ -1133,11 +1161,15 @@ export async function reviewReportVersion(formData: FormData) {
   const reportVersionId = String(formData.get("report_version_id") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการตรวจรายงาน");
-  if (decision !== "PASS" && decision !== "FAIL") throw new Error("ผลการตรวจเล่มไม่ถูกต้อง");
-  if (!comment) throw new Error("กรุณาระบุข้อเสนอแนะสำหรับผลการตรวจรายงาน");
+  redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะการตรวจรายงาน", "/teacher/reports");
+  if (decision !== "PASS" && decision !== "FAIL") {
+    redirectWithQuery("/teacher/reports", { error: "report_review_decision_invalid" });
+  }
+  if (!comment) {
+    redirectWithQuery("/teacher/reports", { error: "report_review_comment_required" });
+  }
   const commentErrors = validateMarkdownInput(comment, "ข้อเสนอแนะการตรวจรายงาน");
-  if (commentErrors.length) throw new Error(commentErrors.join("\n"));
+  redirectIfTeacherMarkdownInvalid(commentErrors, "/teacher/reports");
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
   const reportVersion = await timer.measure("load_report_version", () => prisma.reportVersion.findUniqueOrThrow({
@@ -1275,7 +1307,7 @@ export async function submitAdvisorScore(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  assertTextSize(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา");
+  redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา", "/teacher/advisor-score");
   const input: AdvisorScoreInput = {
     responsibility: Number(formData.get("responsibility")),
     researchProcess: Number(formData.get("research_process")),
@@ -1285,7 +1317,7 @@ export async function submitAdvisorScore(formData: FormData) {
   };
   const errors = validateAdvisorScore(input);
   if (comment) errors.push(...validateMarkdownInput(comment, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา"));
-  if (errors.length) throw new Error(errors.join("\n"));
+  redirectIfTeacherFormInvalid(errors, "/teacher/advisor-score");
 
   const teacher = await timer.measure("load_teacher", () => prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } }));
   const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({
