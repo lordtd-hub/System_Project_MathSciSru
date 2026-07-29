@@ -160,6 +160,36 @@ Rollout และ rollback:
 - หาก Prisma ได้รับผลกระทบ ให้ rollback grants/RLS ตามสคริปต์ที่เตรียมไว้ ห้าม restore ฐานทั้งก้อนโดยไม่จำเป็น
 - ห้ามลบหรือเขียนทับ audit/evidence history ระหว่าง hardening
 
+## Feature 4: Proposal Exam Schedule and Submission Deadline
+
+เป้าหมาย: ให้ Admin ประกาศวัน เวลา และสถานที่สอบ Proposal ระดับรายวิชา และใช้วัน/เวลาเริ่มสอบเป็นค่าเริ่มต้นของกำหนดส่ง Proposal โดยไม่เปลี่ยน scoring หรือ lifecycle ของ Proposal
+
+Admin workflow:
+
+1. Admin กำหนดวันและเวลาเริ่มสอบ เวลาสิ้นสุด และสถานที่สอบ Proposal ในหน้าจัดการรอบ
+2. ระบบตั้ง `submissionDeadline` ให้ตรงกับเวลาเริ่มสอบเป็นค่าเริ่มต้น
+3. Admin สามารถกำหนด deadline ให้เร็วกว่าวันสอบได้ก่อนประกาศ แต่ห้ามกำหนดหลังเวลาเริ่มสอบ
+4. Admin ตรวจตัวอย่างประกาศก่อนเปิดรอบหรือเผยแพร่กำหนดการ
+5. หากแก้กำหนดการหรือ deadline หลังประกาศ ต้องระบุเหตุผลและสร้าง audit log
+
+Student/teacher workflow:
+
+- นักศึกษาเห็นวัน เวลา สถานที่สอบ และกำหนดส่งในหน้าแรกและหน้า Proposal
+- อาจารย์เห็นกำหนดการเดียวกันในหน้ารอบ Proposal และหน้าประเมิน
+- นักศึกษาส่งหรือแก้ Proposal ได้จนถึง `submissionDeadline`
+- เมื่อพ้น deadline ระบบล็อกการส่งปกติ แต่ไม่ปิดรอบประเมินและไม่เปลี่ยนสถานะโครงงานอัตโนมัติ
+- ผู้ส่งล่าช้าใช้ workflow เปิดส่งย้อนหลังรายโครงงานที่มีอยู่แล้ว เพื่อไม่เลื่อน deadline ของทั้งรายวิชา
+
+Data and validation:
+
+- ใช้ `AssessmentRound.submissionDeadline` ที่มีอยู่แล้วสำหรับการบังคับกำหนดส่ง
+- เพิ่มข้อมูลกำหนดการระดับรอบ เช่น `scheduledStartAt`, `scheduledEndAt` และ `location`
+- ใช้เขตเวลา `Asia/Bangkok` ในการกรอก แสดงผล และตรวจ deadline
+- บังคับ `scheduledStartAt < scheduledEndAt`
+- บังคับ `submissionDeadline <= scheduledStartAt`
+- การเปลี่ยนกำหนดการต้องเก็บ before/after และเหตุผลใน audit log
+- ห้ามสร้าง `ExamScheduleProposal` รายโครงงานสำหรับ Proposal เพราะเป็นกำหนดการร่วมระดับรายวิชา
+
 ## Test Plan
 
 Unit tests:
@@ -170,6 +200,9 @@ Unit tests:
 - completion logic counts required external examiner
 - AUN-QA link active/disabled access guard
 - AUN-QA rubric/marking scheme viewer uses active rubric data and current round weights
+- Proposal deadline cannot be later than the scheduled exam start
+- Proposal submission is editable before the deadline and locked after it
+- changing a published Proposal schedule requires a reason and creates an audit record
 
 Integration/source tests:
 
@@ -187,6 +220,9 @@ Manual QA on preview DB:
 - Admin approves and copies link/PIN
 - External examiner submits score
 - Project completion/evidence reflects internal + external required scores
+- Admin publishes a Proposal exam schedule and verifies the derived submission deadline
+- Student and teacher pages show the same Proposal date, time, location, and deadline
+- Student submission locks at the deadline while an approved individual late-submission exception still works
 - Confirm production QA/dev login tools remain disabled
 
 ## Rollout Notes
