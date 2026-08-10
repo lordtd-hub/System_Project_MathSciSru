@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
-import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
+import { openProposalScoringAttemptWhere, pendingProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
 import { openProposalScoring } from "./actions";
 
 function assessmentKindLabel(kind?: string | null) {
@@ -177,6 +177,7 @@ export default async function TeacherDashboardPage() {
     return <div className="panel">หน้านี้สำหรับอาจารย์ที่อนุมัติแล้วเท่านั้น</div>;
   }
 
+  const evaluatorUserId = session.user.id;
   const sessionTeacherId = session.user.teacherId ?? null;
   const teacherWhere = sessionTeacherId ? { id: sessionTeacherId } : { userId: session.user.id };
   const teacherQuery = timer.measure("teacher_identity_query", () =>
@@ -185,44 +186,31 @@ export default async function TeacherDashboardPage() {
       select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
     })
   );
+  const proposalScoringWhere = openProposalScoringAttemptWhere();
   const independentTeacherQueries = timer.measure("teacher_independent_queries", () => Promise.all([
     prisma.assessmentAttempt.findMany({
-      where: {
-        presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
-        proposalResult: { is: null },
-        OR: [
-          { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
-          {
-            assessmentRound: { roundType: "PROPOSAL" },
-            project: {
-              roundExceptions: {
-                some: {
-                  status: "OPEN",
-                  exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] },
-                  assessmentRound: { roundType: "PROPOSAL" }
-                }
-              }
-            }
-          }
-        ]
-      },
+      where: proposalScoringWhere,
       select: {
         id: true,
         presentationSubmission: { select: { titleTh: true } },
         project: { select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } } },
         evaluatorAssignments: {
-          where: { evaluatorUserId: session.user.id },
+          where: { evaluatorUserId },
           select: { id: true, scoreSubmission: { select: { status: true } } }
         }
       },
+      orderBy: { createdAt: "desc" },
       take: 8
+    }),
+    prisma.assessmentAttempt.count({
+      where: pendingProposalScoringAttemptWhere(evaluatorUserId)
     })
   ]));
   const sessionTeacherWorkloadQuery = sessionTeacherId
     ? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(sessionTeacherId))
     : null;
 
-  const [teacher, [attempts]] = await Promise.all([teacherQuery, independentTeacherQueries]);
+  const [teacher, [attempts, pendingProposalScoreCount]] = await Promise.all([teacherQuery, independentTeacherQueries]);
 
   if (!teacher) {
     timer.end("missing_teacher_profile");
@@ -317,17 +305,16 @@ export default async function TeacherDashboardPage() {
     orderBy: { proposedStartAt: "asc" },
     take: 8
   });
-  const pendingProposalScores = attempts.filter((attempt) => !attempt.evaluatorAssignments[0]?.scoreSubmission || attempt.evaluatorAssignments[0].scoreSubmission?.status !== "SUBMITTED");
   const teacherActionableTaskCount =
     advisorRequestCount +
-    pendingProposalScores.length +
+    pendingProposalScoreCount +
     scheduleApprovalCount +
     presentationScoreReadyCount +
     reportReviewCount +
     advisorScoreProjectCount;
   const nextAction = getNextActionForTeacher({
     pendingAdvisorRequests: advisorRequestCount,
-    pendingProposalScores: pendingProposalScores.length,
+    pendingProposalScores: pendingProposalScoreCount,
     pendingScheduleApprovals: scheduleApprovalCount,
     pendingReportReviews: reportReviewCount,
     progress1ScoreReady: progress1ScoreReadyCount,
@@ -343,7 +330,7 @@ export default async function TeacherDashboardPage() {
     : nextAction;
   const workloadCards = [
     { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
-    { label: "เสนอหัวข้อรอประเมิน", value: pendingProposalScores.length, href: "/teacher/proposals", tone: pendingProposalScores.length ? "ready" as const : "quiet" as const },
+    { label: "เสนอหัวข้อรอประเมิน", value: pendingProposalScoreCount, href: "/teacher/proposals", tone: pendingProposalScoreCount ? "ready" as const : "quiet" as const },
     { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const },
     { label: "พร้อมให้คะแนน", value: presentationScoreReadyCount, href: progress1ScoreReadyCount ? "/teacher/progress1" : progress2ScoreReadyCount ? "/teacher/progress2" : "/teacher/final", tone: presentationScoreReadyCount ? "ready" as const : "quiet" as const },
     { label: "งานตรวจรายงาน", value: reportReviewCount, href: "/teacher/reports", tone: reportReviewCount ? "waiting" as const : "quiet" as const },
@@ -375,11 +362,11 @@ export default async function TeacherDashboardPage() {
     },
     {
       title: "เอกสารเสนอหัวข้อรอประเมิน",
-      description: pendingProposalScores.length ? "มีเอกสารเสนอหัวข้อที่ได้รับมอบหมายและยังไม่ได้บันทึกคะแนน" : "ยังไม่มีเอกสารเสนอหัวข้อที่ต้องประเมินตอนนี้",
+      description: pendingProposalScoreCount ? "มีเอกสารเสนอหัวข้อที่ได้รับมอบหมายและยังไม่ได้บันทึกคะแนน" : "ยังไม่มีเอกสารเสนอหัวข้อที่ต้องประเมินตอนนี้",
       href: "/teacher/proposals",
-      count: pendingProposalScores.length,
-      tone: pendingProposalScores.length ? "ready" as const : "quiet" as const,
-      statusLabel: pendingProposalScores.length ? "พร้อมประเมิน" : "ปกติ"
+      count: pendingProposalScoreCount,
+      tone: pendingProposalScoreCount ? "ready" as const : "quiet" as const,
+      statusLabel: pendingProposalScoreCount ? "พร้อมประเมิน" : "ปกติ"
     },
     {
       title: "อนุมัติวันสอบ",

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
-import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
+import { openProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
 import { openProposalScoring } from "../actions";
 
 export default async function TeacherProposalsPage() {
@@ -15,25 +15,7 @@ export default async function TeacherProposalsPage() {
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
 
   const attempts = await prisma.assessmentAttempt.findMany({
-    where: {
-      presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
-      proposalResult: { is: null },
-      OR: [
-        { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
-        {
-          assessmentRound: { roundType: "PROPOSAL" },
-          project: {
-            roundExceptions: {
-              some: {
-                status: "OPEN",
-                exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] },
-                assessmentRound: { roundType: "PROPOSAL" }
-              }
-            }
-          }
-        }
-      ]
-    },
+    where: openProposalScoringAttemptWhere(),
     include: {
       presentationSubmission: true,
       project: { include: { student: true } },

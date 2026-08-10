@@ -31,7 +31,10 @@ describe("teacher dashboard source", () => {
     expect(page).not.toContain("prisma.notification.findMany");
     expect(page).toContain("assignmentSubmitted");
     expect(page).toContain("ดูผลประเมินที่ส่งแล้ว");
-    expect(page).toContain("pendingProposalScores.length");
+    expect(page).toContain("pendingProposalScoreCount");
+    expect(page).toContain("pendingProposalScoringAttemptWhere(evaluatorUserId)");
+    expect(page).toContain("prisma.assessmentAttempt.count");
+    expect(page).not.toContain("const pendingProposalScores = attempts.filter");
     expect(page).toContain("/teacher/advicees");
   });
 
