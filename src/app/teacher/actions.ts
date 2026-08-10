@@ -16,6 +16,7 @@ import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecyc
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
 import { isPresentationScoreEditable, isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
+import { missingScoreFieldNames } from "@/lib/scoring/formCompleteness";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
 import { calculateFinalQaCriterionScore, finalQaRubricItems, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
@@ -54,6 +55,18 @@ function redirectIfTeacherFormInvalid(errors: string[], path: string, error = "t
   if (errors.length) {
     redirectWithQuery(path, { error });
   }
+}
+
+function redirectIfScoreFieldsIncomplete(formData: FormData, fieldNames: string[], path: string) {
+  if (missingScoreFieldNames(formData, fieldNames).length > 0) {
+    redirectWithQuery(path, { error: "score_rubric_incomplete" });
+  }
+}
+
+function progressScoreFieldName(itemKey: string) {
+  if (itemKey === "problemSolving") return "problem_solving";
+  if (itemKey === "researchResults") return "research_results";
+  return itemKey;
 }
 
 async function requireTeacherUser() {
@@ -469,6 +482,15 @@ export async function submitProposalScore(formData: FormData) {
   );
   const isScoreRevision = assignment.scoreSubmission?.status === "SUBMITTED" || assignment.status === "SUBMITTED";
   const isSubmittingScore = submitMode === "submit" || isScoreRevision;
+  if (isSubmittingScore) {
+    redirectIfScoreFieldsIncomplete(
+      formData,
+      rubric.items
+        .filter((item) => Boolean(findProposalQaCriterion(item.itemKey)))
+        .map((item) => `condition_count:${item.id}`),
+      scoringPath
+    );
+  }
   const decisionErrors = isSubmittingScore ? validateProposalDecision(decision, reason) : [];
   if (decisionErrors.length) {
     redirectWithQuery(scoringPath, { error: "proposal_decision_reason_required" });
@@ -592,7 +614,11 @@ export async function submitProposalScore(formData: FormData) {
 
   revalidatePath(`/teacher/scoring/${assignmentId}`);
   timer.end("redirect");
-  redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { success: "proposal_score_saved" });
+  redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, {
+    success: isSubmittingScore
+      ? (isScoreRevision ? "proposal_score_updated" : "proposal_score_submitted")
+      : "proposal_score_draft_saved"
+  });
 }
 
 async function ensureProgress1Rubric() {
@@ -766,6 +792,11 @@ export async function submitProgress1Score(formData: FormData) {
   }));
   await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress1");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    rubric.items.map((item) => findProgressQaCriterion(item.itemKey) ? `condition_count:${item.id}` : progressScoreFieldName(item.itemKey)),
+    "/teacher/progress1"
+  );
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
     problemSolving: input.problemSolving,
@@ -857,7 +888,7 @@ export async function submitProgress1Score(formData: FormData) {
   revalidatePath("/teacher");
   revalidatePath("/student");
   timer.end("redirect");
-  redirect("/teacher/progress1?success=progress_1_score_saved");
+  redirect(`/teacher/progress1?success=${previousSubmission ? "progress_1_score_updated" : "progress_1_score_saved"}`);
 }
 
 export async function submitProgress2Score(formData: FormData) {
@@ -896,6 +927,11 @@ export async function submitProgress2Score(formData: FormData) {
   }));
   await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress2");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    rubric.items.map((item) => findProgressQaCriterion(item.itemKey) ? `condition_count:${item.id}` : progressScoreFieldName(item.itemKey)),
+    "/teacher/progress2"
+  );
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
     problemSolving: input.problemSolving,
@@ -987,7 +1023,7 @@ export async function submitProgress2Score(formData: FormData) {
   revalidatePath("/teacher");
   revalidatePath("/student");
   timer.end("redirect");
-  redirect("/teacher/progress2?success=progress_2_score_saved");
+  redirect(`/teacher/progress2?success=${previousSubmission ? "progress_2_score_updated" : "progress_2_score_saved"}`);
 }
 
 export async function submitFinalPresentationScore(formData: FormData) {
@@ -1023,6 +1059,11 @@ export async function submitFinalPresentationScore(formData: FormData) {
 
   await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/final");
   const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    rubric.items.map((item) => `condition_count:${item.itemKey}`),
+    "/teacher/final"
+  );
   const scoredItems = rubric.items.map((item) => {
     const qaCriterion = findFinalQaCriterion(item.itemKey);
     if (qaCriterion) {
@@ -1172,7 +1213,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
   revalidatePath("/student");
   revalidatePath("/student/report");
   timer.end("redirect");
-  redirect("/teacher/final?success=final_score_saved");
+  redirect(`/teacher/final?success=${previousSubmission ? "final_score_updated" : "final_score_saved"}`);
 }
 
 export async function reviewReportVersion(formData: FormData) {
@@ -1330,6 +1371,11 @@ export async function submitAdvisorScore(formData: FormData) {
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา", "/teacher/advisor-score");
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    ["responsibility", "research_process", "problem_solving", "communication", "professionalism"],
+    "/teacher/advisor-score"
+  );
   const input: AdvisorScoreInput = {
     responsibility: Number(formData.get("responsibility")),
     researchProcess: Number(formData.get("research_process")),
@@ -1435,5 +1481,8 @@ export async function submitAdvisorScore(formData: FormData) {
   revalidatePath("/teacher/advisor-score");
   revalidatePath("/student/report");
   timer.end("redirect");
-  redirectWithQuery("/teacher/advisor-score", { success: "advisor_score_saved", score_id: score.id });
+  redirectWithQuery("/teacher/advisor-score", {
+    success: project.advisorScore ? "advisor_score_updated" : "advisor_score_saved",
+    score_id: score.id
+  });
 }

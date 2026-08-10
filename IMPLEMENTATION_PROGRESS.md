@@ -17,6 +17,9 @@ Historical note: The original Task 01-10 checklist below is retained as the init
 - Teachers may revise submitted Progress 1, Progress 2, and Final Presentation scores while the corresponding course-level round is open; Admin closing the round locks further edits unless an explicit late-round exception is open.
 - Advisor scores remain editable after submission while the project is `REPORT_APPROVED` or `ADVISOR_SCORING`, and become read-only when Admin marks the project `COMPLETED`.
 - Revisions update the existing score record rather than creating duplicate active scores. Each revision creates a timeline event with an `isRevision` marker and the previous total score.
+- Proposal, Progress 1, Progress 2, Final Presentation, and Advisor scoring now distinguish an untouched rubric field from an explicitly selected zero score. New condition-based fields start at `ยังไม่ได้เลือก`.
+- Score forms show the completed rubric count and live total, block incomplete submission, focus the first missing field, and repeat the completeness check in the server action before any score mutation.
+- Submission buttons use `ยืนยันส่งคะแนน` and `ยืนยันส่งคะแนนที่แก้ไข`; confirmation includes the total score and completed rubric count so `บันทึก` is not mistaken for a draft operation.
 - No database migration, production environment change, scoring formula change, or direct production data mutation is required.
 
 ## 2026-05-13 Supabase heartbeat cron

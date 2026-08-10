@@ -12,11 +12,11 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { isQaAunEvidenceAlignmentEnabled } from "@/lib/qa/finalRubricConfig";
-import { finalQaRubric, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
+import { calculateFinalQaCriterionScore, finalQaRubric, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
 import { submitFinalPresentationScore } from "../actions";
 
 function conditionCountForSavedScore(criterion: NonNullable<ReturnType<typeof findFinalQaCriterion>>, score: number | undefined) {
-  if (score === undefined) return 0;
+  if (score === undefined) return "";
   return [...criterion.scoreMappings].sort((a, b) => b.conditionCount - a.conditionCount).find((mapping) => mapping.score === score)?.conditionCount ?? 0;
 }
 
@@ -183,9 +183,10 @@ export default async function TeacherFinalPage({
                         </div>
                         <label className="min-w-44 text-sm font-medium">
                           เงื่อนไขที่ผ่าน
-                          <select name={`condition_count:${criterion.code}`} defaultValue={conditionCountForSavedScore(criterion, previousItems.get(criterion.code))} required className="mt-1">
+                          <select name={`condition_count:${criterion.code}`} defaultValue={conditionCountForSavedScore(criterion, previousItems.get(criterion.code))} required className="mt-1" data-score-control="true">
+                            <option value="" disabled>ยังไม่ได้เลือก</option>
                             {Array.from({ length: criterion.conditions.length + 1 }, (_, count) => (
-                              <option key={count} value={count}>
+                              <option key={count} value={count} data-score-points={calculateFinalQaCriterionScore(criterion, count)}>
                                 {count} เงื่อนไข = {criterion.scoreMappings.find((mapping) => mapping.conditionCount === count)?.score ?? 0} คะแนน
                               </option>
                             ))}
@@ -199,8 +200,8 @@ export default async function TeacherFinalPage({
                   <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
                 </div>
                 <div>
-                  <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage={previous ? "ยืนยันการบันทึกคะแนน Final ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการบันทึกคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"}>
-                    {previous ? "บันทึกการแก้ไขคะแนน Final" : "บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย"}
+                  <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Final ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"} scoreGuard>
+                    {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้าย"}
                   </SubmitButton>
                 </div>
               </form>

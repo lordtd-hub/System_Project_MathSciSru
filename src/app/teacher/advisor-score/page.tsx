@@ -28,13 +28,13 @@ function previousValue(score: {
   communicationScore: number | null;
   professionalismScore: number | null;
 } | null | undefined, key: string) {
-  if (!score) return 0;
-  if (key === "responsibility") return score.responsibilityScore ?? 0;
-  if (key === "researchProcess") return score.researchProcessScore ?? 0;
-  if (key === "problemSolving") return score.problemSolvingScore ?? 0;
-  if (key === "communication") return score.communicationScore ?? 0;
-  if (key === "professionalism") return score.professionalismScore ?? 0;
-  return 0;
+  if (!score) return "";
+  if (key === "responsibility") return score.responsibilityScore ?? "";
+  if (key === "researchProcess") return score.researchProcessScore ?? "";
+  if (key === "problemSolving") return score.problemSolvingScore ?? "";
+  if (key === "communication") return score.communicationScore ?? "";
+  if (key === "professionalism") return score.professionalismScore ?? "";
+  return "";
 }
 
 function advisorScoreSummary(score: {
@@ -212,6 +212,7 @@ export default async function TeacherAdvisorScorePage({
                               step="1"
                               defaultValue={previousValue(previous, criterion.key)}
                               required
+                              data-score-control="true"
                             />
                           </label>
                         ))}
@@ -219,8 +220,8 @@ export default async function TeacherAdvisorScorePage({
                     </div>
                     <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
                     <div>
-                      <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage={submitted ? "ยืนยันการบันทึกคะแนนที่ปรึกษาที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?"}>
-                        {submitted ? "บันทึกการแก้ไขคะแนนสรุป 25%" : "บันทึกคะแนนสรุป 25%"}
+                      <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={submitted ? "ยืนยันส่งคะแนนที่ปรึกษาที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?"} scoreGuard>
+                        {submitted ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนสรุป 25%"}
                       </SubmitButton>
                     </div>
                   </form>

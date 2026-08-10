@@ -14,7 +14,7 @@ describe("teacher score revision source coverage", () => {
     expect(actions).toContain('const isSubmittingScore = submitMode === "submit" || isScoreRevision');
     expect(actions).toContain("isScoreRevision && assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : null");
     expect(scoringPage).toContain("const isScoreFormUnavailable = !isProposalScoreEditable");
-    expect(scoringPage).toContain("บันทึกการแก้ไขคะแนน");
+    expect(scoringPage).toContain("ยืนยันส่งคะแนนที่แก้ไข");
   });
 
   it("shows submitted Progress and Final scores while their rounds remain editable", () => {
@@ -39,6 +39,6 @@ describe("teacher score revision source coverage", () => {
   it("keeps Advisor scoring editable until Admin completes the project", () => {
     const advisorPage = read("src/app/teacher/advisor-score/page.tsx");
     expect(advisorPage).toContain("isAdvisorScoreEditable(project.status)");
-    expect(advisorPage).toContain("บันทึกการแก้ไขคะแนนสรุป 25%");
+    expect(advisorPage).toContain("ยืนยันส่งคะแนนที่แก้ไข");
   });
 });

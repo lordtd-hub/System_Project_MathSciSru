@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
-import { findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
+import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
 import { submitProposalScore } from "../../actions";
 
@@ -278,6 +278,7 @@ export default async function ProposalScoringPage({
             </summary>
             {items.map((item) => {
               const proposalCriterion = findProposalQaCriterion(item.itemKey);
+              const hasPreviousScoreItem = previousScoreItems.has(item.id);
               const previousPoints = previousScoreItems.get(item.id)?.pointsAwarded ?? 0;
               const previousConditionCount = proposalCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
 
@@ -295,9 +296,16 @@ export default async function ProposalScoringPage({
                       </div>
                       <label className="min-w-44 text-sm font-medium">
                         เงื่อนไขที่ผ่าน
-                        <select name={`condition_count:${item.id}`} defaultValue={previousConditionCount} className="mt-1">
+                        <select
+                          name={`condition_count:${item.id}`}
+                          defaultValue={hasPreviousScoreItem ? previousConditionCount : ""}
+                          className="mt-1"
+                          required
+                          data-score-control="true"
+                        >
+                          <option value="" disabled>ยังไม่ได้เลือก</option>
                           {Array.from({ length: conditionMax + 1 }, (_, count) => (
-                            <option key={count} value={count}>
+                            <option key={count} value={count} data-score-points={calculateCriterionScore(proposalCriterion, count)}>
                               {count}/{conditionMax} เงื่อนไข
                             </option>
                           ))}
@@ -310,7 +318,15 @@ export default async function ProposalScoringPage({
 
               return (
                 <label key={item.id} className="flex min-h-14 items-start gap-3 rounded-md border border-line p-3">
-                  <input className="mt-1 h-5 w-5 shrink-0" type="checkbox" name="checked_item" value={item.id} defaultChecked={checked.has(item.id)} />
+                  <input
+                    className="mt-1 h-5 w-5 shrink-0"
+                    type="checkbox"
+                    name="checked_item"
+                    value={item.id}
+                    defaultChecked={checked.has(item.id)}
+                    data-score-control="true"
+                    data-score-points={item.points}
+                  />
                   <span className="flex-1">
                     <span className="block font-medium">
                       {item.itemLabelTh} ({item.points} คะแนน)
@@ -341,10 +357,16 @@ export default async function ProposalScoringPage({
           </div>
           <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
             {!hasSubmittedScore ? (
-              <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึก...">บันทึกข้อเสนอแนะ</SubmitButton>
+              <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึกร่าง...">บันทึกร่างข้อเสนอแนะ</SubmitButton>
             ) : null}
-            <SubmitButton name="submit_mode" value="submit" pendingText="กำลังส่งคะแนน..." confirmMessage={hasSubmittedScore ? "ยืนยันการบันทึกคะแนนการเสนอหัวข้อที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการส่งคะแนนการเสนอหัวข้อหรือไม่? หลังส่งแล้วระบบจะบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน"}>
-              {hasSubmittedScore ? "บันทึกการแก้ไขคะแนน" : "ส่งคะแนนการเสนอหัวข้อ"}
+            <SubmitButton
+              name="submit_mode"
+              value="submit"
+              pendingText="กำลังส่งคะแนน..."
+              confirmMessage={hasSubmittedScore ? "ยืนยันส่งคะแนนการเสนอหัวข้อที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการเสนอหัวข้อหรือไม่? ระบบจะบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน"}
+              scoreGuard
+            >
+              {hasSubmittedScore ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการเสนอหัวข้อ"}
             </SubmitButton>
           </div>
           </section>

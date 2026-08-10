@@ -13,7 +13,7 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
-import { findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
+import { calculateProgressQaCriterionScore, findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
 import { submitProgress1Score } from "../actions";
 
 function legacyFieldName(itemKey: string) {
@@ -178,6 +178,7 @@ export default async function TeacherProgress1Page({
                     {rubric.items.map((item) => {
                       const progressCriterion = findProgressQaCriterion(item.itemKey);
                       const displayItem = progressRubricItemLabels.get(item.itemKey) ?? item;
+                      const hasPreviousScoreItem = previousItems.has(item.itemKey);
                       const previousPoints = previousItems.get(item.itemKey) ?? 0;
                       const previousConditionCount = progressCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
 
@@ -192,9 +193,16 @@ export default async function TeacherProgress1Page({
                               </div>
                               <label className="min-w-44 text-sm font-medium">
                                 เงื่อนไขที่ผ่าน
-                                <select name={`condition_count:${item.id}`} defaultValue={previousConditionCount} className="mt-1">
+                                <select
+                                  name={`condition_count:${item.id}`}
+                                  defaultValue={hasPreviousScoreItem ? previousConditionCount : ""}
+                                  className="mt-1"
+                                  required
+                                  data-score-control="true"
+                                >
+                                  <option value="" disabled>ยังไม่ได้เลือก</option>
                                   {Array.from({ length: conditionMax + 1 }, (_, count) => (
-                                    <option key={count} value={count}>{count}/{conditionMax} เงื่อนไข</option>
+                                    <option key={count} value={count} data-score-points={calculateProgressQaCriterionScore(progressCriterion, count)}>{count}/{conditionMax} เงื่อนไข</option>
                                   ))}
                                 </select>
                               </label>
@@ -206,7 +214,7 @@ export default async function TeacherProgress1Page({
                       return (
                         <div key={item.id}>
                           <label>{displayItem.itemLabelTh} ({item.points})</label>
-                          <input name={legacyFieldName(item.itemKey)} type="number" min="0" max={item.points} step="1" defaultValue={previousPoints} required />
+                          <input name={legacyFieldName(item.itemKey)} type="number" min="0" max={item.points} step="1" defaultValue={hasPreviousScoreItem ? previousPoints : ""} required data-score-control="true" />
                         </div>
                       );
                     })}
@@ -215,8 +223,8 @@ export default async function TeacherProgress1Page({
                   <EmptyState title="ยังไม่มีเกณฑ์ประเมินสำหรับการสอบความก้าวหน้าครั้งที่ 1" description="ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนจึงจะบันทึกคะแนนได้" />
                 )}
                 <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
-                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังบันทึกคะแนน..." confirmMessage={previous ? "ยืนยันการบันทึกคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการบันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"}>
-                  {previous ? "บันทึกการแก้ไขคะแนน Progress 1" : "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1"}
+                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"} scoreGuard>
+                  {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1"}
                 </SubmitButton>
               </form>
             </section>
