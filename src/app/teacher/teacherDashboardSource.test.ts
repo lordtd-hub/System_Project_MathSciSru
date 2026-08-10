@@ -29,11 +29,15 @@ describe("teacher dashboard source", () => {
     expect(page).toContain("teacherActionableTaskCount");
     expect(page).not.toContain("การแจ้งเตือน");
     expect(page).not.toContain("prisma.notification.findMany");
-    expect(page).toContain("assignmentSubmitted");
-    expect(page).toContain("ดูผลประเมินที่ส่งแล้ว");
+    expect(page).not.toContain("assignmentSubmitted");
+    expect(page).toContain("Proposal ที่ต้องประเมิน");
     expect(page).toContain("pendingProposalScoreCount");
     expect(page).toContain("pendingProposalScoringAttemptWhere(evaluatorUserId)");
     expect(page).toContain("prisma.assessmentAttempt.count");
+    expect(page).toContain("const proposalPreviewLimit = 8");
+    expect(page).toContain("where: pendingProposalWhere");
+    expect(page).toContain("pendingProposalScoreCount > pendingProposalAttempts.length");
+    expect(page).toContain("ยังมีอีก {pendingProposalScoreCount - pendingProposalAttempts.length} งาน ดูทั้งหมด");
     expect(page).not.toContain("const pendingProposalScores = attempts.filter");
     expect(page).toContain("/teacher/advicees");
   });
