@@ -37,4 +37,3 @@ describe("teacher score completeness safeguards", () => {
     expect(feedback).toContain("score_rubric_incomplete");
   });
 });
-

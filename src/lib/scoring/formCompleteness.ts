@@ -4,4 +4,3 @@ export function missingScoreFieldNames(formData: FormData, fieldNames: string[])
     return typeof value !== "string" || value.trim() === "";
   });
 }
-

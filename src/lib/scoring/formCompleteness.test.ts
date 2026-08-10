@@ -21,4 +21,3 @@ describe("score form completeness", () => {
     expect(missingScoreFieldNames(formData, ["criterion"])).toEqual([]);
   });
 });
-
