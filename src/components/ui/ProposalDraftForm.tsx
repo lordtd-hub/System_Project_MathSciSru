@@ -117,6 +117,8 @@ export function DraftPreservingForm({
         if (target instanceof HTMLElement && target.closest("[data-draft-save],[data-proposal-draft-save]")) {
           event.preventDefault();
           saveDraft("saved");
+        } else if (target instanceof HTMLElement && target.closest('button[type="submit"],input[type="submit"]')) {
+          saveDraft();
         }
       }}
       onSubmit={() => saveDraft()}

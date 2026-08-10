@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { claimTeacherProfile } from "../actions";
@@ -36,7 +37,7 @@ export default async function TeacherClaimPage() {
             </option>
           ))}
         </select>
-        <button type="submit">ส่งคำขอ Claim</button>
+        <SubmitButton pendingText="กำลังส่งคำขอ...">ส่งคำขอ Claim</SubmitButton>
       </form>
     </div>
   );

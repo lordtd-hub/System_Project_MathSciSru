@@ -4,6 +4,7 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
@@ -68,7 +69,7 @@ export default async function TeacherProposalsPage() {
           ) : (
             <form action={openProposalScoring}>
               <input type="hidden" name="attempt_id" value={attempt.id} />
-              <button type="submit">เริ่มประเมิน</button>
+              <SubmitButton pendingText="กำลังเปิดแบบประเมิน...">เริ่มประเมิน</SubmitButton>
             </form>
           )}
         </div>

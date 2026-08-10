@@ -6,6 +6,7 @@ import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { WarningAlert } from "@/components/ui/Alert";
 import { prisma } from "@/lib/db";
@@ -523,7 +524,7 @@ export default async function TeacherDashboardPage() {
                       ) : (
                         <form action={openProposalScoring}>
                           <input type="hidden" name="attempt_id" value={attempt.id} />
-                          <button type="submit">เริ่มประเมิน</button>
+                          <SubmitButton pendingText="กำลังเปิดแบบประเมิน...">เริ่มประเมิน</SubmitButton>
                         </form>
                       )}
                     </div>
