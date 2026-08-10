@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildAppUrl, emailNotificationsEnabled, sendEmailNotification } from "./email";
-import { lineNotificationsEnabled, sendLineNotification } from "./line";
+import { LINE_NOTIFICATION_TIMEOUT_MS, lineNotificationsEnabled, sendLineNotification } from "./line";
 import {
   buildAdvisorRequestEmailTemplate,
   buildExamScheduleProposedEmailTemplate,
@@ -115,6 +115,7 @@ describe("notification transports", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("https://api.line.me/v2/bot/message/push", expect.objectContaining({
       method: "POST",
+      signal: expect.any(AbortSignal),
       headers: expect.objectContaining({
         Authorization: "Bearer line_token",
         "Content-Type": "application/json; charset=utf-8"
@@ -124,5 +125,6 @@ describe("notification transports", () => {
     expect(body.to).toBe("C-test-group");
     expect(body.messages[0].text).toContain("ระบบประเมินการนำเสนอโครงงาน");
     expect(body.messages[0].text).toContain("เปิดตารางสอบ");
+    expect(LINE_NOTIFICATION_TIMEOUT_MS).toBe(5_000);
   });
 });
