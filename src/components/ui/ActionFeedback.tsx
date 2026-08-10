@@ -16,16 +16,23 @@ const successMessages: Record<string, string> = {
   proposal_submitted: "ส่งเอกสารเสนอหัวข้อแล้ว",
   advisor_request_reviewed: "บันทึกผลคำขอที่ปรึกษาแล้ว",
   proposal_score_saved: "บันทึกข้อเสนอแนะแล้ว",
+  proposal_score_draft_saved: "บันทึกร่างข้อเสนอแนะแล้ว ยังไม่ได้ส่งคะแนน",
+  proposal_score_submitted: "ส่งคะแนนการเสนอหัวข้อเรียบร้อยแล้ว",
+  proposal_score_updated: "ส่งคะแนนการเสนอหัวข้อที่แก้ไขเรียบร้อยแล้ว",
   assessment_evidence_saved: "บันทึกเอกสารรอบสอบเรียบร้อยแล้ว",
   schedule_saved: "บันทึกข้อเสนอวันสอบเรียบร้อยแล้ว",
-  progress_1_score_saved: "บันทึกคะแนนสอบความก้าวหน้าครั้งที่ 1 เรียบร้อยแล้ว",
-  progress_2_score_saved: "บันทึกคะแนนสอบความก้าวหน้าครั้งที่ 2 เรียบร้อยแล้ว",
-  final_score_saved: "บันทึกคะแนนสอบนำเสนอขั้นสุดท้ายเรียบร้อยแล้ว",
+  progress_1_score_saved: "ส่งคะแนนสอบความก้าวหน้าครั้งที่ 1 เรียบร้อยแล้ว",
+  progress_1_score_updated: "ส่งคะแนนสอบความก้าวหน้าครั้งที่ 1 ที่แก้ไขเรียบร้อยแล้ว",
+  progress_2_score_saved: "ส่งคะแนนสอบความก้าวหน้าครั้งที่ 2 เรียบร้อยแล้ว",
+  progress_2_score_updated: "ส่งคะแนนสอบความก้าวหน้าครั้งที่ 2 ที่แก้ไขเรียบร้อยแล้ว",
+  final_score_saved: "ส่งคะแนนสอบนำเสนอขั้นสุดท้ายเรียบร้อยแล้ว",
+  final_score_updated: "ส่งคะแนนสอบนำเสนอขั้นสุดท้ายที่แก้ไขเรียบร้อยแล้ว",
   report_submitted: "ส่งเล่มรายงานเรียบร้อยแล้ว",
   report_review_saved: "บันทึกผลตรวจเล่มเรียบร้อยแล้ว",
   report_revision_requested: "บันทึกผลขอแก้ไขรายงานแล้ว",
   report_approved: "อนุมัติเล่มรายงานแล้ว",
-  advisor_score_saved: "บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25% เรียบร้อยแล้ว",
+  advisor_score_saved: "ส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% เรียบร้อยแล้ว",
+  advisor_score_updated: "ส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% ที่แก้ไขเรียบร้อยแล้ว",
   project_completed: "ยืนยันจบโครงงานเรียบร้อยแล้ว",
   teacher_claim_reviewed: "บันทึกผลคำขอผูกบัญชีอาจารย์แล้ว"
 };
@@ -46,6 +53,7 @@ const errorMessages: Record<string, string> = {
   teacher_text_too_long: "ข้อความที่กรอกยาวเกินกว่าที่ระบบรองรับ กรุณาย่อข้อความแล้วลองอีกครั้ง",
   teacher_markdown_invalid: "ข้อความที่กรอกมีรูปแบบที่ระบบไม่รองรับ กรุณาลบ HTML หรือปรับข้อความแล้วลองอีกครั้ง",
   teacher_score_invalid: "ข้อมูลคะแนนไม่ครบถ้วนหรืออยู่นอกช่วงที่กำหนด กรุณาตรวจคะแนนแล้วส่งใหม่อีกครั้ง",
+  score_rubric_incomplete: "ยังไม่ได้ให้คะแนนครบทุกหัวข้อ กรุณาเลือกคะแนนในหัวข้อที่ยังขาดก่อนยืนยันส่งคะแนน",
   schedule_review_decision_invalid: "ผลการพิจารณาวันสอบไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
   schedule_reject_reason_required: "กรุณาระบุเหตุผลในช่องหมายเหตุก่อนกดไม่อนุมัติวันสอบ",
   proposal_decision_invalid: "ผลการพิจารณา Proposal ไม่ถูกต้อง กรุณาเลือกผลการประเมินแล้วลองอีกครั้ง",
@@ -81,6 +89,7 @@ errorMessages.proposal_must_close_first = "ต้องเปิดและป�
 errorMessages.progress_1_not_ready = "ยังไม่มีโครงงานที่พร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1";
 errorMessages.progress_1_must_close_first = "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 1 ก่อน แล้วจึงเปิดรอบสอบความก้าวหน้าครั้งที่ 2";
 errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 2 ก่อน แล้วจึงเปิดรอบสอบนำเสนอขั้นสุดท้าย";
+errorMessages.score_editing_closed = "ปิดรับการแก้ไขคะแนนแล้ว เนื่องจากผู้ดูแลระบบยืนยันผลหรือปิดรอบนี้แล้ว";
 errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้นแล้ว";
 errorMessages.round_reset_not_needed = "รอบนี้ยังไม่ได้เปิด จึงไม่ต้องรีเซต";
 errorMessages.test_tools_disabled = "โหมดทดสอบระบบยังไม่ได้เปิดใช้งาน";

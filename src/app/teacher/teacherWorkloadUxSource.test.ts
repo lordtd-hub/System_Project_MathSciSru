@@ -89,7 +89,7 @@ describe("teacher workload UX source", () => {
     expect(reports).toContain("latestReportHasRevisionRequest");
     expect(reports).toContain("allRequiredReportReviewersPassed");
     expect(advisorScore).toContain("advisorQueueOrder");
-    expect(advisorScore).toContain('project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING"');
+    expect(advisorScore).toContain("isAdvisorScoreEditable(project.status)");
     expect(advisorScore).toContain('previous?.status === "SUBMITTED"');
   });
 });

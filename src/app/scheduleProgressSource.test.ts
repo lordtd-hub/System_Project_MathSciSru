@@ -115,27 +115,28 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(teacherActions).toContain('nextStatus = decision === "REJECT"');
   });
 
-  it("keeps Progress 1 scoring assigned-teacher only and duplicate-safe", () => {
+  it("keeps Progress 1 scoring assigned-teacher only and revision-safe", () => {
     const actions = read("src/app/teacher/actions.ts");
     expect(actions).toContain("submitProgress1Score");
     expect(actions).toContain("hasApprovedTeacherCapability(user)");
     expect(actions).toContain('project.status !== "IN_PROGRESS"');
     expect(actions).toContain('["HEAD", "MEMBER"].includes(assignment.role)');
     expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_1", "การสอบความก้าวหน้าครั้งที่ 1")');
-    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 1")');
+    expect(actions).toContain('assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress1")');
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
     expect(actions).toContain("scoreSubmission.upsert");
+    expect(actions).toContain("previousTotalScore");
   });
 
-  it("keeps Progress 2 scoring assigned-teacher only and duplicate-safe", () => {
+  it("keeps Progress 2 scoring assigned-teacher only and revision-safe", () => {
     const actions = read("src/app/teacher/actions.ts");
     const page = read("src/app/teacher/progress2/page.tsx");
     expect(actions).toContain("submitProgress2Score");
     expect(actions).toContain('roundType: "PROGRESS_2"');
     expect(actions).toContain('attemptType: "PROGRESS_2"');
     expect(actions).toContain('assertConfirmedSchedule(project.id, "PROGRESS_2", "การสอบความก้าวหน้าครั้งที่ 2")');
-    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 2")');
+    expect(actions).toContain('assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress2")');
     expect(actions).toContain("validateProgress2Score");
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");
@@ -145,14 +146,14 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("submitProgress2Score");
   });
 
-  it("keeps Final Presentation scoring assigned-teacher only and duplicate-safe", () => {
+  it("keeps Final Presentation scoring assigned-teacher only and revision-safe", () => {
     const actions = read("src/app/teacher/actions.ts");
     const page = read("src/app/teacher/final/page.tsx");
     expect(actions).toContain("submitFinalPresentationScore");
     expect(actions).toContain('roundType: "FINAL_PRESENTATION"');
     expect(actions).toContain('attemptType: "FINAL_PRESENTATION"');
     expect(actions).toContain('assertConfirmedSchedule(project.id, "FINAL_PRESENT", "การสอบนำเสนอขั้นสุดท้าย")');
-    expect(actions).toContain('assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบนำเสนอขั้นสุดท้าย")');
+    expect(actions).toContain('assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/final")');
     expect(actions).toContain("finalQaRubricItems");
     expect(actions).toContain("calculateFinalQaCriterionScore");
     expect(actions).toContain("assessmentAttempt.upsert");

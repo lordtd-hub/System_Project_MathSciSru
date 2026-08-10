@@ -15,6 +15,8 @@ import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
+import { isPresentationScoreEditable, isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
+import { missingScoreFieldNames } from "@/lib/scoring/formCompleteness";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
 import { calculateFinalQaCriterionScore, finalQaRubricItems, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
@@ -55,6 +57,18 @@ function redirectIfTeacherFormInvalid(errors: string[], path: string, error = "t
   }
 }
 
+function redirectIfScoreFieldsIncomplete(formData: FormData, fieldNames: string[], path: string) {
+  if (missingScoreFieldNames(formData, fieldNames).length > 0) {
+    redirectWithQuery(path, { error: "score_rubric_incomplete" });
+  }
+}
+
+function progressScoreFieldName(itemKey: string) {
+  if (itemKey === "problemSolving") return "problem_solving";
+  if (itemKey === "researchResults") return "research_results";
+  return itemKey;
+}
+
 async function requireTeacherUser() {
   const session = await auth();
   if (!session?.user.id || (!hasApprovedTeacherCapability(session.user) && session.user.role !== "PENDING_TEACHER")) {
@@ -81,22 +95,18 @@ async function assertConfirmedSchedule(projectId: string, assessmentKind: "PROGR
   }
 }
 
-async function assertScoreNotAlreadySubmitted(projectId: string, assessmentRoundId: string, teacherId: string, label: string) {
-  const existingSubmission = await prisma.scoreSubmission.findFirst({
-    where: {
-      status: "SUBMITTED",
-      evaluatorAssignment: {
-        teacherId,
-        assessmentAttempt: {
-          projectId,
-          assessmentRoundId
-        }
-      }
-    },
-    select: { id: true }
+async function assertPresentationScoreRoundEditable(
+  projectId: string,
+  assessmentRoundId: string,
+  roundStatus: Parameters<typeof isPresentationScoreEditable>[0]["roundStatus"],
+  redirectPath: string
+) {
+  const roundExceptions = await prisma.projectRoundException.findMany({
+    where: { projectId, assessmentRoundId, status: "OPEN" },
+    select: { exceptionType: true, status: true }
   });
-  if (existingSubmission) {
-    throw new Error(`${label} บันทึกคะแนนของอาจารย์ท่านนี้แล้ว ไม่สามารถส่งซ้ำได้`);
+  if (!isPresentationScoreEditable({ roundStatus, roundExceptions })) {
+    redirectWithQuery(redirectPath, { error: "score_editing_closed" });
   }
 }
 
@@ -418,14 +428,11 @@ export async function submitProposalScore(formData: FormData) {
     where: { id: assignmentId },
     include: {
       assessmentAttempt: { include: { assessmentRound: true, proposalResult: true } },
-      scoreSubmission: { select: { status: true, lockedAt: true } }
+      scoreSubmission: { select: { status: true, lockedAt: true, totalScore: true } }
     }
   }));
   if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
   if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
-  if (assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.lockedAt) {
-    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_score_locked" });
-  }
   if (assignment.assessmentAttempt.proposalResult) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_decision_already_saved" });
   }
@@ -437,7 +444,11 @@ export async function submitProposalScore(formData: FormData) {
     },
     select: { exceptionType: true, status: true }
   });
-  if (assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasOpenLateRoundException(proposalRoundExceptions)) {
+  if (!isProposalScoreEditable({
+    roundStatus: assignment.assessmentAttempt.assessmentRound.status,
+    hasAdminDecision: false,
+    roundExceptions: proposalRoundExceptions
+  })) {
     redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_round_not_open" });
   }
 
@@ -469,11 +480,22 @@ export async function submitProposalScore(formData: FormData) {
     assignment.assessmentAttempt.assessmentRoundId,
     scoreResult.totalScore
   );
-  const decisionErrors = submitMode === "submit" ? validateProposalDecision(decision, reason) : [];
+  const isScoreRevision = assignment.scoreSubmission?.status === "SUBMITTED" || assignment.status === "SUBMITTED";
+  const isSubmittingScore = submitMode === "submit" || isScoreRevision;
+  if (isSubmittingScore) {
+    redirectIfScoreFieldsIncomplete(
+      formData,
+      rubric.items
+        .filter((item) => Boolean(findProposalQaCriterion(item.itemKey)))
+        .map((item) => `condition_count:${item.id}`),
+      scoringPath
+    );
+  }
+  const decisionErrors = isSubmittingScore ? validateProposalDecision(decision, reason) : [];
   if (decisionErrors.length) {
     redirectWithQuery(scoringPath, { error: "proposal_decision_reason_required" });
   }
-  if (submitMode === "submit" && !overallComment) {
+  if (isSubmittingScore && !overallComment) {
     redirectWithQuery(scoringPath, { error: "proposal_feedback_required" });
   }
 
@@ -482,17 +504,17 @@ export async function submitProposalScore(formData: FormData) {
     update: {
       totalScore: scoreAdjustment.score,
       overallComment,
-      status: submitMode === "submit" ? "SUBMITTED" : "DRAFT",
-      submittedAt: submitMode === "submit" ? new Date() : null,
-      lockedAt: submitMode === "submit" ? new Date() : null
+      status: isSubmittingScore ? "SUBMITTED" : "DRAFT",
+      submittedAt: isSubmittingScore ? new Date() : null,
+      lockedAt: isSubmittingScore ? new Date() : null
     },
     create: {
       evaluatorAssignmentId: assignmentId,
       totalScore: scoreAdjustment.score,
       overallComment,
-      status: submitMode === "submit" ? "SUBMITTED" : "DRAFT",
-      submittedAt: submitMode === "submit" ? new Date() : null,
-      lockedAt: submitMode === "submit" ? new Date() : null
+      status: isSubmittingScore ? "SUBMITTED" : "DRAFT",
+      submittedAt: isSubmittingScore ? new Date() : null,
+      lockedAt: isSubmittingScore ? new Date() : null
     }
   }));
 
@@ -543,7 +565,7 @@ export async function submitProposalScore(formData: FormData) {
     }
   });
 
-  if (submitMode === "submit") {
+  if (isSubmittingScore) {
     await prisma.evaluatorAssignment.update({ where: { id: assignmentId }, data: { status: "SUBMITTED" } });
     const remainingAssignments = await prisma.evaluatorAssignment.count({
       where: {
@@ -573,7 +595,7 @@ export async function submitProposalScore(formData: FormData) {
       data: {
         projectId: assignment.assessmentAttempt.projectId,
         eventType: "TEACHER_SCORE_SUBMITTED",
-        eventTitle: "อาจารย์ส่งคะแนนการเสนอหัวข้อ",
+        eventTitle: isScoreRevision ? "อาจารย์แก้ไขคะแนนการเสนอหัวข้อ" : "อาจารย์ส่งคะแนนการเสนอหัวข้อ",
         actorUserId: user.id,
         relatedEntityType: "ScoreSubmission",
         relatedEntityId: scoreSubmission.id,
@@ -582,6 +604,8 @@ export async function submitProposalScore(formData: FormData) {
           rawTotalScore: scoreAdjustment.rawScore,
           latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
           latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
+          isRevision: isScoreRevision,
+          previousTotalScore: isScoreRevision && assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : null,
           criticalWarnings: scoreResult.criticalWarnings
         }
       }
@@ -590,7 +614,11 @@ export async function submitProposalScore(formData: FormData) {
 
   revalidatePath(`/teacher/scoring/${assignmentId}`);
   timer.end("redirect");
-  redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { success: "proposal_score_saved" });
+  redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, {
+    success: isSubmittingScore
+      ? (isScoreRevision ? "proposal_score_updated" : "proposal_score_submitted")
+      : "proposal_score_draft_saved"
+  });
 }
 
 async function ensureProgress1Rubric() {
@@ -762,8 +790,13 @@ export async function submitProgress1Score(formData: FormData) {
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
   }));
-  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 1");
+  await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress1");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    rubric.items.map((item) => findProgressQaCriterion(item.itemKey) ? `condition_count:${item.id}` : progressScoreFieldName(item.itemKey)),
+    "/teacher/progress1"
+  );
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
     problemSolving: input.problemSolving,
@@ -812,6 +845,10 @@ export async function submitProgress1Score(formData: FormData) {
       isRequired: true
     }
   });
+  const previousSubmission = await prisma.scoreSubmission.findUnique({
+    where: { evaluatorAssignmentId: assignment.id },
+    select: { totalScore: true }
+  });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
     update: { totalScore: scoreAdjustment.score, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
@@ -831,7 +868,7 @@ export async function submitProgress1Score(formData: FormData) {
     data: {
       projectId: project.id,
       eventType: "PROGRESS_1_SCORE_SUBMITTED",
-      eventTitle: "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1",
+      eventTitle: previousSubmission ? "แก้ไขคะแนนการสอบความก้าวหน้าครั้งที่ 1" : "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1",
       eventDescription: comment || null,
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
@@ -840,7 +877,9 @@ export async function submitProgress1Score(formData: FormData) {
         totalScore: scoreAdjustment.score,
         rawTotalScore: scoreAdjustment.rawScore,
         latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
-        latePenaltyPercent: scoreAdjustment.latePenaltyPercent
+        latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
+        isRevision: Boolean(previousSubmission),
+        previousTotalScore: previousSubmission ? Number(previousSubmission.totalScore) : null
       }
     }
   }));
@@ -849,7 +888,7 @@ export async function submitProgress1Score(formData: FormData) {
   revalidatePath("/teacher");
   revalidatePath("/student");
   timer.end("redirect");
-  redirect("/teacher/progress1?success=progress_1_score_saved");
+  redirect(`/teacher/progress1?success=${previousSubmission ? "progress_1_score_updated" : "progress_1_score_saved"}`);
 }
 
 export async function submitProgress2Score(formData: FormData) {
@@ -886,8 +925,13 @@ export async function submitProgress2Score(formData: FormData) {
   const round = await timer.measure("load_round", () => prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
   }));
-  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบความก้าวหน้าครั้งที่ 2");
+  await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress2");
   const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    rubric.items.map((item) => findProgressQaCriterion(item.itemKey) ? `condition_count:${item.id}` : progressScoreFieldName(item.itemKey)),
+    "/teacher/progress2"
+  );
   const valuesByKey: Record<string, number> = {
     progress: input.progress,
     problemSolving: input.problemSolving,
@@ -936,6 +980,10 @@ export async function submitProgress2Score(formData: FormData) {
       isRequired: true
     }
   });
+  const previousSubmission = await prisma.scoreSubmission.findUnique({
+    where: { evaluatorAssignmentId: assignment.id },
+    select: { totalScore: true }
+  });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
     update: { totalScore: scoreAdjustment.score, overallComment: comment || null, status: "SUBMITTED", submittedAt: new Date(), lockedAt: new Date() },
@@ -955,7 +1003,7 @@ export async function submitProgress2Score(formData: FormData) {
     data: {
       projectId: project.id,
       eventType: "PROGRESS_2_SCORE_SUBMITTED",
-      eventTitle: "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2",
+      eventTitle: previousSubmission ? "แก้ไขคะแนนการสอบความก้าวหน้าครั้งที่ 2" : "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 2",
       eventDescription: comment || null,
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
@@ -964,7 +1012,9 @@ export async function submitProgress2Score(formData: FormData) {
         totalScore: scoreAdjustment.score,
         rawTotalScore: scoreAdjustment.rawScore,
         latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
-        latePenaltyPercent: scoreAdjustment.latePenaltyPercent
+        latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
+        isRevision: Boolean(previousSubmission),
+        previousTotalScore: previousSubmission ? Number(previousSubmission.totalScore) : null
       }
     }
   }));
@@ -973,7 +1023,7 @@ export async function submitProgress2Score(formData: FormData) {
   revalidatePath("/teacher");
   revalidatePath("/student");
   timer.end("redirect");
-  redirect("/teacher/progress2?success=progress_2_score_saved");
+  redirect(`/teacher/progress2?success=${previousSubmission ? "progress_2_score_updated" : "progress_2_score_saved"}`);
 }
 
 export async function submitFinalPresentationScore(formData: FormData) {
@@ -993,7 +1043,9 @@ export async function submitFinalPresentationScore(formData: FormData) {
     where: { id: projectId },
     include: { committeeAssignments: true }
   }));
-  if (project.status !== "IN_PROGRESS") throw new Error("บันทึกคะแนนสอบนำเสนอขั้นสุดท้ายได้เฉพาะโครงงานที่อยู่ระหว่างดำเนินงาน");
+  if (project.status !== "IN_PROGRESS" && project.status !== "FINAL_DONE") {
+    throw new Error("บันทึกคะแนนสอบนำเสนอขั้นสุดท้ายได้เฉพาะโครงงานที่อยู่ระหว่างดำเนินงานหรือรอยืนยันปิดรอบ Final");
+  }
   const assigned = project.committeeAssignments.some(
     (assignment) => assignment.active && assignment.teacherId === teacher.id && ["HEAD", "MEMBER"].includes(assignment.role)
   );
@@ -1005,8 +1057,13 @@ export async function submitFinalPresentationScore(formData: FormData) {
   }));
   if (!round) throw new Error("ยังไม่มีรอบสอบนำเสนอขั้นสุดท้ายระดับรายวิชา");
 
-  await assertScoreNotAlreadySubmitted(project.id, round.id, teacher.id, "การสอบนำเสนอขั้นสุดท้าย");
+  await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/final");
   const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    rubric.items.map((item) => `condition_count:${item.itemKey}`),
+    "/teacher/final"
+  );
   const scoredItems = rubric.items.map((item) => {
     const qaCriterion = findFinalQaCriterion(item.itemKey);
     if (qaCriterion) {
@@ -1047,6 +1104,10 @@ export async function submitFinalPresentationScore(formData: FormData) {
       isRequired: true
     }
   });
+  const previousSubmission = await prisma.scoreSubmission.findUnique({
+    where: { evaluatorAssignmentId: assignment.id },
+    select: { totalScore: true }
+  });
   const scoreSubmission = await prisma.scoreSubmission.upsert({
     where: { evaluatorAssignmentId: assignment.id },
     update: {
@@ -1079,7 +1140,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
     data: {
       projectId: project.id,
       eventType: "FINAL_PRESENTATION_SCORE_SUBMITTED",
-      eventTitle: "บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย",
+      eventTitle: previousSubmission ? "แก้ไขคะแนนการสอบนำเสนอขั้นสุดท้าย" : "บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย",
       eventDescription: comment || null,
       actorUserId: user.id,
       relatedEntityType: "ScoreSubmission",
@@ -1089,7 +1150,9 @@ export async function submitFinalPresentationScore(formData: FormData) {
         totalScore: scoreAdjustment.score,
         rawTotalScore: scoreAdjustment.rawScore,
         latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
-        latePenaltyPercent: scoreAdjustment.latePenaltyPercent
+        latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
+        isRevision: Boolean(previousSubmission),
+        previousTotalScore: previousSubmission ? Number(previousSubmission.totalScore) : null
       }
     }
   }));
@@ -1150,7 +1213,7 @@ export async function submitFinalPresentationScore(formData: FormData) {
   revalidatePath("/student");
   revalidatePath("/student/report");
   timer.end("redirect");
-  redirect("/teacher/final?success=final_score_saved");
+  redirect(`/teacher/final?success=${previousSubmission ? "final_score_updated" : "final_score_saved"}`);
 }
 
 export async function reviewReportVersion(formData: FormData) {
@@ -1308,6 +1371,11 @@ export async function submitAdvisorScore(formData: FormData) {
   const projectId = String(formData.get("project_id") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา", "/teacher/advisor-score");
+  redirectIfScoreFieldsIncomplete(
+    formData,
+    ["responsibility", "research_process", "problem_solving", "communication", "professionalism"],
+    "/teacher/advisor-score"
+  );
   const input: AdvisorScoreInput = {
     responsibility: Number(formData.get("responsibility")),
     researchProcess: Number(formData.get("research_process")),
@@ -1394,12 +1462,16 @@ export async function submitAdvisorScore(formData: FormData) {
       data: {
         projectId: project.id,
         eventType: "ADVISOR_SCORE_SUBMITTED",
-        eventTitle: "บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25%",
+        eventTitle: project.advisorScore ? "แก้ไขคะแนนสรุปของอาจารย์ที่ปรึกษา 25%" : "บันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25%",
         eventDescription: comment || null,
         actorUserId: user.id,
         relatedEntityType: "AdvisorScore",
         relatedEntityId: saved.id,
-        metadataJson: { totalScore: total }
+        metadataJson: {
+          totalScore: total,
+          isRevision: Boolean(project.advisorScore),
+          previousTotalScore: project.advisorScore?.score == null ? null : Number(project.advisorScore.score)
+        }
       }
     });
 
@@ -1409,5 +1481,8 @@ export async function submitAdvisorScore(formData: FormData) {
   revalidatePath("/teacher/advisor-score");
   revalidatePath("/student/report");
   timer.end("redirect");
-  redirectWithQuery("/teacher/advisor-score", { success: "advisor_score_saved", score_id: score.id });
+  redirectWithQuery("/teacher/advisor-score", {
+    success: project.advisorScore ? "advisor_score_updated" : "advisor_score_saved",
+    score_id: score.id
+  });
 }

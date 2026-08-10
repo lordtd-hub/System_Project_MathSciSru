@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { submitAdvisorScore } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
@@ -12,6 +13,7 @@ import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/Teach
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { advisorCriteria } from "@/lib/scoring/advisorScoring";
+import { isAdvisorScoreEditable } from "@/lib/scoring/scoreEditability";
 
 function fieldName(key: string) {
   if (key === "researchProcess") return "research_process";
@@ -26,13 +28,13 @@ function previousValue(score: {
   communicationScore: number | null;
   professionalismScore: number | null;
 } | null | undefined, key: string) {
-  if (!score) return 0;
-  if (key === "responsibility") return score.responsibilityScore ?? 0;
-  if (key === "researchProcess") return score.researchProcessScore ?? 0;
-  if (key === "problemSolving") return score.problemSolvingScore ?? 0;
-  if (key === "communication") return score.communicationScore ?? 0;
-  if (key === "professionalism") return score.professionalismScore ?? 0;
-  return 0;
+  if (!score) return "";
+  if (key === "responsibility") return score.responsibilityScore ?? "";
+  if (key === "researchProcess") return score.researchProcessScore ?? "";
+  if (key === "problemSolving") return score.problemSolvingScore ?? "";
+  if (key === "communication") return score.communicationScore ?? "";
+  if (key === "professionalism") return score.professionalismScore ?? "";
+  return "";
 }
 
 function advisorScoreSummary(score: {
@@ -97,9 +99,9 @@ export default async function TeacherAdvisorScorePage({
   } as const;
   const advisorQueueItems = projects.map((project) => {
     const submitted = project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null;
-    const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
-    if (submitted) return { projectId: project.id, state: "completed" as const };
+    const editable = isAdvisorScoreEditable(project.status);
     if (editable) return { projectId: project.id, state: "action" as const };
+    if (submitted) return { projectId: project.id, state: "completed" as const };
     if (project.status === "REPORT_REVIEW") return { projectId: project.id, state: "waiting" as const };
     return { projectId: project.id, state: "locked" as const };
   });
@@ -121,9 +123,9 @@ export default async function TeacherAdvisorScorePage({
       <ActionFeedback success={params.success} error={params.error} />
       <TeacherWorkloadSummary
         metrics={[
-          { label: "ต้องดำเนินการ", count: advisorQueueCount("action"), tone: "action", description: "พร้อมบันทึกคะแนนที่ปรึกษา" },
+          { label: "บันทึก/แก้ไข", count: advisorQueueCount("action"), tone: "action", description: "แก้ไขได้จนผู้ดูแลระบบปิดโครงงาน" },
           { label: "รอ", count: advisorQueueCount("waiting"), tone: "waiting", description: "รอรายงานผ่านครบก่อน" },
-          { label: "เสร็จแล้ว", count: advisorQueueCount("completed"), tone: "completed", description: "ส่งคะแนนแล้ว อ่านย้อนหลังได้" },
+          { label: "ยืนยันแล้ว", count: advisorQueueCount("completed"), tone: "completed", description: "โครงงานปิดแล้ว อ่านย้อนหลังได้" },
           { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับคะแนนที่ปรึกษา" },
           { label: "ยังไม่พร้อม", count: advisorQueueCount("locked"), tone: "locked", description: "ยังไม่ถึงขั้นตอนบันทึกคะแนน" }
         ]}
@@ -134,7 +136,7 @@ export default async function TeacherAdvisorScorePage({
           sortedProjects.map((project) => {
             const previous = project.advisorScore;
             const submitted = previous?.status === "SUBMITTED" && previous.score != null;
-            const editable = !submitted && (project.status === "REPORT_APPROVED" || project.status === "ADVISOR_SCORING");
+            const editable = isAdvisorScoreEditable(project.status);
             const latestReport = project.reportVersions[0];
             const queueState = advisorQueueStateByProjectId.get(project.id) ?? "locked";
             return (
@@ -157,7 +159,7 @@ export default async function TeacherAdvisorScorePage({
                   {previous?.status === "SUBMITTED" ? `บันทึกแล้ว ${Number(previous.score ?? 0)}/100` : editable ? "พร้อมบันทึก" : "ยังล็อก"}
                 </div>
 
-                {submitted ? (
+                {submitted && !editable ? (
                   <div className="mt-4 space-y-4 rounded-md border border-line bg-paper p-3 text-sm">
                     <div>
                       <div className="font-semibold text-ink">บันทึกคะแนนสรุปแล้ว</div>
@@ -188,6 +190,11 @@ export default async function TeacherAdvisorScorePage({
                 ) : (
                   <form action={submitAdvisorScore} className="mt-4 space-y-4">
                     <input type="hidden" name="project_id" value={project.id} />
+                    {submitted ? (
+                      <InfoAlert title="คะแนนถูกส่งแล้วและยังแก้ไขได้">
+                        อาจารย์ที่ปรึกษาสามารถแก้คะแนนและข้อเสนอแนะได้จนกว่าผู้ดูแลระบบจะยืนยันปิดโครงงาน
+                      </InfoAlert>
+                    ) : null}
                     <div className="rounded-md border border-line bg-paper p-3">
                       <h3 className="text-sm font-semibold">เกณฑ์คะแนนสรุปของอาจารย์ที่ปรึกษา</h3>
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -205,6 +212,7 @@ export default async function TeacherAdvisorScorePage({
                               step="1"
                               defaultValue={previousValue(previous, criterion.key)}
                               required
+                              data-score-control="true"
                             />
                           </label>
                         ))}
@@ -212,8 +220,8 @@ export default async function TeacherAdvisorScorePage({
                     </div>
                     <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
                     <div>
-                      <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?">
-                        บันทึกคะแนนสรุป 25%
+                      <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={submitted ? "ยืนยันส่งคะแนนที่ปรึกษาที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?"} scoreGuard>
+                        {submitted ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนสรุป 25%"}
                       </SubmitButton>
                     </div>
                   </form>
