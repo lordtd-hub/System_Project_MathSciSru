@@ -59,7 +59,7 @@ describe("late round policy source coverage", () => {
     const teacherProposalList = read("src/app/teacher/proposals/page.tsx");
     const proposalWorkload = read("src/lib/scoring/proposalWorkload.ts");
     const teacherScoringPage = read("src/app/teacher/scoring/[assignmentId]/page.tsx");
-    expect(teacherDashboard).toContain("openProposalScoringAttemptWhere()");
+    expect(teacherDashboard).toContain("pendingProposalScoringAttemptWhere(evaluatorUserId)");
     expect(teacherProposalList).toContain("openProposalScoringAttemptWhere()");
     expect(proposalWorkload).toContain("LATE_ROUND_EXCEPTION_TYPE");
     expect(proposalWorkload).toContain("LATE_ROUND_EXCUSED_EXCEPTION_TYPE");

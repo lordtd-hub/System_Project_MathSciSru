@@ -12,7 +12,7 @@ describe("proposal decision queue source checks", () => {
     const teacherActions = read("src/app/teacher/actions.ts");
     const teacherScoringPage = read("src/app/teacher/scoring/[assignmentId]/page.tsx");
 
-    expect(teacherDashboard).toContain("openProposalScoringAttemptWhere()");
+    expect(teacherDashboard).toContain("pendingProposalScoringAttemptWhere(evaluatorUserId)");
     expect(teacherProposalList).toContain("openProposalScoringAttemptWhere()");
     expect(proposalWorkload).toContain("proposalResult: { is: null }");
     expect(teacherActions).toContain("proposal_decision_already_saved");

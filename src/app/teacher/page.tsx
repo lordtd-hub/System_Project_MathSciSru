@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
-import { openProposalScoringAttemptWhere, pendingProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
+import { pendingProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
 import { openProposalScoring } from "./actions";
 
 function assessmentKindLabel(kind?: string | null) {
@@ -186,31 +186,32 @@ export default async function TeacherDashboardPage() {
       select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, email: true }
     })
   );
-  const proposalScoringWhere = openProposalScoringAttemptWhere();
+  const proposalPreviewLimit = 8;
+  const pendingProposalWhere = pendingProposalScoringAttemptWhere(evaluatorUserId);
   const independentTeacherQueries = timer.measure("teacher_independent_queries", () => Promise.all([
     prisma.assessmentAttempt.findMany({
-      where: proposalScoringWhere,
+      where: pendingProposalWhere,
       select: {
         id: true,
         presentationSubmission: { select: { titleTh: true } },
         project: { select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } } },
         evaluatorAssignments: {
           where: { evaluatorUserId },
-          select: { id: true, scoreSubmission: { select: { status: true } } }
+          select: { id: true }
         }
       },
       orderBy: { createdAt: "desc" },
-      take: 8
+      take: proposalPreviewLimit
     }),
     prisma.assessmentAttempt.count({
-      where: pendingProposalScoringAttemptWhere(evaluatorUserId)
+      where: pendingProposalWhere
     })
   ]));
   const sessionTeacherWorkloadQuery = sessionTeacherId
     ? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(sessionTeacherId))
     : null;
 
-  const [teacher, [attempts, pendingProposalScoreCount]] = await Promise.all([teacherQuery, independentTeacherQueries]);
+  const [teacher, [pendingProposalAttempts, pendingProposalScoreCount]] = await Promise.all([teacherQuery, independentTeacherQueries]);
 
   if (!teacher) {
     timer.end("missing_teacher_profile");
@@ -488,12 +489,11 @@ export default async function TeacherDashboardPage() {
       />
       <div className="grid gap-4">
         <section className="panel dashboard-console-panel">
-          <h2 className="text-lg font-semibold">เอกสารเสนอหัวข้อที่เกี่ยวข้อง</h2>
+          <h2 className="text-lg font-semibold">Proposal ที่ต้องประเมิน</h2>
           <div className="mt-3 space-y-3">
-            {attempts.length ? (
-              attempts.map((attempt) => {
+            {pendingProposalAttempts.length ? (
+              pendingProposalAttempts.map((attempt) => {
                 const assignment = attempt.evaluatorAssignments[0];
-                const assignmentSubmitted = assignment?.scoreSubmission?.status === submittedScoreStatus;
                 return (
                   <div key={attempt.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line p-3">
                     <div>
@@ -504,9 +504,7 @@ export default async function TeacherDashboardPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Link className="button-secondary" href={`/projects/${attempt.project.id}`}>ดูแฟ้มโครงงาน</Link>
-                      {assignmentSubmitted ? (
-                        <Link className="button-secondary" href={`/teacher/scoring/${assignment.id}`}>ดูผลประเมินที่ส่งแล้ว</Link>
-                      ) : assignment ? (
+                      {assignment ? (
                         <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
                       ) : (
                         <form action={openProposalScoring}>
@@ -519,8 +517,15 @@ export default async function TeacherDashboardPage() {
                 );
               })
             ) : (
-              <EmptyState title="ยังไม่มีเอกสารเสนอหัวข้อที่ส่งแล้ว" description="เมื่อมีนักศึกษาส่งเอกสารเสนอหัวข้อ รายการจะแสดงที่นี่" />
+              <EmptyState title="ไม่มี Proposal ที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วสามารถดูย้อนหลังได้จากหน้าประเมินการเสนอหัวข้อ" />
             )}
+            {pendingProposalScoreCount > pendingProposalAttempts.length ? (
+              <Link className="button-secondary inline-flex" href="/teacher/proposals">
+                ยังมีอีก {pendingProposalScoreCount - pendingProposalAttempts.length} งาน ดูทั้งหมด
+              </Link>
+            ) : pendingProposalScoreCount > 0 ? (
+              <Link className="text-sm font-medium text-brand" href="/teacher/proposals">ดูหน้า Proposal ทั้งหมด</Link>
+            ) : null}
           </div>
         </section>
       </div>
