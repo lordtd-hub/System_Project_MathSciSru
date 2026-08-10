@@ -64,7 +64,7 @@ export default async function TeacherProposalsPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {assignment ? (
             <Link className={submitted ? "button-secondary" : "button"} href={`/teacher/scoring/${assignment.id}`}>
-              {submitted ? "ดูผลประเมินที่ส่งแล้ว" : "ประเมินการเสนอหัวข้อ"}
+              {submitted ? "แก้ไขคะแนนที่ส่งแล้ว" : "ประเมินการเสนอหัวข้อ"}
             </Link>
           ) : (
             <form action={openProposalScoring}>

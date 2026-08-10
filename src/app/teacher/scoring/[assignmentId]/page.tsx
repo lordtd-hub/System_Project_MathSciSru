@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
 import { findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
+import { isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
 import { submitProposalScore } from "../../actions";
 
 export default async function ProposalScoringPage({
@@ -107,11 +108,15 @@ export default async function ProposalScoringPage({
   const previousScoreItems = new Map(assignment.scoreSubmission?.scoreItems.map((item) => [item.rubricItemId, item]) ?? []);
   const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
   const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
-  const isScoreLocked = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED" || Boolean(assignment.scoreSubmission?.lockedAt);
+  const hasSubmittedScore = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED";
   const hasAdminProposalDecision = Boolean(assignment.assessmentAttempt.proposalResult);
   const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasLateRoundOverride;
   const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;
-  const isScoreFormUnavailable = isScoreLocked || isProposalRoundClosed || hasAdminProposalDecision;
+  const isScoreFormUnavailable = !isProposalScoreEditable({
+    roundStatus: assignment.assessmentAttempt.assessmentRound.status,
+    hasAdminDecision: hasAdminProposalDecision,
+    roundExceptions: lateRoundExceptions
+  });
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
@@ -148,11 +153,9 @@ export default async function ProposalScoringPage({
           รายการนี้ปิดการประเมินหลังผู้ดูแลระบบบันทึกผลตัดสินแล้ว อาจารย์ที่ยังไม่ได้ประเมินไม่จำเป็นต้องส่งคะแนนเพิ่ม
         </InfoAlert>
       ) : null}
-      {isScoreLocked || isProposalRoundClosed ? (
-        <InfoAlert title={isScoreLocked ? "ส่งคะแนนการเสนอหัวข้อแล้ว" : "รอบเสนอหัวข้อปิดแล้ว"}>
-          {isScoreLocked
-            ? "คะแนนและข้อเสนอแนะถูกบันทึกเป็นหลักฐานแล้ว จึงไม่สามารถแก้ไขหรือส่งประเมินซ้ำจากหน้านี้ได้ หากจำเป็นต้องแก้ไขให้ดำเนินการผ่านขั้นตอนปลดล็อกหรือแก้ไขโดยผู้ดูแลระบบ"
-            : "รอบประเมินปิดแล้ว จึงไม่สามารถเริ่มหรือส่งคะแนนการเสนอหัวข้อเพิ่มจากหน้านี้ได้"}
+      {hasSubmittedScore && !isScoreFormUnavailable ? (
+        <InfoAlert title="คะแนนถูกส่งแล้วและยังแก้ไขได้">
+          อาจารย์สามารถแก้คะแนน ผลประเมิน และข้อเสนอแนะได้จนกว่าผู้ดูแลระบบจะบันทึกผลตัดสิน Proposal
         </InfoAlert>
       ) : null}
       <InfoAlert title="การมองเห็นของนักศึกษา">
@@ -209,10 +212,10 @@ export default async function ProposalScoringPage({
         <section className="panel space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">{isScoreLocked ? "ผลการประเมินที่ส่งแล้ว" : "ปิดการประเมินสำหรับรายการนี้"}</h2>
+              <h2 className="text-lg font-semibold">{hasSubmittedScore ? "ผลการประเมินที่ยืนยันแล้ว" : "ปิดการประเมินสำหรับรายการนี้"}</h2>
               <p className="mt-1 text-sm text-muted">
-                {isScoreLocked
-                  ? "อ่านย้อนหลังได้เท่านั้น ระบบล็อกการแก้ไขหลังส่งคะแนนจริง"
+                {hasSubmittedScore
+                  ? "อ่านย้อนหลังได้เท่านั้น เนื่องจากผู้ดูแลระบบบันทึกผลตัดสินหรือปิดรอบแล้ว"
                   : "ผู้ดูแลระบบบันทึกผลตัดสินหรือรอบประเมินปิดแล้ว จึงไม่ต้องส่งคะแนนเพิ่ม"}
               </p>
             </div>
@@ -337,9 +340,11 @@ export default async function ProposalScoringPage({
             <p className="mt-1 text-xs text-muted">ข้อเสนอแนะนี้จะแสดงให้นักศึกษาเห็นทันทีพร้อมชื่ออาจารย์</p>
           </div>
           <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
-            <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึก...">บันทึกข้อเสนอแนะ</SubmitButton>
-            <SubmitButton name="submit_mode" value="submit" pendingText="กำลังส่งคะแนน..." confirmMessage="ยืนยันการส่งคะแนนการเสนอหัวข้อหรือไม่? หลังส่งแล้วระบบจะบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน">
-              ส่งคะแนนการเสนอหัวข้อ
+            {!hasSubmittedScore ? (
+              <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึก...">บันทึกข้อเสนอแนะ</SubmitButton>
+            ) : null}
+            <SubmitButton name="submit_mode" value="submit" pendingText="กำลังส่งคะแนน..." confirmMessage={hasSubmittedScore ? "ยืนยันการบันทึกคะแนนการเสนอหัวข้อที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการส่งคะแนนการเสนอหัวข้อหรือไม่? หลังส่งแล้วระบบจะบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน"}>
+              {hasSubmittedScore ? "บันทึกการแก้ไขคะแนน" : "ส่งคะแนนการเสนอหัวข้อ"}
             </SubmitButton>
           </div>
           </section>

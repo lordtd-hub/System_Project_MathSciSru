@@ -9,6 +9,8 @@ import { ConditionBasedRubricView } from "@/components/ui/ConditionBasedRubricVi
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
+import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
@@ -36,29 +38,32 @@ export default async function TeacherProgress1Page({
   const params = (await searchParams) ?? {};
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   const progressRubricItemLabels = new Map(progressQaRubricItems().map((item) => [item.itemKey, item]));
-  const [rubric, projects] = await Promise.all([
+  const [progress1Round, rubric] = await Promise.all([
+    prisma.assessmentRound.findFirst({
+      where: { roundType: "PROGRESS_1" },
+      orderBy: { createdAt: "desc" }
+    }),
     prisma.rubric.findFirst({
       where: { roundType: "PROGRESS_1", active: true },
       include: { items: { orderBy: { displayOrder: "asc" } } }
-    }),
-    prisma.project.findMany({
+    })
+  ]);
+  const projects = progress1Round
+    ? await prisma.project.findMany({
       where: {
         status: "IN_PROGRESS",
+        courseOfferingId: progress1Round.courseOfferingId,
         scheduleProposals: { some: { assessmentKind: "PROGRESS_1", status: "CONFIRMED" } },
         committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
-        NOT: {
-          attempts: {
+        ...(isRoundOpen(progress1Round.status) ? {} : {
+          roundExceptions: {
             some: {
-              assessmentRound: { roundType: "PROGRESS_1" },
-              evaluatorAssignments: {
-                some: {
-                  teacherId: teacher.id,
-                  scoreSubmission: { is: { status: "SUBMITTED" } }
-                }
-              }
+              assessmentRoundId: progress1Round.id,
+              status: "OPEN",
+              exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] }
             }
           }
-        }
+        })
       },
       include: {
         student: true,
@@ -84,17 +89,22 @@ export default async function TeacherProgress1Page({
       },
       orderBy: { updatedAt: "desc" }
     })
-  ]);
+    : [];
+  const submittedCount = projects.filter((project) => project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission).length;
+  const pendingCount = projects.length - submittedCount;
 
   return (
     <div className="space-y-6">
       <PageHeader title="บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1" description="สำหรับประธานกรรมการหรือกรรมการที่ได้รับแต่งตั้งในโครงงานเท่านั้น" />
       <ActionFeedback success={params.success} error={params.error} />
+      {!progress1Round ? (
+        <EmptyState title="ยังไม่มีรอบสอบความก้าวหน้าครั้งที่ 1" description="ผู้ดูแลระบบต้องเปิดรอบสอบความก้าวหน้าครั้งที่ 1 ระดับรายวิชาก่อนจึงจะบันทึกคะแนนได้" />
+      ) : null}
       <TeacherWorkloadSummary
         metrics={[
-          { label: "ต้องดำเนินการ", count: projects.length, tone: "action", description: "พร้อมให้คะแนน Progress 1" },
+          { label: "ต้องดำเนินการ", count: pendingCount, tone: "action", description: "ยังไม่ได้ส่งคะแนน Progress 1" },
           { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
-          { label: "เสร็จแล้ว", count: 0, tone: "completed", description: "คะแนนที่ส่งแล้วถูกนำออกจากคิวนี้" },
+          { label: "แก้ไขได้", count: submittedCount, tone: "completed", description: "คะแนนที่ส่งแล้ว แก้ได้จนปิดรอบ" },
           { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
           { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ยังไม่พร้อมไม่แสดง" }
         ]}
@@ -106,7 +116,7 @@ export default async function TeacherProgress1Page({
           title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
           description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
           meta: "Progress 1",
-          badges: [{ label: "ต้องให้คะแนน", tone: "action" }, { label: "กรรมการ", tone: "waiting" }]
+          badges: [{ label: project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission ? "แก้ไขคะแนนได้" : "ต้องให้คะแนน", tone: project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission ? "completed" : "action" }, { label: "กรรมการ", tone: "waiting" }]
         }))}
       />
 
@@ -130,7 +140,7 @@ export default async function TeacherProgress1Page({
                   </p>
                 </div>
                 <TeacherQueueBadge tone={previous ? "completed" : "action"}>
-                  {previous ? `บันทึกแล้ว ${Number(previous.totalScore)}/100` : "ยังไม่บันทึก"}
+                  {previous ? `แก้ไขได้ ${Number(previous.totalScore)}/100` : "ยังไม่บันทึก"}
                 </TeacherQueueBadge>
               </div>
 
@@ -205,8 +215,8 @@ export default async function TeacherProgress1Page({
                   <EmptyState title="ยังไม่มีเกณฑ์ประเมินสำหรับการสอบความก้าวหน้าครั้งที่ 1" description="ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนจึงจะบันทึกคะแนนได้" />
                 )}
                 <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
-                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?">
-                  บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1
+                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังบันทึกคะแนน..." confirmMessage={previous ? "ยืนยันการบันทึกคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการบันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"}>
+                  {previous ? "บันทึกการแก้ไขคะแนน Progress 1" : "บันทึกคะแนนการสอบความก้าวหน้าครั้งที่ 1"}
                 </SubmitButton>
               </form>
             </section>

@@ -81,6 +81,7 @@ errorMessages.proposal_must_close_first = "ต้องเปิดและป�
 errorMessages.progress_1_not_ready = "ยังไม่มีโครงงานที่พร้อมเข้าสู่การสอบความก้าวหน้าครั้งที่ 1";
 errorMessages.progress_1_must_close_first = "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 1 ก่อน แล้วจึงเปิดรอบสอบความก้าวหน้าครั้งที่ 2";
 errorMessages.progress_2_must_close_first = "ต้องเปิดและปิดรอบสอบความก้าวหน้าครั้งที่ 2 ก่อน แล้วจึงเปิดรอบสอบนำเสนอขั้นสุดท้าย";
+errorMessages.score_editing_closed = "ปิดรับการแก้ไขคะแนนแล้ว เนื่องจากผู้ดูแลระบบยืนยันผลหรือปิดรอบนี้แล้ว";
 errorMessages.round_reset_blocked = "รีเซตไม่ได้ เพราะรอบนี้มีหลักฐานการส่งงาน การประเมิน ตารางสอบ หรือข้อยกเว้นแล้ว";
 errorMessages.round_reset_not_needed = "รอบนี้ยังไม่ได้เปิด จึงไม่ต้องรีเซต";
 errorMessages.test_tools_disabled = "โหมดทดสอบระบบยังไม่ได้เปิดใช้งาน";

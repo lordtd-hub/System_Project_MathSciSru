@@ -11,6 +11,14 @@
 
 Historical note: The original Task 01-10 checklist below is retained as the initial MVP sequence. Later 2026-05-06 sections supersede early Proposal-only limitations.
 
+## 2026-08-10 Teacher score revision window
+
+- Teachers may revise a submitted Proposal score until Admin records the final Proposal decision; a closed Proposal round remains locked unless an explicit late-round exception is open.
+- Teachers may revise submitted Progress 1, Progress 2, and Final Presentation scores while the corresponding course-level round is open; Admin closing the round locks further edits unless an explicit late-round exception is open.
+- Advisor scores remain editable after submission while the project is `REPORT_APPROVED` or `ADVISOR_SCORING`, and become read-only when Admin marks the project `COMPLETED`.
+- Revisions update the existing score record rather than creating duplicate active scores. Each revision creates a timeline event with an `isRevision` marker and the previous total score.
+- No database migration, production environment change, scoring formula change, or direct production data mutation is required.
+
 ## 2026-05-13 Supabase heartbeat cron
 
 - Added a guarded Vercel Cron endpoint at `/api/cron/heartbeat`.

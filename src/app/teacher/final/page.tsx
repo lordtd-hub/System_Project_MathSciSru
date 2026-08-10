@@ -8,6 +8,8 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
+import { isRoundOpen } from "@/lib/assessments/courseRounds";
+import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { isQaAunEvidenceAlignmentEnabled } from "@/lib/qa/finalRubricConfig";
 import { finalQaRubric, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
@@ -38,23 +40,19 @@ export default async function TeacherFinalPage({
   const projects = finalRound
     ? await prisma.project.findMany({
         where: {
-          status: "IN_PROGRESS",
+          status: { in: ["IN_PROGRESS", "FINAL_DONE"] },
           courseOfferingId: finalRound.courseOfferingId,
           scheduleProposals: { some: { assessmentKind: "FINAL_PRESENT", status: "CONFIRMED" } },
           committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
-          NOT: {
-            attempts: {
+          ...(isRoundOpen(finalRound.status) ? {} : {
+            roundExceptions: {
               some: {
-                assessmentRound: { roundType: "FINAL_PRESENTATION" },
-                evaluatorAssignments: {
-                  some: {
-                    teacherId: teacher.id,
-                    scoreSubmission: { is: { status: "SUBMITTED" } }
-                  }
-                }
+                assessmentRoundId: finalRound.id,
+                status: "OPEN",
+                exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] }
               }
             }
-          }
+          })
         },
         include: {
           student: true,
@@ -78,6 +76,11 @@ export default async function TeacherFinalPage({
         orderBy: { updatedAt: "desc" }
       })
     : [];
+  const submittedCount = projects.filter((project) => {
+    const finalAttempt = project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION");
+    return finalAttempt?.evaluatorAssignments.some((assignment) => assignment.evaluatorUserId === session.user.id && assignment.scoreSubmission);
+  }).length;
+  const pendingCount = projects.length - submittedCount;
 
   return (
     <div className="space-y-6">
@@ -90,9 +93,9 @@ export default async function TeacherFinalPage({
         <>
           <TeacherWorkloadSummary
             metrics={[
-              { label: "ต้องดำเนินการ", count: projects.length, tone: "action", description: "พร้อมให้คะแนน Final" },
+              { label: "ต้องดำเนินการ", count: pendingCount, tone: "action", description: "ยังไม่ได้ส่งคะแนน Final" },
               { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
-              { label: "เสร็จแล้ว", count: 0, tone: "completed", description: "คะแนนที่ส่งแล้วถูกนำออกจากคิวนี้" },
+              { label: "แก้ไขได้", count: submittedCount, tone: "completed", description: "คะแนนที่ส่งแล้ว แก้ได้จนปิดรอบ" },
               { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
               { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ยังไม่พร้อมไม่แสดง" }
             ]}
@@ -104,7 +107,10 @@ export default async function TeacherFinalPage({
               title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
               description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
               meta: "Final",
-              badges: [{ label: "ต้องให้คะแนน", tone: "action" }, { label: "กรรมการ", tone: "waiting" }]
+              badges: [{
+                label: project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION")?.evaluatorAssignments.some((assignment) => assignment.evaluatorUserId === session.user.id && assignment.scoreSubmission) ? "แก้ไขคะแนนได้" : "ต้องให้คะแนน",
+                tone: project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION")?.evaluatorAssignments.some((assignment) => assignment.evaluatorUserId === session.user.id && assignment.scoreSubmission) ? "completed" : "action"
+              }, { label: "กรรมการ", tone: "waiting" }]
             }))}
           />
         </>
@@ -144,7 +150,7 @@ export default async function TeacherFinalPage({
                   </p>
                 </div>
                 <TeacherQueueBadge tone={previous ? "completed" : "action"}>
-                  {previous ? `บันทึกแล้ว ${Number(previous.totalScore).toFixed(2)}/100` : "ยังไม่บันทึก"}
+                  {previous ? `แก้ไขได้ ${Number(previous.totalScore).toFixed(2)}/100` : "ยังไม่บันทึก"}
                 </TeacherQueueBadge>
               </div>
               {showQaEvidenceAlignment ? (
@@ -193,8 +199,8 @@ export default async function TeacherFinalPage({
                   <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
                 </div>
                 <div>
-                  <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage="ยืนยันการบันทึกคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?">
-                    บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย
+                  <SubmitButton pendingText="กำลังบันทึกคะแนน..." confirmMessage={previous ? "ยืนยันการบันทึกคะแนน Final ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันการบันทึกคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"}>
+                    {previous ? "บันทึกการแก้ไขคะแนน Final" : "บันทึกคะแนนการสอบนำเสนอขั้นสุดท้าย"}
                   </SubmitButton>
                 </div>
               </form>
