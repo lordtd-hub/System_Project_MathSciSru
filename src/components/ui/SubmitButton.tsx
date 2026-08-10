@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFormStatus } from "react-dom";
+
+export const SUBMIT_AUTO_RECOVERY_DELAY_MS = 15_000;
 
 export function SubmitButton({
   children,
@@ -20,6 +23,14 @@ export function SubmitButton({
   value?: string;
 }) {
   const { pending } = useFormStatus();
+
+  useEffect(() => {
+    if (!pending) return;
+
+    const timer = window.setTimeout(() => window.location.reload(), SUBMIT_AUTO_RECOVERY_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [pending]);
+
   return (
     <button
       type="submit"

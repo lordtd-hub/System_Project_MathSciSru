@@ -8,6 +8,8 @@ export type LineNotificationResult =
   | { status: "skipped"; reason: string }
   | { status: "failed"; reason: string };
 
+export const LINE_NOTIFICATION_TIMEOUT_MS = 5_000;
+
 function readEnv(name: string) {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
@@ -44,6 +46,7 @@ export async function sendLineNotification(payload: LineNotificationPayload): Pr
   try {
     const response = await fetch("https://api.line.me/v2/bot/message/push", {
       method: "POST",
+      signal: AbortSignal.timeout(LINE_NOTIFICATION_TIMEOUT_MS),
       headers: {
         Authorization: `Bearer ${channelAccessToken}`,
         "Content-Type": "application/json; charset=utf-8"
