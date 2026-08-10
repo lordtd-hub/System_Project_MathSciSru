@@ -26,7 +26,9 @@ describe("dashboard clarity phase 2", () => {
     expect(page).toContain("งานที่ต้องดำเนินการ");
     expect(page).toContain("ภาพรวมสถานะ");
     expect(page).toContain("advisorRequestCount");
-    expect(page).toContain("pendingProposalScores.length");
+    expect(page).toContain("pendingProposalScoreCount");
+    expect(page).toContain("prisma.assessmentAttempt.count");
+    expect(page).toContain("pendingProposalScoringAttemptWhere(evaluatorUserId)");
     expect(page).toContain("scheduleApprovalCount");
     expect(page).toContain("progress1ScoreReadyCount");
     expect(page).toContain("progress2ScoreReadyCount");

@@ -57,9 +57,13 @@ describe("late round policy source coverage", () => {
   it("keeps late Proposal scoring visible after the normal round is closed", () => {
     const teacherDashboard = read("src/app/teacher/page.tsx");
     const teacherProposalList = read("src/app/teacher/proposals/page.tsx");
+    const proposalWorkload = read("src/lib/scoring/proposalWorkload.ts");
     const teacherScoringPage = read("src/app/teacher/scoring/[assignmentId]/page.tsx");
-    expect(teacherDashboard).toContain("LATE_ROUND_EXCEPTION_TYPE");
-    expect(teacherProposalList).toContain("LATE_ROUND_EXCEPTION_TYPE");
+    expect(teacherDashboard).toContain("openProposalScoringAttemptWhere()");
+    expect(teacherProposalList).toContain("openProposalScoringAttemptWhere()");
+    expect(proposalWorkload).toContain("LATE_ROUND_EXCEPTION_TYPE");
+    expect(proposalWorkload).toContain("LATE_ROUND_EXCUSED_EXCEPTION_TYPE");
+    expect(proposalWorkload).toContain("roundExceptions");
     expect(teacherScoringPage).toContain("hasLateRoundOverride");
     expect(teacherScoringPage).toContain("เปิดประเมินย้อนหลังเป็นรายกรณี");
   });
