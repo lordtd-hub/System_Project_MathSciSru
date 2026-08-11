@@ -60,6 +60,7 @@ export function SubmitButton({
   confirmMessage,
   name,
   value,
+  formNoValidate = false,
   scoreGuard = false,
   scoreMax = 100
 }: {
@@ -70,6 +71,7 @@ export function SubmitButton({
   confirmMessage?: string;
   name?: string;
   value?: string;
+  formNoValidate?: boolean;
   scoreGuard?: boolean;
   scoreMax?: number;
 }) {
@@ -126,6 +128,7 @@ export function SubmitButton({
       type="submit"
       name={name}
       value={value}
+      formNoValidate={formNoValidate}
       className={className}
       disabled={disabled || pending}
       aria-disabled={disabled || pending}
@@ -143,7 +146,7 @@ export function SubmitButton({
           return;
         }
 
-        if (!form.noValidate && !form.reportValidity()) {
+        if (!event.currentTarget.formNoValidate && !form.noValidate && !form.reportValidity()) {
           event.preventDefault();
           return;
         }

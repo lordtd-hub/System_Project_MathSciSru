@@ -35,6 +35,22 @@ describe("submit button recovery source", () => {
     expect(teacherActions).toContain('redirect(`/teacher/scoring/${encodeURIComponent(assignment.id)}`)');
   });
 
+  it("allows Proposal feedback drafts without weakening final score validation", () => {
+    const buttonSource = readFileSync(join(process.cwd(), "src/components/ui/SubmitButton.tsx"), "utf8");
+    const proposalScoringSource = readFileSync(
+      join(process.cwd(), "src/app/teacher/scoring/[assignmentId]/page.tsx"),
+      "utf8"
+    );
+
+    expect(buttonSource).toContain("formNoValidate?: boolean");
+    expect(buttonSource).toContain("formNoValidate={formNoValidate}");
+    expect(buttonSource).toContain("!event.currentTarget.formNoValidate");
+    expect(proposalScoringSource).toContain(
+      '<SubmitButton name="submit_mode" value="draft" formNoValidate pendingText="กำลังบันทึกร่าง...">'
+    );
+    expect(proposalScoringSource).toMatch(/value="submit"[\s\S]*?scoreGuard/);
+  });
+
   it("preserves teacher score entries before an automatic recovery reload", () => {
     const formSource = readFileSync(join(process.cwd(), "src/components/ui/ProposalDraftForm.tsx"), "utf8");
     const scorePages = [

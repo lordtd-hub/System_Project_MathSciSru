@@ -362,7 +362,7 @@ export default async function ProposalScoringPage({
           </div>
           <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
             {!hasSubmittedScore ? (
-              <SubmitButton name="submit_mode" value="draft" pendingText="กำลังบันทึกร่าง...">บันทึกร่างข้อเสนอแนะ</SubmitButton>
+              <SubmitButton name="submit_mode" value="draft" formNoValidate pendingText="กำลังบันทึกร่าง...">บันทึกร่างข้อเสนอแนะ</SubmitButton>
             ) : null}
             <SubmitButton
               name="submit_mode"
