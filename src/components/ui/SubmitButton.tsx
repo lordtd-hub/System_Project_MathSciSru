@@ -125,10 +125,9 @@ export function SubmitButton({
         const form = event.currentTarget.form;
         if (!form) return;
 
-        event.preventDefault();
-
         const currentScoreSummary = scoreGuard ? refreshScoreSummary() : null;
         if (currentScoreSummary?.missing) {
+          event.preventDefault();
           setShowIncompleteError(true);
           currentScoreSummary.firstIncomplete?.focus({ preventScroll: true });
           currentScoreSummary.firstIncomplete?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -136,50 +135,16 @@ export function SubmitButton({
           return;
         }
 
-        if (!form.noValidate && !form.reportValidity()) return;
+        if (!form.noValidate && !form.reportValidity()) {
+          event.preventDefault();
+          return;
+        }
 
         const scoreConfirmation = currentScoreSummary
           ? `\n\nคะแนนรวม ${formatScore(currentScoreSummary.total)}/${scoreMax}\nกรอกครบ ${currentScoreSummary.completed}/${currentScoreSummary.count} หัวข้อ`
           : "";
-        if (confirmMessage && !window.confirm(`${confirmMessage}${scoreConfirmation}`)) return;
-
-        const button = event.currentTarget;
-        const originalText = button.textContent;
-        let recoveryTimer: number | null = null;
-        const restoreButton = () => {
-          if (recoveryTimer !== null) window.clearTimeout(recoveryTimer);
-          button.disabled = Boolean(disabled);
-          button.setAttribute("aria-disabled", String(Boolean(disabled)));
-          button.textContent = originalText;
-        };
-
-        let submitterInput: HTMLInputElement | null = null;
-        if (name) {
-          submitterInput = document.createElement("input");
-          submitterInput.type = "hidden";
-          submitterInput.name = name;
-          submitterInput.value = value ?? "";
-          form.appendChild(submitterInput);
-        }
-
-        button.disabled = true;
-        button.setAttribute("aria-disabled", "true");
-        button.textContent = pendingText;
-        window.addEventListener("pageshow", restoreButton, { once: true });
-        recoveryTimer = window.setTimeout(
-          () => window.location.replace(window.location.href),
-          SUBMIT_AUTO_RECOVERY_DELAY_MS
-        );
-
-        try {
-          // A native POST avoids the intermittent App Router transition stall
-          // while preserving the existing Server Action and 303 redirect.
-          HTMLFormElement.prototype.submit.call(form);
-        } catch (error) {
-          window.removeEventListener("pageshow", restoreButton);
-          submitterInput?.remove();
-          restoreButton();
-          throw error;
+        if (confirmMessage && !window.confirm(`${confirmMessage}${scoreConfirmation}`)) {
+          event.preventDefault();
         }
       }}
     >

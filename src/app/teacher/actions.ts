@@ -181,7 +181,7 @@ export async function openProposalScoring(formData: FormData) {
   ) {
     redirectWithQuery("/teacher/proposals", { error: "proposal_round_not_open" });
   }
-  await prisma.evaluatorAssignment.upsert({
+  const assignment = await prisma.evaluatorAssignment.upsert({
     where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId: attemptId, evaluatorUserId: user.id } },
     update: { status: "IN_PROGRESS" },
     create: {
@@ -195,6 +195,8 @@ export async function openProposalScoring(formData: FormData) {
   });
 
   revalidatePath("/teacher");
+  revalidatePath("/teacher/proposals");
+  redirect(`/teacher/scoring/${encodeURIComponent(assignment.id)}`);
 }
 
 export async function reviewAdvisorRequest(formData: FormData) {
