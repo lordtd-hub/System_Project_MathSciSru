@@ -64,6 +64,11 @@ describe("submit button recovery source", () => {
     expect(formSource).toContain("export function RecoverableActionForm");
     expect(formSource).toContain("sessionStorage.setItem(storageKey");
     expect(formSource).toContain("sessionStorage.removeItem(storageKey)");
+    expect(formSource).toContain("clearTimeout(saveTimer.current)");
+    expect(formSource).toContain("reconcileTeacherScoreActionResult");
+    expect(formSource).toContain("restoreSnapshot: (values, missingFields)");
+    expect(formSource).toContain("window.location.reload()");
+    expect(formSource).not.toContain("router.refresh()");
     expect(formSource).toContain("SUBMIT_AUTO_RECOVERY_EVENT");
     expect(proposalScorePage).toContain("<RecoverableScoreActionForm");
     expect(proposalScorePage).toContain("<SubmitButton");
