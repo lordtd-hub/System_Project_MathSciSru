@@ -17,14 +17,24 @@ type FakeState = {
   latestAudit: unknown;
   auditCount: number;
   timelineCount: number;
+  projectStatus: "IN_PROGRESS" | "FINAL_DONE";
+  historyCount: number;
 };
 
 const fake = vi.hoisted(() => {
-  const initialState = (): FakeState => ({ submission: null, latestAudit: null, auditCount: 0, timelineCount: 0 });
+  const initialState = (): FakeState => ({
+    submission: null,
+    latestAudit: null,
+    auditCount: 0,
+    timelineCount: 0,
+    projectStatus: "IN_PROGRESS",
+    historyCount: 0
+  });
   let committed = initialState();
   let working = committed;
   let failAfterWrite: number | null = null;
   let writeCount = 0;
+  let roundType: "PROGRESS_1" | "FINAL_PRESENTATION" = "PROGRESS_1";
 
   const write = async <T>(mutation: () => T) => {
     writeCount += 1;
@@ -39,11 +49,15 @@ const fake = vi.hoisted(() => {
     project: {
       findUnique: async () => ({
         id: "project-1",
-        status: "IN_PROGRESS",
+        status: working.projectStatus,
         committeeAssignments: [{ active: true, teacherId: "teacher-1", role: "MEMBER" }]
+      }),
+      update: async () => write(() => {
+        working.projectStatus = "FINAL_DONE";
+        return { id: "project-1", status: working.projectStatus };
       })
     },
-    assessmentRound: { findUnique: async () => ({ id: "round-1", roundType: "PROGRESS_1", status: "SCORING_OPEN" }) },
+    assessmentRound: { findUnique: async () => ({ id: "round-1", roundType, status: "SCORING_OPEN" }) },
     projectRoundException: { findMany: async () => [] },
     examScheduleProposal: { findFirst: async () => ({ id: "schedule-1" }) },
     assessmentAttempt: {
@@ -52,7 +66,7 @@ const fake = vi.hoisted(() => {
     evaluatorAssignment: {
       upsert: async () => write(() => ({ id: "assignment-1" })),
       update: async () => write(() => ({ id: "assignment-1" })),
-      findMany: async () => []
+      findMany: async () => [{ teacherId: "teacher-1", scoreSubmission: { status: "SUBMITTED" } }]
     },
     scoreSubmission: {
       findUnique: async () => working.submission,
@@ -99,6 +113,12 @@ const fake = vi.hoisted(() => {
         working.timelineCount += 1;
         return { id: `timeline-${working.timelineCount}` };
       })
+    },
+    projectStatusHistory: {
+      create: async () => write(() => {
+        working.historyCount += 1;
+        return { id: `history-${working.historyCount}` };
+      })
     }
   };
 
@@ -121,6 +141,7 @@ const fake = vi.hoisted(() => {
       working = committed;
       failAfterWrite = null;
       writeCount = 0;
+      roundType = "PROGRESS_1";
     },
     failAt(step: number | null) {
       failAfterWrite = step;
@@ -130,6 +151,9 @@ const fake = vi.hoisted(() => {
     },
     writes() {
       return writeCount;
+    },
+    useRound(value: "PROGRESS_1" | "FINAL_PRESENTATION") {
+      roundType = value;
     }
   };
 });
@@ -158,6 +182,26 @@ const input = {
   auditAction: "PROGRESS_1_SCORE_SAVED"
 };
 
+const finalInput = {
+  ...input,
+  requestId: "request-final",
+  roundType: "FINAL_PRESENTATION" as const,
+  attemptType: "FINAL_PRESENTATION" as const,
+  assessmentKind: "FINAL_PRESENT" as const,
+  eventType: "FINAL_PRESENTATION_SCORE_SUBMITTED",
+  auditAction: "FINAL_PRESENTATION_SCORE_SAVED",
+  completeFinalWhenReady: true
+};
+
+const emptyState = (): FakeState => ({
+  submission: null,
+  latestAudit: null,
+  auditCount: 0,
+  timelineCount: 0,
+  projectStatus: "IN_PROGRESS",
+  historyCount: 0
+});
+
 describe("atomic presentation score persistence", () => {
   beforeEach(() => fake.reset());
 
@@ -170,7 +214,7 @@ describe("atomic presentation score persistence", () => {
       fake.reset();
       fake.failAt(step);
       await expect(persistPresentationScore(input)).rejects.toThrow(`fault-after-write-${step}`);
-      expect(fake.state()).toEqual({ submission: null, latestAudit: null, auditCount: 0, timelineCount: 0 });
+      expect(fake.state()).toEqual(emptyState());
     }
   });
 
@@ -182,5 +226,20 @@ describe("atomic presentation score persistence", () => {
     expect(second.unchanged).toBe(true);
     expect(fake.state().auditCount).toBe(1);
     expect(fake.state().timelineCount).toBe(1);
+  });
+
+  it("rolls back Final project completion, history, and both timeline writes at every fault position", async () => {
+    fake.useRound("FINAL_PRESENTATION");
+    await persistPresentationScore(finalInput);
+    const writePositions = fake.writes();
+    expect(fake.state()).toMatchObject({ projectStatus: "FINAL_DONE", historyCount: 1, timelineCount: 2 });
+
+    for (let step = 1; step <= writePositions; step += 1) {
+      fake.reset();
+      fake.useRound("FINAL_PRESENTATION");
+      fake.failAt(step);
+      await expect(persistPresentationScore(finalInput)).rejects.toThrow(`fault-after-write-${step}`);
+      expect(fake.state()).toEqual(emptyState());
+    }
   });
 });

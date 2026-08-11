@@ -411,7 +411,7 @@ export async function reviewExamSchedule(formData: FormData) {
   redirectWithQuery("/teacher/schedules", { success: decision === "APPROVE" ? "schedule_approved" : "schedule_rejected" });
 }
 
-export async function submitProposalScore(
+async function retiredSubmitProposalScore(
   _previousState: TeacherScoreActionResult,
   formData: FormData
 ): Promise<TeacherScoreActionResult> {
@@ -818,7 +818,7 @@ export async function ensureFinalRubric() {
   });
 }
 
-export async function submitProgress1Score(formData: FormData) {
+async function retiredSubmitProgress1Score(formData: FormData) {
   const user = await requireTeacherUser();
   assertRateLimit(`teacher:${user.id}:submitProgress1Score`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitProgress1Score");
@@ -953,7 +953,7 @@ export async function submitProgress1Score(formData: FormData) {
   redirect(`/teacher/progress1?success=${previousSubmission ? "progress_1_score_updated" : "progress_1_score_saved"}`);
 }
 
-export async function submitProgress2Score(formData: FormData) {
+async function retiredSubmitProgress2Score(formData: FormData) {
   const user = await requireTeacherUser();
   assertRateLimit(`teacher:${user.id}:submitProgress2Score`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitProgress2Score");
@@ -1088,7 +1088,7 @@ export async function submitProgress2Score(formData: FormData) {
   redirect(`/teacher/progress2?success=${previousSubmission ? "progress_2_score_updated" : "progress_2_score_saved"}`);
 }
 
-export async function submitFinalPresentationScore(formData: FormData) {
+async function retiredSubmitFinalPresentationScore(formData: FormData) {
   const user = await requireTeacherUser();
   assertRateLimit(`teacher:${user.id}:submitFinalPresentationScore`, pilotRateLimits.scoring);
   const timer = createActionTimer("teacher.submitFinalPresentationScore");
@@ -1277,6 +1277,13 @@ export async function submitFinalPresentationScore(formData: FormData) {
   timer.end("redirect");
   redirect(`/teacher/final?success=${previousSubmission ? "final_score_updated" : "final_score_saved"}`);
 }
+
+// Keep the retired implementations available for a post-semester cleanup diff,
+// but do not export them as callable Server Actions.
+void retiredSubmitProposalScore;
+void retiredSubmitProgress1Score;
+void retiredSubmitProgress2Score;
+void retiredSubmitFinalPresentationScore;
 
 export async function reviewReportVersion(formData: FormData) {
   const user = await requireTeacherUser();
