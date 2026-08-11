@@ -18,7 +18,7 @@ import {
   proposalDraftConditionCounts,
   selectedDraftRubricItemIds
 } from "@/lib/scoring/proposalDraftIntegrity";
-import { submitProposalScore } from "../../actions";
+import { submitProposalScore } from "../../scoringActions";
 
 export default async function ProposalScoringPage({
   params,
@@ -123,6 +123,13 @@ export default async function ProposalScoringPage({
         orderBy: { occurredAt: "desc" }
       })
     : null;
+  const latestScoreAudit = assignment.scoreSubmission
+    ? await prisma.auditLog.findFirst({
+        where: { entityType: "ScoreSubmission", entityId: assignment.scoreSubmission.id },
+        select: { afterJson: true },
+        orderBy: { occurredAt: "desc" }
+      })
+    : null;
   const restoredScoreItemIds = selectedDraftRubricItemIds(
     assignment.scoreSubmission?.scoreItems ?? [],
     assignment.scoreSubmission?.status,
@@ -142,7 +149,7 @@ export default async function ProposalScoringPage({
   const restoredDecision = hasSubmittedScore || draftV2Marker
     ? assignment.scoreSubmission?.proposalDecision?.decision ?? ""
     : "";
-  const restoredConditionCounts = proposalDraftConditionCounts(draftV2Marker?.afterJson);
+  const restoredConditionCounts = proposalDraftConditionCounts(latestScoreAudit?.afterJson ?? draftV2Marker?.afterJson);
   const hasAdminProposalDecision = Boolean(assignment.assessmentAttempt.proposalResult);
   const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasLateRoundOverride;
   const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;

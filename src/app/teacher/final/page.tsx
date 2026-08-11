@@ -6,7 +6,7 @@ import { FinalEvidenceContinuityPanel } from "@/components/ui/FinalEvidenceConti
 import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
+import { RecoverableScoreActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -14,7 +14,8 @@ import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/
 import { prisma } from "@/lib/db";
 import { isQaAunEvidenceAlignmentEnabled } from "@/lib/qa/finalRubricConfig";
 import { calculateFinalQaCriterionScore, finalQaRubric, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
-import { submitFinalPresentationScore } from "../actions";
+import { readTeacherScoreSnapshot } from "@/lib/scoring/scoreSnapshots";
+import { submitFinalPresentationScore } from "../scoringActions";
 
 function conditionCountForSavedScore(criterion: NonNullable<ReturnType<typeof findFinalQaCriterion>>, score: number | undefined) {
   if (score === undefined) return "";
@@ -77,6 +78,20 @@ export default async function TeacherFinalPage({
         orderBy: { updatedAt: "desc" }
       })
     : [];
+  const scoreSubmissionIds = projects.flatMap((project) => project.attempts.flatMap((attempt) =>
+    attempt.assessmentRound.roundType === "FINAL_PRESENTATION"
+      ? attempt.evaluatorAssignments.flatMap((assignment) => assignment.scoreSubmission?.id ? [assignment.scoreSubmission.id] : [])
+      : []
+  ));
+  const scoreAudits = scoreSubmissionIds.length ? await prisma.auditLog.findMany({
+    where: { entityType: "ScoreSubmission", entityId: { in: scoreSubmissionIds } },
+    orderBy: { occurredAt: "desc" },
+    select: { entityId: true, afterJson: true }
+  }) : [];
+  const snapshotsBySubmission = new Map<string, ReturnType<typeof readTeacherScoreSnapshot>>();
+  for (const audit of scoreAudits) {
+    if (!snapshotsBySubmission.has(audit.entityId)) snapshotsBySubmission.set(audit.entityId, readTeacherScoreSnapshot(audit.afterJson));
+  }
   const submittedCount = projects.filter((project) => {
     const finalAttempt = project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION");
     return finalAttempt?.evaluatorAssignments.some((assignment) => assignment.evaluatorUserId === session.user.id && assignment.scoreSubmission);
@@ -122,6 +137,11 @@ export default async function TeacherFinalPage({
           const finalAttempt = project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION");
           const previous = finalAttempt?.evaluatorAssignments.find((assignment) => assignment.evaluatorUserId === session.user.id)?.scoreSubmission;
           const previousItems = new Map(previous?.scoreItems.map((item) => [item.rubricItem.itemKey, item.pointsAwarded]) ?? []);
+          const previousConditionCounts = new Map(
+            (previous ? snapshotsBySubmission.get(previous.id)?.items : [])
+              ?.filter((item) => item.conditionCount !== undefined)
+              .map((item) => [item.itemKey, item.conditionCount as number]) ?? []
+          );
           const progressHistory = (["PROGRESS_1", "PROGRESS_2"] as const).map((roundType) => {
             const attempt = project.attempts.find((item) => item.assessmentRound.roundType === roundType);
             const submission = attempt?.evaluatorAssignments.find((assignment) => assignment.scoreSubmission)?.scoreSubmission;
@@ -168,7 +188,7 @@ export default async function TeacherFinalPage({
               <div className="mt-4">
                 <FinalQaRubricPanel audience="evaluator" />
               </div>
-              <RecoverableActionForm
+              <RecoverableScoreActionForm
                 action={submitFinalPresentationScore}
                 storageKey={`teacher-final-score-recovery:${session.user.id}:${project.id}`}
                 className="mt-4 space-y-4"
@@ -188,7 +208,7 @@ export default async function TeacherFinalPage({
                         </div>
                         <label className="min-w-44 text-sm font-medium">
                           เงื่อนไขที่ผ่าน
-                          <select name={`condition_count:${criterion.code}`} defaultValue={conditionCountForSavedScore(criterion, previousItems.get(criterion.code))} required className="mt-1" data-score-control="true">
+                          <select name={`condition_count:${criterion.code}`} defaultValue={previousConditionCounts.get(criterion.code) ?? conditionCountForSavedScore(criterion, previousItems.get(criterion.code))} required className="mt-1" data-score-control="true">
                             <option value="" disabled>ยังไม่ได้เลือก</option>
                             {Array.from({ length: criterion.conditions.length + 1 }, (_, count) => (
                               <option key={count} value={count} data-score-points={calculateFinalQaCriterionScore(criterion, count)}>
@@ -205,11 +225,11 @@ export default async function TeacherFinalPage({
                   <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
                 </div>
                 <div>
-                  <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Final ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"} scoreGuard>
+                  <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Final ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"} scoreGuard autoRecovery={false}>
                     {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้าย"}
                   </SubmitButton>
                 </div>
-              </RecoverableActionForm>
+              </RecoverableScoreActionForm>
             </section>
           );
         }) : finalRound ? (

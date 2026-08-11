@@ -683,7 +683,7 @@ export async function submitProposalScore(
   }
 }
 
-async function ensureProgress1Rubric() {
+export async function ensureProgress1Rubric() {
   const existing = await prisma.rubric.findFirst({
     where: { roundType: "PROGRESS_1", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
@@ -728,7 +728,7 @@ async function ensureProgress1Rubric() {
   });
 }
 
-async function ensureProgress2Rubric() {
+export async function ensureProgress2Rubric() {
   const existing = await prisma.rubric.findFirst({
     where: { roundType: "PROGRESS_2", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
@@ -773,7 +773,7 @@ async function ensureProgress2Rubric() {
   });
 }
 
-async function ensureFinalRubric() {
+export async function ensureFinalRubric() {
   const existing = await prisma.rubric.findFirst({
     where: { roundType: "FINAL_PRESENTATION", active: true },
     include: { items: { orderBy: { displayOrder: "asc" } } }
