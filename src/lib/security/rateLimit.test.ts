@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { checkRateLimit, resetRateLimitForTests } from "./rateLimit";
+import { assertRateLimit, checkRateLimit, RateLimitExceededError, resetRateLimitForTests } from "./rateLimit";
 
 describe("checkRateLimit", () => {
   beforeEach(() => resetRateLimitForTests());
@@ -17,5 +17,11 @@ describe("checkRateLimit", () => {
     expect(checkRateLimit("user-1", options, 1_000).allowed).toBe(true);
     expect(checkRateLimit("user-1", options, 2_000).allowed).toBe(false);
     expect(checkRateLimit("user-1", options, 61_001).allowed).toBe(true);
+  });
+
+  it("throws a typed error that actions can return without a digest", () => {
+    const options = { limit: 1, windowMs: 60_000 };
+    assertRateLimit("typed", options);
+    expect(() => assertRateLimit("typed", options)).toThrow(RateLimitExceededError);
   });
 });

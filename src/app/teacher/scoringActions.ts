@@ -12,8 +12,9 @@ import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/
 import { calculateProgressQaCriterionScore, findProgressQaCriterion } from "@/lib/rubrics/progressQaRubric";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
 import { missingScoreFieldNames } from "@/lib/scoring/formCompleteness";
-import { ScorePersistenceConflict, persistPresentationScore } from "@/lib/scoring/persistPresentationScore";
+import { persistPresentationScore } from "@/lib/scoring/persistPresentationScore";
 import { persistProposalScore } from "@/lib/scoring/persistProposalScore";
+import { classifyExpectedScoreActionError } from "@/lib/scoring/scoreActionErrors";
 import { validateProgress1Score, validateProgress2Score, type Progress1ScoreInput } from "@/lib/scoring/progress1Scoring";
 import { readOptionalConditionCount } from "@/lib/scoring/proposalDraftIntegrity";
 import type { TeacherScoreActionResult } from "@/lib/scoring/teacherScoreActionResult";
@@ -36,10 +37,6 @@ type StandardRoundConfig = {
   revisionCode: string;
   completeFinalWhenReady?: boolean;
 };
-
-function conflictCode(error: ScorePersistenceConflict) {
-  return error.code;
-}
 
 function unexpectedResult(actionName: string, requestId: string, error: unknown): TeacherScoreActionResult {
   console.error(`[${actionName}] unexpected failure`, {
@@ -213,9 +210,8 @@ async function submitProgressScore(
     return result;
   } catch (error) {
     timer.end("error");
-    if (error instanceof ScorePersistenceConflict) {
-      return { status: "conflict", code: conflictCode(error), requestId };
-    }
+    const expected = classifyExpectedScoreActionError(error, requestId);
+    if (expected) return expected;
     return unexpectedResult(config.actionName, requestId, error);
   }
 }
@@ -340,9 +336,8 @@ export async function submitFinalPresentationScore(
     return result;
   } catch (error) {
     timer.end("error");
-    if (error instanceof ScorePersistenceConflict) {
-      return { status: "conflict", code: conflictCode(error), requestId };
-    }
+    const expected = classifyExpectedScoreActionError(error, requestId);
+    if (expected) return expected;
     return unexpectedResult(config.actionName, requestId, error);
   }
 }
@@ -467,9 +462,8 @@ export async function submitProposalScore(
     };
   } catch (error) {
     timer.end("error");
-    if (error instanceof ScorePersistenceConflict) {
-      return { status: "conflict", code: error.code, requestId };
-    }
+    const expected = classifyExpectedScoreActionError(error, requestId);
+    if (expected) return expected;
     return unexpectedResult(actionName, requestId, error);
   }
 }

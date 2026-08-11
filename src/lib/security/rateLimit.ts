@@ -16,6 +16,15 @@ type RateLimitResult = {
 
 const buckets = new Map<string, RateLimitState>();
 
+export class RateLimitExceededError extends Error {
+  readonly code = "RATE_LIMIT_EXCEEDED";
+
+  constructor() {
+    super("มีการส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+    this.name = "RateLimitExceededError";
+  }
+}
+
 export const pilotRateLimits = {
   devLogin: { limit: 8, windowMs: 60_000 },
   importExport: { limit: 20, windowMs: 60_000 },
@@ -42,7 +51,7 @@ export function checkRateLimit(key: string, options: RateLimitOptions, now = Dat
 export function assertRateLimit(key: string, options: RateLimitOptions): void {
   const result = checkRateLimit(key, options);
   if (!result.allowed) {
-    throw new Error("มีการส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+    throw new RateLimitExceededError();
   }
 }
 
