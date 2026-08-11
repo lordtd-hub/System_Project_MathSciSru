@@ -503,9 +503,9 @@ export default async function TeacherDashboardPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Link className="button-secondary" href={`/projects/${attempt.project.id}`}>ดูแฟ้มโครงงาน</Link>
+                      <a className="button-secondary" href={`/projects/${attempt.project.id}`}>ดูแฟ้มโครงงาน</a>
                       {assignment ? (
-                        <Link className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</Link>
+                        <a className="button" href={`/teacher/scoring/${assignment.id}`}>ประเมินการเสนอหัวข้อ</a>
                       ) : (
                         <form action={openProposalScoring}>
                           <input type="hidden" name="attempt_id" value={attempt.id} />

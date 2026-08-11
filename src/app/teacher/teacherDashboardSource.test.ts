@@ -57,4 +57,13 @@ describe("teacher dashboard source", () => {
     expect(css).toContain("lg:grid-cols-6");
     expect(css).toContain(".compact-metric-grid");
   });
+
+  it("uses full-page navigation for the critical Proposal dashboard links", () => {
+    const page = source();
+
+    expect(page).toContain('<a className="button-secondary" href={`/projects/${attempt.project.id}`}>');
+    expect(page).toContain('<a className="button" href={`/teacher/scoring/${assignment.id}`}>');
+    expect(page).not.toContain('<Link className="button-secondary" href={`/projects/${attempt.project.id}`}>');
+    expect(page).not.toContain('<Link className="button" href={`/teacher/scoring/${assignment.id}`}>');
+  });
 });
