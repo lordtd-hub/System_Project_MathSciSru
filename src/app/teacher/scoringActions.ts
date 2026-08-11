@@ -131,7 +131,7 @@ async function submitProgressScore(
   validateScore: (input: Progress1ScoreInput) => string[]
 ): Promise<TeacherScoreActionResult> {
   const requestId = crypto.randomUUID();
-  const timer = createActionTimer(config.actionName);
+  const timer = createActionTimer(config.actionName, { requestId });
   try {
     const identity = await scoringIdentity(config.actionName, requestId);
     if (!identity.ok) return identity.error;
@@ -277,7 +277,7 @@ export async function submitFinalPresentationScore(
     revisionCode: "final_score_updated",
     completeFinalWhenReady: true
   };
-  const timer = createActionTimer(config.actionName);
+  const timer = createActionTimer(config.actionName, { requestId });
   try {
     const identity = await scoringIdentity(config.actionName, requestId);
     if (!identity.ok) return identity.error;
@@ -348,7 +348,7 @@ export async function submitProposalScore(
 ): Promise<TeacherScoreActionResult> {
   const requestId = crypto.randomUUID();
   const actionName = "teacher.submitProposalScore";
-  const timer = createActionTimer(actionName);
+  const timer = createActionTimer(actionName, { requestId });
   try {
     const identity = await scoringIdentity(actionName, requestId);
     if (!identity.ok) return identity.error;

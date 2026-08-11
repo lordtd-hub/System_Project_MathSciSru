@@ -7,10 +7,8 @@ import { decodeDevSession, devSessionToAuthSession, DEV_SESSION_COOKIE, isDevLog
 import { hasUsableCachedRole } from "@/lib/auth/jwtRoleCache";
 import { isQaLoginEnabled } from "@/lib/auth/qaLogin";
 import { emailDomain, resolveLoginRole } from "@/lib/auth/roleResolution";
-import { assertProductionRuntimeEnv, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
+import { getAuthRuntimeConfiguration, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
-
-assertProductionRuntimeEnv();
 
 const googleOAuth = getGoogleOAuthCredentials();
 
@@ -146,6 +144,8 @@ async function resolveAuthSession() {
     const devPayload = decodeDevSession(cookieStore.get(DEV_SESSION_COOKIE)?.value);
     if (devPayload) return devSessionToAuthSession(devPayload);
   }
+
+  if (!getAuthRuntimeConfiguration().ready) return null;
 
   const realSession = await nextAuth.auth();
   return realSession?.user?.role ? realSession : null;
