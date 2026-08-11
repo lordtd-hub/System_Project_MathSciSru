@@ -57,6 +57,23 @@ describe("admin evidence summaries", () => {
     expect(rows.find((row) => row.rubricName === "Progress 1 v2")?.scoreItemCount).toBe(1);
   });
 
+  it("keeps draft rubric evidence private until the score is submitted", () => {
+    const rows = buildRubricEvidenceRows(
+      [{ id: "proposal-rubric", roundType: "PROPOSAL", name: "Proposal", version: 1, items: [{ id: "item-1" }] }],
+      [{
+        status: "DRAFT",
+        totalScore: 0,
+        scoreItems: [{ rubricItem: { rubricId: "proposal-rubric" } }],
+        evaluatorAssignment: {
+          evaluatorUserId: "teacher-draft",
+          assessmentAttempt: { assessmentRound: { roundType: "PROPOSAL" } }
+        }
+      }]
+    );
+
+    expect(rows).toEqual([]);
+  });
+
   it("exports course grade columns as weighted percentage components", () => {
     const rows = buildCourseGradeExportRows(
       [

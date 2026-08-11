@@ -312,10 +312,10 @@ export function buildRubricEvidenceRows(rubrics: EvidenceRubric[], scoreSubmissi
   return rubrics.flatMap((rubric) => {
     const roundScores = scoreByRound.get(rubric.roundType) ?? [];
     const scores = roundScores.filter((score) => score.scoreItems.some((item) => item.rubricItem.rubricId === rubric.id));
-    const submittedScores = scores.filter((score) => score.status === "SUBMITTED");
-    if (!submittedScores.length && !scores.length) return [];
+    const submittedScores = scores.filter((score) => score.status === "SUBMITTED" || score.status === "LOCKED");
+    if (!submittedScores.length) return [];
     const totalScore = submittedScores.reduce((sum, score) => sum + Number(score.totalScore), 0);
-    const scoreItemCount = scores.reduce(
+    const scoreItemCount = submittedScores.reduce(
       (sum, score) => sum + score.scoreItems.filter((item) => item.rubricItem.rubricId === rubric.id).length,
       0
     );
@@ -327,7 +327,7 @@ export function buildRubricEvidenceRows(rubrics: EvidenceRubric[], scoreSubmissi
       rubricItemCount: rubric.items.length,
       scoreSubmissionCount: submittedScores.length,
       scoreItemCount,
-      evaluatorCount: new Set(scores.map((score) => score.evaluatorAssignment.evaluatorUserId)).size,
+      evaluatorCount: new Set(submittedScores.map((score) => score.evaluatorAssignment.evaluatorUserId)).size,
       averageScore: submittedScores.length ? Math.round((totalScore / submittedScores.length) * 100) / 100 : null
     }];
   });

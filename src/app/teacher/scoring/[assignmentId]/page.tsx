@@ -6,13 +6,18 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
-import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
+import { RecoverableScoreActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
+import {
+  PROPOSAL_DRAFT_V2_AUDIT_ACTION,
+  proposalDraftConditionCounts,
+  selectedDraftRubricItemIds
+} from "@/lib/scoring/proposalDraftIntegrity";
 import { submitProposalScore } from "../../actions";
 
 export default async function ProposalScoringPage({
@@ -106,10 +111,38 @@ export default async function ProposalScoringPage({
     );
   }
 
-  const previousScoreItems = new Map(assignment.scoreSubmission?.scoreItems.map((item) => [item.rubricItemId, item]) ?? []);
-  const checked = new Set(assignment.scoreSubmission?.scoreItems.filter((item) => item.checked).map((item) => item.rubricItemId));
-  const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
   const hasSubmittedScore = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED";
+  const draftV2Marker = assignment.scoreSubmission?.status === "DRAFT"
+    ? await prisma.auditLog.findFirst({
+        where: {
+          action: PROPOSAL_DRAFT_V2_AUDIT_ACTION,
+          entityType: "ScoreSubmission",
+          entityId: assignment.scoreSubmission.id
+        },
+        select: { id: true, afterJson: true },
+        orderBy: { occurredAt: "desc" }
+      })
+    : null;
+  const restoredScoreItemIds = selectedDraftRubricItemIds(
+    assignment.scoreSubmission?.scoreItems ?? [],
+    assignment.scoreSubmission?.status,
+    Boolean(draftV2Marker)
+  );
+  const previousScoreItems = new Map(
+    (assignment.scoreSubmission?.scoreItems ?? [])
+      .filter((item) => restoredScoreItemIds.has(item.rubricItemId))
+      .map((item) => [item.rubricItemId, item])
+  );
+  const checked = new Set(
+    (assignment.scoreSubmission?.scoreItems ?? [])
+      .filter((item) => restoredScoreItemIds.has(item.rubricItemId) && item.checked)
+      .map((item) => item.rubricItemId)
+  );
+  const currentTotal = rubric.items.reduce((sum, item) => sum + (previousScoreItems.get(item.id)?.pointsAwarded ?? (checked.has(item.id) ? item.points : 0)), 0);
+  const restoredDecision = hasSubmittedScore || draftV2Marker
+    ? assignment.scoreSubmission?.proposalDecision?.decision ?? ""
+    : "";
+  const restoredConditionCounts = proposalDraftConditionCounts(draftV2Marker?.afterJson);
   const hasAdminProposalDecision = Boolean(assignment.assessmentAttempt.proposalResult);
   const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasLateRoundOverride;
   const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;
@@ -160,7 +193,7 @@ export default async function ProposalScoringPage({
         </InfoAlert>
       ) : null}
       <InfoAlert title="การมองเห็นของนักศึกษา">
-        นักศึกษาจะเห็นข้อเสนอแนะและชื่ออาจารย์ทันที แต่จะไม่เห็นคะแนนการเสนอหัวข้อ
+        ร่างคะแนน ผลประเมิน และข้อเสนอแนะจะยังไม่แสดงต่อนักศึกษา จนกว่าอาจารย์จะกด “ยืนยันส่งคะแนนการเสนอหัวข้อ”
       </InfoAlert>
       <ProposalQaRubricPanel audience="evaluator" />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -267,7 +300,7 @@ export default async function ProposalScoringPage({
           </div>
         </section>
       ) : (
-        <RecoverableActionForm
+        <RecoverableScoreActionForm
           action={submitProposalScore}
           storageKey={`teacher-proposal-score-recovery:${session.user.id}:${assignment.id}`}
           className="space-y-4"
@@ -285,7 +318,9 @@ export default async function ProposalScoringPage({
               const proposalCriterion = findProposalQaCriterion(item.itemKey);
               const hasPreviousScoreItem = previousScoreItems.has(item.id);
               const previousPoints = previousScoreItems.get(item.id)?.pointsAwarded ?? 0;
-              const previousConditionCount = proposalCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
+              const previousConditionCount = restoredConditionCounts[item.id]
+                ?? proposalCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount
+                ?? 0;
 
               if (proposalCriterion) {
                 const conditionMax = proposalCriterion.conditions.length || proposalCriterion.requiredSections?.length || 0;
@@ -347,7 +382,8 @@ export default async function ProposalScoringPage({
           <section className="panel grid gap-3 md:grid-cols-2">
           <div>
             <label>ผลการประเมิน</label>
-            <select name="decision" defaultValue={assignment.scoreSubmission?.proposalDecision?.decision ?? "PASS"}>
+            <select name="decision" defaultValue={restoredDecision} required>
+              <option value="" disabled>ยังไม่ได้เลือก</option>
               <option value="PASS">PASS</option>
               <option value="PASS_WITH_REVISION">REVISE</option>
               <option value="NOT_PASS">FAIL</option>
@@ -358,11 +394,11 @@ export default async function ProposalScoringPage({
           </div>
           <div className="md:col-span-2">
             <MarkdownLatexEditor name="overall_comment" label="ข้อเสนอแนะถึงนักศึกษา" defaultValue={assignment.scoreSubmission?.overallComment ?? ""} rows={5} />
-            <p className="mt-1 text-xs text-muted">ข้อเสนอแนะนี้จะแสดงให้นักศึกษาเห็นทันทีพร้อมชื่ออาจารย์</p>
+            <p className="mt-1 text-xs text-muted">ร่างข้อเสนอแนะเป็นส่วนตัว และจะแสดงต่อนักศึกษาหลังยืนยันส่งคะแนนเท่านั้น</p>
           </div>
           <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
             {!hasSubmittedScore ? (
-              <SubmitButton name="submit_mode" value="draft" formNoValidate pendingText="กำลังบันทึกร่าง...">บันทึกร่างข้อเสนอแนะ</SubmitButton>
+              <SubmitButton name="submit_mode" value="draft" formNoValidate pendingText="กำลังบันทึกร่าง..." autoRecovery={false}>บันทึกร่างข้อเสนอแนะ</SubmitButton>
             ) : null}
             <SubmitButton
               name="submit_mode"
@@ -370,12 +406,13 @@ export default async function ProposalScoringPage({
               pendingText="กำลังส่งคะแนน..."
               confirmMessage={hasSubmittedScore ? "ยืนยันส่งคะแนนการเสนอหัวข้อที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการเสนอหัวข้อหรือไม่? ระบบจะบันทึกคะแนนและข้อเสนอแนะเป็นหลักฐาน"}
               scoreGuard
+              autoRecovery={false}
             >
               {hasSubmittedScore ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการเสนอหัวข้อ"}
             </SubmitButton>
           </div>
           </section>
-        </RecoverableActionForm>
+        </RecoverableScoreActionForm>
       )}
     </div>
   );

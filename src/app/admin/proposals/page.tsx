@@ -14,6 +14,7 @@ import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
+import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
 import { closeProposalRound, releaseFeedback, saveFinalDecision } from "../actions";
 
 function decisionLabel(decision?: string | null) {
@@ -76,9 +77,24 @@ export default async function AdminProposalsPage({
     }
   });
 
-  const allAttempts = rounds.flatMap((round) => round.attempts);
+  const safeRounds = rounds.map((round) => ({
+    ...round,
+    attempts: round.attempts.map((attempt) => ({
+      ...attempt,
+      proposalVotes: submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments),
+      evaluatorAssignments: attempt.evaluatorAssignments.map((assignment) => ({
+        ...assignment,
+        scoreSubmission:
+          assignment.status === "SUBMITTED"
+          && (assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
+            ? assignment.scoreSubmission
+            : null
+      }))
+    }))
+  }));
+  const allAttempts = safeRounds.flatMap((round) => round.attempts);
   const hasProposalAttempts = allAttempts.length > 0;
-  const latestProposalRound = rounds[0];
+  const latestProposalRound = safeRounds[0];
   const progress1Eligibility = latestProposalRound ? await getRoundEligibility(latestProposalRound.courseOfferingId, "PROGRESS_1") : { eligible: [], notReady: [] };
   const missingProposalProjects = latestProposalRound
     ? await prisma.project.findMany({
@@ -172,8 +188,8 @@ export default async function AdminProposalsPage({
         </section>
       )}
 
-      {rounds.length ? (
-        rounds.map((round) => {
+      {safeRounds.length ? (
+        safeRounds.map((round) => {
           const closed = round.status === "SCORING_CLOSED" || round.status === "RELEASED";
           return (
             <section key={round.id} className="panel space-y-4">

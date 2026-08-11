@@ -23,6 +23,7 @@ import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { getNextActionForAdmin } from "@/lib/lifecycle/nextActions";
 import { lifecycleV2Steps, projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
+import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
 import { confirmProjectAdvisor, openCourseRound, resetCourseOfferingTestData } from "./actions";
 
 function countFromStatus(statusCounts: Map<ProjectStatus, number>, status: ProjectStatus) {
@@ -196,7 +197,18 @@ export default async function AdminDashboardPage({
     }),
     prisma.proposalVote.findMany({
       where: { project: { status: { in: ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"] } } },
-      select: { projectId: true, vote: true }
+      select: {
+        projectId: true,
+        teacherId: true,
+        vote: true,
+        assessmentAttempt: {
+          select: {
+            evaluatorAssignments: {
+              select: { teacherId: true, status: true, scoreSubmission: { select: { status: true } } }
+            }
+          }
+        }
+      }
     }),
     prisma.assessmentAttempt.count({
       where: {
@@ -223,6 +235,7 @@ export default async function AdminDashboardPage({
   const statusCounts = new Map(statusGroups.map((group) => [group.status, group._count._all]));
   const proposalVotesByProject = new Map<string, Array<{ vote: "PASS" | "REVISE" | "FAIL" }>>();
   for (const vote of proposalVotesForFailAlert) {
+    if (!submittedProposalVotes([vote], vote.assessmentAttempt?.evaluatorAssignments ?? []).length) continue;
     proposalVotesByProject.set(vote.projectId, [...(proposalVotesByProject.get(vote.projectId) ?? []), { vote: vote.vote }]);
   }
   const testingToolsEnabled = isAdminTestingToolsEnabled();
