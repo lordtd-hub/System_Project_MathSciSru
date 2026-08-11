@@ -225,7 +225,7 @@ export default async function TeacherAdvisorScorePage({
                     </div>
                     <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.comment ?? ""} rows={4} required={false} />
                     <div>
-                      <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={submitted ? "ยืนยันส่งคะแนนที่ปรึกษาที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?"} scoreGuard>
+                      <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={submitted ? "ยืนยันส่งคะแนนที่ปรึกษาที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% หรือไม่?"} scoreGuard autoRecovery={false}>
                         {submitted ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนสรุป 25%"}
                       </SubmitButton>
                     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { SUBMIT_AUTO_RECOVERY_EVENT } from "./SubmitButton";
 import {
   initialTeacherScoreActionResult,
@@ -11,7 +10,54 @@ import {
 
 type FormAction = (formData: FormData) => void | Promise<void>;
 
-type DraftMap = Record<string, string | boolean>;
+type DraftValue = string | boolean | string[];
+type DraftMap = Record<string, DraftValue>;
+
+export function appendCheckboxDraftValue(
+  values: DraftMap,
+  name: string,
+  value: string,
+  checked: boolean
+) {
+  const selected = Array.isArray(values[name]) ? values[name] : [];
+  values[name] = checked ? [...selected, value] : selected;
+}
+
+export function isCheckboxSelected(draftValue: DraftValue, checkboxValue: string) {
+  return Array.isArray(draftValue) ? draftValue.includes(checkboxValue) : Boolean(draftValue);
+}
+
+export type ScoreActionRecoveryState = {
+  lastRequestId: string | null;
+  reloadStarted: boolean;
+};
+
+type ScoreActionRecoveryEffects = {
+  cancelPendingSave: () => void;
+  readSnapshot: () => DraftMap | null;
+  restoreSnapshot: (values: DraftMap, missingFields: string[]) => void;
+  clearSnapshot: () => void;
+  reload: () => void;
+};
+
+export function reconcileTeacherScoreActionResult(
+  result: TeacherScoreActionResult,
+  state: ScoreActionRecoveryState,
+  effects: ScoreActionRecoveryEffects
+): ScoreActionRecoveryState {
+  if (result.status === "idle" || state.reloadStarted || state.lastRequestId === result.requestId) return state;
+
+  effects.cancelPendingSave();
+  if (result.status === "success") {
+    effects.clearSnapshot();
+    effects.reload();
+    return { lastRequestId: result.requestId, reloadStarted: true };
+  }
+
+  const values = effects.readSnapshot();
+  if (values) effects.restoreSnapshot(values, result.missingFields ?? []);
+  return { lastRequestId: result.requestId, reloadStarted: false };
+}
 
 function readForm(form: HTMLFormElement): DraftMap {
   const data = new FormData(form);
@@ -21,7 +67,11 @@ function readForm(form: HTMLFormElement): DraftMap {
       continue;
     }
     if (!element.name || element.type === "hidden") continue;
-    values[element.name] = element instanceof HTMLInputElement && element.type === "checkbox" ? element.checked : String(data.get(element.name) ?? "");
+    if (element instanceof HTMLInputElement && element.type === "checkbox") {
+      appendCheckboxDraftValue(values, element.name, element.value, element.checked);
+    } else {
+      values[element.name] = String(data.get(element.name) ?? "");
+    }
   }
   for (const [key, value] of data.entries()) {
     if (!(key in values)) values[key] = String(value);
@@ -38,7 +88,9 @@ function restoreForm(form: HTMLFormElement, values: DraftMap) {
 
     const value = values[element.name];
     if (element instanceof HTMLInputElement && element.type === "checkbox") {
-      element.checked = Boolean(value);
+      element.checked = isCheckboxSelected(value, element.value);
+    } else if (element instanceof HTMLInputElement && element.type === "radio" && typeof value === "string") {
+      element.checked = element.value === value;
     } else if (typeof value === "string") {
       element.value = value;
     }
@@ -158,9 +210,8 @@ export function RecoverableScoreActionForm({
   className?: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const handledRequestId = useRef<string | null>(null);
+  const recoveryState = useRef<ScoreActionRecoveryState>({ lastRequestId: null, reloadStarted: false });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [restored, setRestored] = useState(false);
   const [result, formAction] = useActionState(action, initialTeacherScoreActionResult);
@@ -196,11 +247,42 @@ export function RecoverableScoreActionForm({
   }, []);
 
   useEffect(() => {
-    if (result.status !== "success" || handledRequestId.current === result.requestId) return;
-    handledRequestId.current = result.requestId;
-    sessionStorage.removeItem(storageKey);
-    router.refresh();
-  }, [result, router, storageKey]);
+    recoveryState.current = reconcileTeacherScoreActionResult(result, recoveryState.current, {
+      cancelPendingSave: () => {
+        if (saveTimer.current) {
+          clearTimeout(saveTimer.current);
+          saveTimer.current = null;
+        }
+      },
+      readSnapshot: () => {
+        const raw = sessionStorage.getItem(storageKey);
+        if (!raw) return null;
+        try {
+          const parsed = JSON.parse(raw) as { values?: DraftMap };
+          return parsed.values ?? null;
+        } catch {
+          sessionStorage.removeItem(storageKey);
+          return null;
+        }
+      },
+      restoreSnapshot: (values, missingFields) => {
+        const form = formRef.current;
+        if (!form) return;
+        restoreForm(form, values);
+        setRestored(true);
+
+        const missingElement = Array.from(form.elements).find(
+          (element) => element instanceof HTMLElement && "name" in element && missingFields.includes(String(element.name))
+        );
+        if (missingElement instanceof HTMLElement) {
+          missingElement.focus();
+          missingElement.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
+      },
+      clearSnapshot: () => sessionStorage.removeItem(storageKey),
+      reload: () => window.location.reload()
+    });
+  }, [result, storageKey]);
 
   return (
     <form

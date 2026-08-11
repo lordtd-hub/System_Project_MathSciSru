@@ -7,7 +7,7 @@ import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ConditionBasedRubricView } from "@/components/ui/ConditionBasedRubricView";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
-import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
+import { RecoverableScoreActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -15,7 +15,8 @@ import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/
 import { prisma } from "@/lib/db";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
 import { calculateProgressQaCriterionScore, findProgressQaCriterion, progressQaRubric, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
-import { submitProgress1Score } from "../actions";
+import { readTeacherScoreSnapshot } from "@/lib/scoring/scoreSnapshots";
+import { submitProgress1Score } from "../scoringActions";
 
 function legacyFieldName(itemKey: string) {
   if (itemKey === "problemSolving") return "problem_solving";
@@ -91,6 +92,19 @@ export default async function TeacherProgress1Page({
       orderBy: { updatedAt: "desc" }
     })
     : [];
+  const scoreSubmissionIds = projects.flatMap((project) => {
+    const id = project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission?.id;
+    return id ? [id] : [];
+  });
+  const scoreAudits = scoreSubmissionIds.length ? await prisma.auditLog.findMany({
+    where: { entityType: "ScoreSubmission", entityId: { in: scoreSubmissionIds } },
+    orderBy: { occurredAt: "desc" },
+    select: { entityId: true, afterJson: true }
+  }) : [];
+  const snapshotsBySubmission = new Map<string, ReturnType<typeof readTeacherScoreSnapshot>>();
+  for (const audit of scoreAudits) {
+    if (!snapshotsBySubmission.has(audit.entityId)) snapshotsBySubmission.set(audit.entityId, readTeacherScoreSnapshot(audit.afterJson));
+  }
   const submittedCount = projects.filter((project) => project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission).length;
   const pendingCount = projects.length - submittedCount;
 
@@ -123,8 +137,13 @@ export default async function TeacherProgress1Page({
 
       <div className="space-y-4">
         {projects.length ? projects.map((project) => {
-          const previous = project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission;
-          const previousItems = new Map(previous?.scoreItems.map((item) => [item.rubricItem.itemKey, item.pointsAwarded]) ?? []);
+           const previous = project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission;
+           const previousItems = new Map(previous?.scoreItems.map((item) => [item.rubricItem.itemKey, item.pointsAwarded]) ?? []);
+           const previousConditionCounts = new Map(
+             (previous ? snapshotsBySubmission.get(previous.id)?.items : [])
+               ?.filter((item) => item.conditionCount !== undefined)
+               .map((item) => [item.itemKey, item.conditionCount as number]) ?? []
+           );
           const proposalContent = project.presentationSubmissions[0]?.contentJson as Record<string, unknown> | undefined;
           const evidenceSubmission = project.assessmentSubmissions[0];
           const evidenceSummary = typeof evidenceSubmission?.contentJson === "object" && evidenceSubmission?.contentJson && "summary" in evidenceSubmission.contentJson
@@ -172,7 +191,7 @@ export default async function TeacherProgress1Page({
                 sections={progressQaRubric}
               />
 
-              <RecoverableActionForm
+              <RecoverableScoreActionForm
                 action={submitProgress1Score}
                 storageKey={`teacher-progress-1-score-recovery:${session.user.id}:${project.id}`}
                 className="mt-4 space-y-4"
@@ -185,7 +204,9 @@ export default async function TeacherProgress1Page({
                       const displayItem = progressRubricItemLabels.get(item.itemKey) ?? item;
                       const hasPreviousScoreItem = previousItems.has(item.itemKey);
                       const previousPoints = previousItems.get(item.itemKey) ?? 0;
-                      const previousConditionCount = progressCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount ?? 0;
+                      const previousConditionCount = previousConditionCounts.get(item.itemKey)
+                        ?? progressCriterion?.scoreMappings.find((mapping) => mapping.score === previousPoints)?.conditionCount
+                        ?? 0;
 
                       if (progressCriterion) {
                         const conditionMax = progressCriterion.conditions.length;
@@ -228,10 +249,10 @@ export default async function TeacherProgress1Page({
                   <EmptyState title="ยังไม่มีเกณฑ์ประเมินสำหรับการสอบความก้าวหน้าครั้งที่ 1" description="ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนจึงจะบันทึกคะแนนได้" />
                 )}
                 <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
-                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"} scoreGuard>
+                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"} scoreGuard autoRecovery={false}>
                   {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1"}
                 </SubmitButton>
-              </RecoverableActionForm>
+              </RecoverableScoreActionForm>
             </section>
           );
         }) : (

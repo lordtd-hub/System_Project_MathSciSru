@@ -54,24 +54,32 @@ describe("submit button recovery source", () => {
   it("preserves teacher score entries before an automatic recovery reload", () => {
     const formSource = readFileSync(join(process.cwd(), "src/components/ui/ProposalDraftForm.tsx"), "utf8");
     const proposalScorePage = readFileSync(join(process.cwd(), "src/app/teacher/scoring/[assignmentId]/page.tsx"), "utf8");
-    const scorePages = [
+    const typedScorePages = [
       "src/app/teacher/progress1/page.tsx",
       "src/app/teacher/progress2/page.tsx",
-      "src/app/teacher/final/page.tsx",
-      "src/app/teacher/advisor-score/page.tsx"
+      "src/app/teacher/final/page.tsx"
     ].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
+    const advisorScorePage = readFileSync(join(process.cwd(), "src/app/teacher/advisor-score/page.tsx"), "utf8");
 
     expect(formSource).toContain("export function RecoverableActionForm");
     expect(formSource).toContain("sessionStorage.setItem(storageKey");
     expect(formSource).toContain("sessionStorage.removeItem(storageKey)");
+    expect(formSource).toContain("clearTimeout(saveTimer.current)");
+    expect(formSource).toContain("reconcileTeacherScoreActionResult");
+    expect(formSource).toContain("restoreSnapshot: (values, missingFields)");
+    expect(formSource).toContain("window.location.reload()");
+    expect(formSource).not.toContain("router.refresh()");
     expect(formSource).toContain("SUBMIT_AUTO_RECOVERY_EVENT");
     expect(proposalScorePage).toContain("<RecoverableScoreActionForm");
     expect(proposalScorePage).toContain("<SubmitButton");
     expect(proposalScorePage).toContain("${session.user.id}");
-    for (const pageSource of scorePages) {
-      expect(pageSource).toContain("<RecoverableActionForm");
+    for (const pageSource of typedScorePages) {
+      expect(pageSource).toContain("<RecoverableScoreActionForm");
+      expect(pageSource).toContain("autoRecovery={false}");
       expect(pageSource).toContain("<SubmitButton");
       expect(pageSource).toContain("${session.user.id}");
     }
+    expect(advisorScorePage).toContain("<RecoverableActionForm");
+    expect(advisorScorePage).toContain("autoRecovery={false}");
   });
 });

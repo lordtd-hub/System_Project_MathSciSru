@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { evidenceEntityLabel, evidenceEventLabel, evidenceTimelineTitle } from "@/lib/evidence/eventLabels";
 import { projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
+import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
 import type { CsvValue } from "./csv";
 
 type EvidenceAttempt = {
@@ -162,11 +163,9 @@ function hasSubmittedScoreForRound(attempts: EvidenceAttempt[], roundType: Asses
   return attempts.some(
     (attempt) =>
       attempt.assessmentRound.roundType === roundType &&
-      (attempt.officialScore != null || attempt.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.status === "SUBMITTED"))
+      (attempt.officialScore != null || attempt.evaluatorAssignments.some((assignment) => isSubmittedScoreStatus(assignment.scoreSubmission?.status)))
   );
 }
-
-const submittedScoreStatuses = new Set(["SUBMITTED", "LOCKED"]);
 
 const gradeRoundSpecs: Array<{
   roundType: AssessmentRoundType;
@@ -215,7 +214,7 @@ function rawScoreForRound(attempts: GradeAttempt[], roundType: AssessmentRoundTy
     const submittedScores = attempt.evaluatorAssignments
       .map((assignment) => assignment.scoreSubmission)
       .filter((submission): submission is NonNullable<typeof submission> =>
-        Boolean(submission && submittedScoreStatuses.has(submission.status))
+        Boolean(submission && isSubmittedScoreStatus(submission.status))
       )
       .map((submission) => toNumber(submission.totalScore))
       .filter((score): score is number => score != null);
