@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
@@ -188,7 +189,11 @@ export default async function TeacherAdvisorScorePage({
                     ยังไม่สามารถบันทึกคะแนนสรุปของอาจารย์ที่ปรึกษาได้ ต้องรอให้เล่มรายงานผ่านการตรวจก่อน
                   </div>
                 ) : (
-                  <form action={submitAdvisorScore} className="mt-4 space-y-4">
+                  <RecoverableActionForm
+                    action={submitAdvisorScore}
+                    storageKey={`teacher-advisor-score-recovery:${session.user.id}:${project.id}`}
+                    className="mt-4 space-y-4"
+                  >
                     <input type="hidden" name="project_id" value={project.id} />
                     {submitted ? (
                       <InfoAlert title="คะแนนถูกส่งแล้วและยังแก้ไขได้">
@@ -224,7 +229,7 @@ export default async function TeacherAdvisorScorePage({
                         {submitted ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนสรุป 25%"}
                       </SubmitButton>
                     </div>
-                  </form>
+                  </RecoverableActionForm>
                 )}
               </section>
             );

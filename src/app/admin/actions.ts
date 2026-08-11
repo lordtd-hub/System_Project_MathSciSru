@@ -350,6 +350,7 @@ export async function confirmProjectAdvisor(formData: FormData) {
   ]);
 
   revalidatePath("/admin");
+  redirect("/admin?success=project_advisor_confirmed");
 }
 
 export async function reviewTeacherClaim(formData: FormData) {

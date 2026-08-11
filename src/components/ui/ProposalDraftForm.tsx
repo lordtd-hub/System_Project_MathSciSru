@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SUBMIT_AUTO_RECOVERY_EVENT } from "./SubmitButton";
 
 type FormAction = (formData: FormData) => void | Promise<void>;
 
@@ -134,3 +135,58 @@ export function DraftPreservingForm({
 }
 
 export const ProposalDraftForm = DraftPreservingForm;
+
+export function RecoverableActionForm({
+  action,
+  storageKey,
+  className,
+  children
+}: {
+  action: FormAction;
+  storageKey: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const raw = sessionStorage.getItem(storageKey);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { values?: DraftMap };
+        if (parsed.values) {
+          restoreForm(form, parsed.values);
+          setRestored(true);
+        }
+      } catch {
+        // Ignore a damaged recovery snapshot and keep the server-rendered values.
+      } finally {
+        sessionStorage.removeItem(storageKey);
+      }
+    }
+
+    const preserveBeforeRecovery = (event: Event) => {
+      const detail = (event as CustomEvent<{ form?: HTMLFormElement | null }>).detail;
+      if (detail?.form !== form) return;
+      sessionStorage.setItem(storageKey, JSON.stringify({ values: readForm(form) }));
+    };
+
+    window.addEventListener(SUBMIT_AUTO_RECOVERY_EVENT, preserveBeforeRecovery);
+    return () => window.removeEventListener(SUBMIT_AUTO_RECOVERY_EVENT, preserveBeforeRecovery);
+  }, [storageKey]);
+
+  return (
+    <form ref={formRef} action={action} className={className}>
+      {children}
+      {restored ? (
+        <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
+          กู้คืนคะแนนและข้อความที่กรอกไว้แล้ว กรุณาตรวจสอบก่อนกดส่งอีกครั้ง
+        </p>
+      ) : null}
+    </form>
+  );
+}

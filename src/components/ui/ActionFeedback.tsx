@@ -34,6 +34,7 @@ const successMessages: Record<string, string> = {
   advisor_score_saved: "ส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% เรียบร้อยแล้ว",
   advisor_score_updated: "ส่งคะแนนสรุปของอาจารย์ที่ปรึกษา 25% ที่แก้ไขเรียบร้อยแล้ว",
   project_completed: "ยืนยันจบโครงงานเรียบร้อยแล้ว",
+  teacher_claim_submitted: "ส่งคำขอผูกบัญชีอาจารย์เรียบร้อยแล้ว กรุณารอผู้ดูแลระบบอนุมัติ",
   teacher_claim_reviewed: "บันทึกผลคำขอผูกบัญชีอาจารย์แล้ว"
 };
 

@@ -150,6 +150,7 @@ export async function claimTeacherProfile(formData: FormData) {
   });
 
   revalidatePath("/teacher/claim");
+  redirect("/teacher/claim?success=teacher_claim_submitted");
 }
 
 export async function openProposalScoring(formData: FormData) {

@@ -6,6 +6,7 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
+import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
@@ -266,7 +267,11 @@ export default async function ProposalScoringPage({
           </div>
         </section>
       ) : (
-        <form action={submitProposalScore} className="space-y-4">
+        <RecoverableActionForm
+          action={submitProposalScore}
+          storageKey={`teacher-proposal-score-recovery:${session.user.id}:${assignment.id}`}
+          className="space-y-4"
+        >
           <input type="hidden" name="assignment_id" value={assignment.id} />
           {Object.entries(groupedRubric).map(([groupLabel, items]) => (
             <details key={groupLabel} className="panel space-y-3" open>
@@ -370,7 +375,7 @@ export default async function ProposalScoringPage({
             </SubmitButton>
           </div>
           </section>
-        </form>
+        </RecoverableActionForm>
       )}
     </div>
   );
