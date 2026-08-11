@@ -47,11 +47,15 @@ describe("proposal draft integrity", () => {
   it("publishes votes only for matching submitted evaluator assignments", () => {
     const votes = [
       { teacherId: "submitted", vote: "PASS" },
-      { teacherId: "draft", vote: "FAIL" }
+      { teacherId: "draft", vote: "FAIL" },
+      { teacherId: "assignment-only", vote: "PASS" },
+      { teacherId: "submission-only", vote: "FAIL" }
     ];
     const visible = submittedProposalVotes(votes, [
       { teacherId: "submitted", status: "SUBMITTED", scoreSubmission: { status: "SUBMITTED" } },
-      { teacherId: "draft", status: "IN_PROGRESS", scoreSubmission: { status: "DRAFT" } }
+      { teacherId: "draft", status: "IN_PROGRESS", scoreSubmission: { status: "DRAFT" } },
+      { teacherId: "assignment-only", status: "SUBMITTED", scoreSubmission: { status: "DRAFT" } },
+      { teacherId: "submission-only", status: "IN_PROGRESS", scoreSubmission: { status: "SUBMITTED" } }
     ]);
 
     expect(visible).toEqual([{ teacherId: "submitted", vote: "PASS" }]);

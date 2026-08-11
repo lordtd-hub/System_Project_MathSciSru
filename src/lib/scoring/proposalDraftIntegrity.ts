@@ -62,7 +62,9 @@ export function submittedProposalVotes<TVote extends ProposalVoteLike>(
 ) {
   const submittedTeacherIds = new Set(
     assignments
-      .filter((assignment) => assignment.teacherId && (assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED"))
+      .filter((assignment) => assignment.teacherId
+        && assignment.status === "SUBMITTED"
+        && (assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED"))
       .map((assignment) => assignment.teacherId as string)
   );
   return votes.filter((vote) => submittedTeacherIds.has(vote.teacherId));

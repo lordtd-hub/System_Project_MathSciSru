@@ -81,7 +81,15 @@ export default async function AdminProposalsPage({
     ...round,
     attempts: round.attempts.map((attempt) => ({
       ...attempt,
-      proposalVotes: submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments)
+      proposalVotes: submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments),
+      evaluatorAssignments: attempt.evaluatorAssignments.map((assignment) => ({
+        ...assignment,
+        scoreSubmission:
+          assignment.status === "SUBMITTED"
+          && (assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
+            ? assignment.scoreSubmission
+            : null
+      }))
     }))
   }));
   const allAttempts = safeRounds.flatMap((round) => round.attempts);
