@@ -75,5 +75,6 @@ describe("submit button recovery source", () => {
       expect(pageSource).toContain("${session.user.id}");
     }
     expect(advisorScorePage).toContain("<RecoverableActionForm");
+    expect(advisorScorePage).toContain("autoRecovery={false}");
   });
 });

@@ -33,6 +33,41 @@ describe("admin evidence summaries", () => {
     expect(rows[0].lastEvidenceUpdate?.toISOString()).toBe("2026-05-04T00:00:00.000Z");
   });
 
+  it("counts locked presentation scores as completed evidence", () => {
+    const lockedAttempt = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => ({
+      officialScore: null,
+      assessmentRound: { roundType },
+      evaluatorAssignments: [{ scoreSubmission: { status: "LOCKED", submittedAt: new Date("2026-05-05T00:00:00.000Z") } }]
+    });
+    const rows = buildProjectEvidenceRows([{
+      id: "project-locked",
+      currentTitleTh: "Locked score evidence",
+      status: "COMPLETED",
+      updatedAt: new Date("2026-05-01T00:00:00.000Z"),
+      student: {
+        studentCode: "65123456789",
+        firstNameTh: "Somchai",
+        lastNameTh: "Jaidee",
+        generatedEmail: "65123456789@student.sru.ac.th"
+      },
+      advisorRequests: [],
+      committeeAssignments: [],
+      attempts: [lockedAttempt("PROGRESS_1"), lockedAttempt("PROGRESS_2"), lockedAttempt("FINAL_PRESENTATION")],
+      reportVersions: [],
+      advisorScore: { status: "SUBMITTED", score: 80, submittedAt: new Date("2026-05-05T00:00:00.000Z") },
+      timelineEvents: [],
+      statusHistory: [],
+      _count: { timelineEvents: 0, statusHistory: 0 }
+    }]);
+
+    expect(rows[0]).toMatchObject({
+      progress1Score: true,
+      progress2Score: true,
+      finalScore: true,
+      missingEvidence: []
+    });
+  });
+
   it("attributes score evidence to the rubric version used by score items", () => {
     const rows = buildRubricEvidenceRows(
       [

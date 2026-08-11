@@ -15,6 +15,7 @@ import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
+import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
 import { closeProposalRound, releaseFeedback, saveFinalDecision } from "../actions";
 
 function decisionLabel(decision?: string | null) {
@@ -86,7 +87,7 @@ export default async function AdminProposalsPage({
         ...assignment,
         scoreSubmission:
           assignment.status === "SUBMITTED"
-          && (assignment.scoreSubmission?.status === "SUBMITTED" || assignment.scoreSubmission?.status === "LOCKED")
+          && isSubmittedScoreStatus(assignment.scoreSubmission?.status)
             ? assignment.scoreSubmission
             : null
       }))
@@ -111,7 +112,7 @@ export default async function AdminProposalsPage({
   }).length;
   const failAlertCount = allAttempts.filter((attempt) => shouldAlertAdminForFailVotes(attempt.proposalVotes)).length;
   const missingScoreCount = allAttempts.filter((attempt) => {
-    const submitted = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED").length;
+    const submitted = attempt.evaluatorAssignments.filter((assignment) => isSubmittedScoreStatus(assignment.scoreSubmission?.status)).length;
     return submitted < attempt.evaluatorAssignments.length;
   }).length;
   const releasedCount = allAttempts.filter((attempt) => attempt.scoreRelease).length;
@@ -363,7 +364,7 @@ export default async function AdminProposalsPage({
                             {attempt.evaluatorAssignments.map((assignment) => (
                               <div key={assignment.id} className="rounded border border-line p-2">
                                 <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
-                                <div>สถานะ: {assignment.scoreSubmission?.status === "SUBMITTED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                <div>สถานะ: {isSubmittedScoreStatus(assignment.scoreSubmission?.status) ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
                                 <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
                                 <div>ข้อเสนอแนะ:</div>
                                 <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />
@@ -482,7 +483,7 @@ export default async function AdminProposalsPage({
                                 {attempt.evaluatorAssignments.map((assignment) => (
                                   <div key={assignment.id} className="rounded border border-line p-2">
                                     <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
-                                    <div>สถานะ: {assignment.scoreSubmission?.status === "SUBMITTED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                    <div>สถานะ: {isSubmittedScoreStatus(assignment.scoreSubmission?.status) ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
                                     <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
                                     <div>ข้อเสนอแนะ:</div>
                                     <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />

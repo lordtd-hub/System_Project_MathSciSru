@@ -2,6 +2,7 @@ import type { AssessmentRoundType, CommitteeRole, ProjectStatus } from "@prisma/
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/db";
 import { projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
+import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 type Viewer = Session["user"] | null | undefined;
@@ -426,7 +427,7 @@ export async function getProjectRecordForViewer(projectId: string, viewer: Viewe
       })),
       assessmentAttempts: project.attempts.map((attempt) => {
         const requiredReviewers = attempt.evaluatorAssignments.filter((assignment) => assignment.isRequired).length;
-        const submittedReviewers = attempt.evaluatorAssignments.filter((assignment) => assignment.scoreSubmission?.status === "SUBMITTED").length;
+        const submittedReviewers = attempt.evaluatorAssignments.filter((assignment) => isSubmittedScoreStatus(assignment.scoreSubmission?.status)).length;
         const canShowStudentScore = viewerRole !== "STUDENT" || attempt.assessmentRound.showScoreToStudent;
         return {
           id: attempt.id,

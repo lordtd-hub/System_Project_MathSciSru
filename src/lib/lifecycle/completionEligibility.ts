@@ -1,5 +1,6 @@
 import type { AssessmentRoundType, ProjectStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
 
 export type CompletionCheckInput = {
   currentState: ProjectStatus;
@@ -57,7 +58,7 @@ function hasSubmittedScoreForRound(
   return attempts.some(
     (attempt) =>
       attempt.assessmentRound.roundType === roundType &&
-      (attempt.officialScore != null || attempt.evaluatorAssignments.some((assignment) => assignment.scoreSubmission?.status === "SUBMITTED"))
+      (attempt.officialScore != null || attempt.evaluatorAssignments.some((assignment) => isSubmittedScoreStatus(assignment.scoreSubmission?.status)))
   );
 }
 
