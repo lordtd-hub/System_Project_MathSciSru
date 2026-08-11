@@ -5,6 +5,7 @@ import {
   getAuthSecret,
   getGoogleOAuthCredentials,
   isProductionRuntime,
+  isVercelProductionDeployment,
   validateProductionEnv
 } from "./env";
 
@@ -23,6 +24,8 @@ describe("production environment validation", () => {
     expect(isProductionRuntime({ NODE_ENV: "production", VERCEL_ENV: "preview" })).toBe(false);
     expect(isProductionRuntime({ NODE_ENV: "production", VERCEL_ENV: "development" })).toBe(false);
     expect(isProductionRuntime({ NODE_ENV: "production", VERCEL_ENV: "production" })).toBe(true);
+    expect(isVercelProductionDeployment({ VERCEL_ENV: "preview" })).toBe(false);
+    expect(isVercelProductionDeployment({ VERCEL_ENV: "production" })).toBe(true);
   });
 
   it("fails production validation when critical variables are missing", () => {

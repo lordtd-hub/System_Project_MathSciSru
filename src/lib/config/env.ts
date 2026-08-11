@@ -41,6 +41,10 @@ export function isProductionRuntime(env: EnvLike = process.env) {
   return env.NODE_ENV === "production";
 }
 
+export function isVercelProductionDeployment(env: EnvLike = process.env) {
+  return readEnv(env, "VERCEL_ENV") === "production";
+}
+
 export function getAuthSecret(env: EnvLike = process.env) {
   return readEnv(env, "AUTH_SECRET") ?? readEnv(env, "NEXTAUTH_SECRET");
 }
