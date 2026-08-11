@@ -7,6 +7,7 @@ import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ConditionBasedRubricView } from "@/components/ui/ConditionBasedRubricView";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
+import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -171,7 +172,11 @@ export default async function TeacherProgress1Page({
                 sections={progressQaRubric}
               />
 
-              <form action={submitProgress1Score} className="mt-4 space-y-4">
+              <RecoverableActionForm
+                action={submitProgress1Score}
+                storageKey={`teacher-progress-1-score-recovery:${session.user.id}:${project.id}`}
+                className="mt-4 space-y-4"
+              >
                 <input type="hidden" name="project_id" value={project.id} />
                 {rubric?.items.length ? (
                   <div className="space-y-3">
@@ -226,7 +231,7 @@ export default async function TeacherProgress1Page({
                 <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"} scoreGuard>
                   {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1"}
                 </SubmitButton>
-              </form>
+              </RecoverableActionForm>
             </section>
           );
         }) : (

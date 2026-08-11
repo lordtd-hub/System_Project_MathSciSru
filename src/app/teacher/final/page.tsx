@@ -6,6 +6,7 @@ import { FinalEvidenceContinuityPanel } from "@/components/ui/FinalEvidenceConti
 import { FinalQaRubricPanel } from "@/components/ui/FinalQaRubricPanel";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { RecoverableActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -167,7 +168,11 @@ export default async function TeacherFinalPage({
               <div className="mt-4">
                 <FinalQaRubricPanel audience="evaluator" />
               </div>
-              <form action={submitFinalPresentationScore} className="mt-4 space-y-4">
+              <RecoverableActionForm
+                action={submitFinalPresentationScore}
+                storageKey={`teacher-final-score-recovery:${session.user.id}:${project.id}`}
+                className="mt-4 space-y-4"
+              >
                 <input type="hidden" name="project_id" value={project.id} />
                 {finalQaRubric.flatMap((section) =>
                   section.criteria.map((criterion) => (
@@ -204,7 +209,7 @@ export default async function TeacherFinalPage({
                     {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้าย"}
                   </SubmitButton>
                 </div>
-              </form>
+              </RecoverableActionForm>
             </section>
           );
         }) : finalRound ? (

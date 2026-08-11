@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 export const SUBMIT_AUTO_RECOVERY_DELAY_MS = 15_000;
+export const SUBMIT_AUTO_RECOVERY_EVENT = "submit-auto-recovery";
 
 type ScoreSummary = {
   completed: number;
@@ -95,7 +96,12 @@ export function SubmitButton({
   useEffect(() => {
     if (!pending) return;
 
-    const timer = window.setTimeout(() => window.location.reload(), SUBMIT_AUTO_RECOVERY_DELAY_MS);
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent(SUBMIT_AUTO_RECOVERY_EVENT, {
+        detail: { form: buttonRef.current?.form ?? null }
+      }));
+      window.location.reload();
+    }, SUBMIT_AUTO_RECOVERY_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [pending]);
 
@@ -106,9 +112,11 @@ export function SubmitButton({
     refreshScoreSummary();
     form.addEventListener("input", refreshScoreSummary);
     form.addEventListener("change", refreshScoreSummary);
+    window.addEventListener("draft-form-restore", refreshScoreSummary);
     return () => {
       form.removeEventListener("input", refreshScoreSummary);
       form.removeEventListener("change", refreshScoreSummary);
+      window.removeEventListener("draft-form-restore", refreshScoreSummary);
     };
   }, [refreshScoreSummary, scoreGuard]);
 

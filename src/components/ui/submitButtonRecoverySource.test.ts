@@ -14,7 +14,8 @@ describe("submit button recovery source", () => {
     expect(source).toContain("form.reportValidity()");
     expect(source).not.toContain("submitterInput");
     expect(source).toContain("SUBMIT_AUTO_RECOVERY_DELAY_MS = 15_000");
-    expect(source).toContain("window.setTimeout(() => window.location.reload(), SUBMIT_AUTO_RECOVERY_DELAY_MS)");
+    expect(source).toContain("window.dispatchEvent(new CustomEvent(SUBMIT_AUTO_RECOVERY_EVENT");
+    expect(source).toContain("window.location.reload()");
     expect(source).toContain('type="submit"');
     expect(source).toContain("disabled={disabled || pending}");
     expect(source).toContain("event.preventDefault();");
@@ -32,5 +33,26 @@ describe("submit button recovery source", () => {
     expect(teacherActions).toContain("const assignment = await prisma.evaluatorAssignment.upsert");
     expect(teacherActions).toContain('revalidatePath("/teacher/proposals")');
     expect(teacherActions).toContain('redirect(`/teacher/scoring/${encodeURIComponent(assignment.id)}`)');
+  });
+
+  it("preserves teacher score entries before an automatic recovery reload", () => {
+    const formSource = readFileSync(join(process.cwd(), "src/components/ui/ProposalDraftForm.tsx"), "utf8");
+    const scorePages = [
+      "src/app/teacher/scoring/[assignmentId]/page.tsx",
+      "src/app/teacher/progress1/page.tsx",
+      "src/app/teacher/progress2/page.tsx",
+      "src/app/teacher/final/page.tsx",
+      "src/app/teacher/advisor-score/page.tsx"
+    ].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
+
+    expect(formSource).toContain("export function RecoverableActionForm");
+    expect(formSource).toContain("sessionStorage.setItem(storageKey");
+    expect(formSource).toContain("sessionStorage.removeItem(storageKey)");
+    expect(formSource).toContain("SUBMIT_AUTO_RECOVERY_EVENT");
+    for (const pageSource of scorePages) {
+      expect(pageSource).toContain("<RecoverableActionForm");
+      expect(pageSource).toContain("<SubmitButton");
+      expect(pageSource).toContain("${session.user.id}");
+    }
   });
 });
