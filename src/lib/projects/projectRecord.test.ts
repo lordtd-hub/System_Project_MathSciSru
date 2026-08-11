@@ -4,7 +4,7 @@ import { canViewProjectRecord } from "./projectRecord";
 function baseProject() {
   return {
     student: { generatedEmail: "student01@student.sru.ac.th" },
-    advisorRequests: [{ advisorTeacherId: "teacher-advisor" }],
+    advisorRequests: [{ advisorTeacherId: "teacher-advisor", status: "APPROVED" }],
     committeeAssignments: [{ teacherId: "teacher-committee", active: true }],
     scheduleProposals: [{ approvals: [{ teacherId: "teacher-schedule" }] }],
     attempts: [{ evaluatorAssignments: [{ teacherId: "teacher-evaluator" }] }],
@@ -38,6 +38,16 @@ describe("canViewProjectRecord", () => {
   it("denies unrelated or unlinked teachers", () => {
     expect(canViewProjectRecord(baseProject(), { role: "TEACHER", teacherId: "teacher-other", email: "other@sru.test" }).allowed).toBe(false);
     expect(canViewProjectRecord(baseProject(), { role: "TEACHER", email: "missing-profile@sru.test" }).allowed).toBe(false);
+  });
+
+  it.each(["PENDING", "REJECTED", "CANCELLED"])("does not grant project access from a %s advisor request", (status) => {
+    const project = baseProject();
+    project.advisorRequests = [{ advisorTeacherId: "teacher-blocked", status }];
+    expect(canViewProjectRecord(project, {
+      role: "TEACHER",
+      teacherId: "teacher-blocked",
+      email: "teacher-blocked@sru.test"
+    }).allowed).toBe(false);
   });
 
   it("denies missing viewers", () => {

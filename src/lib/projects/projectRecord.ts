@@ -11,7 +11,7 @@ export type ProjectRecordViewerRole = "ADMIN" | "STUDENT" | "TEACHER";
 
 type ProjectRecordAccessProject = {
   student: { generatedEmail: string };
-  advisorRequests: { advisorTeacherId: string }[];
+  advisorRequests: { advisorTeacherId: string; status: string }[];
   committeeAssignments: { teacherId: string; active: boolean }[];
   scheduleProposals: { approvals: { teacherId: string }[] }[];
   attempts: { evaluatorAssignments: { teacherId: string | null }[] }[];
@@ -42,7 +42,7 @@ export function canViewProjectRecord(project: ProjectRecordAccessProject, viewer
   }
 
   const teacherRelated =
-    project.advisorRequests.some((request) => request.advisorTeacherId === teacherId) ||
+    project.advisorRequests.some((request) => request.status === "APPROVED" && request.advisorTeacherId === teacherId) ||
     project.committeeAssignments.some((assignment) => assignment.active && assignment.teacherId === teacherId) ||
     project.scheduleProposals.some((schedule) => schedule.approvals.some((approval) => approval.teacherId === teacherId)) ||
     project.attempts.some((attempt) => attempt.evaluatorAssignments.some((assignment) => assignment.teacherId === teacherId)) ||
