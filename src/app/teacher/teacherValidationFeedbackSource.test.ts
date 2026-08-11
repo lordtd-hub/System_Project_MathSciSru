@@ -5,14 +5,15 @@ import path from "node:path";
 const root = process.cwd();
 const teacherActions = readFileSync(path.join(root, "src/app/teacher/actions.ts"), "utf8");
 const feedback = readFileSync(path.join(root, "src/components/ui/ActionFeedback.tsx"), "utf8");
+const scoreActionResult = readFileSync(path.join(root, "src/lib/scoring/teacherScoreActionResult.ts"), "utf8");
 
 describe("teacher form validation feedback", () => {
   it("keeps expected teacher form validation failures on the originating page", () => {
     [
       'redirectWithQuery("/teacher/schedules", { error: "schedule_reject_reason_required" })',
       'redirectWithQuery("/teacher/schedules", { error: "schedule_review_decision_invalid" })',
-      'redirectWithQuery(scoringPath, { error: "proposal_decision_reason_required" })',
-      'redirectWithQuery(scoringPath, { error: "proposal_feedback_required" })',
+      'status: "validation", code: "proposal_decision_reason_required"',
+      'status: "validation", code: "proposal_feedback_required"',
       'redirectWithQuery("/teacher/reports", { error: "report_review_comment_required" })',
       'redirectIfTeacherFormInvalid(errors, "/teacher/progress1")',
       'redirectIfTeacherFormInvalid(errors, "/teacher/progress2")',
@@ -41,6 +42,6 @@ describe("teacher form validation feedback", () => {
       "proposal_decision_reason_required",
       "proposal_feedback_required",
       "report_review_comment_required"
-    ].forEach((key) => expect(feedback).toContain(key));
+    ].forEach((key) => expect(`${feedback}\n${scoreActionResult}`).toContain(key));
   });
 });

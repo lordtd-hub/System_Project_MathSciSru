@@ -33,7 +33,9 @@ describe("teacher score completeness safeguards", () => {
     const actions = read("src/app/teacher/actions.ts");
     const feedback = read("src/components/ui/ActionFeedback.tsx");
 
-    expect(actions.match(/redirectIfScoreFieldsIncomplete\(/g)?.length).toBeGreaterThanOrEqual(6);
+    expect(actions.match(/redirectIfScoreFieldsIncomplete\(/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(actions).toContain("const missingFields = missingScoreFieldNames(formData, conditionFieldNames)");
+    expect(actions).toContain('code: "score_rubric_incomplete"');
     expect(feedback).toContain("score_rubric_incomplete");
   });
 });

@@ -17,6 +17,8 @@ import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from 
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
 import { isPresentationScoreEditable, isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
 import { missingScoreFieldNames } from "@/lib/scoring/formCompleteness";
+import { PROPOSAL_DRAFT_V2_AUDIT_ACTION, readOptionalConditionCount } from "@/lib/scoring/proposalDraftIntegrity";
+import type { TeacherScoreActionResult } from "@/lib/scoring/teacherScoreActionResult";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
 import { calculateFinalQaCriterionScore, finalQaRubricItems, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
@@ -409,219 +411,276 @@ export async function reviewExamSchedule(formData: FormData) {
   redirectWithQuery("/teacher/schedules", { success: decision === "APPROVE" ? "schedule_approved" : "schedule_rejected" });
 }
 
-export async function submitProposalScore(formData: FormData) {
-  const user = await requireTeacherUser();
-  assertRateLimit(`teacher:${user.id}:submitProposalScore`, pilotRateLimits.scoring);
+export async function submitProposalScore(
+  _previousState: TeacherScoreActionResult,
+  formData: FormData
+): Promise<TeacherScoreActionResult> {
+  const requestId = crypto.randomUUID();
   const timer = createActionTimer("teacher.submitProposalScore");
-  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
+  try {
+    const user = await requireTeacherUser();
+    assertRateLimit(`teacher:${user.id}:submitProposalScore`, pilotRateLimits.scoring);
+    if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
 
-  const assignmentId = String(formData.get("assignment_id"));
-  const scoringPath = `/teacher/scoring/${encodeURIComponent(assignmentId)}`;
-  const decision = String(formData.get("decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
-  const reason = String(formData.get("reason") ?? "").trim();
-  const overallComment = String(formData.get("overall_comment") ?? "").trim();
-  redirectIfTeacherTextTooLong(reason, requestSizeLimits.shortReasonBytes, "proposal decision reason", scoringPath, "proposal_reason_too_long");
-  redirectIfTeacherTextTooLong(overallComment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะภาพรวมการเสนอหัวข้อ", scoringPath);
-  const submitMode = String(formData.get("submit_mode"));
-  if (!["PASS", "PASS_WITH_REVISION", "NOT_PASS"].includes(decision)) {
-    redirectWithQuery(scoringPath, { error: "proposal_decision_invalid" });
-  }
+    const assignmentId = String(formData.get("assignment_id") ?? "");
+    const reason = String(formData.get("reason") ?? "").trim();
+    const overallComment = String(formData.get("overall_comment") ?? "").trim();
+    const submitMode = String(formData.get("submit_mode") ?? "");
+    const rawDecision = String(formData.get("decision") ?? "");
+    const validDecision = ["PASS", "PASS_WITH_REVISION", "NOT_PASS"].includes(rawDecision)
+      ? rawDecision as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS"
+      : null;
 
-  const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
-    where: { id: assignmentId },
-    include: {
-      assessmentAttempt: { include: { assessmentRound: true, proposalResult: true } },
-      scoreSubmission: { select: { status: true, lockedAt: true, totalScore: true } }
+    if (!assignmentId || !["draft", "submit"].includes(submitMode)) {
+      return { status: "validation", code: "proposal_decision_invalid", requestId };
     }
-  }));
-  if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
-  if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
-  if (assignment.assessmentAttempt.proposalResult) {
-    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_decision_already_saved" });
-  }
-  const proposalRoundExceptions = await prisma.projectRoundException.findMany({
-    where: {
-      projectId: assignment.assessmentAttempt.projectId,
-      assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId,
-      status: "OPEN"
-    },
-    select: { exceptionType: true, status: true }
-  });
-  if (!isProposalScoreEditable({
-    roundStatus: assignment.assessmentAttempt.assessmentRound.status,
-    hasAdminDecision: false,
-    roundExceptions: proposalRoundExceptions
-  })) {
-    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_round_not_open" });
-  }
-
-  const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));
-  if (!rubric || rubric.items.length === 0) {
-    redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, { error: "proposal_rubric_missing" });
-  }
-
-  const checkedIds = new Set(formData.getAll("checked_item").map(String));
-  const scoredItems = rubric.items.map((item) => {
-    const proposalCriterion = findProposalQaCriterion(item.itemKey);
-    if (proposalCriterion) {
-      const rawConditionCount = Number(formData.get(`condition_count:${item.id}`) ?? 0);
-      const conditionCount = Number.isFinite(rawConditionCount) ? rawConditionCount : 0;
-      const pointsAwarded = calculateCriterionScore(proposalCriterion, conditionCount);
-      return { item, checked: pointsAwarded > 0, pointsAwarded };
+    if (sizeError(reason, requestSizeLimits.shortReasonBytes, "proposal decision reason") || sizeError(overallComment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะภาพรวมการเสนอหัวข้อ")) {
+      return { status: "validation", code: "teacher_text_too_long", requestId };
     }
 
-    const checked = checkedIds.has(item.id);
-    return { item, checked, pointsAwarded: checked ? item.points : 0 };
-  });
-  const scoreResult = {
-    totalScore: scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0),
-    maxScore: rubric.items.reduce((sum, item) => sum + item.points, 0),
-    criticalWarnings: scoredItems.filter((scoredItem) => scoredItem.item.isCritical && scoredItem.pointsAwarded === 0).map((scoredItem) => scoredItem.item.itemLabelTh)
-  };
-  const scoreAdjustment = await getLateRoundScoreAdjustment(
-    assignment.assessmentAttempt.projectId,
-    assignment.assessmentAttempt.assessmentRoundId,
-    scoreResult.totalScore
-  );
-  const isScoreRevision = assignment.scoreSubmission?.status === "SUBMITTED" || assignment.status === "SUBMITTED";
-  const isSubmittingScore = submitMode === "submit" || isScoreRevision;
-  if (isSubmittingScore) {
-    redirectIfScoreFieldsIncomplete(
-      formData,
-      rubric.items
-        .filter((item) => Boolean(findProposalQaCriterion(item.itemKey)))
-        .map((item) => `condition_count:${item.id}`),
-      scoringPath
+    const assignment = await timer.measure("load_assignment", () => prisma.evaluatorAssignment.findUniqueOrThrow({
+      where: { id: assignmentId },
+      include: {
+        assessmentAttempt: { include: { assessmentRound: true, proposalResult: true } },
+        scoreSubmission: { select: { status: true, lockedAt: true, totalScore: true } }
+      }
+    }));
+    if (assignment.evaluatorUserId !== user.id) throw new Error("ไม่สามารถบันทึกคะแนนของผู้อื่นได้");
+    if (!assignment.teacherId) throw new Error("ไม่พบข้อมูลอาจารย์ผู้ประเมิน");
+    if (assignment.assessmentAttempt.proposalResult) {
+      return { status: "conflict", code: "proposal_decision_already_saved", requestId };
+    }
+    const proposalRoundExceptions = await prisma.projectRoundException.findMany({
+      where: {
+        projectId: assignment.assessmentAttempt.projectId,
+        assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId,
+        status: "OPEN"
+      },
+      select: { exceptionType: true, status: true }
+    });
+    if (!isProposalScoreEditable({
+      roundStatus: assignment.assessmentAttempt.assessmentRound.status,
+      hasAdminDecision: false,
+      roundExceptions: proposalRoundExceptions
+    })) {
+      return { status: "conflict", code: "proposal_round_not_open", requestId };
+    }
+
+    const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));
+    if (!rubric.items.length) {
+      return { status: "conflict", code: "proposal_rubric_missing", requestId };
+    }
+
+    const isScoreRevision = assignment.scoreSubmission?.status === "SUBMITTED" || assignment.status === "SUBMITTED";
+    const isSubmittingScore = submitMode === "submit" || isScoreRevision;
+    const conditionFieldNames = rubric.items
+      .filter((item) => Boolean(findProposalQaCriterion(item.itemKey)))
+      .map((item) => `condition_count:${item.id}`);
+    const missingFields = missingScoreFieldNames(formData, conditionFieldNames);
+    if (isSubmittingScore && missingFields.length) {
+      return { status: "validation", code: "score_rubric_incomplete", requestId, missingFields };
+    }
+    if (isSubmittingScore && !validDecision) {
+      return { status: "validation", code: "proposal_decision_invalid", requestId };
+    }
+    if (isSubmittingScore && validateProposalDecision(validDecision!, reason).length) {
+      return { status: "validation", code: "proposal_decision_reason_required", requestId };
+    }
+    if (isSubmittingScore && !overallComment) {
+      return { status: "validation", code: "proposal_feedback_required", requestId };
+    }
+
+    const checkedIds = new Set(formData.getAll("checked_item").map(String));
+    let invalidRubricValue = false;
+    const conditionCounts: Record<string, number> = {};
+    const scoredItems = rubric.items.flatMap((item) => {
+      const proposalCriterion = findProposalQaCriterion(item.itemKey);
+      if (proposalCriterion) {
+        const fieldName = `condition_count:${item.id}`;
+        const rawConditionCount = formData.get(fieldName);
+        const conditionCount = readOptionalConditionCount(formData, fieldName);
+        const conditionMax = proposalCriterion.conditions.length || proposalCriterion.requiredSections?.length || 0;
+        if (conditionCount === null) {
+          if (typeof rawConditionCount === "string" && rawConditionCount.trim()) invalidRubricValue = true;
+          return [];
+        }
+        if (conditionCount > conditionMax) {
+          invalidRubricValue = true;
+          return [];
+        }
+        conditionCounts[item.id] = conditionCount;
+        const pointsAwarded = calculateCriterionScore(proposalCriterion, conditionCount);
+        return [{ item, checked: pointsAwarded > 0, pointsAwarded }];
+      }
+      if (!checkedIds.has(item.id) && !isSubmittingScore) return [];
+      const checked = checkedIds.has(item.id);
+      return [{ item, checked, pointsAwarded: checked ? item.points : 0 }];
+    });
+    if (invalidRubricValue) {
+      return { status: "validation", code: "score_rubric_incomplete", requestId };
+    }
+
+    const scoreResult = {
+      totalScore: scoredItems.reduce((sum, scoredItem) => sum + scoredItem.pointsAwarded, 0),
+      criticalWarnings: scoredItems.filter((scoredItem) => scoredItem.item.isCritical && scoredItem.pointsAwarded === 0).map((scoredItem) => scoredItem.item.itemLabelTh)
+    };
+    const scoreAdjustment = await getLateRoundScoreAdjustment(
+      assignment.assessmentAttempt.projectId,
+      assignment.assessmentAttempt.assessmentRoundId,
+      scoreResult.totalScore
     );
-  }
-  const decisionErrors = isSubmittingScore ? validateProposalDecision(decision, reason) : [];
-  if (decisionErrors.length) {
-    redirectWithQuery(scoringPath, { error: "proposal_decision_reason_required" });
-  }
-  if (isSubmittingScore && !overallComment) {
-    redirectWithQuery(scoringPath, { error: "proposal_feedback_required" });
-  }
 
-  const scoreSubmission = await timer.measure("upsert_score_submission", () => prisma.scoreSubmission.upsert({
-    where: { evaluatorAssignmentId: assignmentId },
-    update: {
-      totalScore: scoreAdjustment.score,
-      overallComment,
-      status: isSubmittingScore ? "SUBMITTED" : "DRAFT",
-      submittedAt: isSubmittingScore ? new Date() : null,
-      lockedAt: isSubmittingScore ? new Date() : null
-    },
-    create: {
-      evaluatorAssignmentId: assignmentId,
-      totalScore: scoreAdjustment.score,
-      overallComment,
-      status: isSubmittingScore ? "SUBMITTED" : "DRAFT",
-      submittedAt: isSubmittingScore ? new Date() : null,
-      lockedAt: isSubmittingScore ? new Date() : null
-    }
-  }));
-
-  await timer.measure("upsert_score_items", () => Promise.all(
-    scoredItems.map(({ item, checked, pointsAwarded }) =>
-      prisma.scoreItem.upsert({
-        where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
+    await timer.measure("persist_proposal_score", () => prisma.$transaction(async (tx) => {
+      const scoreSubmission = await tx.scoreSubmission.upsert({
+        where: { evaluatorAssignmentId: assignmentId },
         update: {
-          checked,
-          pointsAwarded
+          totalScore: scoreAdjustment.score,
+          overallComment,
+          status: isSubmittingScore ? "SUBMITTED" : "DRAFT",
+          submittedAt: isSubmittingScore ? new Date() : null,
+          lockedAt: isSubmittingScore ? new Date() : null
         },
         create: {
-          scoreSubmissionId: scoreSubmission.id,
-          rubricItemId: item.id,
-          checked,
-          pointsAwarded
+          evaluatorAssignmentId: assignmentId,
+          totalScore: scoreAdjustment.score,
+          overallComment,
+          status: isSubmittingScore ? "SUBMITTED" : "DRAFT",
+          submittedAt: isSubmittingScore ? new Date() : null,
+          lockedAt: isSubmittingScore ? new Date() : null
         }
-      })
-    )
-  ));
+      });
 
-  await prisma.proposalEvaluatorDecision.upsert({
-    where: { scoreSubmissionId: scoreSubmission.id },
-    update: { decision, reason: reason || null },
-    create: { scoreSubmissionId: scoreSubmission.id, decision, reason: reason || null }
-  });
-  await prisma.proposalVote.upsert({
-    where: {
-      projectId_teacherId_assessmentAttemptId: {
-        projectId: assignment.assessmentAttempt.projectId,
-        teacherId: assignment.teacherId,
-        assessmentAttemptId: assignment.assessmentAttemptId
-      }
-    },
-    update: {
-      vote: decision === "PASS" ? "PASS" : decision === "PASS_WITH_REVISION" ? "REVISE" : "FAIL",
-      comment: overallComment || reason || null,
-      visibleToStudent: true,
-      submittedAt: new Date()
-    },
-    create: {
-      projectId: assignment.assessmentAttempt.projectId,
-      assessmentAttemptId: assignment.assessmentAttemptId,
-      teacherId: assignment.teacherId,
-      vote: decision === "PASS" ? "PASS" : decision === "PASS_WITH_REVISION" ? "REVISE" : "FAIL",
-      comment: overallComment || reason || null,
-      visibleToStudent: true
-    }
-  });
-
-  if (isSubmittingScore) {
-    await prisma.evaluatorAssignment.update({ where: { id: assignmentId }, data: { status: "SUBMITTED" } });
-    const remainingAssignments = await prisma.evaluatorAssignment.count({
-      where: {
-        assessmentAttemptId: assignment.assessmentAttemptId,
-        status: { not: "SUBMITTED" }
-      }
-    });
-    if (remainingAssignments === 0) {
-      const project = await prisma.project.findUniqueOrThrow({ where: { id: assignment.assessmentAttempt.projectId } });
-      if (project.status === "PROPOSAL_REVIEW") {
-        await prisma.project.update({
-          where: { id: project.id },
-          data: { status: "PROPOSAL_ADMIN_DECISION" }
-        });
-        await prisma.projectStatusHistory.create({
-          data: {
-            projectId: project.id,
-            fromStatus: "PROPOSAL_REVIEW",
-            toStatus: "PROPOSAL_ADMIN_DECISION",
-            reason: "ALL_PROPOSAL_SCORES_SUBMITTED",
-            actorUserId: user.id
+      const selectedItemIds = scoredItems.map(({ item }) => item.id);
+      if (!isSubmittingScore) {
+        await tx.scoreItem.deleteMany({
+          where: {
+            scoreSubmissionId: scoreSubmission.id,
+            ...(selectedItemIds.length ? { rubricItemId: { notIn: selectedItemIds } } : {})
           }
         });
       }
-    }
-    await prisma.projectTimelineEvent.create({
-      data: {
-        projectId: assignment.assessmentAttempt.projectId,
-        eventType: "TEACHER_SCORE_SUBMITTED",
-        eventTitle: isScoreRevision ? "อาจารย์แก้ไขคะแนนการเสนอหัวข้อ" : "อาจารย์ส่งคะแนนการเสนอหัวข้อ",
-        actorUserId: user.id,
-        relatedEntityType: "ScoreSubmission",
-        relatedEntityId: scoreSubmission.id,
-        metadataJson: {
-          totalScore: scoreAdjustment.score,
-          rawTotalScore: scoreAdjustment.rawScore,
-          latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
-          latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
-          isRevision: isScoreRevision,
-          previousTotalScore: isScoreRevision && assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : null,
-          criticalWarnings: scoreResult.criticalWarnings
+      await Promise.all(scoredItems.map(({ item, checked, pointsAwarded }) => tx.scoreItem.upsert({
+        where: { scoreSubmissionId_rubricItemId: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id } },
+        update: { checked, pointsAwarded },
+        create: { scoreSubmissionId: scoreSubmission.id, rubricItemId: item.id, checked, pointsAwarded }
+      })));
+
+      if (validDecision) {
+        await tx.proposalEvaluatorDecision.upsert({
+          where: { scoreSubmissionId: scoreSubmission.id },
+          update: { decision: validDecision, reason: reason || null },
+          create: { scoreSubmissionId: scoreSubmission.id, decision: validDecision, reason: reason || null }
+        });
+      } else if (!isSubmittingScore) {
+        await tx.proposalEvaluatorDecision.deleteMany({ where: { scoreSubmissionId: scoreSubmission.id } });
+      }
+
+      if (!isSubmittingScore) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: user.id,
+            action: PROPOSAL_DRAFT_V2_AUDIT_ACTION,
+            entityType: "ScoreSubmission",
+            entityId: scoreSubmission.id,
+            afterJson: {
+              selectedRubricItemIds: selectedItemIds,
+              conditionCounts,
+              totalScore: scoreAdjustment.score,
+              hasDecision: Boolean(validDecision),
+              hasComment: Boolean(overallComment)
+            },
+            metadataJson: { requestId, assignmentId }
+          }
+        });
+        return;
+      }
+
+      await tx.proposalVote.upsert({
+        where: {
+          projectId_teacherId_assessmentAttemptId: {
+            projectId: assignment.assessmentAttempt.projectId,
+            teacherId: assignment.teacherId!,
+            assessmentAttemptId: assignment.assessmentAttemptId
+          }
+        },
+        update: {
+          vote: validDecision === "PASS" ? "PASS" : validDecision === "PASS_WITH_REVISION" ? "REVISE" : "FAIL",
+          comment: overallComment || reason || null,
+          visibleToStudent: true,
+          submittedAt: new Date()
+        },
+        create: {
+          projectId: assignment.assessmentAttempt.projectId,
+          assessmentAttemptId: assignment.assessmentAttemptId,
+          teacherId: assignment.teacherId!,
+          vote: validDecision === "PASS" ? "PASS" : validDecision === "PASS_WITH_REVISION" ? "REVISE" : "FAIL",
+          comment: overallComment || reason || null,
+          visibleToStudent: true
+        }
+      });
+      await tx.evaluatorAssignment.update({ where: { id: assignmentId }, data: { status: "SUBMITTED" } });
+      const remainingAssignments = await tx.evaluatorAssignment.count({
+        where: { assessmentAttemptId: assignment.assessmentAttemptId, status: { not: "SUBMITTED" } }
+      });
+      if (remainingAssignments === 0) {
+        const project = await tx.project.findUniqueOrThrow({ where: { id: assignment.assessmentAttempt.projectId } });
+        if (project.status === "PROPOSAL_REVIEW") {
+          await tx.project.update({ where: { id: project.id }, data: { status: "PROPOSAL_ADMIN_DECISION" } });
+          await tx.projectStatusHistory.create({
+            data: {
+              projectId: project.id,
+              fromStatus: "PROPOSAL_REVIEW",
+              toStatus: "PROPOSAL_ADMIN_DECISION",
+              reason: "ALL_PROPOSAL_SCORES_SUBMITTED",
+              actorUserId: user.id
+            }
+          });
         }
       }
-    });
-  }
+      await tx.projectTimelineEvent.create({
+        data: {
+          projectId: assignment.assessmentAttempt.projectId,
+          eventType: "TEACHER_SCORE_SUBMITTED",
+          eventTitle: isScoreRevision ? "อาจารย์แก้ไขคะแนนการเสนอหัวข้อ" : "อาจารย์ส่งคะแนนการเสนอหัวข้อ",
+          actorUserId: user.id,
+          relatedEntityType: "ScoreSubmission",
+          relatedEntityId: scoreSubmission.id,
+          metadataJson: {
+            totalScore: scoreAdjustment.score,
+            rawTotalScore: scoreAdjustment.rawScore,
+            latePenaltyRequired: scoreAdjustment.latePenaltyRequired,
+            latePenaltyPercent: scoreAdjustment.latePenaltyPercent,
+            isRevision: isScoreRevision,
+            previousTotalScore: isScoreRevision && assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : null,
+            criticalWarnings: scoreResult.criticalWarnings,
+            requestId
+          }
+        }
+      });
+    }));
 
-  revalidatePath(`/teacher/scoring/${assignmentId}`);
-  timer.end("redirect");
-  redirectWithQuery(`/teacher/scoring/${encodeURIComponent(assignmentId)}`, {
-    success: isSubmittingScore
-      ? (isScoreRevision ? "proposal_score_updated" : "proposal_score_submitted")
-      : "proposal_score_draft_saved"
-  });
+    revalidatePath(`/teacher/scoring/${assignmentId}`);
+    if (isSubmittingScore) {
+      revalidatePath("/teacher");
+      revalidatePath("/teacher/proposals");
+      revalidatePath("/student/proposal");
+      revalidatePath("/admin");
+      revalidatePath("/admin/proposals");
+    }
+    timer.end("result");
+    return {
+      status: "success",
+      code: isSubmittingScore ? (isScoreRevision ? "proposal_score_updated" : "proposal_score_submitted") : "proposal_score_draft_saved",
+      requestId
+    };
+  } catch (error) {
+    console.error("[teacher.submitProposalScore] unexpected failure", {
+      requestId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    timer.end("unexpected");
+    return { status: "unexpected", code: "proposal_score_unexpected", requestId };
+  }
 }
 
 async function ensureProgress1Rubric() {

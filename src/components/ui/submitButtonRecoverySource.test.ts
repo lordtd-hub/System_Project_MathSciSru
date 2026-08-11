@@ -45,16 +45,16 @@ describe("submit button recovery source", () => {
     expect(buttonSource).toContain("formNoValidate?: boolean");
     expect(buttonSource).toContain("formNoValidate={formNoValidate}");
     expect(buttonSource).toContain("!event.currentTarget.formNoValidate");
-    expect(proposalScoringSource).toContain(
-      '<SubmitButton name="submit_mode" value="draft" formNoValidate pendingText="กำลังบันทึกร่าง...">'
+    expect(proposalScoringSource).toMatch(
+      /<SubmitButton[\s\S]*?value="draft"[\s\S]*?formNoValidate[\s\S]*?autoRecovery=\{false\}/
     );
     expect(proposalScoringSource).toMatch(/value="submit"[\s\S]*?scoreGuard/);
   });
 
   it("preserves teacher score entries before an automatic recovery reload", () => {
     const formSource = readFileSync(join(process.cwd(), "src/components/ui/ProposalDraftForm.tsx"), "utf8");
+    const proposalScorePage = readFileSync(join(process.cwd(), "src/app/teacher/scoring/[assignmentId]/page.tsx"), "utf8");
     const scorePages = [
-      "src/app/teacher/scoring/[assignmentId]/page.tsx",
       "src/app/teacher/progress1/page.tsx",
       "src/app/teacher/progress2/page.tsx",
       "src/app/teacher/final/page.tsx",
@@ -65,6 +65,9 @@ describe("submit button recovery source", () => {
     expect(formSource).toContain("sessionStorage.setItem(storageKey");
     expect(formSource).toContain("sessionStorage.removeItem(storageKey)");
     expect(formSource).toContain("SUBMIT_AUTO_RECOVERY_EVENT");
+    expect(proposalScorePage).toContain("<RecoverableScoreActionForm");
+    expect(proposalScorePage).toContain("<SubmitButton");
+    expect(proposalScorePage).toContain("${session.user.id}");
     for (const pageSource of scorePages) {
       expect(pageSource).toContain("<RecoverableActionForm");
       expect(pageSource).toContain("<SubmitButton");

@@ -20,6 +20,7 @@ import { prisma } from "@/lib/db";
 import { canEditUntilDeadline } from "@/lib/submissions/versioning";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
+import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
 import { saveProposalSubmission } from "../actions";
 
 function proposalVoteLabel(vote?: string | null) {
@@ -46,7 +47,14 @@ export default async function ProposalSubmissionPage({
         include: {
           presentationSubmissions: { orderBy: { createdAt: "desc" }, take: 1 },
           origin: true,
-          attempts: { include: { proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "desc" } } } }
+          attempts: {
+            include: {
+              proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "desc" } },
+              evaluatorAssignments: {
+                select: { teacherId: true, status: true, scoreSubmission: { select: { status: true } } }
+              }
+            }
+          }
         }
       }
     }
@@ -54,7 +62,9 @@ export default async function ProposalSubmissionPage({
   const project = student?.projects[0];
   const submission = project?.presentationSubmissions[0];
   const content = submission?.contentJson as Record<string, unknown> | undefined;
-  const proposalComments = project?.attempts.flatMap((attempt) => attempt.proposalVotes.filter((vote) => vote.visibleToStudent)) ?? [];
+  const proposalComments = project?.attempts.flatMap((attempt) =>
+    submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments).filter((vote) => vote.visibleToStudent)
+  ) ?? [];
   const proposalRound = project
     ? await prisma.assessmentRound.findFirst({
         where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" },

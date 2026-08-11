@@ -62,7 +62,8 @@ export function SubmitButton({
   value,
   formNoValidate = false,
   scoreGuard = false,
-  scoreMax = 100
+  scoreMax = 100,
+  autoRecovery = true
 }: {
   children: React.ReactNode;
   pendingText?: string;
@@ -74,6 +75,7 @@ export function SubmitButton({
   formNoValidate?: boolean;
   scoreGuard?: boolean;
   scoreMax?: number;
+  autoRecovery?: boolean;
 }) {
   const { pending } = useFormStatus();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -96,7 +98,7 @@ export function SubmitButton({
   }, [scoreGuard]);
 
   useEffect(() => {
-    if (!pending) return;
+    if (!pending || !autoRecovery) return;
 
     const timer = window.setTimeout(() => {
       window.dispatchEvent(new CustomEvent(SUBMIT_AUTO_RECOVERY_EVENT, {
@@ -105,7 +107,7 @@ export function SubmitButton({
       window.location.reload();
     }, SUBMIT_AUTO_RECOVERY_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [pending]);
+  }, [autoRecovery, pending]);
 
   useEffect(() => {
     const form = buttonRef.current?.form;
