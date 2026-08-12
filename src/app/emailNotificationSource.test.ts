@@ -21,13 +21,16 @@ describe("workflow notification wiring", () => {
     expect(envExample).toContain('EMAIL_FROM="ระบบประเมินการนำเสนอโครงงาน <notify@example.com>"');
   });
 
-  it("wires advisor request, proposal, and schedule events without changing server action redirects", () => {
+  it("keeps advisor external delivery post-commit and Proposal delivery in-app only", () => {
     const studentActions = read("src/app/student/actions.ts");
-    expect(studentActions).toContain("notifyAdvisorRequestSubmitted(project.id, data.tentativeAdvisorId)");
-    expect(studentActions).toContain("notifyProposalSubmitted(project.id, proposalTeachers.map((teacher) => teacher.id))");
+    const mutations = read("src/lib/projects/studentCurrentStageMutations.ts");
+    expect(studentActions).toContain("after(async () =>");
+    expect(studentActions).toContain("persistInApp: false");
+    expect(mutations).toContain('kind: "PROPOSAL_SUBMITTED"');
+    expect(mutations).toContain("emailReady: false");
     expect(studentActions).toContain("notifyExamScheduleProposed({");
-    expect(studentActions).toContain('redirect("/student/project?success=project_submitted")');
-    expect(studentActions).toContain('redirect("/student/proposal?success=proposal_submitted")');
+    expect(studentActions).toContain('"PROJECT_ORIGIN_SAVED"');
+    expect(studentActions).toContain('"PROPOSAL_SUBMISSION_SAVED"');
     expect(studentActions).toContain('success: "schedule_saved"');
   });
 

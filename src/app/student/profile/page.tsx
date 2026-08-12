@@ -52,6 +52,7 @@ export default async function StudentProfilePage({
       </FormSection>
       <StudentRecoverableActionForm
         action={saveStudentProfile}
+        resultMode="typed"
         storageKey={`student-profile-draft:${student.id}`}
         storage="session"
       >

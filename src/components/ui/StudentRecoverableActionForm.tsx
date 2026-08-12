@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { StudentActionResult } from "@/lib/projects/studentActionResult";
+
+const idleStudentActionResult: StudentActionResult = { status: "idle" };
 
 export const STUDENT_FORM_SNAPSHOT_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
 
 export type FormAction = (formData: FormData) => void | Promise<void>;
+export type TypedFormAction = (previousState: StudentActionResult, formData: FormData) => Promise<StudentActionResult>;
 export type DraftValue = string | boolean | string[];
 export type DraftMap = Record<string, DraftValue>;
 
@@ -16,6 +21,19 @@ export type FormSnapshot = {
 export type ParsedFormSnapshot =
   | { status: "valid"; snapshot: FormSnapshot }
   | { status: "expired" | "invalid" };
+
+export function studentActionRecoveryPlan(result: StudentActionResult) {
+  if (result.status === "success") {
+    return { clearSnapshot: true, refresh: true, restoreSnapshot: false, focusField: undefined };
+  }
+  if (result.status === "validation") {
+    return { clearSnapshot: false, refresh: false, restoreSnapshot: true, focusField: result.missingFields[0] };
+  }
+  if (result.status === "idle") {
+    return { clearSnapshot: false, refresh: false, restoreSnapshot: false, focusField: undefined };
+  }
+  return { clearSnapshot: false, refresh: false, restoreSnapshot: true, focusField: undefined };
+}
 
 export function appendCheckboxDraftValue(
   values: DraftMap,
@@ -139,6 +157,7 @@ function browserStorage(scope: StorageScope) {
 
 export function StudentRecoverableActionForm({
   action,
+  resultMode = "redirect",
   storageKey,
   storage = "local",
   className,
@@ -146,7 +165,8 @@ export function StudentRecoverableActionForm({
   id,
   ...formProps
 }: {
-  action: FormAction;
+  action: FormAction | TypedFormAction;
+  resultMode?: "redirect" | "typed";
   storageKey: string;
   storage?: StorageScope;
   className?: string;
@@ -154,7 +174,13 @@ export function StudentRecoverableActionForm({
 } & Omit<React.ComponentPropsWithoutRef<"form">, "action" | "children" | "className" | "onChange" | "onInput" | "onSubmit">) {
   const formRef = useRef<HTMLFormElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [status, setStatus] = useState<"idle" | "saved" | "restored">("idle");
+  const handledRequestId = useRef<string | null>(null);
+  const router = useRouter();
+  const [result, typedAction] = useActionState(
+    action as TypedFormAction,
+    idleStudentActionResult
+  );
+  const [status, setStatus] = useState<"idle" | "saved" | "restored" | "success">("idle");
   const [storageUnavailable, setStorageUnavailable] = useState(false);
 
   const saveDraft = useCallback((nextStatus: "saved" | "idle" = "idle") => {
@@ -217,12 +243,39 @@ export function StudentRecoverableActionForm({
     if (saveTimer.current) clearTimeout(saveTimer.current);
   }, []);
 
+  useEffect(() => {
+    if (resultMode !== "typed" || result.status === "idle" || handledRequestId.current === result.requestId) return;
+    handledRequestId.current = result.requestId;
+    const form = formRef.current;
+    const plan = studentActionRecoveryPlan(result);
+
+    if (plan.clearSnapshot) {
+      const removeResult = attemptStorageOperation(() => browserStorage(storage).removeItem(storageKey));
+      if (!removeResult.ok) setStorageUnavailable(true);
+      setStatus("success");
+      if (plan.refresh) router.refresh();
+      return;
+    }
+
+    const readResult = attemptStorageOperation(() => browserStorage(storage).getItem(storageKey));
+    if (!readResult.ok) setStorageUnavailable(true);
+    const raw = readResult.ok ? readResult.value : null;
+    if (plan.restoreSnapshot && form && raw) {
+      const parsed = parseFormSnapshot(raw, Date.now(), storage === "local" ? STUDENT_FORM_SNAPSHOT_TTL_MS : null);
+      if (parsed.status === "valid") restoreForm(form, parsed.snapshot.values);
+    }
+    if (form && plan.focusField) {
+      const field = form.elements.namedItem(plan.focusField);
+      if (field instanceof HTMLElement) field.focus();
+    }
+  }, [result, resultMode, router, storage, storageKey]);
+
   return (
     <form
       {...formProps}
       id={id}
       ref={formRef}
-      action={action}
+      action={resultMode === "typed" ? typedAction : action as FormAction}
       className={className}
       onInput={scheduleSave}
       onChange={scheduleSave}
@@ -237,10 +290,26 @@ export function StudentRecoverableActionForm({
       }}
       onSubmit={() => saveDraft()}
     >
+      {resultMode === "typed" && result.status !== "idle" ? (
+        <div
+          className={result.status === "success"
+            ? "mb-4 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900"
+            : "mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"}
+          role={result.status === "success" ? "status" : "alert"}
+          aria-live="polite"
+          data-student-action-status={result.status}
+        >
+          {result.message}
+        </div>
+      ) : null}
       {children}
       {status !== "idle" ? (
         <p className="mt-2 text-xs text-muted" aria-live="polite">
-          {status === "restored" ? "กู้คืนข้อมูลที่เคยกรอกไว้ในเครื่องนี้แล้ว" : "บันทึกร่างไว้ในเครื่องนี้แล้ว ยังไม่ได้ส่งเข้าระบบ"}
+          {status === "restored"
+            ? "กู้คืนข้อมูลที่เคยกรอกไว้ในเครื่องนี้แล้ว"
+            : status === "success"
+              ? "บันทึกข้อมูลเข้าระบบเรียบร้อยแล้ว"
+              : "บันทึกร่างไว้ในเครื่องนี้แล้ว ยังไม่ได้ส่งเข้าระบบ"}
         </p>
       ) : null}
       {storageUnavailable ? (

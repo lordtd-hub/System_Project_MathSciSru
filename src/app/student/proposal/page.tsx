@@ -195,7 +195,7 @@ export default async function ProposalSubmissionPage({
           </div>
         </section>
       ) : (
-      <StudentRecoverableActionForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`}>
+      <StudentRecoverableActionForm action={saveProposalSubmission} resultMode="typed" storageKey={`student-proposal-draft:${project.id}`}>
         <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <div className="grid gap-4 md:grid-cols-2">
             <div>

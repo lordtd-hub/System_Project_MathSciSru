@@ -4,7 +4,8 @@ import {
   attemptStorageOperation,
   createFormSnapshot,
   parseFormSnapshot,
-  reconcileFormValues
+  reconcileFormValues,
+  studentActionRecoveryPlan
 } from "./StudentRecoverableActionForm";
 
 describe("student recoverable action form snapshots", () => {
@@ -76,5 +77,32 @@ describe("student recoverable action form snapshots", () => {
 
   it("returns the storage operation value when storage is available", () => {
     expect(attemptStorageOperation(() => "saved")).toEqual({ ok: true, value: "saved" });
+  });
+
+  it("clears the snapshot and refreshes only after typed success", () => {
+    expect(studentActionRecoveryPlan({
+      status: "success",
+      code: "SAVED",
+      message: "บันทึกแล้ว",
+      requestId: "request-1",
+      unchanged: false
+    })).toEqual({ clearSnapshot: true, refresh: true, restoreSnapshot: false, focusField: undefined });
+
+    expect(studentActionRecoveryPlan({
+      status: "conflict",
+      code: "STALE",
+      message: "สถานะเปลี่ยนแล้ว",
+      requestId: "request-2"
+    })).toEqual({ clearSnapshot: false, refresh: false, restoreSnapshot: true, focusField: undefined });
+  });
+
+  it("restores the draft and identifies the first missing field after validation", () => {
+    expect(studentActionRecoveryPlan({
+      status: "validation",
+      code: "REQUIRED_FIELD_MISSING",
+      message: "กรุณากรอกข้อมูล",
+      requestId: "request-3",
+      missingFields: ["objectives", "timeline"]
+    })).toEqual({ clearSnapshot: false, refresh: false, restoreSnapshot: true, focusField: "objectives" });
   });
 });

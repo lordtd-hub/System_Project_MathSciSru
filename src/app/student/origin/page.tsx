@@ -23,7 +23,7 @@ export default async function ProjectOriginPage() {
   const teachers = await prisma.teacher.findMany({ where: { active: true }, orderBy: { firstNameTh: "asc" } });
 
   return (
-    <StudentRecoverableActionForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
+    <StudentRecoverableActionForm action={saveProjectOrigin} resultMode="typed" storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
       <h1 className="text-2xl font-semibold">ส่งข้อมูลเสนอหัวข้อ</h1>
       <section className="panel grid gap-4 md:grid-cols-2">
         <div>

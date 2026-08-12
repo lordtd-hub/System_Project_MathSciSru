@@ -46,7 +46,7 @@ export default async function StudentProjectPage({
   if (!student || !project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   return (
-    <StudentRecoverableActionForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} className="space-y-6">
+    <StudentRecoverableActionForm action={saveProjectOrigin} resultMode="typed" storageKey={`student-project-origin-draft:${project.id}`} className="space-y-6">
       <PageHeader
         title="สร้าง/แก้ไขข้อมูลโครงงาน"
         description="ระบุที่มาของหัวข้อ เลือกอาจารย์ที่ปรึกษา และส่งคำขออนุมัติ"
