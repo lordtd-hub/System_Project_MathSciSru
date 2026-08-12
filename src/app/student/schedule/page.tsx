@@ -12,8 +12,8 @@ import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProgressPlanCheckpointPanel } from "@/components/ui/ProgressPlanCheckpointPanel";
 import { ProgressQaRubricPanel } from "@/components/ui/ProgressQaRubricPanel";
-import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -447,7 +447,15 @@ export default async function StudentSchedulePage({
             const submission = latestSubmissionByKind.get(kind);
             const content = (typeof submission?.contentJson === "object" && submission?.contentJson ? submission.contentJson : {}) as Record<string, unknown>;
             return (
-              <form key={kind} id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`} action={saveAssessmentEvidence} className="scroll-mt-24 rounded-md border border-line bg-surface p-4" data-testid={`student-assessment-evidence-form-${kind}`} data-round-kind={kind}>
+              <StudentRecoverableActionForm
+                key={kind}
+                id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`}
+                action={saveAssessmentEvidence}
+                storageKey={`student-assessment-evidence-draft:${project.id}:${kind}`}
+                className="scroll-mt-24 rounded-md border border-line bg-surface p-4"
+                data-testid={`student-assessment-evidence-form-${kind}`}
+                data-round-kind={kind}
+              >
                 <input type="hidden" name="assessment_kind" value={kind} />
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -503,12 +511,12 @@ export default async function StudentSchedulePage({
                   )}
 
                   <div className="md:col-span-3">
-                    <SubmitButton pendingText="กำลังบันทึกเอกสาร...">
+                    <SubmitButton pendingText="กำลังบันทึกเอกสาร..." autoRecovery={false}>
                       บันทึกเอกสาร {scheduleKindLabel(kind)}
                     </SubmitButton>
                   </div>
                 </div>
-              </form>
+              </StudentRecoverableActionForm>
             );
           })}
         </div>
@@ -529,7 +537,7 @@ export default async function StudentSchedulePage({
         ) : null}
         {schedulableRoundsWithEvidence.length ? (
         <div data-testid="student-schedule-proposal-form-wrapper">
-        <DraftPreservingForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} clearOnSuccess={params.success === "schedule_saved"} className="mt-4 grid gap-4 md:grid-cols-3">
+        <StudentRecoverableActionForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
             <select name="round_type" defaultValue={defaultScheduleRoundType}>
@@ -581,12 +589,12 @@ export default async function StudentSchedulePage({
               <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
                 บันทึกไว้ก่อน
               </button>
-              <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound || !schedulableRoundsWithEvidence.length} pendingText="กำลังบันทึกวันสอบ..." className="w-full sm:w-auto">
+              <SubmitButton disabled={project.status !== "IN_PROGRESS" || !anyOpenRound || !schedulableRoundsWithEvidence.length} pendingText="กำลังบันทึกวันสอบ..." className="w-full sm:w-auto" autoRecovery={false}>
                 ส่งข้อเสนอวันสอบ
               </SubmitButton>
             </div>
           </div>
-        </DraftPreservingForm>
+        </StudentRecoverableActionForm>
         </div>
         ) : null}
       </FormSection>

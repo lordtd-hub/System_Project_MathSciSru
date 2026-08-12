@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
-import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
+import { StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { saveProjectOrigin } from "../actions";
@@ -23,7 +23,7 @@ export default async function ProjectOriginPage() {
   const teachers = await prisma.teacher.findMany({ where: { active: true }, orderBy: { firstNameTh: "asc" } });
 
   return (
-    <DraftPreservingForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
+    <StudentRecoverableActionForm action={saveProjectOrigin} storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
       <h1 className="text-2xl font-semibold">ส่งข้อมูลเสนอหัวข้อ</h1>
       <section className="panel grid gap-4 md:grid-cols-2">
         <div>
@@ -79,8 +79,8 @@ export default async function ProjectOriginPage() {
           <span>ข้าพเจ้ารับรองว่าข้อมูลนี้เป็นข้อมูลการเสนอหัวข้อของตนเอง</span>
         </label>
         <button type="button" data-draft-save className="button-secondary">บันทึกไว้ก่อน</button>
-        <SubmitButton pendingText="กำลังบันทึกและส่ง...">บันทึกและส่งข้อมูลเสนอหัวข้อ</SubmitButton>
+        <SubmitButton pendingText="กำลังบันทึกและส่ง..." autoRecovery={false}>บันทึกและส่งข้อมูลเสนอหัวข้อ</SubmitButton>
       </section>
-    </DraftPreservingForm>
+    </StudentRecoverableActionForm>
   );
 }

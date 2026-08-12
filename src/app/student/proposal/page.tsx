@@ -8,10 +8,10 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ProposalDraftForm } from "@/components/ui/ProposalDraftForm";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -195,7 +195,7 @@ export default async function ProposalSubmissionPage({
           </div>
         </section>
       ) : (
-      <ProposalDraftForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`} clearOnSuccess={params.success === "proposal_submitted"}>
+      <StudentRecoverableActionForm action={saveProposalSubmission} storageKey={`student-proposal-draft:${project.id}`}>
         <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -255,12 +255,12 @@ export default async function ProposalSubmissionPage({
             <button type="button" data-proposal-draft-save className="button-secondary w-full sm:w-auto">
               บันทึกไว้ก่อน
             </button>
-            <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่งเอกสารเสนอหัวข้อ..." className="w-full sm:w-auto">
+            <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่งเอกสารเสนอหัวข้อ..." className="w-full sm:w-auto" autoRecovery={false}>
               {canSubmitProposal ? "ส่งเอกสารเสนอหัวข้อ" : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}
             </SubmitButton>
           </div>
         </FormSection>
-      </ProposalDraftForm>
+      </StudentRecoverableActionForm>
       )}
       <section className="panel">
         <h2 className="text-lg font-semibold">Comment จากอาจารย์</h2>

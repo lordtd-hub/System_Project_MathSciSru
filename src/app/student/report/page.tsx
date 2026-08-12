@@ -9,8 +9,8 @@ import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { MaterialLinkField } from "@/components/ui/MaterialLinkField";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { DraftPreservingForm } from "@/components/ui/ProposalDraftForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -153,7 +153,7 @@ export default async function StudentReportPage({
 
       <FormSection title={reportActionLabel} description={reportSubmissionReasonLabel(gate.reason)}>
         {gate.allowed ? (
-          <DraftPreservingForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} clearOnSuccess={params.success === "report_submitted"} className="space-y-4">
+          <StudentRecoverableActionForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} className="space-y-4">
             <MaterialLinkField name="report_drive_link" />
             <MarkdownLatexEditor
               name="report_note"
@@ -176,11 +176,11 @@ export default async function StudentReportPage({
               <button type="button" data-draft-save className="button-secondary w-full sm:w-auto">
                 บันทึกไว้ก่อน
               </button>
-              <SubmitButton pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งรายงานฉบับนี้หรือไม่?" className="w-full sm:w-auto">
+              <SubmitButton pendingText="กำลังส่งเล่มรายงาน..." confirmMessage="ยืนยันการส่งรายงานฉบับนี้หรือไม่?" className="w-full sm:w-auto" autoRecovery={false}>
                 {reportActionLabel}
               </SubmitButton>
             </div>
-          </DraftPreservingForm>
+          </StudentRecoverableActionForm>
         ) : (
           <InfoAlert title={reportActionLabel}>{reportSubmissionReasonLabel(gate.reason)}</InfoAlert>
         )}
