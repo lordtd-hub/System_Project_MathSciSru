@@ -6,26 +6,25 @@ function read(path: string) {
 }
 
 describe("student material link validation UX", () => {
-  it("returns typed validation for current-stage forms and preserves redirects for other student workflows", () => {
+  it("returns typed validation for current and future student workflows", () => {
     const actions = read("src/app/student/actions.ts");
 
     expect(actions).toContain('"MATERIAL_LINK_INVALID"');
     expect(actions).toContain('new StudentActionValidationError(');
-    expect(actions).toContain('redirectWithQuery("/student/schedule", { error: "material_link_invalid" })');
-    expect(actions).toContain('redirectWithQuery("/student/report", { error: "material_link_invalid" })');
+    expect(actions).toContain('"ASSESSMENT_EVIDENCE_SAVED"');
+    expect(actions).toContain('"REPORT_VERSION_SUBMITTED"');
     expect(actions).not.toContain("if (!linkResult.ok) throw new Error(linkResult.reason)");
   });
 
   it("keeps expected student input failures recoverable instead of throwing a Next.js digest", () => {
     const actions = read("src/app/student/actions.ts");
 
-    expect(actions).toContain('error: "student_required_field_missing"');
-    expect(actions).toContain('error: "student_text_too_long"');
-    expect(actions).toContain('error: "student_markdown_invalid"');
-    expect(actions).toContain('"TIMELINE_INVALID"');
-    expect(actions).toContain('error: "schedule_time_invalid"');
     expect(actions).toContain('"REQUIRED_FIELD_MISSING"');
     expect(actions).toContain('"STUDENT_DECLARATION_MISSING"');
+    expect(actions).toContain('"TEXT_TOO_LONG"');
+    expect(actions).toContain('"MARKDOWN_INVALID"');
+    expect(actions).toContain('"TIMELINE_INVALID"');
+    expect(actions).toContain('"SCHEDULE_TIME_INVALID"');
     expect(actions).not.toContain("throw new Error(`กรุณากรอก");
     expect(actions).not.toContain('throw new Error("กรุณายืนยันคำรับรองของนักศึกษา")');
     expect(actions).not.toContain("throw new Error(markdownErrors.join");

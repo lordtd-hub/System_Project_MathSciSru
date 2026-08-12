@@ -103,6 +103,7 @@ errorMessages.schedule_round_invalid = "รอบสอบไม่ถูกต�
 errorMessages.schedule_not_available = "ยังเสนอวันสอบไม่ได้ในสถานะปัจจุบัน";
 errorMessages.schedule_round_not_open = "ยังเสนอวันสอบไม่ได้ เพราะผู้ดูแลระบบยังไม่ได้เปิดรอบสอบนี้ หรือรอบถูกปิดแล้ว";
 errorMessages.schedule_already_reviewed = "รายการวันสอบนี้ถูกพิจารณาแล้ว หรือไม่อยู่ในสถานะรออนุมัติ";
+errorMessages.report_stale_version = "รายงานมีฉบับใหม่หรือสถานะเปลี่ยนแล้ว กรุณาตรวจรายงานฉบับล่าสุดก่อนบันทึกผล";
 errorMessages.progress_1_project_not_ready = "โครงงานนี้ยังไม่พร้อมสำหรับการสอบความก้าวหน้าครั้งที่ 1 กรุณาตรวจสอบผลการเสนอหัวข้อและกรรมการก่อน";
 errorMessages.assessment_evidence_required = "กรุณาบันทึกเอกสาร/หลักฐานของรอบสอบนี้ก่อนเสนอวันสอบ";
 errorMessages.assessment_evidence_locked = "ส่งเสนอวันสอบแล้ว จึงแก้ไขเอกสาร/หลักฐานของรอบนี้ไม่ได้ หากต้องเปลี่ยนหลักฐานให้ประสานกรรมการหรือผู้ดูแลระบบก่อน";

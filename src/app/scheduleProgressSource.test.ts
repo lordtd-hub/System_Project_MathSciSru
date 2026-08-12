@@ -8,25 +8,24 @@ describe("self-scheduling and progress scoring source guards", () => {
   it("keeps student scheduling tied to course-level rounds and student ownership", () => {
     const actions = read("src/app/student/actions.ts");
     const currentStageMutations = read("src/lib/projects/studentCurrentStageMutations.ts");
-    const currentStageSource = `${actions}\n${currentStageMutations}`;
+    const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
+    const currentStageSource = `${actions}\n${currentStageMutations}\n${futureStageMutations}`;
     expect(actions).toContain("requireStudentContext()");
     expect(actions).toContain("submitExamSchedule");
     expect(actions).toContain("STUDENT_ADVISOR_REQUIRED");
     expect(currentStageSource).toContain("PROPOSAL_ROUND_NOT_OPEN");
     expect(currentStageSource).toContain("courseOfferingId_roundType");
     expect(currentStageSource).toContain("isRoundOpen(round.status)");
-    expect(actions).toContain('project.status !== "IN_PROGRESS"');
-    expect(actions).toContain("assessmentRoundId: round.id");
+    expect(futureStageMutations).toContain('project.status !== "IN_PROGRESS"');
+    expect(futureStageMutations).toContain("assessmentRoundId: round.id");
     expect(actions).toContain("saveAssessmentEvidence");
-    expect(actions).toContain("assessment_evidence_required");
-    expect(actions).toContain("schedule_request_locked");
-    expect(actions).toContain('existing?.status === "PROPOSED" || existing?.status === "CONFIRMED"');
-    expect(actions).toContain("findFirst");
-    expect(actions).toContain("examScheduleProposal.update");
-    expect(actions).toContain("examScheduleProposal.create");
-    expect(actions).toContain('role: { in: ["ADVISOR", "HEAD", "MEMBER"] }');
-    expect(actions).toContain("advisorRequest.findMany");
-    expect(actions).toContain("requiredApproverIds");
+    expect(futureStageMutations).toContain("ASSESSMENT_EVIDENCE_REQUIRED");
+    expect(futureStageMutations).toContain("SCHEDULE_REQUEST_LOCKED");
+    expect(futureStageMutations).toContain('existing?.status === "PROPOSED" || existing?.status === "CONFIRMED"');
+    expect(futureStageMutations).toContain("examScheduleProposal.upsert");
+    expect(futureStageMutations).toContain('role: { in: ["ADVISOR", "HEAD", "MEMBER"] }');
+    expect(futureStageMutations).toContain("advisorRequest.findMany");
+    expect(futureStageMutations).toContain("requiredApproverIds");
   });
 
   it("keeps schedule views role guarded", () => {
@@ -79,10 +78,11 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain("finalMethodsResults");
     expect(actions).toContain("finalTimelineAdaptation");
     expect(actions).toContain("finalReportReadiness");
-    expect(actions).toContain("hasCompletedPresentationScores");
-    expect(actions).toContain("assertPreviousPresentationRoundComplete");
-    expect(actions).toContain("assessment_evidence_locked");
-    expect(actions).toContain("schedule_previous_round_incomplete");
+    const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
+    expect(futureStageMutations).toContain("presentationComplete");
+    expect(futureStageMutations).toContain("assertPreviousPresentationRoundComplete");
+    expect(futureStageMutations).toContain("ASSESSMENT_EVIDENCE_LOCKED");
+    expect(futureStageMutations).toContain("SCHEDULE_PREVIOUS_ROUND_INCOMPLETE");
     expect(actions).not.toContain("roundStatus: project.courseOffering.assessmentRounds");
   });
 
@@ -107,11 +107,15 @@ describe("self-scheduling and progress scoring source guards", () => {
   it("keeps schedule approval dashboard counts actionable and round-open only", () => {
     const teacherDashboard = read("src/app/teacher/page.tsx");
     const teacherActions = read("src/app/teacher/actions.ts");
+    const teacherSchedules = read("src/app/teacher/schedules/page.tsx");
     expect(teacherDashboard).toContain('status: "PROPOSED"');
     expect(teacherDashboard).toContain('assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } }');
     expect(teacherDashboard).toContain('role: { in: ["ADVISOR", "HEAD", "MEMBER"] }');
     expect(teacherDashboard).toContain('NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }');
     expect(teacherActions).toContain("reviewExamSchedule");
+    expect(teacherActions).toContain('SELECT "id" FROM "projects"');
+    expect(teacherSchedules).toContain('name="schedule_updated_at" value={schedule.updatedAt.toISOString()}');
+    expect(teacherActions).toContain("currentSchedule.updatedAt.toISOString() !== renderedScheduleUpdatedAt");
     expect(teacherActions).toContain("EXAM_SCHEDULE_APPROVED");
     expect(teacherActions).toContain("EXAM_SCHEDULE_REJECTED");
     expect(teacherActions).toContain('nextStatus = decision === "REJECT"');

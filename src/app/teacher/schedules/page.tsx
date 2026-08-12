@@ -313,11 +313,13 @@ export default async function TeacherSchedulesPage({
                 <div className="mt-3 grid gap-3 md:grid-cols-[auto_minmax(0,1fr)]">
                   <form action={reviewExamSchedule} className="flex items-end">
                     <input type="hidden" name="schedule_id" value={schedule.id} />
+                    <input type="hidden" name="schedule_updated_at" value={schedule.updatedAt.toISOString()} />
                     <input type="hidden" name="decision" value="APPROVE" />
                     <SubmitButton pendingText="กำลังอนุมัติ...">อนุมัติวันสอบ</SubmitButton>
                   </form>
                   <form action={reviewExamSchedule} className="space-y-2">
                     <input type="hidden" name="schedule_id" value={schedule.id} />
+                    <input type="hidden" name="schedule_updated_at" value={schedule.updatedAt.toISOString()} />
                     <input type="hidden" name="decision" value="REJECT" />
                     <label htmlFor={`schedule-comment-${schedule.id}`}>เหตุผลกรณีไม่อนุมัติ / เวลาที่สะดวกกว่า</label>
                     <textarea id={`schedule-comment-${schedule.id}`} name="comment" rows={3} required placeholder="กรุณาระบุเหตุผลเพื่อให้นักศึกษาเสนอวันสอบใหม่ได้ถูกต้อง" />

@@ -451,6 +451,7 @@ export default async function StudentSchedulePage({
                 key={kind}
                 id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`}
                 action={saveAssessmentEvidence}
+                resultMode="typed"
                 storageKey={`student-assessment-evidence-draft:${project.id}:${kind}`}
                 className="scroll-mt-24 rounded-md border border-line bg-surface p-4"
                 data-testid={`student-assessment-evidence-form-${kind}`}
@@ -537,7 +538,7 @@ export default async function StudentSchedulePage({
         ) : null}
         {schedulableRoundsWithEvidence.length ? (
         <div data-testid="student-schedule-proposal-form-wrapper">
-        <StudentRecoverableActionForm action={submitExamSchedule} storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} className="mt-4 grid gap-4 md:grid-cols-3">
+        <StudentRecoverableActionForm action={submitExamSchedule} resultMode="typed" storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
             <select name="round_type" defaultValue={defaultScheduleRoundType}>
