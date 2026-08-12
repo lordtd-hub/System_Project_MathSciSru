@@ -32,6 +32,20 @@ describe("teacher user-blocker containment", () => {
     expect(rubricReader).not.toMatch(/\.create\(|\.update(?:Many)?\(|\.upsert\(/);
   });
 
+  it("keeps every teacher scoring action read-only for rubric configuration", () => {
+    const teacherScoringSources = [
+      read("src/app/teacher/actions.ts"),
+      read("src/app/teacher/scoringActions.ts"),
+      read("src/lib/rubrics/readProposalConditionRubric.ts")
+    ].join("\n");
+
+    expect(teacherScoringSources).not.toMatch(/rubricItem\.(?:create|update|updateMany|upsert)/);
+    expect(teacherScoringSources).not.toMatch(/prisma\.rubric\.(?:create|update|updateMany|upsert)/);
+    expect(teacherScoringSources).not.toContain("ensureProgress1Rubric");
+    expect(teacherScoringSources).not.toContain("ensureProgress2Rubric");
+    expect(teacherScoringSources).not.toContain("ensureFinalRubric");
+  });
+
   it("does not automatically reload pending submit buttons", () => {
     const button = read("src/components/ui/SubmitButton.tsx");
     expect(button).not.toContain("SUBMIT_AUTO_RECOVERY_DELAY_MS");
