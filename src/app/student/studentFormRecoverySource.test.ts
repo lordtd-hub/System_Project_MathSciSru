@@ -35,4 +35,12 @@ describe("student form recovery integration", () => {
       expect(disabledRecoveryCount, path).toBe(submitButtonCount);
     }
   });
+
+  it("keeps non-profile student drafts in seven-day local storage", () => {
+    for (const path of mutationPages.slice(1)) {
+      const source = read(path);
+      expect(source).toContain("StudentRecoverableActionForm");
+      expect(source).not.toContain('storage="session"');
+    }
+  });
 });
