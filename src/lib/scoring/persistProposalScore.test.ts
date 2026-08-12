@@ -22,6 +22,7 @@ type ProposalState = {
   timelineCount: number;
   historyCount: number;
   latestAudit: unknown;
+  latestAuditMetadata: unknown;
 };
 
 const fake = vi.hoisted(() => {
@@ -33,12 +34,18 @@ const fake = vi.hoisted(() => {
     auditCount: 0,
     timelineCount: 0,
     historyCount: 0,
-    latestAudit: null
+    latestAudit: null,
+    latestAuditMetadata: null
   });
   let committed = initialState();
   let working = committed;
   let failAfterWrite: number | null = null;
   let writeCount = 0;
+  let attemptType: "MAIN_PROPOSAL" | "REPROPOSAL" = "MAIN_PROPOSAL";
+  let attemptNo = 1;
+  let roundStatus: "SCORING_OPEN" | "SCORING_CLOSED" = "SCORING_OPEN";
+  let roundExceptions: Array<{ exceptionType: string; status: string }> = [];
+  let teacherEligible = true;
 
   const write = async <T>(mutation: () => T) => {
     writeCount += 1;
@@ -52,13 +59,22 @@ const fake = vi.hoisted(() => {
     assessmentAttemptId: "attempt-1",
     evaluatorUserId: "user-1",
     teacherId: "teacher-1",
+    teacher: {
+      active: teacherEligible,
+      isInternal: teacherEligible,
+      canEvaluateProposal: teacherEligible
+    },
     status: working.assignmentStatus,
     assessmentAttempt: {
       id: "attempt-1",
       projectId: "project-1",
       assessmentRoundId: "round-1",
+      attemptNo,
+      attemptType,
+      status: "SCORING_OPEN",
       proposalResult: null,
-      assessmentRound: { id: "round-1", status: "SCORING_OPEN" }
+      project: { status: working.projectStatus },
+      assessmentRound: { id: "round-1", roundType: "PROPOSAL", status: roundStatus }
     },
     scoreSubmission: working.submission
   });
@@ -76,7 +92,10 @@ const fake = vi.hoisted(() => {
       }),
       count: async () => 0
     },
-    projectRoundException: { findMany: async () => [] },
+    assessmentAttempt: {
+      findFirst: async () => ({ id: "attempt-1" })
+    },
+    projectRoundException: { findMany: async () => roundExceptions },
     scoreSubmission: {
       upsert: async ({ update, create }: {
         update: { totalScore: number; overallComment: string | null; status: "DRAFT" | "SUBMITTED" };
@@ -128,8 +147,9 @@ const fake = vi.hoisted(() => {
     },
     auditLog: {
       findFirst: async () => working.latestAudit ? { afterJson: working.latestAudit } : null,
-      create: async ({ data }: { data: { afterJson: unknown } }) => write(() => {
+      create: async ({ data }: { data: { afterJson: unknown; metadataJson: unknown } }) => write(() => {
         working.latestAudit = data.afterJson;
+        working.latestAuditMetadata = data.metadataJson;
         working.auditCount += 1;
         return { id: `audit-${working.auditCount}` };
       })
@@ -174,9 +194,23 @@ const fake = vi.hoisted(() => {
       working = committed;
       failAfterWrite = null;
       writeCount = 0;
+      attemptType = "MAIN_PROPOSAL";
+      attemptNo = 1;
+      roundStatus = "SCORING_OPEN";
+      roundExceptions = [];
+      teacherEligible = true;
     },
     failAt(step: number | null) {
       failAfterWrite = step;
+    },
+    configureReproposal() {
+      attemptType = "REPROPOSAL";
+      attemptNo = 2;
+      roundStatus = "SCORING_CLOSED";
+      roundExceptions = [{ exceptionType: "LATE_ASSESSMENT_ROUND", status: "OPEN" }];
+    },
+    revokeTeacherEligibility() {
+      teacherEligible = false;
     },
     state() {
       return structuredClone(committed) as ProposalState;
@@ -219,7 +253,8 @@ const emptyState = (): ProposalState => ({
   auditCount: 0,
   timelineCount: 0,
   historyCount: 0,
-  latestAudit: null
+  latestAudit: null,
+  latestAuditMetadata: null
 });
 
 async function expectEveryWriteToRollback(input: typeof baseInput) {
@@ -268,5 +303,25 @@ describe("atomic Proposal score persistence", () => {
       await expect(persistProposalScore(revisionInput)).rejects.toThrow(`fault-after-write-${step}`);
       expect(fake.state()).toEqual(beforeRevision);
     }
+  });
+
+  it("scores the latest Re-proposal while the course round is closed without a late penalty", async () => {
+    fake.configureReproposal();
+
+    await persistProposalScore({ ...baseInput, submit: true });
+
+    expect(fake.state().submission).toMatchObject({ totalScore: 10, status: "SUBMITTED" });
+    expect(fake.state().latestAudit).toMatchObject({ totalScore: 10 });
+    expect(fake.state().latestAuditMetadata).toMatchObject({
+      latePenaltyRequired: false,
+      latePenaltyPercent: 0
+    });
+  });
+
+  it("rejects a score when the linked teacher is no longer an active internal Proposal evaluator", async () => {
+    fake.revokeTeacherEligibility();
+
+    await expect(persistProposalScore({ ...baseInput, submit: true })).rejects.toThrow("score_evaluator_not_eligible");
+    expect(fake.state()).toEqual(emptyState());
   });
 });

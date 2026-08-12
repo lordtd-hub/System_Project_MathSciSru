@@ -34,6 +34,10 @@ export type ProjectOriginInput = {
   initialReferences: string;
   materialLink: string;
   declarationAccepted: true;
+  expectedReproposalPredecessor?: {
+    attemptId: string;
+    resultId: string;
+  } | null;
 };
 
 export type ProposalTimelineItem = { activity: string; startWeek: number; endWeek: number; deliverable: string };
@@ -53,6 +57,10 @@ export type ProposalSubmissionInput = {
   };
   materialLink: string;
   declarationAccepted: true;
+  expectedReproposalPredecessor?: {
+    attemptId: string;
+    resultId: string;
+  } | null;
 };
 
 export type StudentMutationOutcome = {
@@ -86,7 +94,19 @@ function sameProfile(committed: StudentProfileInput | null, input: StudentProfil
 }
 
 function originSnapshot(input: ProjectOriginInput) {
-  return { ...input, status: "SUBMITTED" as const };
+  return {
+    initialProjectTitleTh: input.initialProjectTitleTh,
+    initialProjectTitleEn: input.initialProjectTitleEn,
+    sourceType: input.sourceType,
+    reasonForTopic: input.reasonForTopic,
+    expectedMathArea: input.expectedMathArea,
+    tentativeAdvisorId: input.tentativeAdvisorId,
+    consultationSummary: input.consultationSummary,
+    initialReferences: input.initialReferences,
+    materialLink: input.materialLink,
+    declarationAccepted: input.declarationAccepted,
+    status: "SUBMITTED" as const
+  };
 }
 
 function originAuditSnapshot(value: { sourceType: SourceType; tentativeAdvisorId: string | null; status: string }) {
@@ -198,6 +218,26 @@ export async function saveProjectOriginAtomic(
     if (project.status !== "DRAFT") {
       if (sameOrigin(committed as unknown as Record<string, unknown> | null, input)) return { unchanged: true };
       throw new StudentActionConflictError("PROJECT_NOT_EDITABLE", "ขั้นตอนโครงงานเปลี่ยนไปแล้ว กรุณารีเฟรชหน้าและตรวจสอบสถานะล่าสุด");
+    }
+
+    const latestProposalResult = await tx.projectProposalResult.findFirst({
+      where: { projectId: project.id },
+      orderBy: [{ decidedAt: "desc" }, { id: "desc" }],
+      select: { id: true, assessmentAttemptId: true, finalDecision: true }
+    });
+    const expectedPredecessor = input.expectedReproposalPredecessor;
+    const isReproposalRestart = latestProposalResult?.finalDecision === "NOT_PASS";
+    if (
+      (isReproposalRestart && (
+        expectedPredecessor?.attemptId !== latestProposalResult.assessmentAttemptId
+        || expectedPredecessor.resultId !== latestProposalResult.id
+      ))
+      || (!isReproposalRestart && expectedPredecessor)
+    ) {
+      throw new StudentActionConflictError(
+        "REPROPOSAL_RESTART_STALE",
+        "รอบเริ่มหัวข้อใหม่เปลี่ยนไปแล้ว กรุณารีเฟรชหน้าและใช้แบบฟอร์มของรอบล่าสุด"
+      );
     }
 
     const advisor = await tx.teacher.findUnique({
@@ -317,11 +357,12 @@ export async function saveProposalSubmissionAtomic(
     const round = await tx.assessmentRound.findUnique({
       where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" } }
     });
-    const existingAttempt = round ? await tx.assessmentAttempt.findUnique({
-      where: { projectId_assessmentRoundId_attemptNo: { projectId: project.id, assessmentRoundId: round.id, attemptNo: 1 } },
+    const latestAttempt = round ? await tx.assessmentAttempt.findFirst({
+      where: { projectId: project.id, assessmentRoundId: round.id },
+      orderBy: { attemptNo: "desc" },
       include: { presentationSubmission: true }
     }) : null;
-    const committed = existingAttempt?.presentationSubmission ?? null;
+    const committed = latestAttempt?.presentationSubmission ?? null;
     if (project.status !== "PROPOSAL_PENDING") {
       if (sameProposal(committed, input)) return { unchanged: true };
       throw new StudentActionConflictError("PROPOSAL_NOT_AVAILABLE", "สถานะ Proposal เปลี่ยนไปแล้ว กรุณารีเฟรชหน้าและตรวจสอบสถานะล่าสุด");
@@ -331,23 +372,72 @@ export async function saveProposalSubmissionAtomic(
       throw new StudentActionConflictError("PROPOSAL_ORIGIN_MISSING", "ยังไม่พบข้อมูลเสนอหัวข้อที่ส่งเรียบร้อย กรุณาตรวจสอบขั้นตอนก่อนหน้า");
     }
     if (!round) throw new StudentActionConflictError("PROPOSAL_ROUND_NOT_OPEN", "ยังไม่เปิดรอบ Proposal กรุณารอประกาศจากผู้ดูแลระบบ");
-    const lateRoundExceptions = await tx.projectRoundException.findMany({
-      where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" }, select: { exceptionType: true, status: true }
+    const latestResult = await tx.projectProposalResult.findFirst({
+      where: { projectId: project.id },
+      orderBy: [{ decidedAt: "desc" }, { id: "desc" }],
+      select: { id: true, assessmentAttemptId: true, finalDecision: true }
     });
-    const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
-    if (!isRoundOpen(round.status) && !hasLateOverride) {
-      throw new StudentActionConflictError("PROPOSAL_ROUND_CLOSED", "รอบ Proposal ปิดแล้ว กรุณาติดต่อผู้ดูแลระบบหากจำเป็นต้องส่งย้อนหลัง");
+    const isReproposal = latestResult?.finalDecision === "NOT_PASS"
+      && latestAttempt !== null
+      && latestResult.assessmentAttemptId === latestAttempt.id;
+    if (latestResult && !isReproposal) {
+      throw new StudentActionConflictError(
+        "REPROPOSAL_NOT_AVAILABLE",
+        "ผล Proposal ล่าสุดไม่อนุญาตให้ส่งการเสนอหัวข้อใหม่ กรุณารีเฟรชหน้าและตรวจสอบสถานะล่าสุด"
+      );
     }
-    if (!hasLateOverride && !canEditUntilDeadline(now, round.submissionDeadline)) {
-      throw new StudentActionConflictError("PROPOSAL_DEADLINE_PASSED", "พ้นกำหนดส่ง Proposal แล้ว กรุณาติดต่อผู้ดูแลระบบ");
+    if (!latestResult && latestAttempt && (latestAttempt.attemptNo !== 1 || latestAttempt.attemptType !== "MAIN_PROPOSAL")) {
+      throw new StudentActionConflictError(
+        "REPROPOSAL_RESULT_MISSING",
+        "ยังไม่พบผลตัดสินของการเสนอหัวข้อล่าสุด กรุณารีเฟรชหน้าและตรวจสอบสถานะล่าสุด"
+      );
+    }
+    if (isReproposal) {
+      const expectedPredecessor = input.expectedReproposalPredecessor;
+      if (
+        expectedPredecessor?.attemptId !== latestAttempt.id
+        || expectedPredecessor.resultId !== latestResult.id
+      ) {
+        throw new StudentActionConflictError(
+          "REPROPOSAL_PREDECESSOR_STALE",
+          "รอบ Re-proposal เปลี่ยนไปแล้ว กรุณารีเฟรชหน้าและใช้แบบฟอร์มของรอบล่าสุด"
+        );
+      }
     }
 
+    let lateRoundExceptions: Array<{ exceptionType: string; status: string }> = [];
+    let hasLateOverride = false;
+    if (!isReproposal) {
+      lateRoundExceptions = await tx.projectRoundException.findMany({
+        where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" }, select: { exceptionType: true, status: true }
+      });
+      hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
+      if (!isRoundOpen(round.status) && !hasLateOverride) {
+        throw new StudentActionConflictError("PROPOSAL_ROUND_CLOSED", "รอบ Proposal ปิดแล้ว กรุณาติดต่อผู้ดูแลระบบหากจำเป็นต้องส่งย้อนหลัง");
+      }
+      if (!hasLateOverride && !canEditUntilDeadline(now, round.submissionDeadline)) {
+        throw new StudentActionConflictError("PROPOSAL_DEADLINE_PASSED", "พ้นกำหนดส่ง Proposal แล้ว กรุณาติดต่อผู้ดูแลระบบ");
+      }
+    }
+
+    const attemptNo = isReproposal ? latestAttempt.attemptNo + 1 : 1;
     const attempt = await tx.assessmentAttempt.upsert({
-      where: { projectId_assessmentRoundId_attemptNo: { projectId: project.id, assessmentRoundId: round.id, attemptNo: 1 } },
-      update: { status: "SCORING_OPEN" },
-      create: { projectId: project.id, assessmentRoundId: round.id, attemptNo: 1, attemptType: "MAIN_PROPOSAL", status: "SCORING_OPEN" }
+      where: { projectId_assessmentRoundId_attemptNo: { projectId: project.id, assessmentRoundId: round.id, attemptNo } },
+      update: isReproposal
+        ? { attemptType: "REPROPOSAL", previousAttemptId: latestAttempt.id, status: "SCORING_OPEN" }
+        : { status: "SCORING_OPEN" },
+      create: isReproposal
+        ? {
+            projectId: project.id,
+            assessmentRoundId: round.id,
+            attemptNo,
+            attemptType: "REPROPOSAL",
+            previousAttemptId: latestAttempt.id,
+            status: "SCORING_OPEN"
+          }
+        : { projectId: project.id, assessmentRoundId: round.id, attemptNo: 1, attemptType: "MAIN_PROPOSAL", status: "SCORING_OPEN" }
     });
-    const before = committed ? {
+    const before = !isReproposal && committed ? {
       status: committed.status
     } : null;
     const submissionData = { ...proposalSnapshot(input), projectId: project.id, studentId: context.studentId, submittedAt: now };
@@ -399,22 +489,24 @@ export async function saveProposalSubmissionAtomic(
     await tx.projectTimelineEvent.create({
       data: {
         projectId: project.id,
-        eventType: "PROPOSAL_SUBMITTED",
-        eventTitle: "ส่ง Proposal",
+        eventType: isReproposal ? "REPROPOSAL_SUBMITTED" : "PROPOSAL_SUBMITTED",
+        eventTitle: isReproposal ? "ส่ง Re-proposal" : "ส่ง Proposal",
         actorUserId: context.userId,
         relatedEntityType: "PresentationSubmission",
         relatedEntityId: submission.id,
-        metadataJson: {
-          lateRoundOverride: hasLateOverride,
-          latePenaltyRequired: requiresLateRoundPenalty(lateRoundExceptions),
-          latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
-        }
+        metadataJson: isReproposal
+          ? { attemptNo, attemptType: "REPROPOSAL" }
+          : {
+              lateRoundOverride: hasLateOverride,
+              latePenaltyRequired: requiresLateRoundPenalty(lateRoundExceptions),
+              latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
+            }
       }
     });
     await tx.auditLog.create({
       data: {
         actorUserId: context.userId,
-        action: "PROPOSAL_SUBMITTED",
+        action: isReproposal ? "REPROPOSAL_SUBMITTED" : "PROPOSAL_SUBMITTED",
         entityType: "PresentationSubmission",
         entityId: submission.id,
         beforeJson: before ? proposalAuditSnapshot(before) : undefined,
@@ -422,14 +514,19 @@ export async function saveProposalSubmissionAtomic(
       }
     });
     if (proposalTeachers.length) {
-      const title = "มีเอกสาร Proposal ที่นักศึกษาส่งแล้ว";
-      const body = [projectLabel(context, input.titleTh), "ใช้เป็นการแจ้งเตือนในระบบเท่านั้น ระบบจะไม่ส่งอีเมลหรือ LINE สำหรับการส่ง Proposal ตามรอบปกติ"].join("\n");
+      const title = isReproposal ? "มีเอกสาร Re-proposal ที่นักศึกษาส่งแล้ว" : "มีเอกสาร Proposal ที่นักศึกษาส่งแล้ว";
+      const body = [
+        projectLabel(context, input.titleTh),
+        isReproposal
+          ? "ใช้เป็นการแจ้งเตือนในระบบเท่านั้น ระบบจะไม่ส่งอีเมลหรือ LINE สำหรับการส่ง Re-proposal"
+          : "ใช้เป็นการแจ้งเตือนในระบบเท่านั้น ระบบจะไม่ส่งอีเมลหรือ LINE สำหรับการส่ง Proposal ตามรอบปกติ"
+      ].join("\n");
       await tx.notification.createMany({
         data: proposalTeachers.map((teacher) => ({
           projectId: project.id,
           userId: teacher.userId,
           teacherId: teacher.id,
-          kind: "PROPOSAL_SUBMITTED",
+          kind: isReproposal ? "REPROPOSAL_SUBMITTED" : "PROPOSAL_SUBMITTED",
           title,
           body,
           emailReady: false

@@ -182,47 +182,67 @@ export async function openProposalScoring(
     if (!user?.id || !hasApprovedTeacherCapability(user)) {
       return finish({ status: "conflict", code: "teacher_profile_missing", requestId });
     }
-    assertRateLimit(`teacher:${user.id}:openProposalScoring`, pilotRateLimits.workflowMutation);
+    const userId = user.id;
+    assertRateLimit(`teacher:${userId}:openProposalScoring`, pilotRateLimits.workflowMutation);
 
     const attemptId = String(formData.get("attempt_id") ?? "").trim();
     if (!attemptId) return finish({ status: "validation", code: "proposal_attempt_missing", requestId });
 
-    const opened = await openProposalAssignment({
-      findTeacher: (userId) => prisma.teacher.findUnique({
+    const opened = await prisma.$transaction((tx) => openProposalAssignment({
+      findTeacher: (userId) => tx.teacher.findUnique({
         where: { userId },
-        select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true }
+        select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true, active: true, isInternal: true, canEvaluateProposal: true }
       }),
       findAttempt: async (id) => {
-        const attempt = await prisma.assessmentAttempt.findUnique({
+        const context = await tx.assessmentAttempt.findUnique({
+          where: { id },
+          select: { projectId: true }
+        });
+        if (!context) return null;
+        await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${context.projectId} FOR UPDATE`;
+        const attempt = await tx.assessmentAttempt.findUnique({
           where: { id },
           select: {
+            id: true,
             projectId: true,
             assessmentRoundId: true,
+            attemptType: true,
+            status: true,
+            project: { select: { status: true } },
             assessmentRound: { select: { roundType: true, status: true } },
             proposalResult: { select: { id: true } }
           }
         });
+        const latestAttempt = attempt ? await tx.assessmentAttempt.findFirst({
+          where: { projectId: attempt.projectId, assessmentRoundId: attempt.assessmentRoundId },
+          orderBy: { attemptNo: "desc" },
+          select: { id: true }
+        }) : null;
         return attempt ? {
           projectId: attempt.projectId,
           assessmentRoundId: attempt.assessmentRoundId,
+          attemptType: attempt.attemptType,
+          attemptStatus: attempt.status,
+          projectStatus: attempt.project.status,
           roundType: attempt.assessmentRound.roundType,
           roundStatus: attempt.assessmentRound.status,
-          hasProposalResult: Boolean(attempt.proposalResult)
+          hasProposalResult: Boolean(attempt.proposalResult),
+          isLatestProposalAttempt: latestAttempt?.id === attempt.id
         } : null;
       },
       hasOpenLateRoundException: async (projectId, assessmentRoundId) => {
-        const exceptions = await prisma.projectRoundException.findMany({
+        const exceptions = await tx.projectRoundException.findMany({
           where: { projectId, assessmentRoundId, status: "OPEN" },
           select: { exceptionType: true, status: true }
         });
         return hasOpenLateRoundException(exceptions);
       },
-      findAssignment: (assessmentAttemptId, evaluatorUserId) => prisma.evaluatorAssignment.findUnique({
+      findAssignment: (assessmentAttemptId, evaluatorUserId) => tx.evaluatorAssignment.findUnique({
         where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId, evaluatorUserId } },
         select: { id: true, status: true }
       }),
       createAssignment: ({ attemptId: assessmentAttemptId, userId: evaluatorUserId, teacherId, evaluatorDisplayName }) =>
-        prisma.evaluatorAssignment.create({
+        tx.evaluatorAssignment.create({
           data: {
             assessmentAttemptId,
             evaluatorUserId,
@@ -233,7 +253,7 @@ export async function openProposalScoring(
           },
           select: { id: true, status: true }
         })
-    }, { attemptId, userId: user.id });
+    }, { attemptId, userId }), { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
 
     if (opened.status === "conflict") {
       return finish({ status: "conflict", code: opened.code, requestId });

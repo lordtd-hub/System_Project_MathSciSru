@@ -17,7 +17,7 @@ describe("post-submit stabilization source checks", () => {
     expect(proposalPage).toContain("สถานะเอกสารเสนอหัวข้อ");
     expect(proposalPage).toContain("ส่งเอกสารเสนอหัวข้อแล้ว");
     expect(proposalPage).toContain("ส่ง Proposal หลังปิดรอบแล้ว");
-    expect(proposalPage).toContain("presentationSubmissions: { orderBy: { createdAt: \"desc\" }, take: 1 }");
+    expect(proposalPage).toContain('presentationSubmissions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 }');
     expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
     expect(schedulePage).toContain("บันทึกหลักฐานการประเมินแล้ว");
     expect(schedulePage).toContain('export const dynamic = "force-dynamic"');

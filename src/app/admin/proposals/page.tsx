@@ -61,7 +61,7 @@ export default async function AdminProposalsPage({
     include: {
       closedByAdmin: true,
       attempts: {
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ attemptNo: "desc" }, { createdAt: "desc" }],
         include: {
           project: { include: { student: true, committeeAssignments: true } },
           scoreRelease: true,
@@ -95,6 +95,13 @@ export default async function AdminProposalsPage({
     }))
   }));
   const allAttempts = safeRounds.flatMap((round) => round.attempts);
+  const latestAttemptIdByProject = new Map<string, string>();
+  for (const attempt of allAttempts) {
+    const currentId = latestAttemptIdByProject.get(attempt.projectId);
+    const current = currentId ? allAttempts.find((candidate) => candidate.id === currentId) : null;
+    if (!current || attempt.attemptNo > current.attemptNo) latestAttemptIdByProject.set(attempt.projectId, attempt.id);
+  }
+  const currentAttempts = allAttempts.filter((attempt) => latestAttemptIdByProject.get(attempt.projectId) === attempt.id);
   const hasProposalAttempts = allAttempts.length > 0;
   const latestProposalRound = safeRounds[0];
   const progress1Eligibility = latestProposalRound ? await getRoundEligibility(latestProposalRound.courseOfferingId, "PROGRESS_1") : { eligible: [], notReady: [] };
@@ -105,14 +112,14 @@ export default async function AdminProposalsPage({
         select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } }
       })
     : [];
-  const waitingDecisionCount = allAttempts.filter((attempt) => !attempt.proposalResult).length;
-  const approvedWithoutCommitteeCount = allAttempts.filter((attempt) => {
+  const waitingDecisionCount = currentAttempts.filter((attempt) => !attempt.proposalResult).length;
+  const approvedWithoutCommitteeCount = currentAttempts.filter((attempt) => {
     if (attempt.project.status !== "TOPIC_APPROVED") return false;
     const roles = new Set(attempt.project.committeeAssignments.filter((assignment) => assignment.active).map((assignment) => assignment.role));
     return !roles.has("HEAD") || !roles.has("MEMBER");
   }).length;
-  const failAlertCount = allAttempts.filter((attempt) => shouldAlertAdminForFailVotes(attempt.proposalVotes)).length;
-  const missingScoreCount = allAttempts.filter((attempt) => {
+  const failAlertCount = currentAttempts.filter((attempt) => shouldAlertAdminForFailVotes(attempt.proposalVotes)).length;
+  const missingScoreCount = currentAttempts.filter((attempt) => {
     const submitted = attempt.evaluatorAssignments.filter((assignment) => isSubmittedScoreStatus(assignment.scoreSubmission?.status)).length;
     return submitted < attempt.evaluatorAssignments.length;
   }).length;
@@ -275,6 +282,7 @@ export default async function AdminProposalsPage({
                   const failRatio = totalVotes ? Math.round((failVotes / totalVotes) * 100) : 0;
                   const finalDecision = attempt.proposalResult?.finalDecision;
                   const decided = Boolean(attempt.proposalResult);
+                  const isLatestAttempt = latestAttemptIdByProject.get(attempt.projectId) === attempt.id;
                   const certifiedRevision = finalDecision === "PASS_WITH_REVISION"
                     && attempt.presentationSubmission?.status === "LOCKED"
                     && attempt.project.status === "TOPIC_APPROVED";
@@ -303,6 +311,9 @@ export default async function AdminProposalsPage({
                           <dt className="text-xs font-semibold uppercase tracking-wide text-muted">สถานะ</dt>
                           <dd className="mt-2">
                             <StatusBadge status={attempt.project.status} />
+                            <div className="mt-2 text-xs text-muted">
+                              ครั้งที่ {attempt.attemptNo} · {attempt.attemptType === "REPROPOSAL" ? "Re-proposal" : "Proposal"}
+                            </div>
                           </dd>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -344,7 +355,11 @@ export default async function AdminProposalsPage({
 
                       <div className="mt-4 rounded-lg border border-line bg-paperSoft p-3">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">การทำงาน</div>
-                        {certifiedRevision ? (
+                        {!isLatestAttempt ? (
+                          <InfoAlert title="ประวัติการสอบหัวข้อ">
+                            Attempt นี้ถูกล็อกแบบอ่านอย่างเดียว การบันทึกมติและคะแนนใช้ได้เฉพาะ Attempt ล่าสุด
+                          </InfoAlert>
+                        ) : certifiedRevision ? (
                           <ProposalLifecycleActionForm action={unlockProposalRevisionDecision} className="grid gap-2">
                             <input type="hidden" name="attempt_id" value={attempt.id} />
                             <input name="reason" required placeholder="เหตุผลที่ต้องปลดล็อกมติ" />
@@ -366,12 +381,12 @@ export default async function AdminProposalsPage({
                             </SubmitButton>
                           </ProposalLifecycleActionForm>
                         )}
-                        <form action={releaseFeedback} className="mt-2">
+                        {isLatestAttempt ? <form action={releaseFeedback} className="mt-2">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
                           <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
                             {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                           </SubmitButton>
-                        </form>
+                        </form> : null}
                         <details className="mt-3 rounded-md border border-line bg-surface p-2">
                           <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
                           <div className="mt-2 space-y-2 text-xs text-muted">
@@ -427,6 +442,7 @@ export default async function AdminProposalsPage({
                       const failRatio = totalVotes ? Math.round((failVotes / totalVotes) * 100) : 0;
                       const finalDecision = attempt.proposalResult?.finalDecision;
                       const decided = Boolean(attempt.proposalResult);
+                      const isLatestAttempt = latestAttemptIdByProject.get(attempt.projectId) === attempt.id;
                       const certifiedRevision = finalDecision === "PASS_WITH_REVISION"
                         && attempt.presentationSubmission?.status === "LOCKED"
                         && attempt.project.status === "TOPIC_APPROVED";
@@ -450,6 +466,9 @@ export default async function AdminProposalsPage({
                           </td>
                           <td className="py-3 pr-3">
                             <StatusBadge status={attempt.project.status} />
+                            <div className="mt-2 whitespace-nowrap text-xs text-muted">
+                              ครั้งที่ {attempt.attemptNo} · {attempt.attemptType === "REPROPOSAL" ? "Re-proposal" : "Proposal"}
+                            </div>
                           </td>
                           <td className="py-3 pr-3 whitespace-nowrap">
                             <div>ส่งแล้ว {summary.submittedCount}</div>
@@ -476,7 +495,11 @@ export default async function AdminProposalsPage({
                             <div className="mt-2 rounded-md border border-line bg-paper p-2 text-xs">{nextDecisionStep(finalDecision)}</div>
                           </td>
                           <td className="py-3 pr-3 min-w-80">
-                            {certifiedRevision ? (
+                            {!isLatestAttempt ? (
+                              <InfoAlert title="ประวัติการสอบหัวข้อ">
+                                Attempt นี้ถูกล็อกแบบอ่านอย่างเดียว การบันทึกมติและคะแนนใช้ได้เฉพาะ Attempt ล่าสุด
+                              </InfoAlert>
+                            ) : certifiedRevision ? (
                               <ProposalLifecycleActionForm action={unlockProposalRevisionDecision} className="grid gap-2">
                                 <input type="hidden" name="attempt_id" value={attempt.id} />
                                 <input name="reason" required placeholder="เหตุผลที่ต้องปลดล็อกมติ" />
@@ -498,12 +521,12 @@ export default async function AdminProposalsPage({
                                 </SubmitButton>
                               </ProposalLifecycleActionForm>
                             )}
-                            <form action={releaseFeedback} className="mt-2">
+                            {isLatestAttempt ? <form action={releaseFeedback} className="mt-2">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
                               <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
                                 {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                               </SubmitButton>
-                            </form>
+                            </form> : null}
                             <details className="mt-3 rounded-md border border-line p-2">
                               <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
                               <div className="mt-2 space-y-2 text-xs text-muted">

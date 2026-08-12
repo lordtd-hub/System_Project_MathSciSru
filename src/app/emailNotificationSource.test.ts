@@ -27,7 +27,8 @@ describe("workflow notification wiring", () => {
     const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
     expect(studentActions).toContain("after(async () =>");
     expect(studentActions).toContain("persistInApp: false");
-    expect(mutations).toContain('kind: "PROPOSAL_SUBMITTED"');
+    expect(mutations).toContain('kind: isReproposal ? "REPROPOSAL_SUBMITTED" : "PROPOSAL_SUBMITTED"');
+    expect(mutations).toContain('ระบบจะไม่ส่งอีเมลหรือ LINE สำหรับการส่ง Re-proposal');
     expect(mutations).toContain("emailReady: false");
     expect(studentActions).toContain("deliverExamScheduleExternalNotification(notification)");
     expect(futureStageMutations).toContain('kind: "EXAM_SCHEDULE_PROPOSED"');
