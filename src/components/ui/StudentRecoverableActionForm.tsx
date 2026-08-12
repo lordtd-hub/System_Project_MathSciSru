@@ -94,6 +94,12 @@ export function reconcileFormValues(renderedValues: DraftMap, snapshotValues: Dr
   return { ...renderedValues, ...snapshotValues };
 }
 
+export function cancelScheduledDraftSave(timer: { current: ReturnType<typeof setTimeout> | null }) {
+  if (!timer.current) return;
+  clearTimeout(timer.current);
+  timer.current = null;
+}
+
 export function readForm(form: HTMLFormElement): DraftMap {
   const values: DraftMap = {};
 
@@ -239,9 +245,7 @@ export function StudentRecoverableActionForm({
     };
   }, [scheduleSave]);
 
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-  }, []);
+  useEffect(() => () => cancelScheduledDraftSave(saveTimer), []);
 
   useEffect(() => {
     if (resultMode !== "typed" || result.status === "idle" || handledRequestId.current === result.requestId) return;
@@ -250,6 +254,7 @@ export function StudentRecoverableActionForm({
     const plan = studentActionRecoveryPlan(result);
 
     if (plan.clearSnapshot) {
+      cancelScheduledDraftSave(saveTimer);
       const removeResult = attemptStorageOperation(() => browserStorage(storage).removeItem(storageKey));
       if (!removeResult.ok) setStorageUnavailable(true);
       setStatus("success");

@@ -89,6 +89,14 @@ function originSnapshot(input: ProjectOriginInput) {
   return { ...input, status: "SUBMITTED" as const };
 }
 
+function originAuditSnapshot(value: { sourceType: SourceType; tentativeAdvisorId: string | null; status: string }) {
+  return {
+    sourceType: value.sourceType,
+    advisorTeacherId: value.tentativeAdvisorId,
+    status: value.status
+  };
+}
+
 function sameOrigin(committed: Record<string, unknown> | null, input: ProjectOriginInput) {
   if (!committed) return false;
   return Object.entries(originSnapshot(input)).every(([key, value]) => committed[key] === value);
@@ -104,6 +112,10 @@ function proposalSnapshot(input: ProposalSubmissionInput) {
     declarationAccepted: true,
     status: "SUBMITTED" as const
   };
+}
+
+function proposalAuditSnapshot(value: { status: string }) {
+  return { status: value.status };
 }
 
 function sameProposal(committed: {
@@ -188,17 +200,20 @@ export async function saveProjectOriginAtomic(
       throw new StudentActionConflictError("PROJECT_NOT_EDITABLE", "ขั้นตอนโครงงานเปลี่ยนไปแล้ว กรุณารีเฟรชหน้าและตรวจสอบสถานะล่าสุด");
     }
 
+    const advisor = await tx.teacher.findUnique({
+      where: { id: input.tentativeAdvisorId },
+      select: { id: true, userId: true, academicPrefix: true, firstNameTh: true, lastNameTh: true }
+    });
+    if (!advisor) {
+      throw new StudentActionConflictError(
+        "ADVISOR_NOT_AVAILABLE",
+        "ไม่พบอาจารย์ที่ปรึกษาที่เลือกไว้ กรุณารีเฟรชหน้าและเลือกอาจารย์อีกครั้ง"
+      );
+    }
+
     const before = committed ? {
-      initialProjectTitleTh: committed.initialProjectTitleTh,
-      initialProjectTitleEn: committed.initialProjectTitleEn,
       sourceType: committed.sourceType,
-      reasonForTopic: committed.reasonForTopic,
-      expectedMathArea: committed.expectedMathArea,
       tentativeAdvisorId: committed.tentativeAdvisorId,
-      consultationSummary: committed.consultationSummary,
-      initialReferences: committed.initialReferences,
-      materialLink: committed.materialLink,
-      declarationAccepted: committed.declarationAccepted,
       status: committed.status
     } : null;
     const submitted = { ...originSnapshot(input), submittedAt: now };
@@ -267,13 +282,9 @@ export async function saveProjectOriginAtomic(
         action: "PROJECT_ORIGIN_SUBMITTED",
         entityType: "ProjectOrigin",
         entityId: origin.id,
-        beforeJson: before ?? undefined,
-        afterJson: originSnapshot(input)
+        beforeJson: before ? originAuditSnapshot(before) : undefined,
+        afterJson: originAuditSnapshot(originSnapshot(input))
       }
-    });
-    const advisor = await tx.teacher.findUniqueOrThrow({
-      where: { id: input.tentativeAdvisorId },
-      select: { id: true, userId: true, academicPrefix: true, firstNameTh: true, lastNameTh: true }
     });
     const advisorName = `${advisor.academicPrefix}${advisor.firstNameTh} ${advisor.lastNameTh}`;
     const notification = buildAdvisorRequestEmailTemplate({ projectLabel: projectLabel(context, input.initialProjectTitleTh), advisorName });
@@ -337,12 +348,6 @@ export async function saveProposalSubmissionAtomic(
       create: { projectId: project.id, assessmentRoundId: round.id, attemptNo: 1, attemptType: "MAIN_PROPOSAL", status: "SCORING_OPEN" }
     });
     const before = committed ? {
-      titleTh: committed.titleTh,
-      titleEn: committed.titleEn,
-      abstractText: committed.abstractText,
-      contentJson: committed.contentJson,
-      materialLink: committed.materialLink,
-      declarationAccepted: committed.declarationAccepted,
       status: committed.status
     } : null;
     const submissionData = { ...proposalSnapshot(input), projectId: project.id, studentId: context.studentId, submittedAt: now };
@@ -412,8 +417,8 @@ export async function saveProposalSubmissionAtomic(
         action: "PROPOSAL_SUBMITTED",
         entityType: "PresentationSubmission",
         entityId: submission.id,
-        beforeJson: before ?? undefined,
-        afterJson: proposalSnapshot(input)
+        beforeJson: before ? proposalAuditSnapshot(before) : undefined,
+        afterJson: proposalAuditSnapshot(proposalSnapshot(input))
       }
     });
     if (proposalTeachers.length) {

@@ -159,7 +159,7 @@ describe("student current-stage atomic persistence", () => {
       projectTimelineEvent: { create: vi.fn(async ({ data }) => read().timeline.push(data)) },
       auditLog: { create: vi.fn(async ({ data }) => read().audits.push(data)) },
       teacher: {
-        findUniqueOrThrow: vi.fn(async () => ({ id: "teacher-1", userId: "teacher-user-1", academicPrefix: "อ.", firstNameTh: "หนึ่ง", lastNameTh: "ทดสอบ" }))
+        findUnique: vi.fn(async () => ({ id: "teacher-1", userId: "teacher-user-1", academicPrefix: "อ.", firstNameTh: "หนึ่ง", lastNameTh: "ทดสอบ" }))
       },
       notification: { create: vi.fn(async ({ data }) => read().notifications.push(data)) }
     }));
@@ -172,6 +172,48 @@ describe("student current-stage atomic persistence", () => {
     )).rejects.toThrow("fault");
 
     expect(harness.read()).toEqual(initial);
+  });
+
+  it("rejects a stale advisor selection as a typed conflict before writing", async () => {
+    const input: ProjectOriginInput = {
+      initialProjectTitleTh: "หัวข้อทดสอบ",
+      initialProjectTitleEn: null,
+      sourceType: "STUDENT_INITIATED",
+      reasonForTopic: "เหตุผล",
+      expectedMathArea: "สถิติ",
+      tentativeAdvisorId: "missing-teacher",
+      consultationSummary: "สรุป",
+      initialReferences: "อ้างอิง",
+      materialLink: "https://drive.google.com/file/d/example",
+      declarationAccepted: true
+    };
+    const harness = transactionalHarness({ writes: 0 }, () => ({
+      $queryRaw: vi.fn(async () => [{ id: context.projectId }]),
+      project: { findUniqueOrThrow: vi.fn(async () => ({ id: context.projectId, status: "DRAFT" })) },
+      projectOrigin: { findUnique: vi.fn(async () => null) },
+      teacher: { findUnique: vi.fn(async () => null) }
+    }));
+
+    await expect(saveProjectOriginAtomic(harness.db, context, input)).rejects.toMatchObject({
+      code: "ADVISOR_NOT_AVAILABLE"
+    });
+    expect(harness.read().writes).toBe(0);
+  });
+
+  it("stores audit metadata without copying student text or material links", async () => {
+    const source = await import("node:fs/promises").then((fs) => fs.readFile(
+      new URL("./studentCurrentStageMutations.ts", import.meta.url),
+      "utf8"
+    ));
+    const originAuditBlock = source.slice(source.indexOf('action: "PROJECT_ORIGIN_SUBMITTED"'), source.indexOf("const advisorName"));
+    const proposalAuditBlock = source.slice(source.indexOf('action: "PROPOSAL_SUBMITTED"'), source.indexOf("if (proposalTeachers.length)"));
+
+    for (const block of [originAuditBlock, proposalAuditBlock]) {
+      expect(block).not.toContain("materialLink:");
+      expect(block).not.toContain("abstractText:");
+      expect(block).not.toContain("contentJson:");
+      expect(block).not.toContain("reasonForTopic:");
+    }
   });
 
   it("treats an identical committed proposal retry as unchanged without duplicate version or notification", async () => {

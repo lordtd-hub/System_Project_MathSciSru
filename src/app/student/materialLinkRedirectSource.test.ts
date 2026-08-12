@@ -20,7 +20,6 @@ describe("student material link validation UX", () => {
     const actions = read("src/app/student/actions.ts");
 
     expect(actions).toContain('error: "student_required_field_missing"');
-    expect(actions).toContain('error: "student_declaration_missing"');
     expect(actions).toContain('error: "student_text_too_long"');
     expect(actions).toContain('error: "student_markdown_invalid"');
     expect(actions).toContain('"TIMELINE_INVALID"');

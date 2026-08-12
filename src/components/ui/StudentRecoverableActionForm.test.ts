@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   STUDENT_FORM_SNAPSHOT_TTL_MS,
   attemptStorageOperation,
+  cancelScheduledDraftSave,
   createFormSnapshot,
   parseFormSnapshot,
   reconcileFormValues,
@@ -104,5 +105,20 @@ describe("student recoverable action form snapshots", () => {
       requestId: "request-3",
       missingFields: ["objectives", "timeline"]
     })).toEqual({ clearSnapshot: false, refresh: false, restoreSnapshot: true, focusField: "objectives" });
+  });
+
+  it("cancels a pending autosave before a successful action clears the draft", () => {
+    vi.useFakeTimers();
+    const writeDraft = vi.fn();
+    const timer = {
+      current: setTimeout(writeDraft, 80) as unknown as ReturnType<typeof setTimeout> | null
+    };
+
+    cancelScheduledDraftSave(timer);
+    vi.advanceTimersByTime(100);
+
+    expect(writeDraft).not.toHaveBeenCalled();
+    expect(timer.current).toBeNull();
+    vi.useRealTimers();
   });
 });
