@@ -20,6 +20,7 @@ describe("teacher user-blocker containment", () => {
       action.indexOf("export async function reviewAdvisorRequest")
     );
     expect(openProposalAction).not.toContain("revalidatePath(");
+    expect(openProposalAction).toContain("redirect(`/teacher/scoring/");
     expect(form).toContain("useActionState");
     expect(form).toContain("router.push");
     expect(service).not.toContain("updateAssignment");

@@ -163,6 +163,7 @@ export async function openProposalScoring(
 ): Promise<ProposalStartActionResult> {
   const requestId = crypto.randomUUID();
   const timer = createActionTimer("teacher.openProposalScoring", { requestId, enabled: true });
+  let openedAssignment: { assignmentId: string; unchanged: boolean } | null = null;
   const finish = (result: ProposalStartActionResult) => {
     timer.end(result.status === "idle" ? "idle" : `${result.status}:${result.code}`);
     return result;
@@ -231,13 +232,10 @@ export async function openProposalScoring(
       return finish({ status: "conflict", code: opened.code, requestId });
     }
 
-    return finish({
-      status: "success",
-      code: "proposal_assignment_ready",
-      requestId,
+    openedAssignment = {
       assignmentId: opened.assignmentId,
       unchanged: opened.unchanged
-    });
+    };
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
       return finish({ status: "rate_limit", code: "proposal_start_rate_limited", requestId });
@@ -251,6 +249,15 @@ export async function openProposalScoring(
     }));
     return finish({ status: "unexpected", code: "proposal_start_unexpected", requestId });
   }
+
+  finish({
+    status: "success",
+    code: "proposal_assignment_ready",
+    requestId,
+    assignmentId: openedAssignment.assignmentId,
+    unchanged: openedAssignment.unchanged
+  });
+  redirect(`/teacher/scoring/${encodeURIComponent(openedAssignment.assignmentId)}`);
 }
 
 export async function reviewAdvisorRequest(formData: FormData) {

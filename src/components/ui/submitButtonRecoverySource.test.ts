@@ -37,6 +37,7 @@ describe("submit button recovery source", () => {
     expect(teacherActions).toContain("openProposalAssignment");
     expect(openProposalAction).not.toContain("revalidatePath(");
     expect(openProposalAction).toContain('code: "proposal_assignment_ready"');
+    expect(openProposalAction).toContain("redirect(`/teacher/scoring/");
   });
 
   it("allows Proposal feedback drafts without weakening final score validation", () => {
