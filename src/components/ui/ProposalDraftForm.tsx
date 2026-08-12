@@ -3,29 +3,22 @@
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { SUBMIT_AUTO_RECOVERY_EVENT } from "./SubmitButton";
 import {
+  StudentRecoverableActionForm,
+  readForm,
+  restoreForm,
+  type DraftMap,
+  type FormAction
+} from "./StudentRecoverableActionForm";
+import {
   initialTeacherScoreActionResult,
   teacherScoreActionMessage,
   type TeacherScoreActionResult
 } from "@/lib/scoring/teacherScoreActionResult";
 
-type FormAction = (formData: FormData) => void | Promise<void>;
-
-type DraftValue = string | boolean | string[];
-type DraftMap = Record<string, DraftValue>;
-
-export function appendCheckboxDraftValue(
-  values: DraftMap,
-  name: string,
-  value: string,
-  checked: boolean
-) {
-  const selected = Array.isArray(values[name]) ? values[name] : [];
-  values[name] = checked ? [...selected, value] : selected;
-}
-
-export function isCheckboxSelected(draftValue: DraftValue, checkboxValue: string) {
-  return Array.isArray(draftValue) ? draftValue.includes(checkboxValue) : Boolean(draftValue);
-}
+export {
+  appendCheckboxDraftValue,
+  isCheckboxSelected
+} from "./StudentRecoverableActionForm";
 
 export type ScoreActionRecoveryState = {
   lastRequestId: string | null;
@@ -59,140 +52,8 @@ export function reconcileTeacherScoreActionResult(
   return { lastRequestId: result.requestId, reloadStarted: false };
 }
 
-function readForm(form: HTMLFormElement): DraftMap {
-  const data = new FormData(form);
-  const values: DraftMap = {};
-  for (const element of Array.from(form.elements)) {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
-      continue;
-    }
-    if (!element.name || element.type === "hidden") continue;
-    if (element instanceof HTMLInputElement && element.type === "checkbox") {
-      appendCheckboxDraftValue(values, element.name, element.value, element.checked);
-    } else {
-      values[element.name] = String(data.get(element.name) ?? "");
-    }
-  }
-  for (const [key, value] of data.entries()) {
-    if (!(key in values)) values[key] = String(value);
-  }
-  return values;
-}
-
-function restoreForm(form: HTMLFormElement, values: DraftMap) {
-  for (const element of Array.from(form.elements)) {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
-      continue;
-    }
-    if (!element.name || !(element.name in values)) continue;
-
-    const value = values[element.name];
-    if (element instanceof HTMLInputElement && element.type === "checkbox") {
-      element.checked = isCheckboxSelected(value, element.value);
-    } else if (element instanceof HTMLInputElement && element.type === "radio" && typeof value === "string") {
-      element.checked = element.value === value;
-    } else if (typeof value === "string") {
-      element.value = value;
-    }
-  }
-
-  window.dispatchEvent(new CustomEvent("draft-form-restore", { detail: values }));
-  window.dispatchEvent(new CustomEvent("proposal-draft-restore", { detail: values }));
-}
-
-export function DraftPreservingForm({
-  action,
-  storageKey,
-  clearOnSuccess,
-  className,
-  children
-}: {
-  action: FormAction;
-  storageKey: string;
-  clearOnSuccess?: boolean;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [status, setStatus] = useState<"idle" | "saved" | "restored">("idle");
-
-  const saveDraft = useCallback((nextStatus: "saved" | "idle" = "idle") => {
-    const form = formRef.current;
-    if (!form) return;
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        updatedAt: new Date().toISOString(),
-        values: readForm(form)
-      })
-    );
-    if (nextStatus === "saved") setStatus("saved");
-  }, [storageKey]);
-
-  const scheduleSave = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => saveDraft(), 80);
-  }, [saveDraft]);
-
-  useEffect(() => {
-    if (clearOnSuccess) {
-      localStorage.removeItem(storageKey);
-      return;
-    }
-
-    const raw = localStorage.getItem(storageKey);
-    if (!raw || !formRef.current) return;
-    try {
-      const parsed = JSON.parse(raw) as { values?: DraftMap };
-      if (parsed.values) {
-        restoreForm(formRef.current, parsed.values);
-        setStatus("restored");
-      }
-    } catch {
-      localStorage.removeItem(storageKey);
-    }
-  }, [clearOnSuccess, storageKey]);
-
-  useEffect(() => {
-    const listener = () => scheduleSave();
-    window.addEventListener("draft-form-field-change", listener);
-    window.addEventListener("proposal-draft-field-change", listener);
-    return () => {
-      window.removeEventListener("draft-form-field-change", listener);
-      window.removeEventListener("proposal-draft-field-change", listener);
-    };
-  }, [scheduleSave]);
-
-  return (
-    <form
-      ref={formRef}
-      action={action}
-      className={className}
-      onInput={scheduleSave}
-      onChange={scheduleSave}
-      onClickCapture={(event) => {
-        const target = event.target;
-        if (target instanceof HTMLElement && target.closest("[data-draft-save],[data-proposal-draft-save]")) {
-          event.preventDefault();
-          saveDraft("saved");
-        } else if (target instanceof HTMLElement && target.closest('button[type="submit"],input[type="submit"]')) {
-          saveDraft();
-        }
-      }}
-      onSubmit={() => saveDraft()}
-    >
-      {children}
-      {status !== "idle" ? (
-        <p className="mt-2 text-xs text-muted" aria-live="polite">
-          {status === "restored" ? "กู้คืนร่างที่เคยกรอกไว้ในเครื่องนี้แล้ว" : "บันทึกร่างไว้ในเครื่องนี้แล้ว ยังไม่ได้ส่งเข้าระบบ"}
-        </p>
-      ) : null}
-    </form>
-  );
-}
-
-export const ProposalDraftForm = DraftPreservingForm;
+export const DraftPreservingForm = StudentRecoverableActionForm;
+export const ProposalDraftForm = StudentRecoverableActionForm;
 
 type ResultFormAction = (
   previousState: TeacherScoreActionResult,

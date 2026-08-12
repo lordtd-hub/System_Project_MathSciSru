@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 describe("submit button recovery source", () => {
   it("keeps React server action submission and pending reload recovery", () => {
     const source = readFileSync(join(process.cwd(), "src/components/ui/SubmitButton.tsx"), "utf8");
-    const draftFormSource = readFileSync(join(process.cwd(), "src/components/ui/ProposalDraftForm.tsx"), "utf8");
+    const draftFormSource = readFileSync(join(process.cwd(), "src/components/ui/StudentRecoverableActionForm.tsx"), "utf8");
     const studentOriginSource = readFileSync(join(process.cwd(), "src/app/student/origin/page.tsx"), "utf8");
     const teacherHomeSource = readFileSync(join(process.cwd(), "src/app/teacher/page.tsx"), "utf8");
     const teacherProposalsSource = readFileSync(join(process.cwd(), "src/app/teacher/proposals/page.tsx"), "utf8");
@@ -21,7 +21,7 @@ describe("submit button recovery source", () => {
     expect(source).toContain("event.preventDefault();");
     expect(draftFormSource).toContain('target.closest(\'button[type="submit"],input[type="submit"]\')');
     expect(draftFormSource).toContain("saveDraft();");
-    expect(studentOriginSource).toContain('<SubmitButton pendingText="กำลังบันทึกและส่ง...">');
+    expect(studentOriginSource).toContain('autoRecovery={false}');
     expect(teacherHomeSource).toContain('<SubmitButton pendingText="กำลังเปิดแบบประเมิน...">');
     expect(teacherProposalsSource).toContain('<SubmitButton pendingText="กำลังเปิดแบบประเมิน...">');
     expect(source).not.toContain("ตรวจสอบสถานะล่าสุด");

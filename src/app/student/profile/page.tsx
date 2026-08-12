@@ -3,6 +3,7 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormSection } from "@/components/ui/FormSection";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { saveStudentProfile } from "../actions";
@@ -49,7 +50,11 @@ export default async function StudentProfilePage({
           </div>
         </div>
       </FormSection>
-      <form action={saveStudentProfile}>
+      <StudentRecoverableActionForm
+        action={saveStudentProfile}
+        storageKey={`student-profile-draft:${student.id}`}
+        storage="session"
+      >
       <FormSection title="ช่องทางติดต่อ" description="บันทึกข้อมูลส่วนตัวให้ครบเพื่อปลดล็อกขั้นตอนสร้างโครงงาน">
         <div className="grid gap-4 md:grid-cols-3">
           <div>
@@ -65,9 +70,9 @@ export default async function StudentProfilePage({
             <input name="line_id" defaultValue={student.profile?.lineId ?? ""} placeholder="line_id" />
           </div>
         </div>
-        <SubmitButton pendingText="กำลังบันทึก..." className="mt-4">บันทึกข้อมูลนักศึกษา</SubmitButton>
+        <SubmitButton pendingText="กำลังบันทึก..." className="mt-4" autoRecovery={false}>บันทึกข้อมูลนักศึกษา</SubmitButton>
       </FormSection>
-      </form>
+      </StudentRecoverableActionForm>
     </div>
   );
 }
