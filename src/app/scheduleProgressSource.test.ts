@@ -7,12 +7,14 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 describe("self-scheduling and progress scoring source guards", () => {
   it("keeps student scheduling tied to course-level rounds and student ownership", () => {
     const actions = read("src/app/student/actions.ts");
+    const currentStageMutations = read("src/lib/projects/studentCurrentStageMutations.ts");
+    const currentStageSource = `${actions}\n${currentStageMutations}`;
     expect(actions).toContain("requireStudentContext()");
     expect(actions).toContain("submitExamSchedule");
-    expect(actions).toContain("student_advisor_required");
-    expect(actions).toContain("proposal_round_not_open");
-    expect(actions).toContain("courseOfferingId_roundType");
-    expect(actions).toContain("isRoundOpen(round.status)");
+    expect(actions).toContain("STUDENT_ADVISOR_REQUIRED");
+    expect(currentStageSource).toContain("PROPOSAL_ROUND_NOT_OPEN");
+    expect(currentStageSource).toContain("courseOfferingId_roundType");
+    expect(currentStageSource).toContain("isRoundOpen(round.status)");
     expect(actions).toContain('project.status !== "IN_PROGRESS"');
     expect(actions).toContain("assessmentRoundId: round.id");
     expect(actions).toContain("saveAssessmentEvidence");

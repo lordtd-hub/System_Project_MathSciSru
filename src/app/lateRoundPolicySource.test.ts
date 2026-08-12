@@ -22,9 +22,11 @@ describe("late round policy source coverage", () => {
 
   it("allows late overrides while preserving the default lock for closed Proposal", () => {
     const studentActions = read("src/app/student/actions.ts");
-    expect(studentActions).toContain("hasOpenLateRoundException");
-    expect(studentActions).toContain("proposal_round_closed_contact_admin");
-    expect(studentActions).toContain("latePenaltyRequired");
+    const currentStageMutations = read("src/lib/projects/studentCurrentStageMutations.ts");
+    const proposalSource = `${studentActions}\n${currentStageMutations}`;
+    expect(proposalSource).toContain("hasOpenLateRoundException");
+    expect(proposalSource).toContain("PROPOSAL_ROUND_CLOSED");
+    expect(proposalSource).toContain("latePenaltyRequired");
   });
 
   it("lets eligible projects enter an open Progress/Final round normally and requires late override after close", () => {

@@ -38,7 +38,11 @@ async function sendLineBestEffort(payload: LineNotificationPayload) {
   await sendLineNotification(payload);
 }
 
-export async function notifyAdvisorRequestSubmitted(projectId: string, advisorTeacherId: string) {
+export async function notifyAdvisorRequestSubmitted(
+  projectId: string,
+  advisorTeacherId: string,
+  options: { persistInApp?: boolean } = {}
+) {
   const [project, advisor] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -68,17 +72,19 @@ export async function notifyAdvisorRequestSubmitted(projectId: string, advisorTe
     projectLabel: projectLabel(project),
     advisorName
   });
-  await prisma.notification.create({
-    data: {
-      projectId,
-      userId: advisor.userId,
-      teacherId: advisor.id,
-      kind: "ADVISOR_REQUEST_SUBMITTED",
-      title: baseTemplate.title,
-      body: baseTemplate.body,
-      emailReady: true
-    }
-  });
+  if (options.persistInApp !== false) {
+    await prisma.notification.create({
+      data: {
+        projectId,
+        userId: advisor.userId,
+        teacherId: advisor.id,
+        kind: "ADVISOR_REQUEST_SUBMITTED",
+        title: baseTemplate.title,
+        body: baseTemplate.body,
+        emailReady: true
+      }
+    });
+  }
 
   const actionUrl = buildAppUrl("/teacher/advisor-requests");
   if (!actionUrl) return;

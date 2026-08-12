@@ -21,6 +21,7 @@ describe("student form recovery integration", () => {
 
     for (const source of sources) expect(source).toContain("StudentRecoverableActionForm");
     expect(sources[0]).toContain('storage="session"');
+    for (const source of sources.slice(0, 4)) expect(source).toContain('resultMode="typed"');
     expect(sources[4]).not.toContain('<form key={kind} id={`evidence-form-');
     for (const source of sources) expect(source).not.toContain("clearOnSuccess=");
   });

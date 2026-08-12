@@ -3,6 +3,7 @@
 import type { AttemptType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -10,15 +11,27 @@ import { isPresentationAssessmentComplete } from "@/lib/assessments/presentation
 import { getProgress1Readiness } from "@/lib/assessments/roundEligibility";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { isSchedulableRoundType, parseScheduleDateTime, roundTypeToAssessmentKind } from "@/lib/scheduling/scheduleRules";
-import { buildSubmissionSnapshot, canEditUntilDeadline, nextVersionNo } from "@/lib/submissions/versioning";
 import { validateMaterialLink } from "@/lib/validators/materialLink";
 import { validateMarkdownInput } from "@/lib/validators/submissionContent";
 import { canStudentSubmitFinalReport } from "@/lib/reports/reportWorkflow";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { parseSelectableSourceType } from "@/lib/projects/sourceType";
+import {
+  runStudentAction,
+  studentActionSuccess,
+  StudentActionValidationError,
+  type StudentActionResult
+} from "@/lib/projects/studentActionResult";
+import {
+  saveProjectOriginAtomic,
+  saveProposalSubmissionAtomic,
+  saveStudentProfileAtomic,
+  type ProposalTimelineItem,
+  type StudentMutationContext
+} from "@/lib/projects/studentCurrentStageMutations";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
-import { notifyAdvisorRequestSubmitted, notifyExamScheduleProposed, notifyProposalSubmitted } from "@/lib/notifications/workflowEmail";
+import { notifyAdvisorRequestSubmitted, notifyExamScheduleProposed } from "@/lib/notifications/workflowEmail";
 
 async function requireStudentContext() {
   const session = await auth();
@@ -41,10 +54,6 @@ function requiredText(formData: FormData, key: string, label: string, path: Stud
   const value = String(formData.get(key) ?? "").trim();
   if (!value) redirectWithQuery(path, { error: "student_required_field_missing" });
   return value;
-}
-
-function requireStudentDeclaration(formData: FormData, path: StudentFormPath) {
-  if (formData.get("student_declaration") !== "on") redirectWithQuery(path, { error: "student_declaration_missing" });
 }
 
 function ensureStudentTextSize(value: string, maxBytes: number, label: string, path: StudentFormPath) {
@@ -101,338 +110,229 @@ async function assertPreviousPresentationRoundComplete(projectId: string, roundT
   }
 }
 
-type ProposalTimelineItem = {
-  activity: string;
-  startWeek: number;
-  endWeek: number;
-  deliverable: string;
-};
+function mutationContext(userId: string, student: {
+  id: string;
+  studentCode: string;
+  firstNameTh: string;
+  lastNameTh: string;
+}, projectId: string): StudentMutationContext {
+  return {
+    userId,
+    studentId: student.id,
+    projectId,
+    studentCode: student.studentCode,
+    studentFirstNameTh: student.firstNameTh,
+    studentLastNameTh: student.lastNameTh
+  };
+}
 
-function parseProposalTimelineItems(value: FormDataEntryValue | null, path: StudentFormPath): ProposalTimelineItem[] {
+function typedRequiredText(formData: FormData, key: string, label: string) {
+  const value = String(formData.get(key) ?? "").trim();
+  if (!value) {
+    throw new StudentActionValidationError("REQUIRED_FIELD_MISSING", `กรุณากรอก${label}ให้ครบถ้วน`, [key]);
+  }
+  return value;
+}
+
+function typedDeclaration(formData: FormData) {
+  if (formData.get("student_declaration") !== "on") {
+    throw new StudentActionValidationError(
+      "STUDENT_DECLARATION_MISSING",
+      "กรุณายืนยันคำรับรองของนักศึกษาก่อนส่งข้อมูล",
+      ["student_declaration"]
+    );
+  }
+}
+
+function typedTextSize(value: string, maxBytes: number, label: string, field: string) {
+  const error = sizeError(value, maxBytes, label);
+  if (error) throw new StudentActionValidationError("TEXT_TOO_LONG", error, [field]);
+}
+
+function typedMarkdown(value: string, label: string, field: string) {
+  const errors = validateMarkdownInput(value, label);
+  if (errors.length) throw new StudentActionValidationError("MARKDOWN_INVALID", errors[0], [field]);
+}
+
+function parseTypedProposalTimeline(value: FormDataEntryValue | null): ProposalTimelineItem[] {
   if (typeof value !== "string" || !value.trim()) return [];
   let parsed: Array<Partial<ProposalTimelineItem>>;
   try {
     parsed = JSON.parse(value) as Array<Partial<ProposalTimelineItem>>;
   } catch {
-    redirectWithQuery(path, { error: "student_timeline_invalid" });
+    throw new StudentActionValidationError("TIMELINE_INVALID", "ข้อมูลแผนดำเนินงานไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่", ["timeline"]);
   }
-  return parsed
-    .map((item) => {
-      const startWeek = Number(item.startWeek);
-      const endWeek = Number(item.endWeek);
-      if (!Number.isInteger(startWeek) || !Number.isInteger(endWeek) || startWeek < 1 || startWeek > 16 || endWeek < 1 || endWeek > 16) {
-        redirectWithQuery(path, { error: "student_timeline_invalid" });
-      }
-      if (endWeek < startWeek) redirectWithQuery(path, { error: "student_timeline_invalid" });
-      return {
-        activity: String(item.activity ?? "").trim(),
-        startWeek,
-        endWeek,
-        deliverable: String(item.deliverable ?? "").trim()
-      };
-    })
-    .filter((item) => item.activity || item.deliverable);
-}
-
-export async function saveStudentProfile(formData: FormData) {
-  const { userId, student, project } = await requireStudentContext();
-  const preferredName = String(formData.get("preferred_name") ?? "").trim() || null;
-  const phone = String(formData.get("phone") ?? "").trim() || null;
-  const lineId = String(formData.get("line_id") ?? "").trim() || null;
-  const fromStatus = project.status;
-
-  await prisma.studentProfile.upsert({
-    where: { studentId: student.id },
-    update: { preferredName, phone, lineId, completedAt: new Date() },
-    create: { studentId: student.id, preferredName, phone, lineId, completedAt: new Date() }
-  });
-
-  if (project.status === "STUDENT_PROFILE") {
-    await prisma.$transaction([
-      prisma.project.update({ where: { id: project.id }, data: { status: "DRAFT" } }),
-      prisma.projectStatusHistory.create({
-        data: {
-          projectId: project.id,
-          fromStatus,
-          toStatus: "DRAFT",
-          reason: "STUDENT_PROFILE_COMPLETED",
-          actorUserId: userId
-        }
-      }),
-      prisma.projectTimelineEvent.create({
-        data: {
-          projectId: project.id,
-          eventType: "STUDENT_PROFILE_COMPLETED",
-          eventTitle: "บันทึกข้อมูลนักศึกษา",
-          actorUserId: userId,
-          relatedEntityType: "StudentProfile",
-          relatedEntityId: student.id
-        }
-      })
-    ]);
-  }
-
-  revalidatePath("/student");
-  revalidatePath("/student/profile");
-  redirect("/student/profile?success=student_profile_saved");
-}
-
-export async function saveProjectOrigin(formData: FormData) {
-  const { userId, student, project } = await requireStudentContext();
-  assertRateLimit(`student:${userId}:saveProjectOrigin`, pilotRateLimits.workflowMutation);
-  if (project.status !== "DRAFT") redirectWithQuery("/student/project", { error: "project_not_editable" });
-  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ", "/student/project");
-  const linkResult = validateMaterialLink(materialLink);
-  if (!linkResult.ok) redirectWithQuery("/student/project", { error: "material_link_invalid" });
-  requireStudentDeclaration(formData, "/student/project");
-
-  const data = {
-    initialProjectTitleTh: requiredText(formData, "initial_project_title_th", "ชื่อหัวข้อภาษาไทย", "/student/project"),
-    initialProjectTitleEn: String(formData.get("initial_project_title_en") ?? "").trim() || null,
-    sourceType: parseSelectableSourceType(formData.get("source_type")),
-    reasonForTopic: requiredText(formData, "reason_for_topic", "เหตุผลที่เลือกหัวข้อ", "/student/project"),
-    expectedMathArea: requiredText(formData, "expected_math_area", "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง", "/student/project"),
-    tentativeAdvisorId: String(formData.get("tentative_advisor_id") ?? "") || null,
-    consultationSummary: requiredText(formData, "consultation_summary", "สรุปการปรึกษา", "/student/project"),
-    initialReferences: requiredText(formData, "initial_references", "เอกสารอ้างอิงเบื้องต้น", "/student/project"),
-    materialLink: linkResult.normalizedUrl,
-    declarationAccepted: true,
-    status: "SUBMITTED" as const,
-    submittedAt: new Date()
-  };
-  ensureStudentTextSize(data.reasonForTopic, requestSizeLimits.markdownTextBytes, "เหตุผลที่เลือกหัวข้อ", "/student/project");
-  ensureStudentTextSize(data.expectedMathArea, requestSizeLimits.markdownTextBytes, "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง", "/student/project");
-  ensureStudentTextSize(data.consultationSummary, requestSizeLimits.commentTextBytes, "สรุปการปรึกษา", "/student/project");
-  ensureStudentTextSize(data.initialReferences, requestSizeLimits.markdownTextBytes, "เอกสารอ้างอิงเบื้องต้น", "/student/project");
-  if (!data.tentativeAdvisorId) redirectWithQuery("/student/project", { error: "student_advisor_required" });
-
-  const origin = await prisma.projectOrigin.upsert({
-    where: { projectId: project.id },
-    update: data,
-    create: { ...data, projectId: project.id }
-  });
-  const versionCount = await prisma.projectOriginVersion.count({ where: { projectOriginId: origin.id } });
-  await prisma.projectOriginVersion.create({
-    data: {
-      projectOriginId: origin.id,
-      versionNo: nextVersionNo(versionCount),
-      snapshotJson: buildSubmissionSnapshot(data),
-      savedByUserId: userId
+  return parsed.map((item) => {
+    const startWeek = Number(item.startWeek);
+    const endWeek = Number(item.endWeek);
+    if (!Number.isInteger(startWeek) || !Number.isInteger(endWeek) || startWeek < 1 || startWeek > 16 || endWeek < startWeek || endWeek > 16) {
+      throw new StudentActionValidationError("TIMELINE_INVALID", "สัปดาห์ในแผนดำเนินงานต้องอยู่ระหว่าง 1-16 และเรียงตามลำดับ", ["timeline"]);
     }
-  });
-  if (data.tentativeAdvisorId) {
-    const reminderDueAt = new Date();
-    reminderDueAt.setDate(reminderDueAt.getDate() + 7);
-    const existingRequest = await prisma.advisorRequest.findFirst({
-      where: {
-        projectId: project.id,
-        advisorTeacherId: data.tentativeAdvisorId,
-        status: "PENDING"
+    return {
+      activity: String(item.activity ?? "").trim(),
+      startWeek,
+      endWeek,
+      deliverable: String(item.deliverable ?? "").trim()
+    };
+  }).filter((item) => item.activity || item.deliverable);
+}
+
+export async function saveStudentProfile(
+  _previousState: StudentActionResult,
+  formData: FormData
+): Promise<StudentActionResult> {
+  return runStudentAction("saveStudentProfile", async (requestId) => {
+    const { userId, student, project } = await requireStudentContext();
+    const outcome = await saveStudentProfileAtomic(
+      prisma,
+      mutationContext(userId, student, project.id),
+      {
+        preferredName: String(formData.get("preferred_name") ?? "").trim() || null,
+        phone: String(formData.get("phone") ?? "").trim() || null,
+        lineId: String(formData.get("line_id") ?? "").trim() || null
       }
-    });
-    if (existingRequest) {
-      await prisma.advisorRequest.update({
-        where: { id: existingRequest.id },
-        data: {
-          requestedAt: new Date(),
-          reminderDueAt,
-          studentMessage: data.consultationSummary
-        }
-      });
-    } else {
-      await prisma.advisorRequest.create({
-        data: {
-          projectId: project.id,
-          studentId: student.id,
-          advisorTeacherId: data.tentativeAdvisorId,
-          status: "PENDING",
-          studentMessage: data.consultationSummary,
-          reminderDueAt
+    );
+    revalidatePath("/student");
+    revalidatePath("/student/profile");
+    return studentActionSuccess(
+      requestId,
+      "STUDENT_PROFILE_SAVED",
+      outcome.unchanged ? "ข้อมูลนี้ถูกบันทึกไว้เรียบร้อยแล้ว" : "บันทึกข้อมูลนักศึกษาเรียบร้อยแล้ว",
+      outcome.unchanged
+    );
+  });
+}
+
+export async function saveProjectOrigin(
+  _previousState: StudentActionResult,
+  formData: FormData
+): Promise<StudentActionResult> {
+  return runStudentAction("saveProjectOrigin", async (requestId) => {
+    const { userId, student, project } = await requireStudentContext();
+    assertRateLimit(`student:${userId}:saveProjectOrigin`, pilotRateLimits.workflowMutation);
+    const materialLink = typedRequiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
+    const linkResult = validateMaterialLink(materialLink);
+    if (!linkResult.ok) {
+      throw new StudentActionValidationError(
+        "MATERIAL_LINK_INVALID",
+        "อนุญาตเฉพาะลิงก์ https จาก Google Drive, Google Docs หรือ Google Classroom เท่านั้น",
+        ["material_link"]
+      );
+    }
+    typedDeclaration(formData);
+    let sourceType;
+    try {
+      sourceType = parseSelectableSourceType(formData.get("source_type"));
+    } catch {
+      throw new StudentActionValidationError("SOURCE_TYPE_INVALID", "กรุณาเลือกแหล่งที่มาของหัวข้อให้ถูกต้อง", ["source_type"]);
+    }
+    const tentativeAdvisorId = String(formData.get("tentative_advisor_id") ?? "").trim();
+    if (!tentativeAdvisorId) {
+      throw new StudentActionValidationError("STUDENT_ADVISOR_REQUIRED", "กรุณาเลือกอาจารย์ที่ปรึกษาก่อนส่งคำขอ", ["tentative_advisor_id"]);
+    }
+    const input = {
+      initialProjectTitleTh: typedRequiredText(formData, "initial_project_title_th", "ชื่อหัวข้อภาษาไทย"),
+      initialProjectTitleEn: String(formData.get("initial_project_title_en") ?? "").trim() || null,
+      sourceType,
+      reasonForTopic: typedRequiredText(formData, "reason_for_topic", "เหตุผลที่เลือกหัวข้อ"),
+      expectedMathArea: typedRequiredText(formData, "expected_math_area", "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง"),
+      tentativeAdvisorId,
+      consultationSummary: typedRequiredText(formData, "consultation_summary", "สรุปการปรึกษา"),
+      initialReferences: typedRequiredText(formData, "initial_references", "เอกสารอ้างอิงเบื้องต้น"),
+      materialLink: linkResult.normalizedUrl,
+      declarationAccepted: true as const
+    };
+    typedTextSize(input.reasonForTopic, requestSizeLimits.markdownTextBytes, "เหตุผลที่เลือกหัวข้อ", "reason_for_topic");
+    typedTextSize(input.expectedMathArea, requestSizeLimits.markdownTextBytes, "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง", "expected_math_area");
+    typedTextSize(input.consultationSummary, requestSizeLimits.commentTextBytes, "สรุปการปรึกษา", "consultation_summary");
+    typedTextSize(input.initialReferences, requestSizeLimits.markdownTextBytes, "เอกสารอ้างอิงเบื้องต้น", "initial_references");
+
+    const outcome = await saveProjectOriginAtomic(prisma, mutationContext(userId, student, project.id), input);
+    if (!outcome.unchanged && outcome.advisorExternalNotification) {
+      const notification = outcome.advisorExternalNotification;
+      after(async () => {
+        const startedAt = performance.now();
+        try {
+          await notifyAdvisorRequestSubmitted(notification.projectId, notification.advisorTeacherId, { persistInApp: false });
+        } catch (error) {
+          console.error(JSON.stringify({
+            type: "student_action_after_failed",
+            action: "saveProjectOrigin",
+            requestId,
+            durationMs: Math.round(performance.now() - startedAt),
+            errorName: error instanceof Error ? error.name : "UnknownError"
+          }));
         }
       });
     }
-  }
-  await prisma.project.update({
-    where: { id: project.id },
-    data: { status: "PENDING_ADVISOR", currentTitleTh: data.initialProjectTitleTh, currentTitleEn: data.initialProjectTitleEn }
+    revalidatePath("/student");
+    revalidatePath("/student/origin");
+    revalidatePath("/student/project");
+    return studentActionSuccess(
+      requestId,
+      "PROJECT_ORIGIN_SAVED",
+      outcome.unchanged ? "ข้อมูลคำขอนี้ถูกบันทึกไว้เรียบร้อยแล้ว" : "ส่งคำขอให้อาจารย์ที่ปรึกษาเรียบร้อยแล้ว",
+      outcome.unchanged
+    );
   });
-  await prisma.projectStatusHistory.create({
-    data: {
-      projectId: project.id,
-      fromStatus: project.status,
-      toStatus: "PENDING_ADVISOR",
-      reason: "STUDENT_SELECTED_ADVISOR",
-      actorUserId: userId,
-      metadataJson: { advisorReminderDays: 7 }
-    }
-  });
-  await prisma.projectTimelineEvent.create({
-    data: {
-      projectId: project.id,
-      eventType: "PROJECT_ORIGIN_SUBMITTED",
-      eventTitle: "ส่งข้อมูลเสนอหัวข้อ",
-      actorUserId: userId,
-      relatedEntityType: "ProjectOrigin",
-      relatedEntityId: origin.id
-    }
-  });
-  await notifyAdvisorRequestSubmitted(project.id, data.tentativeAdvisorId).catch((error) => {
-    console.error("advisor request notification failed", error);
-  });
-
-  revalidatePath("/student");
-  revalidatePath("/student/origin");
-  revalidatePath("/student/project");
-  redirect("/student/project?success=project_submitted");
 }
 
-export async function saveProposalSubmission(formData: FormData) {
-  const { userId, student, project } = await requireStudentContext();
-  assertRateLimit(`student:${userId}:saveProposalSubmission`, pilotRateLimits.workflowMutation);
-  if (project.status !== "PROPOSAL_PENDING") redirectWithQuery("/student/proposal", { error: "proposal_not_available" });
-  const origin = await prisma.projectOrigin.findUnique({ where: { projectId: project.id } });
-  if (!origin || origin.status !== "SUBMITTED") redirectWithQuery("/student/proposal", { error: "proposal_origin_missing" });
+export async function saveProposalSubmission(
+  _previousState: StudentActionResult,
+  formData: FormData
+): Promise<StudentActionResult> {
+  return runStudentAction("saveProposalSubmission", async (requestId) => {
+    const { userId, student, project } = await requireStudentContext();
+    assertRateLimit(`student:${userId}:saveProposalSubmission`, pilotRateLimits.workflowMutation);
+    const materialLink = typedRequiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
+    const linkResult = validateMaterialLink(materialLink);
+    if (!linkResult.ok) {
+      throw new StudentActionValidationError(
+        "MATERIAL_LINK_INVALID",
+        "อนุญาตเฉพาะลิงก์ https จาก Google Drive, Google Docs หรือ Google Classroom เท่านั้น",
+        ["material_link"]
+      );
+    }
+    typedDeclaration(formData);
+    const abstractText = typedRequiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ");
+    const content = {
+      motivationBackground: typedRequiredText(formData, "motivation_background", "ที่มาและความสำคัญ"),
+      objectives: typedRequiredText(formData, "objectives", "วัตถุประสงค์"),
+      proposedMethods: typedRequiredText(formData, "proposed_methods", "วิธีดำเนินงาน"),
+      expectedOutcomes: typedRequiredText(formData, "expected_outcomes", "ผลที่คาดว่าจะได้รับ"),
+      timeline: typedRequiredText(formData, "timeline", "แผนดำเนินงาน"),
+      timelineItems: parseTypedProposalTimeline(formData.get("timeline_items_json")),
+      questionsForTeachers: String(formData.get("questions_for_teachers") ?? "").trim()
+    };
+    typedTextSize(content.questionsForTeachers, requestSizeLimits.commentTextBytes, "คำถามสำหรับอาจารย์", "questions_for_teachers");
+    typedMarkdown(abstractText, "บทคัดย่อการนำเสนอ", "abstract_of_talk");
+    typedMarkdown(content.motivationBackground, "ที่มาและความสำคัญ", "motivation_background");
+    typedMarkdown(content.objectives, "วัตถุประสงค์", "objectives");
+    typedMarkdown(content.proposedMethods, "วิธีดำเนินงาน", "proposed_methods");
+    typedMarkdown(content.expectedOutcomes, "ผลที่คาดว่าจะได้รับ", "expected_outcomes");
+    typedMarkdown(content.timeline, "แผนดำเนินงาน", "timeline");
 
-  const round = await prisma.assessmentRound.findFirst({
-    where: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" }
-  });
-  if (!round) redirectWithQuery("/student/proposal", { error: "proposal_round_not_open" });
-  const lateRoundExceptions = await prisma.projectRoundException.findMany({
-    where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
-    select: { exceptionType: true, status: true }
-  });
-  const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
-  if (!isRoundOpen(round.status) && !hasLateOverride) redirectWithQuery("/student/proposal", { error: "proposal_round_closed_contact_admin" });
-  if (!hasLateOverride && !canEditUntilDeadline(new Date(), round.submissionDeadline)) redirectWithQuery("/student/proposal", { error: "proposal_deadline_passed" });
-
-  const materialLink = requiredText(formData, "material_link", "ลิงก์เอกสารประกอบ", "/student/proposal");
-  const linkResult = validateMaterialLink(materialLink);
-  if (!linkResult.ok) redirectWithQuery("/student/proposal", { error: "material_link_invalid" });
-  requireStudentDeclaration(formData, "/student/proposal");
-
-  const timelineItems = parseProposalTimelineItems(formData.get("timeline_items_json"), "/student/proposal");
-  const content = {
-    motivationBackground: requiredText(formData, "motivation_background", "ที่มาและความสำคัญ", "/student/proposal"),
-    objectives: requiredText(formData, "objectives", "วัตถุประสงค์", "/student/proposal"),
-    proposedMethods: requiredText(formData, "proposed_methods", "วิธีดำเนินงาน", "/student/proposal"),
-    expectedOutcomes: requiredText(formData, "expected_outcomes", "ผลที่คาดว่าจะได้รับ", "/student/proposal"),
-    timeline: requiredText(formData, "timeline", "แผนดำเนินงาน", "/student/proposal"),
-    timelineItems,
-    questionsForTeachers: String(formData.get("questions_for_teachers") ?? "").trim()
-  };
-  ensureStudentTextSize(content.questionsForTeachers, requestSizeLimits.commentTextBytes, "questions for teachers", "/student/proposal");
-
-  const markdownErrors = [
-    ...validateMarkdownInput(requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ", "/student/proposal"), "บทคัดย่อการนำเสนอ"),
-    ...Object.entries(content).flatMap(([key, value]) => (key === "questionsForTeachers" || key === "timelineItems" || typeof value !== "string" ? [] : validateMarkdownInput(value, key)))
-  ];
-  ensureStudentMarkdown(markdownErrors, "/student/proposal");
-
-  const attempt = await prisma.assessmentAttempt.upsert({
-    where: {
-      projectId_assessmentRoundId_attemptNo: {
-        projectId: project.id,
-        assessmentRoundId: round.id,
-        attemptNo: 1
+    const outcome = await saveProposalSubmissionAtomic(
+      prisma,
+      mutationContext(userId, student, project.id),
+      {
+        titleTh: typedRequiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย"),
+        titleEn: String(formData.get("project_title_en") ?? "").trim() || null,
+        abstractText,
+        content,
+        materialLink: linkResult.normalizedUrl,
+        declarationAccepted: true
       }
-    },
-    update: { status: "SCORING_OPEN" },
-    create: {
-      projectId: project.id,
-      assessmentRoundId: round.id,
-      attemptNo: 1,
-      attemptType: "MAIN_PROPOSAL",
-      status: "SCORING_OPEN"
-    }
+    );
+    revalidatePath("/student");
+    revalidatePath("/student/proposal");
+    return studentActionSuccess(
+      requestId,
+      "PROPOSAL_SUBMISSION_SAVED",
+      outcome.unchanged ? "เอกสาร Proposal ชุดนี้ถูกบันทึกไว้เรียบร้อยแล้ว" : "ส่งเอกสาร Proposal เรียบร้อยแล้ว",
+      outcome.unchanged
+    );
   });
-
-  const submissionData = {
-    projectId: project.id,
-    studentId: student.id,
-    titleTh: requiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย", "/student/proposal"),
-    titleEn: String(formData.get("project_title_en") ?? "").trim() || null,
-    abstractText: requiredText(formData, "abstract_of_talk", "บทคัดย่อการนำเสนอ", "/student/proposal"),
-    contentJson: content,
-    materialLink: linkResult.normalizedUrl,
-    declarationAccepted: true,
-    status: "SUBMITTED" as const,
-    submittedAt: new Date()
-  };
-
-  const submission = await prisma.presentationSubmission.upsert({
-    where: { assessmentAttemptId: attempt.id },
-    update: submissionData,
-    create: { ...submissionData, assessmentAttemptId: attempt.id }
-  });
-  const versionCount = await prisma.presentationSubmissionVersion.count({ where: { presentationSubmissionId: submission.id } });
-  await prisma.presentationSubmissionVersion.create({
-    data: {
-      presentationSubmissionId: submission.id,
-      versionNo: nextVersionNo(versionCount),
-      snapshotJson: buildSubmissionSnapshot(submissionData),
-      savedByUserId: userId
-    }
-  });
-
-  const proposalTeachers = await prisma.teacher.findMany({
-    where: { active: true, isInternal: true, canEvaluateProposal: true, userId: { not: null } }
-  });
-  await Promise.all(
-    proposalTeachers.map((teacher) =>
-      prisma.evaluatorAssignment.upsert({
-        where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId: attempt.id, evaluatorUserId: teacher.userId! } },
-        update: {
-          teacherId: teacher.id,
-          evaluatorDisplayNameSnapshot: `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`,
-          isRequired: true
-        },
-        create: {
-          assessmentAttemptId: attempt.id,
-          evaluatorUserId: teacher.userId!,
-          teacherId: teacher.id,
-          evaluatorDisplayNameSnapshot: `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`,
-          status: "ASSIGNED",
-          isRequired: true
-        }
-      })
-    )
-  );
-
-  await prisma.project.update({
-    where: { id: project.id },
-    data: { status: "PROPOSAL_REVIEW", currentTitleTh: submissionData.titleTh, currentTitleEn: submissionData.titleEn }
-  });
-  await prisma.projectStatusHistory.create({
-    data: {
-      projectId: project.id,
-      fromStatus: project.status,
-      toStatus: "PROPOSAL_REVIEW",
-      reason: "STUDENT_ATTACHED_PROPOSAL_ABSTRACT_AND_LINK",
-      actorUserId: userId
-    }
-  });
-  await prisma.projectTimelineEvent.create({
-    data: {
-      projectId: project.id,
-      eventType: "PROPOSAL_SUBMITTED",
-      eventTitle: "ส่ง Proposal",
-      actorUserId: userId,
-      relatedEntityType: "PresentationSubmission",
-      relatedEntityId: submission.id,
-      metadataJson: {
-        lateRoundOverride: hasLateOverride,
-        latePenaltyRequired: requiresLateRoundPenalty(lateRoundExceptions),
-        latePenaltyPercent: requiresLateRoundPenalty(lateRoundExceptions) ? 10 : 0
-      }
-    }
-  });
-  await notifyProposalSubmitted(project.id, proposalTeachers.map((teacher) => teacher.id)).catch((error) => {
-    console.error("proposal notification failed", error);
-  });
-
-  revalidatePath("/student");
-  revalidatePath("/student/proposal");
-  redirect("/student/proposal?success=proposal_submitted");
 }
 
 export async function saveAssessmentEvidence(formData: FormData) {
