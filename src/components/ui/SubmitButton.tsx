@@ -3,9 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-export const SUBMIT_AUTO_RECOVERY_DELAY_MS = 15_000;
-export const SUBMIT_AUTO_RECOVERY_EVENT = "submit-auto-recovery";
-
 type ScoreSummary = {
   completed: number;
   count: number;
@@ -62,8 +59,7 @@ export function SubmitButton({
   value,
   formNoValidate = false,
   scoreGuard = false,
-  scoreMax = 100,
-  autoRecovery = true
+  scoreMax = 100
 }: {
   children: React.ReactNode;
   pendingText?: string;
@@ -96,18 +92,6 @@ export function SubmitButton({
     if (nextSummary.missing === 0) setShowIncompleteError(false);
     return nextSummary;
   }, [scoreGuard]);
-
-  useEffect(() => {
-    if (!pending || !autoRecovery) return;
-
-    const timer = window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent(SUBMIT_AUTO_RECOVERY_EVENT, {
-        detail: { form: buttonRef.current?.form ?? null }
-      }));
-      window.location.reload();
-    }, SUBMIT_AUTO_RECOVERY_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [autoRecovery, pending]);
 
   useEffect(() => {
     const form = buttonRef.current?.form;

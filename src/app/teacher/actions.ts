@@ -10,7 +10,7 @@ import { applyLatePenalty, hasOpenLateRoundException, requiresLateRoundPenalty }
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
-import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
+import { assertRateLimit, pilotRateLimits, RateLimitExceededError } from "@/lib/security/rateLimit";
 import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
@@ -19,8 +19,10 @@ import { isPresentationScoreEditable, isProposalScoreEditable } from "@/lib/scor
 import { missingScoreFieldNames } from "@/lib/scoring/formCompleteness";
 import { PROPOSAL_DRAFT_V2_AUDIT_ACTION, readOptionalConditionCount } from "@/lib/scoring/proposalDraftIntegrity";
 import type { TeacherScoreActionResult } from "@/lib/scoring/teacherScoreActionResult";
+import type { ProposalStartActionResult } from "@/lib/scoring/proposalStartActionResult";
+import { openProposalAssignment } from "@/lib/scoring/openProposalAssignment";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
-import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
+import { readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
 import { calculateFinalQaCriterionScore, finalQaRubricItems, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
 import { calculateProgressQaCriterionScore, findProgressQaCriterion, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
 import {
@@ -155,51 +157,102 @@ export async function claimTeacherProfile(formData: FormData) {
   redirect("/teacher/claim?success=teacher_claim_submitted");
 }
 
-export async function openProposalScoring(formData: FormData) {
-  const user = await requireTeacherUser();
-  assertRateLimit(`teacher:${user.id}:openProposalScoring`, pilotRateLimits.workflowMutation);
-  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
-  const attemptId = String(formData.get("attempt_id"));
+export async function openProposalScoring(
+  _previousState: ProposalStartActionResult,
+  formData: FormData
+): Promise<ProposalStartActionResult> {
+  const requestId = crypto.randomUUID();
+  const timer = createActionTimer("teacher.openProposalScoring", { requestId, enabled: true });
+  const finish = (result: ProposalStartActionResult) => {
+    timer.end(result.status === "idle" ? "idle" : `${result.status}:${result.code}`);
+    return result;
+  };
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({
-    where: { id: attemptId },
-    select: {
-      projectId: true,
-      assessmentRoundId: true,
-      assessmentRound: { select: { roundType: true, status: true } },
-      proposalResult: { select: { id: true } }
+  try {
+    const session = await auth();
+    const user = session?.user;
+    if (!user?.id || !hasApprovedTeacherCapability(user)) {
+      return finish({ status: "conflict", code: "teacher_profile_missing", requestId });
     }
-  });
-  if (attempt.proposalResult) {
-    redirectWithQuery("/teacher/proposals", { error: "proposal_decision_already_saved" });
-  }
-  const lateRoundExceptions = await prisma.projectRoundException.findMany({
-    where: { projectId: attempt.projectId, assessmentRoundId: attempt.assessmentRoundId, status: "OPEN" },
-    select: { exceptionType: true, status: true }
-  });
-  if (
-    attempt.assessmentRound.roundType !== "PROPOSAL" ||
-    (attempt.assessmentRound.status !== "SCORING_OPEN" && !hasOpenLateRoundException(lateRoundExceptions))
-  ) {
-    redirectWithQuery("/teacher/proposals", { error: "proposal_round_not_open" });
-  }
-  const assignment = await prisma.evaluatorAssignment.upsert({
-    where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId: attemptId, evaluatorUserId: user.id } },
-    update: { status: "IN_PROGRESS" },
-    create: {
-      assessmentAttemptId: attemptId,
-      evaluatorUserId: user.id,
-      teacherId: teacher.id,
-      evaluatorDisplayNameSnapshot: `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`,
-      status: "IN_PROGRESS",
-      isRequired: false
-    }
-  });
+    assertRateLimit(`teacher:${user.id}:openProposalScoring`, pilotRateLimits.workflowMutation);
 
-  revalidatePath("/teacher");
-  revalidatePath("/teacher/proposals");
-  redirect(`/teacher/scoring/${encodeURIComponent(assignment.id)}`);
+    const attemptId = String(formData.get("attempt_id") ?? "").trim();
+    if (!attemptId) return finish({ status: "validation", code: "proposal_attempt_missing", requestId });
+
+    const opened = await openProposalAssignment({
+      findTeacher: (userId) => prisma.teacher.findUnique({
+        where: { userId },
+        select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true }
+      }),
+      findAttempt: async (id) => {
+        const attempt = await prisma.assessmentAttempt.findUnique({
+          where: { id },
+          select: {
+            projectId: true,
+            assessmentRoundId: true,
+            assessmentRound: { select: { roundType: true, status: true } },
+            proposalResult: { select: { id: true } }
+          }
+        });
+        return attempt ? {
+          projectId: attempt.projectId,
+          assessmentRoundId: attempt.assessmentRoundId,
+          roundType: attempt.assessmentRound.roundType,
+          roundStatus: attempt.assessmentRound.status,
+          hasProposalResult: Boolean(attempt.proposalResult)
+        } : null;
+      },
+      hasOpenLateRoundException: async (projectId, assessmentRoundId) => {
+        const exceptions = await prisma.projectRoundException.findMany({
+          where: { projectId, assessmentRoundId, status: "OPEN" },
+          select: { exceptionType: true, status: true }
+        });
+        return hasOpenLateRoundException(exceptions);
+      },
+      findAssignment: (assessmentAttemptId, evaluatorUserId) => prisma.evaluatorAssignment.findUnique({
+        where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId, evaluatorUserId } },
+        select: { id: true, status: true }
+      }),
+      createAssignment: ({ attemptId: assessmentAttemptId, userId: evaluatorUserId, teacherId, evaluatorDisplayName }) =>
+        prisma.evaluatorAssignment.create({
+          data: {
+            assessmentAttemptId,
+            evaluatorUserId,
+            teacherId,
+            evaluatorDisplayNameSnapshot: evaluatorDisplayName,
+            status: "IN_PROGRESS",
+            isRequired: false
+          },
+          select: { id: true, status: true }
+        })
+    }, { attemptId, userId: user.id });
+
+    if (opened.status === "conflict") {
+      return finish({ status: "conflict", code: opened.code, requestId });
+    }
+
+    revalidatePath("/teacher");
+    revalidatePath("/teacher/proposals");
+    return finish({
+      status: "success",
+      code: "proposal_assignment_ready",
+      requestId,
+      assignmentId: opened.assignmentId,
+      unchanged: opened.unchanged
+    });
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return finish({ status: "rate_limit", code: "proposal_start_rate_limited", requestId });
+    }
+    console.error(JSON.stringify({
+      type: "action_error",
+      action: "teacher.openProposalScoring",
+      outcome: "unexpected",
+      requestId,
+      errorName: error instanceof Error ? error.name : "UnknownError"
+    }));
+    return finish({ status: "unexpected", code: "proposal_start_unexpected", requestId });
+  }
 }
 
 export async function reviewAdvisorRequest(formData: FormData) {
@@ -466,8 +519,8 @@ async function retiredSubmitProposalScore(
       return { status: "conflict", code: "proposal_round_not_open", requestId };
     }
 
-    const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));
-    if (!rubric.items.length) {
+    const rubric = await timer.measure("load_rubric", () => readProposalConditionRubric(prisma));
+    if (!rubric?.items.length) {
       return { status: "conflict", code: "proposal_rubric_missing", requestId };
     }
 

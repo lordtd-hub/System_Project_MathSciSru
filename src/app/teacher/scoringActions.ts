@@ -7,7 +7,7 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { calculateFinalQaCriterionScore, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
-import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
+import { readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { calculateProgressQaCriterionScore, findProgressQaCriterion } from "@/lib/rubrics/progressQaRubric";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
@@ -373,13 +373,13 @@ export async function submitProposalScore(
         where: { id: assignmentId },
         include: { scoreSubmission: { select: { status: true } } }
       }),
-      ensureProposalConditionRubric(prisma)
+      readProposalConditionRubric(prisma)
     ]);
     if (!assignment) return { status: "conflict", code: "score_context_missing", requestId };
     if (assignment.evaluatorUserId !== identity.userId) {
       return { status: "conflict", code: "score_evaluator_not_eligible", requestId };
     }
-    if (!rubric.items.length) return { status: "conflict", code: "proposal_rubric_missing", requestId };
+    if (!rubric?.items.length) return { status: "conflict", code: "proposal_rubric_missing", requestId };
 
     const isRevision = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED";
     const isSubmitting = submitMode === "submit" || isRevision;

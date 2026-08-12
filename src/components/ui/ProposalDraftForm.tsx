@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { SUBMIT_AUTO_RECOVERY_EVENT } from "./SubmitButton";
 import {
   StudentRecoverableActionForm,
   attemptStorageOperation,
@@ -213,58 +212,9 @@ export function RecoverableActionForm({
   className?: string;
   children: React.ReactNode;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [restored, setRestored] = useState(false);
-  const [storageUnavailable, setStorageUnavailable] = useState(false);
-
-  useEffect(() => {
-    const form = formRef.current;
-    if (!form) return;
-
-    const readResult = attemptStorageOperation(() => sessionStorage.getItem(storageKey));
-    if (!readResult.ok) setStorageUnavailable(true);
-    const raw = readResult.ok ? readResult.value : null;
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as { values?: DraftMap };
-        if (parsed.values) {
-          restoreForm(form, parsed.values);
-          setRestored(true);
-        }
-      } catch {
-        // Ignore a damaged recovery snapshot and keep the server-rendered values.
-      } finally {
-        const removeResult = attemptStorageOperation(() => sessionStorage.removeItem(storageKey));
-        if (!removeResult.ok) setStorageUnavailable(true);
-      }
-    }
-
-    const preserveBeforeRecovery = (event: Event) => {
-      const detail = (event as CustomEvent<{ form?: HTMLFormElement | null }>).detail;
-      if (detail?.form !== form) return;
-      const saveResult = attemptStorageOperation(() =>
-        sessionStorage.setItem(storageKey, JSON.stringify({ values: readForm(form) }))
-      );
-      if (!saveResult.ok) setStorageUnavailable(true);
-    };
-
-    window.addEventListener(SUBMIT_AUTO_RECOVERY_EVENT, preserveBeforeRecovery);
-    return () => window.removeEventListener(SUBMIT_AUTO_RECOVERY_EVENT, preserveBeforeRecovery);
-  }, [storageKey]);
-
   return (
-    <form ref={formRef} action={action} className={className}>
+    <StudentRecoverableActionForm action={action} storageKey={storageKey} storage="session" className={className}>
       {children}
-      {restored ? (
-        <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
-          กู้คืนคะแนนและข้อความที่กรอกไว้แล้ว กรุณาตรวจสอบก่อนกดส่งอีกครั้ง
-        </p>
-      ) : null}
-      {storageUnavailable ? (
-        <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
-          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูลสำรองในเครื่อง แต่ยังส่งแบบประเมินได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
-        </p>
-      ) : null}
-    </form>
+    </StudentRecoverableActionForm>
   );
 }

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("submit button recovery source", () => {
-  it("keeps React server action submission and pending reload recovery", () => {
+  it("keeps React server action submission without timed reload recovery", () => {
     const source = readFileSync(join(process.cwd(), "src/components/ui/SubmitButton.tsx"), "utf8");
     const draftFormSource = readFileSync(join(process.cwd(), "src/components/ui/StudentRecoverableActionForm.tsx"), "utf8");
     const studentOriginSource = readFileSync(join(process.cwd(), "src/app/student/origin/page.tsx"), "utf8");
@@ -13,26 +13,26 @@ describe("submit button recovery source", () => {
     expect(source).not.toContain("HTMLFormElement.prototype.submit.call(form)");
     expect(source).toContain("form.reportValidity()");
     expect(source).not.toContain("submitterInput");
-    expect(source).toContain("SUBMIT_AUTO_RECOVERY_DELAY_MS = 15_000");
-    expect(source).toContain("window.dispatchEvent(new CustomEvent(SUBMIT_AUTO_RECOVERY_EVENT");
-    expect(source).toContain("window.location.reload()");
+    expect(source).not.toContain("SUBMIT_AUTO_RECOVERY_DELAY_MS");
+    expect(source).not.toContain("SUBMIT_AUTO_RECOVERY_EVENT");
+    expect(source).not.toContain("window.location.reload()");
     expect(source).toContain('type="submit"');
     expect(source).toContain("disabled={disabled || pending}");
     expect(source).toContain("event.preventDefault();");
     expect(draftFormSource).toContain('target.closest(\'button[type="submit"],input[type="submit"]\')');
     expect(draftFormSource).toContain("saveDraft();");
     expect(studentOriginSource).toContain('autoRecovery={false}');
-    expect(teacherHomeSource).toContain('<SubmitButton pendingText="กำลังเปิดแบบประเมิน...">');
-    expect(teacherProposalsSource).toContain('<SubmitButton pendingText="กำลังเปิดแบบประเมิน...">');
+    expect(teacherHomeSource).toContain("<ProposalStartForm");
+    expect(teacherProposalsSource).toContain("<ProposalStartForm");
     expect(source).not.toContain("ตรวจสอบสถานะล่าสุด");
   });
 
-  it("redirects a newly opened Proposal assignment to its scoring page", () => {
+  it("returns a typed assignment result before client navigation", () => {
     const teacherActions = readFileSync(join(process.cwd(), "src/app/teacher/actions.ts"), "utf8");
 
-    expect(teacherActions).toContain("const assignment = await prisma.evaluatorAssignment.upsert");
+    expect(teacherActions).toContain("openProposalAssignment");
     expect(teacherActions).toContain('revalidatePath("/teacher/proposals")');
-    expect(teacherActions).toContain('redirect(`/teacher/scoring/${encodeURIComponent(assignment.id)}`)');
+    expect(teacherActions).toContain('code: "proposal_assignment_ready"');
   });
 
   it("allows Proposal feedback drafts without weakening final score validation", () => {
@@ -69,7 +69,7 @@ describe("submit button recovery source", () => {
     expect(formSource).toContain("restoreSnapshot: (values, missingFields)");
     expect(formSource).toContain("window.location.reload()");
     expect(formSource).not.toContain("router.refresh()");
-    expect(formSource).toContain("SUBMIT_AUTO_RECOVERY_EVENT");
+    expect(formSource).not.toContain("SUBMIT_AUTO_RECOVERY_EVENT");
     expect(proposalScorePage).toContain("<RecoverableScoreActionForm");
     expect(proposalScorePage).toContain("<SubmitButton");
     expect(proposalScorePage).toContain("${session.user.id}");
