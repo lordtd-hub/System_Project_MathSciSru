@@ -336,6 +336,7 @@ export async function reviewExamSchedule(formData: FormData) {
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
 
   const scheduleId = String(formData.get("schedule_id") ?? "");
+  const renderedScheduleUpdatedAt = String(formData.get("schedule_updated_at") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
   redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ความเห็นต่อคำขอวันสอบ", "/teacher/schedules");
@@ -371,6 +372,9 @@ export async function reviewExamSchedule(formData: FormData) {
   if (schedule.status !== "PROPOSED") {
     redirectWithQuery("/teacher/schedules", { error: "schedule_already_reviewed" });
   }
+  if (!renderedScheduleUpdatedAt || schedule.updatedAt.toISOString() !== renderedScheduleUpdatedAt) {
+    redirectWithQuery("/teacher/schedules", { error: "schedule_already_reviewed" });
+  }
   const hasLateRoundOverride = schedule.assessmentRound
     ? schedule.project.roundExceptions.some(
         (exception) =>
@@ -392,7 +396,17 @@ export async function reviewExamSchedule(formData: FormData) {
     throw new Error("เฉพาะอาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการของโครงงานนี้เท่านั้นที่อนุมัติวันสอบได้");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const scheduleReviewOutcome = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "projects" WHERE "id" = ${schedule.projectId} FOR UPDATE`;
+    const currentSchedule = await tx.examScheduleProposal.findUnique({ where: { id: schedule.id } });
+    if (
+      !currentSchedule
+      || currentSchedule.status !== "PROPOSED"
+      || currentSchedule.updatedAt.toISOString() !== renderedScheduleUpdatedAt
+    ) {
+      return { stale: true } as const;
+    }
+
     await tx.examScheduleApproval.upsert({
       where: { scheduleProposalId_teacherId: { scheduleProposalId: schedule.id, teacherId: teacher.id } },
       update: {
@@ -459,7 +473,12 @@ export async function reviewExamSchedule(formData: FormData) {
         metadataJson: { scheduleId: schedule.id, decision, nextStatus }
       }
     });
+    return { stale: false } as const;
   });
+
+  if (scheduleReviewOutcome.stale) {
+    redirectWithQuery("/teacher/schedules", { error: "schedule_already_reviewed" });
+  }
 
   revalidatePath("/teacher");
   revalidatePath("/teacher/schedules");
@@ -1256,10 +1275,10 @@ export async function reviewReportVersion(formData: FormData) {
     }
   }));
   if (reportVersion.project.status !== "REPORT_REVIEW") {
-    throw new Error("ตรวจรายงานได้เฉพาะโครงงานที่อยู่ระหว่างขั้นตอนตรวจรายงาน");
+    redirectWithQuery("/teacher/reports", { error: "report_stale_version" });
   }
   if (reportVersion.project.reportVersions[0]?.id !== reportVersion.id) {
-    throw new Error("กรุณาตรวจรายงานฉบับล่าสุดเท่านั้น");
+    redirectWithQuery("/teacher/reports", { error: "report_stale_version" });
   }
   if (
     !isAssignedReportReviewer({
@@ -1271,57 +1290,67 @@ export async function reviewReportVersion(formData: FormData) {
     throw new Error("เฉพาะอาจารย์ที่ปรึกษา ประธานกรรมการ หรือกรรมการที่ได้รับแต่งตั้งเท่านั้นที่ตรวจรายงานได้");
   }
 
-  const review = await timer.measure("upsert_report_review", () => prisma.reportReview.upsert({
-    where: {
-      reportVersionId_reviewerTeacherId: {
-        reportVersionId: reportVersion.id,
-        reviewerTeacherId: teacher.id
-      }
-    },
-    update: {
-      decision,
-      comment,
-      reviewedAt: new Date()
-    },
-    create: {
-      reportVersionId: reportVersion.id,
-      reviewerTeacherId: teacher.id,
-      decision,
-      comment
-    }
-  }));
-
-  if (decision === "FAIL") {
-    await prisma.projectTimelineEvent.create({
-      data: {
-        projectId: reportVersion.projectId,
-        eventType: "REPORT_REVISION_REQUESTED",
-        eventTitle: "ขอให้นักศึกษาแก้ไขเล่มรายงาน",
-        eventDescription: comment,
-        actorUserId: user.id,
-        relatedEntityType: "ReportReview",
-        relatedEntityId: review.id,
-        metadataJson: { reportVersionId: reportVersion.id, versionNo: reportVersion.versionNo }
-      }
-    });
-    revalidatePath("/teacher/reports");
-    revalidatePath("/student/report");
-    timer.end("redirect_revision");
-    redirect("/teacher/reports?success=report_revision_requested");
-  }
-
   const requiredReviewerIds = requiredReportReviewerIds(
     reportVersion.project.committeeAssignments,
     reportVersion.project.advisorRequests
   );
-  const latestReviews = await prisma.reportReview.findMany({
-    where: { reportVersionId: reportVersion.id }
-  });
-  const approved =
-    !latestReportVersionHasRevisionRequest(latestReviews) &&
-    allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReviews });
+  const reviewOutcome = await timer.measure("review_transaction", () => prisma.$transaction(async (tx) => {
+    await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "projects" WHERE "id" = ${reportVersion.projectId} FOR UPDATE`;
+    const [currentProject, latestReportVersion] = await Promise.all([
+      tx.project.findUnique({ where: { id: reportVersion.projectId }, select: { status: true } }),
+      tx.reportVersion.findFirst({
+        where: { projectId: reportVersion.projectId },
+        orderBy: { versionNo: "desc" },
+        select: { id: true }
+      })
+    ]);
+    if (currentProject?.status !== "REPORT_REVIEW" || latestReportVersion?.id !== reportVersion.id) {
+      return { stale: true, approved: false, revisionRequested: false } as const;
+    }
 
-  await timer.measure("approval_transaction", () => prisma.$transaction(async (tx) => {
+    const review = await tx.reportReview.upsert({
+      where: {
+        reportVersionId_reviewerTeacherId: {
+          reportVersionId: reportVersion.id,
+          reviewerTeacherId: teacher.id
+        }
+      },
+      update: {
+        decision,
+        comment,
+        reviewedAt: new Date()
+      },
+      create: {
+        reportVersionId: reportVersion.id,
+        reviewerTeacherId: teacher.id,
+        decision,
+        comment
+      }
+    });
+
+    if (decision === "FAIL") {
+      await tx.projectTimelineEvent.create({
+        data: {
+          projectId: reportVersion.projectId,
+          eventType: "REPORT_REVISION_REQUESTED",
+          eventTitle: "ขอให้นักศึกษาแก้ไขเล่มรายงาน",
+          eventDescription: comment,
+          actorUserId: user.id,
+          relatedEntityType: "ReportReview",
+          relatedEntityId: review.id,
+          metadataJson: { reportVersionId: reportVersion.id, versionNo: reportVersion.versionNo }
+        }
+      });
+      return { stale: false, approved: false, revisionRequested: true } as const;
+    }
+
+    const latestReviews = await tx.reportReview.findMany({
+      where: { reportVersionId: reportVersion.id }
+    });
+    const approved =
+      !latestReportVersionHasRevisionRequest(latestReviews) &&
+      allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReviews });
+
     await tx.projectTimelineEvent.create({
       data: {
         projectId: reportVersion.projectId,
@@ -1362,12 +1391,23 @@ export async function reviewReportVersion(formData: FormData) {
         }
       });
     }
+    return { stale: false, approved, revisionRequested: false } as const;
   }));
+
+  if (reviewOutcome.stale) {
+    redirectWithQuery("/teacher/reports", { error: "report_stale_version" });
+  }
+  if (reviewOutcome.revisionRequested) {
+    revalidatePath("/teacher/reports");
+    revalidatePath("/student/report");
+    timer.end("redirect_revision");
+    redirect("/teacher/reports?success=report_revision_requested");
+  }
 
   revalidatePath("/teacher/reports");
   revalidatePath("/student/report");
   timer.end("redirect");
-  redirect(approved ? "/teacher/reports?success=report_approved" : "/teacher/reports?success=report_review_saved");
+  redirect(reviewOutcome.approved ? "/teacher/reports?success=report_approved" : "/teacher/reports?success=report_review_saved");
 }
 
 export async function submitAdvisorScore(formData: FormData) {

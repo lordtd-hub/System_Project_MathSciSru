@@ -24,14 +24,17 @@ describe("workflow notification wiring", () => {
   it("keeps advisor external delivery post-commit and Proposal delivery in-app only", () => {
     const studentActions = read("src/app/student/actions.ts");
     const mutations = read("src/lib/projects/studentCurrentStageMutations.ts");
+    const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
     expect(studentActions).toContain("after(async () =>");
     expect(studentActions).toContain("persistInApp: false");
     expect(mutations).toContain('kind: "PROPOSAL_SUBMITTED"');
     expect(mutations).toContain("emailReady: false");
-    expect(studentActions).toContain("notifyExamScheduleProposed({");
+    expect(studentActions).toContain("deliverExamScheduleExternalNotification(notification)");
+    expect(futureStageMutations).toContain('kind: "EXAM_SCHEDULE_PROPOSED"');
+    expect(futureStageMutations).toContain("notification.createMany");
     expect(studentActions).toContain('"PROJECT_ORIGIN_SAVED"');
     expect(studentActions).toContain('"PROPOSAL_SUBMISSION_SAVED"');
-    expect(studentActions).toContain('success: "schedule_saved"');
+    expect(studentActions).toContain('"EXAM_SCHEDULE_PROPOSED"');
   });
 
   it("keeps external notification links on existing workflow routes", () => {

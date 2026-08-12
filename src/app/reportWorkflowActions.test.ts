@@ -6,12 +6,15 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("report workflow actions", () => {
   it("student report submission moves FINAL_DONE projects to REPORT_REVIEW and keeps version history", () => {
-    const source = read("src/app/student/actions.ts");
+    const actions = read("src/app/student/actions.ts");
+    const mutations = read("src/lib/projects/studentFutureStageMutations.ts");
+    const source = `${actions}\n${mutations}`;
     expect(source).toContain("submitReportVersion");
     expect(source).toContain('project.status === "FINAL_DONE"');
     expect(source).toContain('data: { status: "REPORT_REVIEW" }');
     expect(source).toContain("reportVersion.create");
-    expect(source).toContain("_max: { versionNo: true }");
+    expect(source).toContain("SELECT \"id\" FROM \"projects\"");
+    expect(source).toContain("normalizeReportLink");
     expect(source).toContain('eventType: "REPORT_VERSION_SUBMITTED"');
   });
 
@@ -33,6 +36,10 @@ describe("report workflow actions", () => {
     const reportReviewAction = source.slice(reviewStart, advisorStart);
 
     expect(reportReviewAction).toContain("where: { reportVersionId: reportVersion.id }");
+    expect(reportReviewAction).toContain('SELECT "id" FROM "projects"');
+    expect(reportReviewAction).toContain("latestReportVersion?.id !== reportVersion.id");
+    expect(reportReviewAction).toContain('error: "report_stale_version"');
+    expect(reportReviewAction).not.toContain('throw new Error("กรุณาตรวจรายงานฉบับล่าสุดเท่านั้น")');
     expect(reportReviewAction).toContain("allRequiredReportReviewersPassed({ requiredReviewerIds, reviews: latestReviews })");
     expect(reportReviewAction).not.toContain("reportVersion: { projectId: reportVersion.projectId }");
   });

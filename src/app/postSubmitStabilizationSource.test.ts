@@ -33,15 +33,16 @@ describe("post-submit stabilization source checks", () => {
   it("keeps assessment evidence success pages from rendering as shell-only for Progress and Final rounds", () => {
     const schedulePage = read("src/app/student/schedule/page.tsx");
     const studentActions = read("src/app/student/actions.ts");
+    const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
     const studentLayout = read("src/app/student/layout.tsx");
     const postSubmitGuard = read("src/components/ui/StudentSchedulePostSubmitGuard.tsx");
 
-    expect(studentActions).toContain('redirectWithQuery("/student/schedule", {');
-    expect(studentActions).toContain('success: "assessment_evidence_saved"');
-    expect(studentActions).toContain("assessment_kind: kind");
-    expect(studentActions).toContain("submission_id: submission.id");
-    expect(studentActions).toContain('success: "schedule_saved"');
-    expect(studentActions).toContain("schedule_id: schedule.id");
+    expect(studentActions).toContain('"ASSESSMENT_EVIDENCE_SAVED"');
+    expect(studentActions).toContain('"EXAM_SCHEDULE_PROPOSED"');
+    expect(studentActions).toContain("saveAssessmentEvidenceAtomic(");
+    expect(studentActions).toContain("submitExamScheduleAtomic(");
+    expect(futureStageMutations).toContain('eventType: "ASSESSMENT_EVIDENCE_SAVED"');
+    expect(futureStageMutations).toContain('eventType: "EXAM_SCHEDULE_PROPOSED"');
     expect(schedulePage).toContain('params.success === "assessment_evidence_saved"');
     expect(schedulePage).toContain('(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENT"] as const).map((kind)');
     expect(schedulePage).toContain('latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind)');
@@ -50,10 +51,11 @@ describe("post-submit stabilization source checks", () => {
     expect(schedulePage).toContain('data-testid={`student-schedule-evidence-summary-${kind}`}');
     expect(schedulePage).toContain('data-testid={`student-assessment-evidence-form-${kind}`}');
     expect(schedulePage).toContain('data-testid="student-schedule-proposal-form-wrapper"');
+    expect(schedulePage).toContain('resultMode="typed"');
     expect(schedulePage).toContain('student-schedule-latest-proposals');
     expect(schedulePage).toContain('roundType === "PROGRESS_2"');
     expect(schedulePage).toContain('roundType === "FINAL_PRESENTATION"');
-    expect(studentActions).toContain('error: "schedule_previous_round_incomplete"');
+    expect(futureStageMutations).toContain('"SCHEDULE_PREVIOUS_ROUND_INCOMPLETE"');
     expect(studentLayout).toContain("StudentSchedulePostSubmitGuard");
     expect(postSubmitGuard).toContain('url.pathname !== "/student/schedule"');
     expect(postSubmitGuard).toContain('"assessment_evidence_saved"');
@@ -64,12 +66,12 @@ describe("post-submit stabilization source checks", () => {
 
   it("keeps locked or unsupported schedule states visible instead of blank after redirects", () => {
     const schedulePage = read("src/app/student/schedule/page.tsx");
-    const studentActions = read("src/app/student/actions.ts");
+    const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
 
-    expect(studentActions).toContain('error: "schedule_round_invalid"');
-    expect(studentActions).toContain('error: "schedule_not_available"');
-    expect(studentActions).toContain('error: "assessment_evidence_required"');
-    expect(studentActions).toContain('error: "assessment_evidence_locked"');
+    expect(futureStageMutations).toContain('"SCHEDULE_ROUND_NOT_OPEN"');
+    expect(futureStageMutations).toContain('"SCHEDULE_NOT_AVAILABLE"');
+    expect(futureStageMutations).toContain('"ASSESSMENT_EVIDENCE_REQUIRED"');
+    expect(futureStageMutations).toContain('"ASSESSMENT_EVIDENCE_LOCKED"');
     expect(schedulePage).toContain("progress1BlockedText");
     expect(schedulePage).toContain('data-testid="student-schedule-round-status-cards"');
     expect(schedulePage).toContain('data-testid={`student-schedule-round-card-${kind}`}');

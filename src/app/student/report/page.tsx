@@ -153,7 +153,7 @@ export default async function StudentReportPage({
 
       <FormSection title={reportActionLabel} description={reportSubmissionReasonLabel(gate.reason)}>
         {gate.allowed ? (
-          <StudentRecoverableActionForm action={submitReportVersion} storageKey={`student-report-draft:${project.id}`} className="space-y-4">
+          <StudentRecoverableActionForm action={submitReportVersion} resultMode="typed" storageKey={`student-report-draft:${project.id}`} className="space-y-4">
             <MaterialLinkField name="report_drive_link" />
             <MarkdownLatexEditor
               name="report_note"
