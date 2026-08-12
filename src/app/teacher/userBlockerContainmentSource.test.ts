@@ -15,6 +15,11 @@ describe("teacher user-blocker containment", () => {
     expect(action).toContain("Promise<ProposalStartActionResult>");
     expect(action).toContain("proposal_start_rate_limited");
     expect(action).toContain("proposal_start_unexpected");
+    const openProposalAction = action.slice(
+      action.indexOf("export async function openProposalScoring"),
+      action.indexOf("export async function reviewAdvisorRequest")
+    );
+    expect(openProposalAction).not.toContain("revalidatePath(");
     expect(form).toContain("useActionState");
     expect(form).toContain("router.push");
     expect(service).not.toContain("updateAssignment");

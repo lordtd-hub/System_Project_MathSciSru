@@ -231,8 +231,6 @@ export async function openProposalScoring(
       return finish({ status: "conflict", code: opened.code, requestId });
     }
 
-    revalidatePath("/teacher");
-    revalidatePath("/teacher/proposals");
     return finish({
       status: "success",
       code: "proposal_assignment_ready",

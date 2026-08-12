@@ -29,10 +29,14 @@ describe("submit button recovery source", () => {
 
   it("returns a typed assignment result before client navigation", () => {
     const teacherActions = readFileSync(join(process.cwd(), "src/app/teacher/actions.ts"), "utf8");
+    const openProposalAction = teacherActions.slice(
+      teacherActions.indexOf("export async function openProposalScoring"),
+      teacherActions.indexOf("export async function reviewAdvisorRequest")
+    );
 
     expect(teacherActions).toContain("openProposalAssignment");
-    expect(teacherActions).toContain('revalidatePath("/teacher/proposals")');
-    expect(teacherActions).toContain('code: "proposal_assignment_ready"');
+    expect(openProposalAction).not.toContain("revalidatePath(");
+    expect(openProposalAction).toContain('code: "proposal_assignment_ready"');
   });
 
   it("allows Proposal feedback drafts without weakening final score validation", () => {
