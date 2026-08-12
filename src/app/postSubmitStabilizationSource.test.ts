@@ -48,6 +48,7 @@ describe("post-submit stabilization source checks", () => {
     expect(schedulePage).toContain('latestSubmissionByKind.has(kind) && !activeScheduleByKind.has(kind)');
     expect(schedulePage).toContain('const schedulableRoundsWithEvidence');
     expect(schedulePage).toContain('const editableEvidenceRounds');
+    expect(schedulePage).toContain('attemptType: { in: ["MAIN_PROPOSAL", "REPROPOSAL", "PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] }');
     expect(schedulePage).toContain('data-testid={`student-schedule-evidence-summary-${kind}`}');
     expect(schedulePage).toContain('data-testid={`student-assessment-evidence-form-${kind}`}');
     expect(schedulePage).toContain('data-testid="student-schedule-proposal-form-wrapper"');
