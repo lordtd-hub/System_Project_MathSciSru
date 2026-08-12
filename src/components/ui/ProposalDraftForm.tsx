@@ -4,6 +4,7 @@ import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 import { SUBMIT_AUTO_RECOVERY_EVENT } from "./SubmitButton";
 import {
   StudentRecoverableActionForm,
+  attemptStorageOperation,
   readForm,
   restoreForm,
   type DraftMap,
@@ -75,12 +76,16 @@ export function RecoverableScoreActionForm({
   const recoveryState = useRef<ScoreActionRecoveryState>({ lastRequestId: null, reloadStarted: false });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [restored, setRestored] = useState(false);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [result, formAction] = useActionState(action, initialTeacherScoreActionResult);
   const message = teacherScoreActionMessage(result);
 
   const saveRecoverySnapshot = useCallback(() => {
     if (!formRef.current) return;
-    sessionStorage.setItem(storageKey, JSON.stringify({ values: readForm(formRef.current) }));
+    const result = attemptStorageOperation(() =>
+      sessionStorage.setItem(storageKey, JSON.stringify({ values: readForm(formRef.current!) }))
+    );
+    setStorageUnavailable(!result.ok);
   }, [storageKey]);
 
   const scheduleRecoverySnapshot = useCallback(() => {
@@ -90,7 +95,12 @@ export function RecoverableScoreActionForm({
 
   useEffect(() => {
     const form = formRef.current;
-    const raw = sessionStorage.getItem(storageKey);
+    const readResult = attemptStorageOperation(() => sessionStorage.getItem(storageKey));
+    if (!readResult.ok) {
+      setStorageUnavailable(true);
+      return;
+    }
+    const raw = readResult.value;
     if (!form || !raw) return;
     try {
       const parsed = JSON.parse(raw) as { values?: DraftMap };
@@ -99,7 +109,8 @@ export function RecoverableScoreActionForm({
         setRestored(true);
       }
     } catch {
-      sessionStorage.removeItem(storageKey);
+      const removeResult = attemptStorageOperation(() => sessionStorage.removeItem(storageKey));
+      if (!removeResult.ok) setStorageUnavailable(true);
     }
   }, [storageKey]);
 
@@ -116,13 +127,19 @@ export function RecoverableScoreActionForm({
         }
       },
       readSnapshot: () => {
-        const raw = sessionStorage.getItem(storageKey);
+        const readResult = attemptStorageOperation(() => sessionStorage.getItem(storageKey));
+        if (!readResult.ok) {
+          setStorageUnavailable(true);
+          return null;
+        }
+        const raw = readResult.value;
         if (!raw) return null;
         try {
           const parsed = JSON.parse(raw) as { values?: DraftMap };
           return parsed.values ?? null;
         } catch {
-          sessionStorage.removeItem(storageKey);
+          const removeResult = attemptStorageOperation(() => sessionStorage.removeItem(storageKey));
+          if (!removeResult.ok) setStorageUnavailable(true);
           return null;
         }
       },
@@ -140,7 +157,10 @@ export function RecoverableScoreActionForm({
           missingElement.scrollIntoView({ block: "center", behavior: "smooth" });
         }
       },
-      clearSnapshot: () => sessionStorage.removeItem(storageKey),
+      clearSnapshot: () => {
+        const removeResult = attemptStorageOperation(() => sessionStorage.removeItem(storageKey));
+        if (!removeResult.ok) setStorageUnavailable(true);
+      },
       reload: () => window.location.reload()
     });
   }, [result, storageKey]);
@@ -158,6 +178,11 @@ export function RecoverableScoreActionForm({
       {restored && result.status === "idle" ? (
         <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
           กู้คืนคะแนนและข้อความที่กรอกไว้แล้ว กรุณาตรวจสอบก่อนกดส่งอีกครั้ง
+        </p>
+      ) : null}
+      {storageUnavailable ? (
+        <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
+          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูลสำรองในเครื่อง แต่ยังส่งแบบประเมินได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
         </p>
       ) : null}
       {message ? (
@@ -190,12 +215,15 @@ export function RecoverableActionForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [restored, setRestored] = useState(false);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
 
   useEffect(() => {
     const form = formRef.current;
     if (!form) return;
 
-    const raw = sessionStorage.getItem(storageKey);
+    const readResult = attemptStorageOperation(() => sessionStorage.getItem(storageKey));
+    if (!readResult.ok) setStorageUnavailable(true);
+    const raw = readResult.ok ? readResult.value : null;
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as { values?: DraftMap };
@@ -206,14 +234,18 @@ export function RecoverableActionForm({
       } catch {
         // Ignore a damaged recovery snapshot and keep the server-rendered values.
       } finally {
-        sessionStorage.removeItem(storageKey);
+        const removeResult = attemptStorageOperation(() => sessionStorage.removeItem(storageKey));
+        if (!removeResult.ok) setStorageUnavailable(true);
       }
     }
 
     const preserveBeforeRecovery = (event: Event) => {
       const detail = (event as CustomEvent<{ form?: HTMLFormElement | null }>).detail;
       if (detail?.form !== form) return;
-      sessionStorage.setItem(storageKey, JSON.stringify({ values: readForm(form) }));
+      const saveResult = attemptStorageOperation(() =>
+        sessionStorage.setItem(storageKey, JSON.stringify({ values: readForm(form) }))
+      );
+      if (!saveResult.ok) setStorageUnavailable(true);
     };
 
     window.addEventListener(SUBMIT_AUTO_RECOVERY_EVENT, preserveBeforeRecovery);
@@ -226,6 +258,11 @@ export function RecoverableActionForm({
       {restored ? (
         <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
           กู้คืนคะแนนและข้อความที่กรอกไว้แล้ว กรุณาตรวจสอบก่อนกดส่งอีกครั้ง
+        </p>
+      ) : null}
+      {storageUnavailable ? (
+        <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
+          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูลสำรองในเครื่อง แต่ยังส่งแบบประเมินได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
         </p>
       ) : null}
     </form>

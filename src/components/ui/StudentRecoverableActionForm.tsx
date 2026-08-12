@@ -121,6 +121,18 @@ export function restoreForm(form: HTMLFormElement, values: DraftMap) {
 
 type StorageScope = "local" | "session";
 
+export type StorageOperationResult<T> =
+  | { ok: true; value: T }
+  | { ok: false };
+
+export function attemptStorageOperation<T>(operation: () => T): StorageOperationResult<T> {
+  try {
+    return { ok: true, value: operation() };
+  } catch {
+    return { ok: false };
+  }
+}
+
 function browserStorage(scope: StorageScope) {
   return scope === "session" ? window.sessionStorage : window.localStorage;
 }
@@ -143,15 +155,19 @@ export function StudentRecoverableActionForm({
   const formRef = useRef<HTMLFormElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<"idle" | "saved" | "restored">("idle");
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
 
   const saveDraft = useCallback((nextStatus: "saved" | "idle" = "idle") => {
     const form = formRef.current;
     if (!form) return;
-    try {
-      browserStorage(storage).setItem(storageKey, JSON.stringify(createFormSnapshot(readForm(form))));
+    const result = attemptStorageOperation(() =>
+      browserStorage(storage).setItem(storageKey, JSON.stringify(createFormSnapshot(readForm(form))))
+    );
+    if (result.ok) {
+      setStorageUnavailable(false);
       if (nextStatus === "saved") setStatus("saved");
-    } catch {
-      // Storage can be unavailable or full. Never block the server action submission.
+    } else {
+      setStorageUnavailable(true);
     }
   }, [storage, storageKey]);
 
@@ -162,16 +178,24 @@ export function StudentRecoverableActionForm({
 
   useEffect(() => {
     const form = formRef.current;
-    const store = browserStorage(storage);
-    const raw = store.getItem(storageKey);
-    if (!raw || !form) return;
+    if (!form) return;
+
+    const readResult = attemptStorageOperation(() => browserStorage(storage).getItem(storageKey));
+    if (!readResult.ok) {
+      setStorageUnavailable(true);
+      return;
+    }
+
+    const raw = readResult.value;
+    if (!raw) return;
     const parsed = parseFormSnapshot(
       raw,
       Date.now(),
       storage === "local" ? STUDENT_FORM_SNAPSHOT_TTL_MS : null
     );
     if (parsed.status !== "valid") {
-      store.removeItem(storageKey);
+      const removeResult = attemptStorageOperation(() => browserStorage(storage).removeItem(storageKey));
+      if (!removeResult.ok) setStorageUnavailable(true);
       return;
     }
 
@@ -217,6 +241,11 @@ export function StudentRecoverableActionForm({
       {status !== "idle" ? (
         <p className="mt-2 text-xs text-muted" aria-live="polite">
           {status === "restored" ? "กู้คืนข้อมูลที่เคยกรอกไว้ในเครื่องนี้แล้ว" : "บันทึกร่างไว้ในเครื่องนี้แล้ว ยังไม่ได้ส่งเข้าระบบ"}
+        </p>
+      ) : null}
+      {storageUnavailable ? (
+        <p className="mt-2 text-xs text-amber-800" role="status">
+          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บร่างในเครื่อง แต่ยังส่งข้อมูลเข้าระบบได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
         </p>
       ) : null}
     </form>

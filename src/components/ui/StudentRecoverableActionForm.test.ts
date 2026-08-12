@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   STUDENT_FORM_SNAPSHOT_TTL_MS,
+  attemptStorageOperation,
   createFormSnapshot,
   parseFormSnapshot,
   reconcileFormValues
@@ -55,5 +56,25 @@ describe("student recoverable action form snapshots", () => {
       server_only: "เก็บไว้",
       timeline_items_json: "[]"
     });
+  });
+
+  it("does not throw when the browser blocks storage access", () => {
+    const blocked = attemptStorageOperation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(blocked).toEqual({ ok: false });
+  });
+
+  it("does not throw when saving a draft exceeds the storage quota", () => {
+    const quotaExceeded = attemptStorageOperation(() => {
+      throw new DOMException("Quota exceeded", "QuotaExceededError");
+    });
+
+    expect(quotaExceeded).toEqual({ ok: false });
+  });
+
+  it("returns the storage operation value when storage is available", () => {
+    expect(attemptStorageOperation(() => "saved")).toEqual({ ok: true, value: "saved" });
   });
 });
