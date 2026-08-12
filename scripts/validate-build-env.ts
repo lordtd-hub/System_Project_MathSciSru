@@ -1,4 +1,9 @@
-import { validateProductionEnv } from "../src/lib/config/env";
+import { isVercelProductionDeployment, validateProductionEnv } from "../src/lib/config/env";
+
+if (!isVercelProductionDeployment()) {
+  console.log("Production environment preflight skipped for local or Preview build.");
+  process.exit(0);
+}
 
 const result = validateProductionEnv({
   ...process.env,

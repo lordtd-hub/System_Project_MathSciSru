@@ -2,7 +2,7 @@ import Link from "next/link";
 /* eslint-disable @next/next/no-img-element */
 import { auth, signIn, signOut } from "@/auth";
 import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
-import { assertProductionRuntimeEnv } from "@/lib/config/env";
+import { getAuthRuntimeConfiguration } from "@/lib/config/env";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -42,6 +42,17 @@ export default async function LoginPage() {
     );
   }
 
+  if (!getAuthRuntimeConfiguration().ready) {
+    return (
+      <div className="mx-auto max-w-md panel">
+        <h1 className="text-xl font-semibold">ระบบเข้าสู่ระบบยังไม่พร้อมใช้งาน</h1>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          สภาพแวดล้อมนี้ยังไม่ได้ตั้งค่าการเข้าสู่ระบบ โปรดลองอีกครั้งภายหลังหรือติดต่อผู้ดูแลระบบ
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md panel">
       <div className="flex items-center gap-3">
@@ -58,7 +69,6 @@ export default async function LoginPage() {
         className="mt-5"
         action={async () => {
           "use server";
-          assertProductionRuntimeEnv();
           await signIn("google", { redirectTo: "/" });
         }}
       >

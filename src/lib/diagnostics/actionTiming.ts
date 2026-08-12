@@ -1,5 +1,6 @@
 type ActionTimerOptions = {
   enabled?: boolean;
+  requestId?: string;
 };
 
 function timingEnabled(options?: ActionTimerOptions) {
@@ -7,13 +8,19 @@ function timingEnabled(options?: ActionTimerOptions) {
 }
 
 function safeLabel(value: string) {
-  return value.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 80);
+  const withoutEmail = value.replace(/\b[^\s@]+@[^\s@]+\b/g, "redacted");
+  return withoutEmail.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 80);
 }
 
 export function createActionTimer(actionName: string, options?: ActionTimerOptions) {
   const enabled = timingEnabled(options);
   const safeAction = safeLabel(actionName);
+  const requestId = options?.requestId ? safeLabel(options.requestId) : undefined;
   const start = performance.now();
+
+  function logTiming(event: "block" | "complete", fields: Record<string, string | number>) {
+    console.info(JSON.stringify({ type: "action_timing", event, action: safeAction, requestId, ...fields }));
+  }
 
   return {
     async measure<T>(blockName: string, fn: () => Promise<T>): Promise<T> {
@@ -23,13 +30,13 @@ export function createActionTimer(actionName: string, options?: ActionTimerOptio
         return await fn();
       } finally {
         const durationMs = Math.round(performance.now() - blockStart);
-        console.info(`[action-timing] action=${safeAction} block=${safeLabel(blockName)} duration_ms=${durationMs}`);
+        logTiming("block", { block: safeLabel(blockName), durationMs });
       }
     },
     end(result = "complete") {
       if (!enabled) return;
       const durationMs = Math.round(performance.now() - start);
-      console.info(`[action-timing] action=${safeAction} result=${safeLabel(result)} total_ms=${durationMs}`);
+      logTiming("complete", { result: safeLabel(result), durationMs });
     }
   };
 }

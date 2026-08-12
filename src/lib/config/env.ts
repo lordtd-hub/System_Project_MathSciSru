@@ -8,6 +8,11 @@ export type EnvValidationResult = {
 
 type EnvLike = Record<string, string | undefined>;
 
+export type AuthRuntimeConfiguration = {
+  ready: boolean;
+  missing: string[];
+};
+
 function readEnv(env: EnvLike, name: string) {
   const value = env[name]?.trim();
   return value || undefined;
@@ -30,7 +35,14 @@ function isLocalDatabaseUrl(value: string | undefined) {
 }
 
 export function isProductionRuntime(env: EnvLike = process.env) {
-  return env.NODE_ENV === "production" && env.NEXT_PHASE !== productionBuildPhase;
+  if (env.NEXT_PHASE === productionBuildPhase) return false;
+  const vercelEnvironment = readEnv(env, "VERCEL_ENV");
+  if (vercelEnvironment) return vercelEnvironment === "production";
+  return env.NODE_ENV === "production";
+}
+
+export function isVercelProductionDeployment(env: EnvLike = process.env) {
+  return readEnv(env, "VERCEL_ENV") === "production";
 }
 
 export function getAuthSecret(env: EnvLike = process.env) {
@@ -44,13 +56,22 @@ export function getAuthBaseUrl(env: EnvLike = process.env) {
 export function getGoogleOAuthCredentials(env: EnvLike = process.env) {
   const clientId = readEnv(env, "GOOGLE_CLIENT_ID");
   const clientSecret = readEnv(env, "GOOGLE_CLIENT_SECRET");
-  if (isProductionRuntime(env) && (looksUnset(clientId) || looksUnset(clientSecret))) {
-    throw new Error("Missing production Google OAuth credentials: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
-  }
   return {
     clientId: clientId ?? "",
     clientSecret: clientSecret ?? ""
   };
+}
+
+export function getAuthRuntimeConfiguration(env: EnvLike = process.env): AuthRuntimeConfiguration {
+  const required = [
+    ["DATABASE_URL", readEnv(env, "DATABASE_URL")],
+    ["AUTH_SECRET or NEXTAUTH_SECRET", getAuthSecret(env)],
+    ["AUTH_URL or NEXTAUTH_URL", getAuthBaseUrl(env)],
+    ["GOOGLE_CLIENT_ID", readEnv(env, "GOOGLE_CLIENT_ID")],
+    ["GOOGLE_CLIENT_SECRET", readEnv(env, "GOOGLE_CLIENT_SECRET")]
+  ] as const;
+  const missing = required.filter(([, value]) => looksUnset(value)).map(([name]) => name);
+  return { ready: missing.length === 0, missing };
 }
 
 export function getInitialAdminEmail(env: EnvLike = process.env) {
