@@ -4,13 +4,14 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { RecoverableScoreActionForm } from "@/components/ui/ProposalDraftForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
-import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
+import { readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
 import {
@@ -33,7 +34,7 @@ export default async function ProposalScoringPage({
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
 
   const [assignment, rubric] = await Promise.all([
-    prisma.evaluatorAssignment.findUniqueOrThrow({
+    prisma.evaluatorAssignment.findUnique({
       where: { id: assignmentId },
       include: {
         assessmentAttempt: {
@@ -47,8 +48,19 @@ export default async function ProposalScoringPage({
         scoreSubmission: { include: { scoreItems: true, proposalDecision: true } }
       }
     }),
-    ensureProposalConditionRubric(prisma)
+    readProposalConditionRubric(prisma)
   ]);
+
+  if (!assignment) {
+    return (
+      <EmptyState
+        title="ไม่พบแบบประเมินนี้"
+        description="รายการอาจถูกเปลี่ยนแปลงหรือ URL ไม่ถูกต้อง กรุณากลับไปเลือก Proposal จากหน้ารวมอีกครั้ง"
+        actionLabel="กลับหน้าประเมิน Proposal"
+        href="/teacher/proposals"
+      />
+    );
+  }
 
   if (assignment.evaluatorUserId !== session.user.id) return <div className="panel">ไม่สามารถประเมินงานของผู้อื่นได้</div>;
 

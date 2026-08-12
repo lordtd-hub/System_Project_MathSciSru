@@ -22,6 +22,7 @@ export function teacherScoreActionMessage(result: TeacherScoreActionResult) {
     proposal_decision_reason_required: "กรุณาระบุเหตุผลเมื่อให้แก้ไขหรือไม่ผ่าน",
     proposal_feedback_required: "กรุณาระบุข้อเสนอแนะถึงนักศึกษา",
     proposal_rubric_missing: "ยังไม่มีเกณฑ์ประเมิน Proposal",
+    score_rubric_missing: "ยังไม่มีเกณฑ์ประเมินสำหรับรอบนี้ กรุณาติดต่อผู้ดูแลระบบ",
     score_rubric_incomplete: "กรุณาให้คะแนนให้ครบทุกหัวข้อ",
     proposal_decision_already_saved: "ผู้ดูแลระบบบันทึกผลตัดสินแล้ว จึงไม่สามารถแก้คะแนนได้",
     proposal_round_not_open: "รอบ Proposal ปิดการให้คะแนนแล้ว",

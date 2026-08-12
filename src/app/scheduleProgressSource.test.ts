@@ -154,7 +154,7 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).toContain('attemptType: "FINAL_PRESENTATION"');
     expect(actions).toContain('assertConfirmedSchedule(project.id, "FINAL_PRESENT", "การสอบนำเสนอขั้นสุดท้าย")');
     expect(actions).toContain('assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/final")');
-    expect(actions).toContain("finalQaRubricItems");
+    expect(actions).toContain('readActiveAssessmentRubric(prisma, "FINAL_PRESENTATION")');
     expect(actions).toContain("calculateFinalQaCriterionScore");
     expect(actions).toContain("assessmentAttempt.upsert");
     expect(actions).toContain("evaluatorAssignment.upsert");

@@ -4,7 +4,7 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ProposalStartForm } from "@/components/ui/ProposalStartForm";
 import { TeacherCompactQueueList, TeacherQueueBadge, TeacherQueueSection, TeacherWorkloadSummary } from "@/components/ui/TeacherWorkloadQueue";
 import { prisma } from "@/lib/db";
 import { openProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
@@ -13,6 +13,21 @@ import { openProposalScoring } from "../actions";
 export default async function TeacherProposalsPage() {
   const session = await auth();
   if (!hasApprovedTeacherCapability(session?.user) || !session?.user.id) return <div className="panel">หน้านี้สำหรับอาจารย์เท่านั้น</div>;
+
+  const teacher = await prisma.teacher.findUnique({
+    where: session.user.teacherId ? { id: session.user.teacherId } : { userId: session.user.id },
+    select: { id: true }
+  });
+  if (!teacher) {
+    return (
+      <EmptyState
+        title="ไม่พบโปรไฟล์อาจารย์ของบัญชีนี้"
+        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบการผูกบัญชี หรือส่งคำขอผูกบัญชีอาจารย์ใหม่ก่อนเริ่มประเมิน"
+        actionLabel="ตรวจสอบการผูกบัญชี"
+        href="/teacher/claim"
+      />
+    );
+  }
 
   const attempts = await prisma.assessmentAttempt.findMany({
     where: openProposalScoringAttemptWhere(),
@@ -49,10 +64,7 @@ export default async function TeacherProposalsPage() {
               {submitted ? "แก้ไขคะแนนที่ส่งแล้ว" : "ประเมินการเสนอหัวข้อ"}
             </Link>
           ) : (
-            <form action={openProposalScoring}>
-              <input type="hidden" name="attempt_id" value={attempt.id} />
-              <SubmitButton pendingText="กำลังเปิดแบบประเมิน...">เริ่มประเมิน</SubmitButton>
-            </form>
+            <ProposalStartForm action={openProposalScoring} attemptId={attempt.id} />
           )}
         </div>
       </section>

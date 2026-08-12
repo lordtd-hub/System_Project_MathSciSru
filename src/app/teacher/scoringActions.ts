@@ -7,7 +7,7 @@ import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { calculateFinalQaCriterionScore, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
-import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
+import { readActiveAssessmentRubric, readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { calculateProgressQaCriterionScore, findProgressQaCriterion } from "@/lib/rubrics/progressQaRubric";
 import { validateProposalDecision } from "@/lib/scoring/checklistScoring";
@@ -21,7 +21,6 @@ import type { TeacherScoreActionResult } from "@/lib/scoring/teacherScoreActionR
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { validateMarkdownInput } from "@/lib/validators/submissionContent";
-import { ensureFinalRubric, ensureProgress1Rubric, ensureProgress2Rubric } from "./actions";
 
 type StandardRoundConfig = {
   actionName: string;
@@ -127,7 +126,6 @@ async function persistStandardScore({
 async function submitProgressScore(
   formData: FormData,
   config: StandardRoundConfig,
-  ensureRubric: typeof ensureProgress1Rubric,
   validateScore: (input: Progress1ScoreInput) => string[]
 ): Promise<TeacherScoreActionResult> {
   const requestId = crypto.randomUUID();
@@ -155,9 +153,10 @@ async function submitProgressScore(
 
     const [project, rubric] = await Promise.all([
       prisma.project.findUnique({ where: { id: projectId }, select: { courseOfferingId: true } }),
-      ensureRubric()
+      readActiveAssessmentRubric(prisma, config.roundType)
     ]);
     if (!project) return { status: "conflict", code: "score_context_missing", requestId };
+    if (!rubric?.items.length) return { status: "conflict", code: "score_rubric_missing", requestId };
     const fieldNames = rubric.items.map((item) => findProgressQaCriterion(item.itemKey)
       ? `condition_count:${item.id}`
       : item.itemKey === "problemSolving"
@@ -248,14 +247,14 @@ export async function submitProgress1Score(
   _previousState: TeacherScoreActionResult,
   formData: FormData
 ) {
-  return submitProgressScore(formData, progress1Config, ensureProgress1Rubric, validateProgress1Score);
+  return submitProgressScore(formData, progress1Config, validateProgress1Score);
 }
 
 export async function submitProgress2Score(
   _previousState: TeacherScoreActionResult,
   formData: FormData
 ) {
-  return submitProgressScore(formData, progress2Config, ensureProgress2Rubric, validateProgress2Score);
+  return submitProgressScore(formData, progress2Config, validateProgress2Score);
 }
 
 export async function submitFinalPresentationScore(
@@ -293,9 +292,10 @@ export async function submitFinalPresentationScore(
 
     const [project, rubric] = await Promise.all([
       prisma.project.findUnique({ where: { id: projectId }, select: { courseOfferingId: true } }),
-      ensureFinalRubric()
+      readActiveAssessmentRubric(prisma, "FINAL_PRESENTATION")
     ]);
     if (!project) return { status: "conflict", code: "score_context_missing", requestId };
+    if (!rubric?.items.length) return { status: "conflict", code: "score_rubric_missing", requestId };
     const fieldNames = rubric.items.map((item) => `condition_count:${item.itemKey}`);
     const missingFields = missingScoreFieldNames(formData, fieldNames);
     if (missingFields.length) return { status: "validation", code: "score_rubric_incomplete", requestId, missingFields };
@@ -373,13 +373,13 @@ export async function submitProposalScore(
         where: { id: assignmentId },
         include: { scoreSubmission: { select: { status: true } } }
       }),
-      ensureProposalConditionRubric(prisma)
+      readProposalConditionRubric(prisma)
     ]);
     if (!assignment) return { status: "conflict", code: "score_context_missing", requestId };
     if (assignment.evaluatorUserId !== identity.userId) {
       return { status: "conflict", code: "score_evaluator_not_eligible", requestId };
     }
-    if (!rubric.items.length) return { status: "conflict", code: "proposal_rubric_missing", requestId };
+    if (!rubric?.items.length) return { status: "conflict", code: "proposal_rubric_missing", requestId };
 
     const isRevision = assignment.status === "SUBMITTED" || assignment.scoreSubmission?.status === "SUBMITTED";
     const isSubmitting = submitMode === "submit" || isRevision;

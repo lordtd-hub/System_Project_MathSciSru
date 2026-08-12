@@ -10,7 +10,7 @@ import { applyLatePenalty, hasOpenLateRoundException, requiresLateRoundPenalty }
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
-import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
+import { assertRateLimit, pilotRateLimits, RateLimitExceededError } from "@/lib/security/rateLimit";
 import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
 import { totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
@@ -19,10 +19,12 @@ import { isPresentationScoreEditable, isProposalScoreEditable } from "@/lib/scor
 import { missingScoreFieldNames } from "@/lib/scoring/formCompleteness";
 import { PROPOSAL_DRAFT_V2_AUDIT_ACTION, readOptionalConditionCount } from "@/lib/scoring/proposalDraftIntegrity";
 import type { TeacherScoreActionResult } from "@/lib/scoring/teacherScoreActionResult";
+import type { ProposalStartActionResult } from "@/lib/scoring/proposalStartActionResult";
+import { openProposalAssignment } from "@/lib/scoring/openProposalAssignment";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
-import { ensureProposalConditionRubric } from "@/lib/rubrics/ensureProposalConditionRubric";
-import { calculateFinalQaCriterionScore, finalQaRubricItems, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
-import { calculateProgressQaCriterionScore, findProgressQaCriterion, progressQaRubricItems } from "@/lib/rubrics/progressQaRubric";
+import { readActiveAssessmentRubric, readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
+import { calculateFinalQaCriterionScore, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
+import { calculateProgressQaCriterionScore, findProgressQaCriterion } from "@/lib/rubrics/progressQaRubric";
 import {
   validateProgress1Score,
   validateProgress2Score,
@@ -155,51 +157,107 @@ export async function claimTeacherProfile(formData: FormData) {
   redirect("/teacher/claim?success=teacher_claim_submitted");
 }
 
-export async function openProposalScoring(formData: FormData) {
-  const user = await requireTeacherUser();
-  assertRateLimit(`teacher:${user.id}:openProposalScoring`, pilotRateLimits.workflowMutation);
-  if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติก่อน");
-  const attemptId = String(formData.get("attempt_id"));
+export async function openProposalScoring(
+  _previousState: ProposalStartActionResult,
+  formData: FormData
+): Promise<ProposalStartActionResult> {
+  const requestId = crypto.randomUUID();
+  const timer = createActionTimer("teacher.openProposalScoring", { requestId, enabled: true });
+  let openedAssignment: { assignmentId: string; unchanged: boolean } | null = null;
+  const finish = (result: ProposalStartActionResult) => {
+    timer.end(result.status === "idle" ? "idle" : `${result.status}:${result.code}`);
+    return result;
+  };
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({
-    where: { id: attemptId },
-    select: {
-      projectId: true,
-      assessmentRoundId: true,
-      assessmentRound: { select: { roundType: true, status: true } },
-      proposalResult: { select: { id: true } }
+  try {
+    const session = await auth();
+    const user = session?.user;
+    if (!user?.id || !hasApprovedTeacherCapability(user)) {
+      return finish({ status: "conflict", code: "teacher_profile_missing", requestId });
     }
-  });
-  if (attempt.proposalResult) {
-    redirectWithQuery("/teacher/proposals", { error: "proposal_decision_already_saved" });
-  }
-  const lateRoundExceptions = await prisma.projectRoundException.findMany({
-    where: { projectId: attempt.projectId, assessmentRoundId: attempt.assessmentRoundId, status: "OPEN" },
-    select: { exceptionType: true, status: true }
-  });
-  if (
-    attempt.assessmentRound.roundType !== "PROPOSAL" ||
-    (attempt.assessmentRound.status !== "SCORING_OPEN" && !hasOpenLateRoundException(lateRoundExceptions))
-  ) {
-    redirectWithQuery("/teacher/proposals", { error: "proposal_round_not_open" });
-  }
-  const assignment = await prisma.evaluatorAssignment.upsert({
-    where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId: attemptId, evaluatorUserId: user.id } },
-    update: { status: "IN_PROGRESS" },
-    create: {
-      assessmentAttemptId: attemptId,
-      evaluatorUserId: user.id,
-      teacherId: teacher.id,
-      evaluatorDisplayNameSnapshot: `${teacher.academicPrefix}${teacher.firstNameTh} ${teacher.lastNameTh}`,
-      status: "IN_PROGRESS",
-      isRequired: false
-    }
-  });
+    assertRateLimit(`teacher:${user.id}:openProposalScoring`, pilotRateLimits.workflowMutation);
 
-  revalidatePath("/teacher");
-  revalidatePath("/teacher/proposals");
-  redirect(`/teacher/scoring/${encodeURIComponent(assignment.id)}`);
+    const attemptId = String(formData.get("attempt_id") ?? "").trim();
+    if (!attemptId) return finish({ status: "validation", code: "proposal_attempt_missing", requestId });
+
+    const opened = await openProposalAssignment({
+      findTeacher: (userId) => prisma.teacher.findUnique({
+        where: { userId },
+        select: { id: true, academicPrefix: true, firstNameTh: true, lastNameTh: true }
+      }),
+      findAttempt: async (id) => {
+        const attempt = await prisma.assessmentAttempt.findUnique({
+          where: { id },
+          select: {
+            projectId: true,
+            assessmentRoundId: true,
+            assessmentRound: { select: { roundType: true, status: true } },
+            proposalResult: { select: { id: true } }
+          }
+        });
+        return attempt ? {
+          projectId: attempt.projectId,
+          assessmentRoundId: attempt.assessmentRoundId,
+          roundType: attempt.assessmentRound.roundType,
+          roundStatus: attempt.assessmentRound.status,
+          hasProposalResult: Boolean(attempt.proposalResult)
+        } : null;
+      },
+      hasOpenLateRoundException: async (projectId, assessmentRoundId) => {
+        const exceptions = await prisma.projectRoundException.findMany({
+          where: { projectId, assessmentRoundId, status: "OPEN" },
+          select: { exceptionType: true, status: true }
+        });
+        return hasOpenLateRoundException(exceptions);
+      },
+      findAssignment: (assessmentAttemptId, evaluatorUserId) => prisma.evaluatorAssignment.findUnique({
+        where: { assessmentAttemptId_evaluatorUserId: { assessmentAttemptId, evaluatorUserId } },
+        select: { id: true, status: true }
+      }),
+      createAssignment: ({ attemptId: assessmentAttemptId, userId: evaluatorUserId, teacherId, evaluatorDisplayName }) =>
+        prisma.evaluatorAssignment.create({
+          data: {
+            assessmentAttemptId,
+            evaluatorUserId,
+            teacherId,
+            evaluatorDisplayNameSnapshot: evaluatorDisplayName,
+            status: "IN_PROGRESS",
+            isRequired: false
+          },
+          select: { id: true, status: true }
+        })
+    }, { attemptId, userId: user.id });
+
+    if (opened.status === "conflict") {
+      return finish({ status: "conflict", code: opened.code, requestId });
+    }
+
+    openedAssignment = {
+      assignmentId: opened.assignmentId,
+      unchanged: opened.unchanged
+    };
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return finish({ status: "rate_limit", code: "proposal_start_rate_limited", requestId });
+    }
+    console.error(JSON.stringify({
+      type: "action_error",
+      action: "teacher.openProposalScoring",
+      outcome: "unexpected",
+      requestId,
+      errorName: error instanceof Error ? error.name : "UnknownError"
+    }));
+    return finish({ status: "unexpected", code: "proposal_start_unexpected", requestId });
+  }
+
+  finish({
+    status: "success",
+    code: "proposal_assignment_ready",
+    requestId,
+    assignmentId: openedAssignment.assignmentId,
+    unchanged: openedAssignment.unchanged
+  });
+  redirect(`/teacher/scoring/${encodeURIComponent(openedAssignment.assignmentId)}`);
 }
 
 export async function reviewAdvisorRequest(formData: FormData) {
@@ -466,8 +524,8 @@ async function retiredSubmitProposalScore(
       return { status: "conflict", code: "proposal_round_not_open", requestId };
     }
 
-    const rubric = await timer.measure("load_rubric", () => ensureProposalConditionRubric(prisma));
-    if (!rubric.items.length) {
+    const rubric = await timer.measure("load_rubric", () => readProposalConditionRubric(prisma));
+    if (!rubric?.items.length) {
       return { status: "conflict", code: "proposal_rubric_missing", requestId };
     }
 
@@ -683,139 +741,16 @@ async function retiredSubmitProposalScore(
   }
 }
 
-export async function ensureProgress1Rubric() {
-  const existing = await prisma.rubric.findFirst({
-    where: { roundType: "PROGRESS_1", active: true },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
-  const items = progressQaRubricItems();
-  const hasConditionItems = existing?.items.some((item) => Boolean(findProgressQaCriterion(item.itemKey)));
-  if (existing && hasConditionItems) {
-    await Promise.all(items.map((item) =>
-      prisma.rubricItem.updateMany({
-        where: { rubricId: existing.id, itemKey: item.itemKey },
-        data: { groupLabelTh: item.groupLabelTh, itemLabelTh: item.itemLabelTh, evidenceHint: item.evidenceHint }
-      })
-    ));
-    return prisma.rubric.findUniqueOrThrow({
-      where: { id: existing.id },
-      include: { items: { orderBy: { displayOrder: "asc" } } }
-    });
-  }
-
-  const latest = await prisma.rubric.findFirst({ where: { roundType: "PROGRESS_1" }, orderBy: { version: "desc" } });
-  await prisma.rubric.updateMany({ where: { roundType: "PROGRESS_1", active: true }, data: { active: false } });
-  return prisma.rubric.create({
-    data: {
-      roundType: "PROGRESS_1",
-      name: "เกณฑ์ประเมินความก้าวหน้าครั้งที่ 1 ตามแผนงาน",
-      version: (latest?.version ?? 0) + 1,
-      active: true,
-      items: {
-        create: items.map((item) => ({
-          groupKey: item.groupKey,
-          groupLabelTh: item.groupLabelTh,
-          itemKey: item.itemKey,
-          itemLabelTh: item.itemLabelTh,
-          points: item.points,
-          displayOrder: item.displayOrder,
-          isCritical: item.isCritical,
-          evidenceHint: item.evidenceHint
-        }))
-      }
-    },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
+export async function readProgress1Rubric() {
+  return readActiveAssessmentRubric(prisma, "PROGRESS_1");
 }
 
-export async function ensureProgress2Rubric() {
-  const existing = await prisma.rubric.findFirst({
-    where: { roundType: "PROGRESS_2", active: true },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
-  const items = progressQaRubricItems();
-  const hasConditionItems = existing?.items.some((item) => Boolean(findProgressQaCriterion(item.itemKey)));
-  if (existing && hasConditionItems) {
-    await Promise.all(items.map((item) =>
-      prisma.rubricItem.updateMany({
-        where: { rubricId: existing.id, itemKey: item.itemKey },
-        data: { groupLabelTh: item.groupLabelTh, itemLabelTh: item.itemLabelTh, evidenceHint: item.evidenceHint }
-      })
-    ));
-    return prisma.rubric.findUniqueOrThrow({
-      where: { id: existing.id },
-      include: { items: { orderBy: { displayOrder: "asc" } } }
-    });
-  }
-
-  const latest = await prisma.rubric.findFirst({ where: { roundType: "PROGRESS_2" }, orderBy: { version: "desc" } });
-  await prisma.rubric.updateMany({ where: { roundType: "PROGRESS_2", active: true }, data: { active: false } });
-  return prisma.rubric.create({
-    data: {
-      roundType: "PROGRESS_2",
-      name: "เกณฑ์ประเมินความก้าวหน้าครั้งที่ 2 ตามแผนงาน",
-      version: (latest?.version ?? 0) + 1,
-      active: true,
-      items: {
-        create: items.map((item) => ({
-          groupKey: item.groupKey,
-          groupLabelTh: item.groupLabelTh,
-          itemKey: item.itemKey,
-          itemLabelTh: item.itemLabelTh,
-          points: item.points,
-          displayOrder: item.displayOrder,
-          isCritical: item.isCritical,
-          evidenceHint: item.evidenceHint
-        }))
-      }
-    },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
+export async function readProgress2Rubric() {
+  return readActiveAssessmentRubric(prisma, "PROGRESS_2");
 }
 
-export async function ensureFinalRubric() {
-  const existing = await prisma.rubric.findFirst({
-    where: { roundType: "FINAL_PRESENTATION", active: true },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
-  const finalItems = finalQaRubricItems();
-  const hasExpectedItems = existing?.items.some((item) => Boolean(findFinalQaCriterion(item.itemKey)));
-  if (existing && hasExpectedItems) {
-    await Promise.all(finalItems.map((item) =>
-      prisma.rubricItem.updateMany({
-        where: { rubricId: existing.id, itemKey: item.itemKey },
-        data: { groupLabelTh: item.groupLabelTh, itemLabelTh: item.itemLabelTh, evidenceHint: item.evidenceHint }
-      })
-    ));
-    return prisma.rubric.findUniqueOrThrow({
-      where: { id: existing.id },
-      include: { items: { orderBy: { displayOrder: "asc" } } }
-    });
-  }
-
-  const latest = await prisma.rubric.findFirst({ where: { roundType: "FINAL_PRESENTATION" }, orderBy: { version: "desc" } });
-  await prisma.rubric.updateMany({ where: { roundType: "FINAL_PRESENTATION", active: true }, data: { active: false } });
-  return prisma.rubric.create({
-    data: {
-      roundType: "FINAL_PRESENTATION",
-      name: "เกณฑ์ประเมินการสอบนำเสนอขั้นสุดท้ายตามหลักฐาน",
-      version: (latest?.version ?? 0) + 1,
-      active: true,
-      items: {
-        create: finalItems.map((item) => ({
-          groupKey: item.groupKey,
-          groupLabelTh: item.groupLabelTh,
-          itemKey: item.itemKey,
-          itemLabelTh: item.itemLabelTh,
-          points: item.points,
-          displayOrder: item.displayOrder,
-          isCritical: item.isCritical,
-          evidenceHint: item.evidenceHint
-        }))
-      }
-    },
-    include: { items: { orderBy: { displayOrder: "asc" } } }
-  });
+export async function readFinalRubric() {
+  return readActiveAssessmentRubric(prisma, "FINAL_PRESENTATION");
 }
 
 async function retiredSubmitProgress1Score(formData: FormData) {
@@ -853,7 +788,8 @@ async function retiredSubmitProgress1Score(formData: FormData) {
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_1" } }
   }));
   await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress1");
-  const rubric = await timer.measure("ensure_rubric", () => ensureProgress1Rubric());
+  const rubric = await timer.measure("read_rubric", () => readProgress1Rubric());
+  if (!rubric?.items.length) redirectWithQuery("/teacher/progress1", { error: "score_rubric_missing" });
   redirectIfScoreFieldsIncomplete(
     formData,
     rubric.items.map((item) => findProgressQaCriterion(item.itemKey) ? `condition_count:${item.id}` : progressScoreFieldName(item.itemKey)),
@@ -988,7 +924,8 @@ async function retiredSubmitProgress2Score(formData: FormData) {
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROGRESS_2" } }
   }));
   await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/progress2");
-  const rubric = await timer.measure("ensure_rubric", () => ensureProgress2Rubric());
+  const rubric = await timer.measure("read_rubric", () => readProgress2Rubric());
+  if (!rubric?.items.length) redirectWithQuery("/teacher/progress2", { error: "score_rubric_missing" });
   redirectIfScoreFieldsIncomplete(
     formData,
     rubric.items.map((item) => findProgressQaCriterion(item.itemKey) ? `condition_count:${item.id}` : progressScoreFieldName(item.itemKey)),
@@ -1120,7 +1057,8 @@ async function retiredSubmitFinalPresentationScore(formData: FormData) {
   if (!round) throw new Error("ยังไม่มีรอบสอบนำเสนอขั้นสุดท้ายระดับรายวิชา");
 
   await assertPresentationScoreRoundEditable(project.id, round.id, round.status, "/teacher/final");
-  const rubric = await timer.measure("ensure_rubric", () => ensureFinalRubric());
+  const rubric = await timer.measure("read_rubric", () => readFinalRubric());
+  if (!rubric?.items.length) redirectWithQuery("/teacher/final", { error: "score_rubric_missing" });
   redirectIfScoreFieldsIncomplete(
     formData,
     rubric.items.map((item) => `condition_count:${item.itemKey}`),
