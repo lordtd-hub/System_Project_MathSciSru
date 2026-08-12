@@ -47,7 +47,9 @@ export default async function ProposalSubmissionPage({
         include: {
           presentationSubmissions: { orderBy: { createdAt: "desc" }, take: 1 },
           origin: true,
+          proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
           attempts: {
+            orderBy: { attemptNo: "desc" },
             include: {
               proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "desc" } },
               evaluatorAssignments: {
@@ -61,6 +63,7 @@ export default async function ProposalSubmissionPage({
   });
   const project = student?.projects[0];
   const submission = project?.presentationSubmissions[0];
+  const latestProposalResult = project?.proposalResults[0];
   const content = submission?.contentJson as Record<string, unknown> | undefined;
   const proposalComments = project?.attempts.flatMap((attempt) =>
     submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments).filter((vote) => vote.visibleToStudent)
@@ -79,11 +82,21 @@ export default async function ProposalSubmissionPage({
     : [];
   const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
   const latePenaltyRequired = requiresLateRoundPenalty(lateRoundExceptions);
-  const canPrepareProposal = project?.status === "PROPOSAL_PENDING";
-  const canSubmitProposal =
-    Boolean(canPrepareProposal && proposalRound && ((isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline)) || hasLateOverride));
-  const showSubmittedProposalState = Boolean(submission && project?.status !== "PROPOSAL_PENDING");
-  const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState;
+  const canPrepareInitialProposal = project?.status === "PROPOSAL_PENDING";
+  const canSubmitInitialProposal = Boolean(
+    canPrepareInitialProposal
+    && proposalRound
+    && ((isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline)) || hasLateOverride)
+  );
+  const canSubmitRevision = Boolean(
+    project?.status === "PROPOSAL_REVISION_REQUIRED"
+    && latestProposalResult?.finalDecision === "PASS_WITH_REVISION"
+    && submission?.status === "RETURNED_FOR_REVISION"
+  );
+  const canPrepareProposal = canPrepareInitialProposal || canSubmitRevision;
+  const canSubmitProposal = canSubmitInitialProposal || canSubmitRevision;
+  const showSubmittedProposalState = Boolean(submission && !canSubmitRevision && project?.status !== "PROPOSAL_PENDING");
+  const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState && !canSubmitRevision;
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาสร้างโครงงานก่อนส่งเอกสารเสนอหัวข้อ" actionLabel="ไปหน้าโครงงาน" href="/student/project" />;
@@ -101,6 +114,25 @@ export default async function ProposalSubmissionPage({
         }
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {latestProposalResult ? (
+        <section className="panel space-y-2" data-testid="student-proposal-final-decision">
+          <h2 className="text-lg font-semibold">มติการเสนอหัวข้อ</h2>
+          <p className="font-medium">
+            {latestProposalResult.finalDecision === "PASS"
+              ? "ผ่าน"
+              : latestProposalResult.finalDecision === "PASS_WITH_REVISION"
+                ? "ผ่านโดยให้แก้ไข"
+                : "ไม่ผ่าน"}
+          </p>
+          {latestProposalResult.finalDecisionReason ? (
+            <MarkdownLatexViewer
+              className="border-0 bg-transparent p-0 text-sm text-muted"
+              value={latestProposalResult.finalDecisionReason}
+            />
+          ) : null}
+          <p className="text-xs text-muted">หน้านี้ไม่แสดงคะแนนดิบของกรรมการ</p>
+        </section>
+      ) : null}
       <StudentReadabilitySummary
         title="สรุปสถานะ Proposal"
         description="แยกงานที่ต้องส่งตอนนี้ออกจากสถานะที่ส่งแล้วหรือกำลังรอรอบเปิด เพื่อให้นักศึกษาเห็นขั้นตอนถัดไปชัดเจนขึ้น"
@@ -145,7 +177,7 @@ export default async function ProposalSubmissionPage({
             ? "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษ ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
             : "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษโดยผู้ดูแลระบบ กรุณาส่งข้อมูลให้ครบตามที่ได้รับอนุญาต"}
         </WarningAlert>
-      ) : canPrepareProposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
+      ) : canPrepareInitialProposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
         <WarningAlert title="พ้นกำหนดส่ง Proposal แล้ว">
           ขณะนี้รอบ Proposal ปิดแล้ว หากจำเป็นต้องส่งย้อนหลัง กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดเป็นรายกรณี
         </WarningAlert>
@@ -153,6 +185,11 @@ export default async function ProposalSubmissionPage({
       {params.success === "proposal_submitted" ? (
         <InfoAlert title="ส่ง Proposal สำเร็จ">
           ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์และผู้ดูแลระบบดำเนินการตามสถานะโครงงาน
+        </InfoAlert>
+      ) : null}
+      {canSubmitRevision ? (
+        <InfoAlert title="ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษาตรวจ">
+          แก้ข้อมูลในแบบฟอร์มให้ครบตามมติและข้อเสนอแนะ เมื่อส่งแล้วระบบจะเพิ่มประวัติฉบับใหม่โดยไม่สร้างการสอบหรือคะแนนชุดใหม่
         </InfoAlert>
       ) : null}
       <InfoAlert title="การแสดงผลให้นักศึกษา">
@@ -196,6 +233,7 @@ export default async function ProposalSubmissionPage({
         </section>
       ) : (
       <StudentRecoverableActionForm action={saveProposalSubmission} resultMode="typed" storageKey={`student-proposal-draft:${project.id}`}>
+        {submission ? <input type="hidden" name="proposal_submission_id" value={submission.id} /> : null}
         <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -256,7 +294,11 @@ export default async function ProposalSubmissionPage({
               บันทึกไว้ก่อน
             </button>
             <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่งเอกสารเสนอหัวข้อ..." className="w-full sm:w-auto" autoRecovery={false}>
-              {canSubmitProposal ? "ส่งเอกสารเสนอหัวข้อ" : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}
+              {canSubmitRevision
+                ? "ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษา"
+                : canSubmitProposal
+                  ? "ส่งเอกสารเสนอหัวข้อ"
+                  : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}
             </SubmitButton>
           </div>
         </FormSection>

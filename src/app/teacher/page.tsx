@@ -74,6 +74,7 @@ async function getTeacherWorkloadCounts(teacherId: string) {
 
   const [
     advisorRequestCount,
+    proposalRevisionProjects,
     scheduleApprovalCount,
     reportReviewProjects,
     advisorScoreProjectCount,
@@ -83,6 +84,15 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     confirmedScheduleCalendarCount
   ] = await Promise.all([
     prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
+    prisma.project.findMany({
+      where: {
+        status: "PROPOSAL_REVISION_REQUIRED",
+        proposalResults: { some: { finalDecision: "PASS_WITH_REVISION" } },
+        presentationSubmissions: { some: { status: "SUBMITTED" } },
+        advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" } }
+      },
+      select: { advisorRequests: { orderBy: { requestedAt: "desc" }, take: 1, select: { advisorTeacherId: true, status: true } } }
+    }),
     prisma.examScheduleProposal.count({
       where: {
         status: "PROPOSED",
@@ -138,9 +148,14 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     if (latestReport.reviews.some((review) => review.decision === "FAIL")) return false;
     return !latestReport.reviews.some((review) => review.reviewerTeacherId === teacherId);
   }).length;
+  const proposalRevisionReviewCount = proposalRevisionProjects.filter((project) => {
+    const latestAdvisorRequest = project.advisorRequests[0];
+    return latestAdvisorRequest?.status === "APPROVED" && latestAdvisorRequest.advisorTeacherId === teacherId;
+  }).length;
 
   return [
     advisorRequestCount,
+    proposalRevisionReviewCount,
     scheduleApprovalCount,
     reportReviewCount,
     advisorScoreProjectCount,
@@ -220,6 +235,7 @@ export default async function TeacherDashboardPage() {
 
   const [
     advisorRequestCount,
+    proposalRevisionReviewCount,
     scheduleApprovalCount,
     reportReviewCount,
     advisorScoreProjectCount,
@@ -308,6 +324,7 @@ export default async function TeacherDashboardPage() {
   });
   const teacherActionableTaskCount =
     advisorRequestCount +
+    proposalRevisionReviewCount +
     pendingProposalScoreCount +
     scheduleApprovalCount +
     presentationScoreReadyCount +
@@ -328,9 +345,16 @@ export default async function TeacherDashboardPage() {
         ...nextAction,
         description: `${assessmentKindLabel(nextConfirmedScoringSchedule.assessmentKind)} · ${formatThaiScheduleRange(nextConfirmedScoringSchedule.proposedStartAt, nextConfirmedScoringSchedule.proposedEndAt)}${nextConfirmedScoringSchedule.room ? ` · ห้อง ${nextConfirmedScoringSchedule.room}` : ""} · ${nextConfirmedScoringSchedule.project.student.studentCode} ${nextConfirmedScoringSchedule.project.student.firstNameTh} ${nextConfirmedScoringSchedule.project.student.lastNameTh}`
       }
+    : proposalRevisionReviewCount
+      ? {
+          title: "มี Proposal ฉบับแก้ไขรอรับรอง",
+          description: "ตรวจการแก้ไขตามมติผ่านโดยให้แก้ไข โดยไม่ให้คะแนนหรือสอบใหม่",
+          href: "/teacher/proposal-revisions"
+        }
     : nextAction;
   const workloadCards = [
     { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
+    { label: "Proposal ฉบับแก้ไข", value: proposalRevisionReviewCount, href: "/teacher/proposal-revisions", tone: proposalRevisionReviewCount ? "ready" as const : "quiet" as const },
     { label: "เสนอหัวข้อรอประเมิน", value: pendingProposalScoreCount, href: "/teacher/proposals", tone: pendingProposalScoreCount ? "ready" as const : "quiet" as const },
     { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const },
     { label: "พร้อมให้คะแนน", value: presentationScoreReadyCount, href: progress1ScoreReadyCount ? "/teacher/progress1" : progress2ScoreReadyCount ? "/teacher/progress2" : "/teacher/final", tone: presentationScoreReadyCount ? "ready" as const : "quiet" as const },
@@ -368,6 +392,14 @@ export default async function TeacherDashboardPage() {
       count: pendingProposalScoreCount,
       tone: pendingProposalScoreCount ? "ready" as const : "quiet" as const,
       statusLabel: pendingProposalScoreCount ? "พร้อมประเมิน" : "ปกติ"
+    },
+    {
+      title: "Proposal ฉบับแก้ไขรอรับรอง",
+      description: proposalRevisionReviewCount ? "นักศึกษาส่งฉบับแก้ไขตามมติและรอที่ปรึกษาตรวจ" : "ยังไม่มี Proposal ฉบับแก้ไขที่ต้องตรวจ",
+      href: "/teacher/proposal-revisions",
+      count: proposalRevisionReviewCount,
+      tone: proposalRevisionReviewCount ? "ready" as const : "quiet" as const,
+      statusLabel: proposalRevisionReviewCount ? "ต้องตรวจ" : "ปกติ"
     },
     {
       title: "อนุมัติวันสอบ",

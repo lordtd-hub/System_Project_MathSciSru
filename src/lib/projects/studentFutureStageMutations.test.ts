@@ -83,6 +83,7 @@ describe("student future-stage atomic persistence", () => {
       projectTimelineEvent: { create: vi.fn(async ({ data }) => read().timeline.push(data)) },
       proposalResult: undefined,
       projectProposalResult: { findFirst: vi.fn(async () => ({ finalDecision: "PASS" })) },
+      assessmentAttempt: { findFirst: vi.fn(async () => null) },
       committeeAssignment: {
         findMany: vi.fn(async () => [
           { role: "ADVISOR", active: true, teacherId: "advisor" },
@@ -165,7 +166,8 @@ describe("student future-stage atomic persistence", () => {
       projectTimelineEvent: { create: vi.fn(async ({ data }) => read().timeline.push(data)) },
       auditLog: { create: vi.fn(async ({ data }) => read().audits.push(data)) },
       notification: { createMany: vi.fn(async ({ data }) => read().notifications.push(...data)) },
-      projectProposalResult: { findFirst: vi.fn(async () => ({ finalDecision: "PASS" })) }
+      projectProposalResult: { findFirst: vi.fn(async () => ({ finalDecision: "PASS" })) },
+      assessmentAttempt: { findFirst: vi.fn(async () => null) }
     }));
 
     await expect(submitExamScheduleAtomic(

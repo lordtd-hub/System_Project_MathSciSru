@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canViewProjectRecord } from "./projectRecord";
+import { canViewerSeeAttemptScore, canViewProjectRecord } from "./projectRecord";
 
 function baseProject() {
   return {
@@ -52,5 +52,11 @@ describe("canViewProjectRecord", () => {
 
   it("denies missing viewers", () => {
     expect(canViewProjectRecord(baseProject(), null).allowed).toBe(false);
+  });
+
+  it("never exposes raw Proposal scores to students even when visibility is misconfigured", () => {
+    expect(canViewerSeeAttemptScore("STUDENT", "PROPOSAL", true)).toBe(false);
+    expect(canViewerSeeAttemptScore("STUDENT", "PROGRESS_1", true)).toBe(true);
+    expect(canViewerSeeAttemptScore("TEACHER", "PROPOSAL", false)).toBe(true);
   });
 });

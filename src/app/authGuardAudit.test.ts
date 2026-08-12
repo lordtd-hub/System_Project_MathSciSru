@@ -44,6 +44,7 @@ describe("protected route and action guard audit", () => {
       "src/app/teacher/progress1/page.tsx",
       "src/app/teacher/progress2/page.tsx",
       "src/app/teacher/proposals/page.tsx",
+      "src/app/teacher/proposal-revisions/page.tsx",
       "src/app/teacher/reports/page.tsx",
       "src/app/teacher/schedules/page.tsx",
       "src/app/teacher/scoring/[assignmentId]/page.tsx"

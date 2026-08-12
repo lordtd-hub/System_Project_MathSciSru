@@ -27,12 +27,21 @@ import {
 } from "@/lib/assessments/roundExceptions";
 import { termDisplayName } from "@/lib/terms/display";
 import { generatedStudentEmail, hasImportErrors, validateStudentImportRows } from "@/lib/validators/studentImport";
-import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { getCompletionEligibility } from "@/lib/lifecycle/completionEligibility";
-import { adminConfirmProjectTransition, proposalFinalDecisionTransition } from "@/lib/lifecycle/transitions";
+import { adminConfirmProjectTransition } from "@/lib/lifecycle/transitions";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
+import { currentApprovedAdvisorTeacherId } from "@/lib/projects/currentAdvisorRequest";
+import {
+  ProposalLifecycleValidationError,
+  runProposalLifecycleAction,
+  type ProposalLifecycleActionResult
+} from "@/lib/proposals/proposalLifecycleActionResult";
+import {
+  saveAdminProposalFinalDecisionAtomic,
+  unlockProposalRevisionAtomic
+} from "@/lib/proposals/proposalRevisionLifecycle";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
-import { assertTextSize, requestSizeLimits } from "@/lib/security/requestSize";
+import { assertTextSize, requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 
 async function requireAdminUserId() {
   const session = await auth();
@@ -910,119 +919,87 @@ export async function resetCourseRound(formData: FormData) {
   redirect("/admin/rounds?success=round_reset");
 }
 
-export async function saveFinalDecision(formData: FormData) {
-  const adminUserId = await requireAdminUserId();
-  assertRateLimit(`admin:${adminUserId}:saveFinalDecision`, pilotRateLimits.workflowMutation);
-  const timer = createActionTimer("admin.saveFinalDecision");
-  const attemptId = String(formData.get("attempt_id"));
-  const finalDecision = String(formData.get("final_decision")) as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS";
-  const reason = String(formData.get("final_decision_reason") ?? "");
-  assertTextSize(reason, requestSizeLimits.commentTextBytes, "เหตุผลประกอบผลตัดสินการเสนอหัวข้อ");
-
-  const attempt = await timer.measure("load_attempt_scores", () => prisma.assessmentAttempt.findUniqueOrThrow({
-    where: { id: attemptId },
-    include: {
-      project: true,
-      evaluatorAssignments: {
-        include: {
-          scoreSubmission: {
-            include: { proposalDecision: true }
-          }
-        }
-      }
+export async function saveFinalDecision(
+  _previousState: ProposalLifecycleActionResult,
+  formData: FormData
+): Promise<ProposalLifecycleActionResult> {
+  return runProposalLifecycleAction("admin.saveFinalDecision", async (requestId) => {
+    const adminUserId = await requireAdminUserId();
+    assertRateLimit(`admin:${adminUserId}:saveFinalDecision`, pilotRateLimits.workflowMutation);
+    const attemptId = String(formData.get("attempt_id") ?? "").trim();
+    const decisionValue = String(formData.get("final_decision") ?? "");
+    const reason = String(formData.get("final_decision_reason") ?? "").trim();
+    if (!attemptId) throw new ProposalLifecycleValidationError("ATTEMPT_REQUIRED", "ไม่พบรอบการประเมิน กรุณารีเฟรชหน้าแล้วลองใหม่", ["attempt_id"]);
+    if (!["PASS", "PASS_WITH_REVISION", "NOT_PASS"].includes(decisionValue)) {
+      throw new ProposalLifecycleValidationError("DECISION_INVALID", "กรุณาเลือกผลการตัดสินให้ถูกต้อง", ["final_decision"]);
     }
-  }));
+    if (decisionValue !== "PASS" && !reason) {
+      throw new ProposalLifecycleValidationError("DECISION_REASON_REQUIRED", "กรุณาระบุเหตุผลประกอบมติ", ["final_decision_reason"]);
+    }
+    const reasonSizeError = sizeError(reason, requestSizeLimits.commentTextBytes, "เหตุผลประกอบผลตัดสินการเสนอหัวข้อ");
+    if (reasonSizeError) {
+      throw new ProposalLifecycleValidationError("DECISION_REASON_TOO_LONG", reasonSizeError, ["final_decision_reason"]);
+    }
 
-  const summary = summarizeProposalScores(
-    attempt.evaluatorAssignments.length,
-    attempt.evaluatorAssignments
-      .map((assignment) => assignment.scoreSubmission)
-      .filter(Boolean)
-      .map((score) => ({
-        totalScore: Number(score!.totalScore),
-        status: score!.status,
-        decision: score!.proposalDecision?.decision
-      }))
-  );
-
-  await timer.measure("upsert_proposal_result", () => prisma.projectProposalResult.upsert({
-    where: { assessmentAttemptId: attemptId },
-    update: {
-      averageScore: summary.averageScore,
-      submittedCount: summary.submittedCount,
-      missingCount: summary.missingCount,
-      passCount: summary.passCount,
-      revisionCount: summary.revisionCount,
-      notPassCount: summary.notPassCount,
-      finalDecision,
-      finalDecisionReason: reason || null,
-      decidedByAdminId: adminUserId,
-      decidedAt: new Date()
-    },
-    create: {
+    const outcome = await saveAdminProposalFinalDecisionAtomic(prisma, {
+      actorUserId: adminUserId,
+      requestId,
       assessmentAttemptId: attemptId,
-      projectId: attempt.projectId,
-      averageScore: summary.averageScore,
-      submittedCount: summary.submittedCount,
-      missingCount: summary.missingCount,
-      passCount: summary.passCount,
-      revisionCount: summary.revisionCount,
-      notPassCount: summary.notPassCount,
-      finalDecision,
-      finalDecisionReason: reason || null,
-      decidedByAdminId: adminUserId
+      finalDecision: decisionValue as "PASS" | "PASS_WITH_REVISION" | "NOT_PASS",
+      finalDecisionReason: reason || null
+    });
+    revalidatePath("/admin/proposals");
+    revalidatePath("/admin/committee");
+    revalidatePath("/student");
+    revalidatePath("/student/proposal");
+    revalidatePath("/teacher/proposal-revisions");
+    return {
+      status: "success",
+      code: "PROPOSAL_FINAL_DECISION_SAVED",
+      message: outcome.unchanged ? "มตินี้ถูกบันทึกไว้เรียบร้อยแล้ว" : "บันทึกมติการเสนอหัวข้อเรียบร้อยแล้ว",
+      requestId,
+      unchanged: outcome.unchanged
+    };
+  });
+}
+
+export async function unlockProposalRevisionDecision(
+  _previousState: ProposalLifecycleActionResult,
+  formData: FormData
+): Promise<ProposalLifecycleActionResult> {
+  return runProposalLifecycleAction("admin.unlockProposalRevisionDecision", async (requestId) => {
+    const adminUserId = await requireAdminUserId();
+    assertRateLimit(`admin:${adminUserId}:unlockProposalRevisionDecision`, pilotRateLimits.workflowMutation);
+    const attemptId = String(formData.get("attempt_id") ?? "").trim();
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (!attemptId) throw new ProposalLifecycleValidationError("ATTEMPT_REQUIRED", "ไม่พบรอบการประเมิน กรุณารีเฟรชหน้าแล้วลองใหม่", ["attempt_id"]);
+    if (!reason) throw new ProposalLifecycleValidationError("UNLOCK_REASON_REQUIRED", "กรุณาระบุเหตุผลที่ต้องปลดล็อกมติ", ["reason"]);
+    const reasonSizeError = sizeError(reason, requestSizeLimits.commentTextBytes, "เหตุผลการปลดล็อกมติ");
+    if (reasonSizeError) {
+      throw new ProposalLifecycleValidationError("UNLOCK_REASON_TOO_LONG", reasonSizeError, ["reason"]);
     }
-  }));
 
-  const lifecycleDecision = finalDecision === "PASS" ? "PASS" : finalDecision === "NOT_PASS" ? "FAIL" : "REVISE";
-  const transition = proposalFinalDecisionTransition(lifecycleDecision, "DRAFT", attempt.project.status);
-  await timer.measure("status_transaction", () => prisma.$transaction([
-    prisma.project.update({
-      where: { id: attempt.projectId },
-      data: { status: transition.to }
-    }),
-    prisma.projectStatusHistory.create({
-      data: {
-        projectId: attempt.projectId,
-        fromStatus: transition.from,
-        toStatus: transition.to,
-        reason: transition.reason,
-        actorUserId: adminUserId,
-        metadataJson: { finalDecision }
-      }
-    })
-  ]));
-
-  await timer.measure("create_timeline", () => prisma.projectTimelineEvent.create({
-    data: {
-      projectId: attempt.projectId,
-      eventType: "ADMIN_FINAL_DECISION",
-      eventTitle: "ผู้ดูแลระบบบันทึกผลการเสนอหัวข้อ",
-      eventDescription: finalDecision,
+    const attempt = await prisma.assessmentAttempt.findUnique({ where: { id: attemptId }, select: { projectId: true } });
+    if (!attempt) throw new ProposalLifecycleValidationError("ATTEMPT_NOT_FOUND", "ไม่พบรอบการประเมิน กรุณารีเฟรชหน้าแล้วลองใหม่", ["attempt_id"]);
+    const outcome = await unlockProposalRevisionAtomic(prisma, {
       actorUserId: adminUserId,
-      relatedEntityType: "AssessmentAttempt",
-      relatedEntityId: attemptId
-    }
-  }));
-  await timer.measure("create_audit_log", () => prisma.auditLog.create({
-    data: {
-      actorUserId: adminUserId,
-      action: "PROPOSAL_FINAL_DECISION_SAVED",
-      entityType: "AssessmentAttempt",
-      entityId: attemptId,
-      afterJson: {
-        finalDecision,
-        averageScore: summary.averageScore,
-        submittedCount: summary.submittedCount,
-        missingCount: summary.missingCount
-      },
-      metadataJson: { projectId: attempt.projectId, fromStatus: transition.from, toStatus: transition.to }
-    }
-  }));
-
-  revalidatePath("/admin/proposals");
-  timer.end("redirect");
-  redirect("/admin/proposals?success=final_decision_saved");
+      requestId,
+      projectId: attempt.projectId,
+      reason
+    });
+    revalidatePath("/admin/proposals");
+    revalidatePath("/admin/committee");
+    revalidatePath("/student");
+    revalidatePath("/student/proposal");
+    revalidatePath("/teacher/proposal-revisions");
+    return {
+      status: "success",
+      code: "PROPOSAL_REVISION_UNLOCKED",
+      message: outcome.unchanged ? "มตินี้อยู่ในสถานะปลดล็อกแล้ว" : "ปลดล็อกมติและส่งกลับเข้าสู่ขั้นแก้ไขเรียบร้อยแล้ว",
+      requestId,
+      unchanged: outcome.unchanged
+    };
+  });
 }
 
 export async function assignProjectCommittee(formData: FormData) {
@@ -1039,14 +1016,13 @@ export async function assignProjectCommittee(formData: FormData) {
     where: { id: projectId },
     include: {
       advisorRequests: {
-        where: { status: "APPROVED" },
-        orderBy: { reviewedAt: "desc" },
+        orderBy: [{ requestedAt: "desc" }, { id: "desc" }],
         take: 1
       }
     }
   }));
   if (project.status !== "TOPIC_APPROVED") throw new Error("แต่งตั้งกรรมการได้เฉพาะโครงงานที่หัวข้อผ่านแล้ว");
-  const advisorTeacherId = project.advisorRequests[0]?.advisorTeacherId;
+  const advisorTeacherId = currentApprovedAdvisorTeacherId(project.advisorRequests[0]);
   if (!advisorTeacherId) throw new Error("ไม่พบที่ปรึกษาที่อนุมัติแล้ว");
   if (headTeacherId === advisorTeacherId || memberTeacherIds.includes(advisorTeacherId)) {
     throw new Error("อาจารย์ที่ปรึกษาไม่ควรเป็นประธานกรรมการหรือกรรมการในโครงงานเดียวกัน");
