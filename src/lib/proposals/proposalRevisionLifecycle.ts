@@ -336,7 +336,10 @@ export async function saveAdminProposalFinalDecisionAtomic(
         }
       }
       isDecisionEdit = true;
-    } else if (attempt.project.status !== "PROPOSAL_ADMIN_DECISION" || attempt.presentationSubmission.status !== "SUBMITTED") {
+    } else if (
+      attempt.presentationSubmission.status !== "SUBMITTED"
+      || !(["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"] as ProjectStatus[]).includes(attempt.project.status)
+    ) {
       throw new ProposalLifecycleConflictError(
         "PROPOSAL_FINAL_DECISION_STALE_STATE",
         "สถานะ Proposal เปลี่ยนไปแล้ว กรุณารีเฟรชหน้าและตรวจสอบก่อนบันทึกมติ"
