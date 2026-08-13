@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProposalLifecycleActionForm } from "@/components/ui/ProposalLifecycleActionForm";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { prisma } from "@/lib/db";
@@ -16,7 +17,7 @@ import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
 import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
-import { closeProposalRound, releaseFeedback, saveFinalDecision } from "../actions";
+import { closeProposalRound, releaseFeedback, saveFinalDecision, unlockProposalRevisionDecision } from "../actions";
 
 function decisionLabel(decision?: string | null) {
   if (decision === "PASS") return "ผ่าน";
@@ -274,6 +275,9 @@ export default async function AdminProposalsPage({
                   const failRatio = totalVotes ? Math.round((failVotes / totalVotes) * 100) : 0;
                   const finalDecision = attempt.proposalResult?.finalDecision;
                   const decided = Boolean(attempt.proposalResult);
+                  const certifiedRevision = finalDecision === "PASS_WITH_REVISION"
+                    && attempt.presentationSubmission?.status === "LOCKED"
+                    && attempt.project.status === "TOPIC_APPROVED";
                   const decisionConfirm =
                     finalDecision === "NOT_PASS" || finalDecision === "PASS"
                       ? "ยืนยันการบันทึกผลการตัดสินหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานตามผลที่เลือกและบันทึกประวัติไว้"
@@ -340,18 +344,28 @@ export default async function AdminProposalsPage({
 
                       <div className="mt-4 rounded-lg border border-line bg-paperSoft p-3">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">การทำงาน</div>
-                        <form action={saveFinalDecision} className="grid gap-2">
-                          <input type="hidden" name="attempt_id" value={attempt.id} />
-                          <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                            <option value="PASS">ผ่าน</option>
-                            <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
-                            <option value="NOT_PASS">ไม่ผ่าน</option>
-                          </select>
-                          <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
-                          <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
-                            {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
-                          </SubmitButton>
-                        </form>
+                        {certifiedRevision ? (
+                          <ProposalLifecycleActionForm action={unlockProposalRevisionDecision} className="grid gap-2">
+                            <input type="hidden" name="attempt_id" value={attempt.id} />
+                            <input name="reason" required placeholder="เหตุผลที่ต้องปลดล็อกมติ" />
+                            <SubmitButton className="button-secondary" pendingText="กำลังปลดล็อก..." confirmMessage="ยืนยันการปลดล็อกมติและส่ง Proposal กลับเข้าสู่ขั้นแก้ไขหรือไม่?" autoRecovery={false}>
+                              ปลดล็อกมติ
+                            </SubmitButton>
+                          </ProposalLifecycleActionForm>
+                        ) : (
+                          <ProposalLifecycleActionForm action={saveFinalDecision} className="grid gap-2">
+                            <input type="hidden" name="attempt_id" value={attempt.id} />
+                            <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
+                              <option value="PASS">ผ่าน</option>
+                              <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
+                              <option value="NOT_PASS">ไม่ผ่าน</option>
+                            </select>
+                            <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
+                            <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm} autoRecovery={false}>
+                              {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
+                            </SubmitButton>
+                          </ProposalLifecycleActionForm>
+                        )}
                         <form action={releaseFeedback} className="mt-2">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
                           <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
@@ -413,6 +427,9 @@ export default async function AdminProposalsPage({
                       const failRatio = totalVotes ? Math.round((failVotes / totalVotes) * 100) : 0;
                       const finalDecision = attempt.proposalResult?.finalDecision;
                       const decided = Boolean(attempt.proposalResult);
+                      const certifiedRevision = finalDecision === "PASS_WITH_REVISION"
+                        && attempt.presentationSubmission?.status === "LOCKED"
+                        && attempt.project.status === "TOPIC_APPROVED";
                       const decisionConfirm =
                         finalDecision === "NOT_PASS" || finalDecision === "PASS"
                           ? "ยืนยันการบันทึกผลการตัดสินหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานตามผลที่เลือกและบันทึกประวัติไว้"
@@ -459,18 +476,28 @@ export default async function AdminProposalsPage({
                             <div className="mt-2 rounded-md border border-line bg-paper p-2 text-xs">{nextDecisionStep(finalDecision)}</div>
                           </td>
                           <td className="py-3 pr-3 min-w-80">
-                            <form action={saveFinalDecision} className="grid gap-2">
-                              <input type="hidden" name="attempt_id" value={attempt.id} />
-                              <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                                <option value="PASS">ผ่าน</option>
-                                <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
-                                <option value="NOT_PASS">ไม่ผ่าน</option>
-                              </select>
-                              <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
-                              <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm}>
-                                {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
-                              </SubmitButton>
-                            </form>
+                            {certifiedRevision ? (
+                              <ProposalLifecycleActionForm action={unlockProposalRevisionDecision} className="grid gap-2">
+                                <input type="hidden" name="attempt_id" value={attempt.id} />
+                                <input name="reason" required placeholder="เหตุผลที่ต้องปลดล็อกมติ" />
+                                <SubmitButton className="button-secondary" pendingText="กำลังปลดล็อก..." confirmMessage="ยืนยันการปลดล็อกมติและส่ง Proposal กลับเข้าสู่ขั้นแก้ไขหรือไม่?" autoRecovery={false}>
+                                  ปลดล็อกมติ
+                                </SubmitButton>
+                              </ProposalLifecycleActionForm>
+                            ) : (
+                              <ProposalLifecycleActionForm action={saveFinalDecision} className="grid gap-2">
+                                <input type="hidden" name="attempt_id" value={attempt.id} />
+                                <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
+                                  <option value="PASS">ผ่าน</option>
+                                  <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
+                                  <option value="NOT_PASS">ไม่ผ่าน</option>
+                                </select>
+                                <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
+                                <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm} autoRecovery={false}>
+                                  {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
+                                </SubmitButton>
+                              </ProposalLifecycleActionForm>
+                            )}
                             <form action={releaseFeedback} className="mt-2">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
                               <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">

@@ -13,6 +13,7 @@ import { parseSelectableSourceType } from "@/lib/projects/sourceType";
 import {
   runStudentAction,
   studentActionSuccess,
+  StudentActionConflictError,
   StudentActionValidationError,
   type StudentActionResult
 } from "@/lib/projects/studentActionResult";
@@ -23,6 +24,11 @@ import {
   type ProposalTimelineItem,
   type StudentMutationContext
 } from "@/lib/projects/studentCurrentStageMutations";
+import {
+  ProposalLifecycleConflictError,
+  ProposalLifecycleValidationError
+} from "@/lib/proposals/proposalLifecycleActionResult";
+import { submitProposalRevisionAtomic } from "@/lib/proposals/proposalRevisionLifecycle";
 import {
   deliverExamScheduleExternalNotification,
   saveAssessmentEvidenceAtomic,
@@ -249,24 +255,55 @@ export async function saveProposalSubmission(
     typedMarkdown(content.expectedOutcomes, "ผลที่คาดว่าจะได้รับ", "expected_outcomes");
     typedMarkdown(content.timeline, "แผนดำเนินงาน", "timeline");
 
-    const outcome = await saveProposalSubmissionAtomic(
-      prisma,
-      mutationContext(userId, student, project.id),
-      {
-        titleTh: typedRequiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย"),
-        titleEn: String(formData.get("project_title_en") ?? "").trim() || null,
-        abstractText,
-        content,
-        materialLink: linkResult.normalizedUrl,
-        declarationAccepted: true
+    const proposalInput = {
+      titleTh: typedRequiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย"),
+      titleEn: String(formData.get("project_title_en") ?? "").trim() || null,
+      abstractText,
+      content,
+      materialLink: linkResult.normalizedUrl,
+      declarationAccepted: true as const
+    };
+    const isRevision = project.status === "PROPOSAL_REVISION_REQUIRED";
+    let outcome: { unchanged: boolean };
+    if (isRevision) {
+      try {
+        outcome = await submitProposalRevisionAtomic(prisma, {
+          actorUserId: userId,
+          requestId,
+          projectId: project.id,
+          titleTh: proposalInput.titleTh,
+          titleEn: proposalInput.titleEn,
+          abstractText: proposalInput.abstractText,
+          contentJson: proposalInput.content,
+          materialLink: proposalInput.materialLink,
+          declarationAccepted: true
+        });
+      } catch (error) {
+        if (error instanceof ProposalLifecycleValidationError) {
+          throw new StudentActionValidationError(error.code, error.message, error.fields);
+        }
+        if (error instanceof ProposalLifecycleConflictError) {
+          throw new StudentActionConflictError(error.code, error.message);
+        }
+        throw error;
       }
-    );
+    } else {
+      outcome = await saveProposalSubmissionAtomic(
+        prisma,
+        mutationContext(userId, student, project.id),
+        proposalInput
+      );
+    }
     revalidatePath("/student");
     revalidatePath("/student/proposal");
     return studentActionSuccess(
       requestId,
       "PROPOSAL_SUBMISSION_SAVED",
-      outcome.unchanged ? "เอกสาร Proposal ชุดนี้ถูกบันทึกไว้เรียบร้อยแล้ว" : "ส่งเอกสาร Proposal เรียบร้อยแล้ว",
+      outcome.unchanged
+        ? "เอกสาร Proposal ชุดนี้ถูกบันทึกไว้เรียบร้อยแล้ว"
+        : isRevision
+          ? "ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษาเรียบร้อยแล้ว"
+          : "ส่งเอกสาร Proposal เรียบร้อยแล้ว",
       outcome.unchanged
     );
   });

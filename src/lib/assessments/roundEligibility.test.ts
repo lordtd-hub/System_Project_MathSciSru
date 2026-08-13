@@ -31,6 +31,41 @@ describe("round eligibility", () => {
     expect(reasonLabelTh(readiness.reasons[0])).toBe("ยังไม่ผ่านการเสนอหัวข้อ");
   });
 
+  it("blocks PASS_WITH_REVISION until the advisor locks the revised Proposal", () => {
+    const readiness = getProgress1Readiness({
+      ...baseProject,
+      status: "PROPOSAL_REVISION_REQUIRED",
+      proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }],
+      attempts: [{
+        attemptNo: 1,
+        status: "SCORING_CLOSED",
+        assessmentRound: { roundType: "PROPOSAL" },
+        presentationSubmission: { status: "SUBMITTED" },
+        evaluatorAssignments: []
+      }]
+    });
+
+    expect(readiness.eligible).toBe(false);
+    expect(readiness.reasons).toContain("proposal failed/revise");
+  });
+
+  it("accepts PASS_WITH_REVISION after advisor certification without a new assessment", () => {
+    const readiness = getProgress1Readiness({
+      ...baseProject,
+      status: "TOPIC_APPROVED",
+      proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }],
+      attempts: [{
+        attemptNo: 1,
+        status: "SCORING_CLOSED",
+        assessmentRound: { roundType: "PROPOSAL" },
+        presentationSubmission: { status: "LOCKED" },
+        evaluatorAssignments: []
+      }]
+    });
+
+    expect(readiness.eligible).toBe(true);
+  });
+
   it("shows exact waiting reason before admin confirmation", () => {
     const readiness = getProgress1Readiness({ ...baseProject, status: "PENDING_ADMIN", proposalResults: [] });
     expect(readiness.reasons).toContain("project still PENDING_ADMIN");

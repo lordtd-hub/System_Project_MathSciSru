@@ -152,7 +152,7 @@ export default async function StudentSchedulePage({
           },
           assessmentSubmissions: { orderBy: { submittedAt: "desc" } },
           attempts: {
-            where: { attemptType: { in: ["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
+            where: { attemptType: { in: ["MAIN_PROPOSAL", "REPROPOSAL", "PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
             include: {
               evaluatorAssignments: {
                 select: {

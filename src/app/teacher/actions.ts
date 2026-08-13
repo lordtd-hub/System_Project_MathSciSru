@@ -10,6 +10,7 @@ import { applyLatePenalty, hasOpenLateRoundException, requiresLateRoundPenalty }
 import { prisma } from "@/lib/db";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
+import { isCurrentAdvisorRequestReviewable } from "@/lib/projects/currentAdvisorRequest";
 import { assertRateLimit, pilotRateLimits, RateLimitExceededError } from "@/lib/security/rateLimit";
 import { requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 import { advisorApproveTransition, advisorRejectTransition } from "@/lib/lifecycle/transitions";
@@ -23,6 +24,12 @@ import type { ProposalStartActionResult } from "@/lib/scoring/proposalStartActio
 import { openProposalAssignment } from "@/lib/scoring/openProposalAssignment";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { readActiveAssessmentRubric, readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
+import {
+  ProposalLifecycleValidationError,
+  runProposalLifecycleAction,
+  type ProposalLifecycleActionResult
+} from "@/lib/proposals/proposalLifecycleActionResult";
+import { reviewProposalRevisionByAdvisorAtomic } from "@/lib/proposals/proposalRevisionLifecycle";
 import { calculateFinalQaCriterionScore, findFinalQaCriterion } from "@/lib/rubrics/finalQaRubric";
 import { calculateProgressQaCriterionScore, findProgressQaCriterion } from "@/lib/rubrics/progressQaRubric";
 import {
@@ -277,33 +284,47 @@ export async function reviewAdvisorRequest(formData: FormData) {
     redirectWithQuery("/teacher/advisor-requests", { error: "advisor_reject_reason_required" });
   }
 
-  const teacher = await prisma.teacher.findUniqueOrThrow({ where: { userId: user.id } });
-  const request = await prisma.advisorRequest.findUniqueOrThrow({
+  const requestContext = await prisma.advisorRequest.findUnique({
     where: { id: requestId },
-    include: { project: true }
+    select: { projectId: true }
   });
-  if (request.advisorTeacherId !== teacher.id) throw new Error("ไม่สามารถพิจารณาคำขอของอาจารย์ท่านอื่นได้");
-  if (request.status !== "PENDING") throw new Error("คำขอนี้ถูกพิจารณาแล้ว");
+  if (!requestContext) redirectWithQuery("/teacher/advisor-requests", { error: "advisor_request_stale" });
 
-  const transition =
-    decision === "APPROVE"
+  const reviewOutcome = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "projects" WHERE "id" = ${requestContext.projectId} FOR UPDATE
+    `;
+    const [teacher, request, latestRequest] = await Promise.all([
+      tx.teacher.findUnique({ where: { userId: user.id } }),
+      tx.advisorRequest.findUnique({ where: { id: requestId }, include: { project: true } }),
+      tx.advisorRequest.findFirst({
+        where: { projectId: requestContext.projectId },
+        orderBy: [{ requestedAt: "desc" }, { id: "desc" }],
+        select: { id: true }
+      })
+    ]);
+    if (!teacher || !request || !isCurrentAdvisorRequestReviewable({
+      request,
+      latestRequestId: latestRequest?.id ?? null,
+      actorTeacherId: teacher.id,
+      projectStatus: request.project.status
+    })) {
+      return { error: "advisor_request_stale" as const };
+    }
+
+    const transition = decision === "APPROVE"
       ? advisorApproveTransition(request.project.status)
       : advisorRejectTransition(request.project.status);
-
-  await prisma.$transaction([
-    prisma.advisorRequest.update({
+    await tx.advisorRequest.update({
       where: { id: requestId },
       data: {
         status: decision === "APPROVE" ? "APPROVED" : "REJECTED",
         advisorComment: comment || null,
         reviewedAt: new Date()
       }
-    }),
-    prisma.project.update({
-      where: { id: request.projectId },
-      data: { status: transition.to }
-    }),
-    prisma.projectStatusHistory.create({
+    });
+    await tx.project.update({ where: { id: request.projectId }, data: { status: transition.to } });
+    await tx.projectStatusHistory.create({
       data: {
         projectId: request.projectId,
         fromStatus: transition.from,
@@ -312,8 +333,8 @@ export async function reviewAdvisorRequest(formData: FormData) {
         actorUserId: user.id,
         metadataJson: { advisorRequestId: requestId, comment: comment || null }
       }
-    }),
-    prisma.projectTimelineEvent.create({
+    });
+    await tx.projectTimelineEvent.create({
       data: {
         projectId: request.projectId,
         eventType: decision === "APPROVE" ? "ADVISOR_REQUEST_APPROVED" : "ADVISOR_REQUEST_REJECTED",
@@ -323,11 +344,64 @@ export async function reviewAdvisorRequest(formData: FormData) {
         relatedEntityType: "AdvisorRequest",
         relatedEntityId: requestId
       }
-    })
-  ]);
+    });
+    return { error: null };
+  }, { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
+  if (reviewOutcome.error) redirectWithQuery("/teacher/advisor-requests", { error: reviewOutcome.error });
 
   revalidatePath("/teacher/advisor-requests");
   redirect("/teacher/advisor-requests?success=advisor_request_reviewed");
+}
+
+export async function reviewProposalRevision(
+  _previousState: ProposalLifecycleActionResult,
+  formData: FormData
+): Promise<ProposalLifecycleActionResult> {
+  return runProposalLifecycleAction("teacher.reviewProposalRevision", async (requestId) => {
+    const user = await requireTeacherUser();
+    const actorUserId = user.id;
+    if (!actorUserId) throw new ProposalLifecycleValidationError("TEACHER_USER_REQUIRED", "ไม่พบบัญชีอาจารย์ กรุณาเข้าสู่ระบบใหม่", []);
+    assertRateLimit(`teacher:${user.id}:reviewProposalRevision`, pilotRateLimits.workflowMutation);
+    const projectId = String(formData.get("project_id") ?? "").trim();
+    const decisionValue = String(formData.get("decision") ?? "");
+    const comment = String(formData.get("comment") ?? "").trim();
+    if (!projectId) throw new ProposalLifecycleValidationError("PROJECT_REQUIRED", "ไม่พบโครงงาน กรุณารีเฟรชหน้าแล้วลองใหม่", ["project_id"]);
+    if (!["APPROVE", "RETURN"].includes(decisionValue)) {
+      throw new ProposalLifecycleValidationError("REVISION_DECISION_INVALID", "กรุณาเลือกผลตรวจ Proposal ฉบับแก้ไข", ["decision"]);
+    }
+    if (decisionValue === "RETURN" && !comment) {
+      throw new ProposalLifecycleValidationError("ADVISOR_RETURN_REASON_REQUIRED", "กรุณาระบุเหตุผลก่อนส่งกลับให้นักศึกษาแก้ไขเพิ่มเติม", ["comment"]);
+    }
+    const commentSizeError = sizeError(comment, requestSizeLimits.commentTextBytes, "เหตุผลการตรวจ Proposal ฉบับแก้ไข");
+    if (commentSizeError) throw new ProposalLifecycleValidationError("REVISION_COMMENT_TOO_LONG", commentSizeError, ["comment"]);
+    const markdownErrors = validateMarkdownInput(comment, "เหตุผลการตรวจ Proposal ฉบับแก้ไข");
+    if (markdownErrors.length) throw new ProposalLifecycleValidationError("REVISION_COMMENT_INVALID", markdownErrors[0] ?? "ข้อความไม่ถูกต้อง", ["comment"]);
+
+    const outcome = await reviewProposalRevisionByAdvisorAtomic(prisma, {
+      actorUserId,
+      requestId,
+      projectId,
+      decision: decisionValue === "APPROVE" ? "CERTIFY" : "RETURN",
+      reason: comment || null
+    });
+    revalidatePath("/teacher");
+    revalidatePath("/teacher/proposal-revisions");
+    revalidatePath("/admin/proposals");
+    revalidatePath("/admin/committee");
+    revalidatePath("/student");
+    revalidatePath("/student/proposal");
+    return {
+      status: "success",
+      code: decisionValue === "APPROVE" ? "PROPOSAL_REVISION_CERTIFIED" : "PROPOSAL_REVISION_RETURNED",
+      message: outcome.unchanged
+        ? "ผลตรวจนี้ถูกบันทึกไว้เรียบร้อยแล้ว"
+        : decisionValue === "APPROVE"
+          ? "รับรอง Proposal ฉบับแก้ไขเรียบร้อยแล้ว"
+          : "ส่งกลับให้นักศึกษาแก้ไขเพิ่มเติมเรียบร้อยแล้ว",
+      requestId,
+      unchanged: outcome.unchanged
+    };
+  });
 }
 
 export async function reviewExamSchedule(formData: FormData) {

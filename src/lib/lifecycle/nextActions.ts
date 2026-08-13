@@ -28,6 +28,7 @@ export type StudentAssessmentRoundKey = "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRE
 
 export type StudentWorkflowContext = {
   proposalRoundOpen?: boolean;
+  proposalRevisionSubmitted?: boolean;
   roundAvailability?: Partial<Record<StudentAssessmentRoundKey, boolean>>;
 };
 
@@ -114,6 +115,15 @@ export function getStudentAvailableActions(
       result.read_only_history.push(action("proposal", "เอกสารเสนอหัวข้อ", "ส่งแล้ว ดูข้อเสนอแนะได้", "history", "/student/proposal"));
       result.blocked_waiting_for.push(action("waiting_proposal_decision", "รอการตัดสินผลสอบหัวข้อ", "ยังแก้ไขเอกสารเสนอหัวข้อไม่ได้ เว้นแต่ผู้ดูแลระบบเปิดสิทธิ์", "blocked"));
       result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอผลการเสนอหัวข้อ", "locked"), action("report", "รายงาน", "ยังไม่ถึงขั้นตอน", "locked"));
+      break;
+    case "PROPOSAL_REVISION_REQUIRED":
+      if (context.proposalRevisionSubmitted) {
+        result.read_only_history.push(action("proposal_revision", "Proposal ฉบับแก้ไข", "ส่งฉบับแก้ไขให้ที่ปรึกษาแล้ว", "history", "/student/proposal"));
+      } else {
+        result.available_now.push(action("proposal_revision", "แก้ไข Proposal ตามมติ", "ส่งฉบับแก้ไขให้ที่ปรึกษารับรองโดยไม่สอบใหม่", "available", "/student/proposal"));
+      }
+      result.blocked_waiting_for.push(action("waiting_revision_approval", "รอที่ปรึกษารับรอง", "ขั้นแต่งตั้งกรรมการจะเปิดหลังที่ปรึกษารับรองฉบับแก้ไข", "blocked"));
+      result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอที่ปรึกษารับรอง Proposal ฉบับแก้ไข", "locked"));
       break;
     case "TOPIC_APPROVED":
       result.read_only_history.push(action("proposal", "การเสนอหัวข้อผ่านแล้ว", "ดูข้อมูลย้อนหลังได้", "history", "/student/proposal"));
@@ -256,6 +266,14 @@ export function getNextActionForStudent(status?: ProjectStatus | null): NextActi
       return {
         title: "รอผู้ดูแลระบบตัดสินผลสอบหัวข้อ",
         description: "ระบบเก็บคะแนนและผลพิจารณาไว้แล้ว แต่ผลสุดท้ายต้องยืนยันโดยผู้ดูแลระบบ",
+        tone: "warning"
+      };
+    case "PROPOSAL_REVISION_REQUIRED":
+      return {
+        title: "แก้ไข Proposal ตามมติ",
+        description: "ส่งฉบับแก้ไขให้ที่ปรึกษารับรอง ขั้นตอนนี้ไม่ต้องสอบหรือให้คะแนนใหม่",
+        actionLabel: "แก้ไข Proposal",
+        href: "/student/proposal",
         tone: "warning"
       };
     case "TOPIC_APPROVED":

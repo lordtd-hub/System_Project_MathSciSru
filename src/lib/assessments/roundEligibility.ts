@@ -13,6 +13,7 @@ export type RoundEligibilityProject = {
   roundExceptions?: Array<{ status: string; reason: string; exceptionType?: string | null }>;
   assessmentSubmissions?: Array<{ kind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT" }>;
   attempts?: Array<{
+    attemptNo?: number;
     status: string;
     finalDecision?: Decision | null;
     assessmentRound?: { roundType: AssessmentRoundType };
@@ -46,9 +47,21 @@ function hasPassedTopicGateStatus(status: ProjectStatus) {
   return ["TOPIC_APPROVED", "IN_PROGRESS", "FINAL_DONE", "COMPLETED"].includes(status);
 }
 
+export function hasApprovedProposalOutcome(project: RoundEligibilityProject) {
+  const finalDecision = project.proposalResults?.[0]?.finalDecision;
+  if (finalDecision === "PASS") return true;
+  if (finalDecision !== "PASS_WITH_REVISION" || project.status !== "TOPIC_APPROVED") return false;
+
+  const latestProposalAttempt = [...(project.attempts ?? [])]
+    .filter((attempt) => attempt.assessmentRound?.roundType === "PROPOSAL")
+    .sort((left, right) => (right.attemptNo ?? 0) - (left.attemptNo ?? 0))[0];
+  return latestProposalAttempt?.presentationSubmission?.status === "LOCKED";
+}
+
 export function getProgress1Readiness(project: RoundEligibilityProject): ProjectReadiness {
   const reasons: string[] = [];
   const finalDecision = project.proposalResults?.[0]?.finalDecision;
+  const proposalOutcomeApproved = hasApprovedProposalOutcome(project);
   const blockingException = project.roundExceptions?.find(
     (exception) => exception.status !== "RESOLVED" && !hasOpenLateRoundException([exception])
   );
@@ -57,13 +70,13 @@ export function getProgress1Readiness(project: RoundEligibilityProject): Project
   if (project.status === "PENDING_ADVISOR") reasons.push("project still PENDING_ADVISOR");
   if (project.status === "PENDING_ADMIN") reasons.push("project still PENDING_ADMIN");
   if (!finalDecision && ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION", "PROPOSAL_PENDING"].includes(project.status)) reasons.push("waiting proposal final decision");
-  if (finalDecision && finalDecision !== "PASS") reasons.push("proposal failed/revise");
+  if (finalDecision && !proposalOutcomeApproved) reasons.push("proposal failed/revise");
   if (!hasCommittee(project, "ADVISOR")) reasons.push("committee not assigned");
   if (!hasCommittee(project, "HEAD")) reasons.push("missing HEAD");
   if (!hasCommittee(project, "MEMBER")) reasons.push("missing MEMBER");
   if (blockingException) reasons.push(blockingException.reason ?? "project has blocking exception");
 
-  const eligible = hasPassedTopicGateStatus(project.status) && finalDecision === "PASS" && reasons.length === 0;
+  const eligible = hasPassedTopicGateStatus(project.status) && proposalOutcomeApproved && reasons.length === 0;
   return { project, eligible, reasons };
 }
 
@@ -193,6 +206,7 @@ export async function getRoundEligibility(courseOfferingId: string, roundType: A
       attempts: {
         where: { assessmentRound: { roundType: { in: ["PROPOSAL", "PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } } },
         select: {
+          attemptNo: true,
           status: true,
           finalDecision: true,
           assessmentRound: { select: { roundType: true } },

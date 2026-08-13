@@ -76,6 +76,16 @@ describe("next action helpers", () => {
     expect(openProposal.available_now.map((item) => item.key)).toContain("proposal");
   });
 
+  it("shows a submitted Proposal revision as history while waiting for the advisor", () => {
+    const revision = getStudentAvailableActions("PROPOSAL_REVISION_REQUIRED", {}, undefined, {
+      proposalRevisionSubmitted: true
+    });
+
+    expect(revision.available_now.map((item) => item.key)).not.toContain("proposal_revision");
+    expect(revision.read_only_history.map((item) => item.key)).toContain("proposal_revision");
+    expect(revision.blocked_waiting_for.map((item) => item.key)).toContain("waiting_revision_approval");
+  });
+
   it("keeps completed projects out of pending student action groups", () => {
     const completed = getStudentAvailableActions("COMPLETED");
     expect(completed.available_now).toEqual([]);

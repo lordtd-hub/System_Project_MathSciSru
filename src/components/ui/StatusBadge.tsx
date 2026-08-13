@@ -8,7 +8,7 @@ function badgeTone(status: ProjectStatus): { badge: string; dot: string } {
   if (["DRAFT", "STUDENT_PROFILE"].includes(status)) {
     return { badge: "badge-lock", dot: "bg-current" };
   }
-  if (["PENDING_ADVISOR", "PENDING_ADMIN", "PROPOSAL_PENDING", "PROPOSAL_ADMIN_DECISION"].includes(status)) {
+  if (["PENDING_ADVISOR", "PENDING_ADMIN", "PROPOSAL_PENDING", "PROPOSAL_ADMIN_DECISION", "PROPOSAL_REVISION_REQUIRED"].includes(status)) {
     return { badge: "badge-warn", dot: "bg-current" };
   }
   if (["PROPOSAL_FAILED", "REPROPOSAL_FAILED"].includes(status)) {

@@ -242,7 +242,7 @@ async function assertProgress1Ready(
   project: { id: string; status: Parameters<typeof getProgress1Readiness>[0]["status"] },
   assessmentRoundId: string
 ) {
-  const [proposalResult, committeeAssignments, roundExceptions] = await Promise.all([
+  const [proposalResult, committeeAssignments, roundExceptions, latestProposalAttempt] = await Promise.all([
     tx.projectProposalResult.findFirst({
       where: { projectId: project.id },
       orderBy: { decidedAt: "desc" },
@@ -255,6 +255,17 @@ async function assertProgress1Ready(
     tx.projectRoundException.findMany({
       where: { projectId: project.id, assessmentRoundId, status: { not: "RESOLVED" } },
       select: { status: true, reason: true, exceptionType: true }
+    }),
+    tx.assessmentAttempt.findFirst({
+      where: { projectId: project.id, assessmentRound: { roundType: "PROPOSAL" } },
+      orderBy: { attemptNo: "desc" },
+      select: {
+        attemptNo: true,
+        status: true,
+        assessmentRound: { select: { roundType: true } },
+        presentationSubmission: { select: { status: true } },
+        evaluatorAssignments: { select: { teacherId: true, scoreSubmission: { select: { status: true } } } }
+      }
     })
   ]);
   const readiness = getProgress1Readiness({
@@ -262,7 +273,8 @@ async function assertProgress1Ready(
     status: project.status,
     proposalResults: proposalResult ? [proposalResult] : [],
     committeeAssignments,
-    roundExceptions
+    roundExceptions,
+    attempts: latestProposalAttempt ? [latestProposalAttempt] : []
   });
   if (!readiness.eligible) {
     throw new StudentActionConflictError(

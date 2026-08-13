@@ -223,7 +223,7 @@ export default async function StudentDashboardPage() {
             take: 6
           },
           reportVersions: { select: { versionNo: true, reviews: { select: { decision: true } } }, orderBy: { versionNo: "desc" }, take: 1 },
-          presentationSubmissions: { select: { id: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          presentationSubmissions: { select: { id: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
           roundExceptions: {
             where: { status: "OPEN" },
             select: {
@@ -361,8 +361,10 @@ export default async function StudentDashboardPage() {
         tone: project.status === "REPORT_APPROVED" ? "success" as const : baseNextAction.tone
       }
     : baseNextAction;
+  const proposal = project.presentationSubmissions[0];
   const studentWorkflowContext = {
     proposalRoundOpen: Boolean(roundStatusByType.get("PROPOSAL") && isRoundOpen(roundStatusByType.get("PROPOSAL")!)),
+    proposalRevisionSubmitted: project.status === "PROPOSAL_REVISION_REQUIRED" && proposal?.status === "SUBMITTED",
     roundAvailability: {
       PROGRESS_1: Boolean(roundStatusByType.get("PROGRESS_1") && isRoundOpen(roundStatusByType.get("PROGRESS_1")!)),
       PROGRESS_2: Boolean(roundStatusByType.get("PROGRESS_2") && isRoundOpen(roundStatusByType.get("PROGRESS_2")!)),
@@ -381,7 +383,6 @@ export default async function StudentDashboardPage() {
         tone: "warning" as const
       }
     : nextAction;
-  const proposal = project.presentationSubmissions[0];
   const activeSchedule = project.scheduleProposals.find((schedule) => {
     if (schedule.assessmentKind === "PROGRESS_1") return assessmentStates.PROGRESS_1 !== "COMPLETED";
     if (schedule.assessmentKind === "PROGRESS_2") return assessmentStates.PROGRESS_2 !== "COMPLETED";

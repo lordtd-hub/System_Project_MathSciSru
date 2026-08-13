@@ -9,6 +9,15 @@ type Viewer = Session["user"] | null | undefined;
 
 export type ProjectRecordViewerRole = "ADMIN" | "STUDENT" | "TEACHER";
 
+export function canViewerSeeAttemptScore(
+  viewerRole: ProjectRecordViewerRole,
+  roundType: string,
+  showScoreToStudent: boolean
+) {
+  if (viewerRole !== "STUDENT") return true;
+  return roundType !== "PROPOSAL" && showScoreToStudent;
+}
+
 type ProjectRecordAccessProject = {
   student: { generatedEmail: string };
   advisorRequests: { advisorTeacherId: string; status: string }[];
@@ -428,7 +437,11 @@ export async function getProjectRecordForViewer(projectId: string, viewer: Viewe
       assessmentAttempts: project.attempts.map((attempt) => {
         const requiredReviewers = attempt.evaluatorAssignments.filter((assignment) => assignment.isRequired).length;
         const submittedReviewers = attempt.evaluatorAssignments.filter((assignment) => isSubmittedScoreStatus(assignment.scoreSubmission?.status)).length;
-        const canShowStudentScore = viewerRole !== "STUDENT" || attempt.assessmentRound.showScoreToStudent;
+        const canShowStudentScore = canViewerSeeAttemptScore(
+          viewerRole,
+          attempt.assessmentRound.roundType,
+          attempt.assessmentRound.showScoreToStudent
+        );
         return {
           id: attempt.id,
           roundType: attempt.assessmentRound.roundType,
