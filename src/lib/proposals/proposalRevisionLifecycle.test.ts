@@ -100,7 +100,23 @@ function initialState(): State {
   };
 }
 
-function createHarness(seed: State = initialState()) {
+type EvaluatorAssignmentSeed = {
+  scoreSubmission: null | {
+    totalScore: number;
+    status: string;
+    proposalDecision: null | { decision: string; reason: string | null };
+  };
+};
+
+const completeEvaluatorAssignments: EvaluatorAssignmentSeed[] = [
+  { scoreSubmission: { totalScore: 80, status: "SUBMITTED", proposalDecision: { decision: "PASS", reason: null } } },
+  { scoreSubmission: { totalScore: 60, status: "SUBMITTED", proposalDecision: { decision: "PASS_WITH_REVISION", reason: "แก้ไข" } } }
+];
+
+function createHarness(
+  seed: State = initialState(),
+  evaluatorAssignments: EvaluatorAssignmentSeed[] = completeEvaluatorAssignments
+) {
   let state = structuredClone(seed);
 
   const tx = {
@@ -142,10 +158,7 @@ function createHarness(seed: State = initialState()) {
             project: { ...state.project, student: { ...state.project.student } },
             presentationSubmission: { ...state.submission },
             proposalResult: state.result ? { ...state.result } : null,
-            evaluatorAssignments: [
-              { scoreSubmission: { totalScore: 80, status: "SUBMITTED", proposalDecision: { decision: "PASS", reason: null } } },
-              { scoreSubmission: { totalScore: 60, status: "SUBMITTED", proposalDecision: { decision: "PASS_WITH_REVISION", reason: "แก้ไข" } } }
-            ]
+            evaluatorAssignments: structuredClone(evaluatorAssignments)
           }),
       findFirst: vi.fn(async () => ({ id: "attempt-1" })),
       update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
@@ -270,6 +283,39 @@ describe("Proposal revision lifecycle transactional services", () => {
     expect(harness.read().audits).toHaveLength(1);
     expect(harness.read().notifications).toHaveLength(1);
     expect(harness.read().attemptStatus).toBe("SCORING_OPEN");
+  });
+
+  it.each([
+    ["PASS", "TOPIC_APPROVED"],
+    ["PASS_WITH_REVISION", "PROPOSAL_REVISION_REQUIRED"],
+    ["NOT_PASS", "DRAFT"]
+  ] as const)("allows Admin %s while evaluator scores are incomplete", async (decision, projectStatus) => {
+    const seed = initialState();
+    seed.project.status = "PROPOSAL_REVIEW";
+    const incompleteAssignments: EvaluatorAssignmentSeed[] = [
+      { scoreSubmission: { totalScore: 62, status: "SUBMITTED", proposalDecision: { decision: "PASS", reason: null } } },
+      { scoreSubmission: { totalScore: 61, status: "SUBMITTED", proposalDecision: { decision: "PASS_WITH_REVISION", reason: "แก้ไข" } } },
+      { scoreSubmission: { totalScore: 19, status: "SUBMITTED", proposalDecision: { decision: "NOT_PASS", reason: "ยังไม่พร้อมประเมิน" } } },
+      { scoreSubmission: { totalScore: 0, status: "DRAFT", proposalDecision: null } },
+      ...Array.from({ length: 5 }, () => ({ scoreSubmission: null }))
+    ];
+    harness = createHarness(seed, incompleteAssignments);
+
+    await saveAdminProposalFinalDecisionAtomic(harness.db, {
+      actorUserId: "admin-user",
+      requestId: `request-incomplete-${decision}`,
+      assessmentAttemptId: "attempt-1",
+      finalDecision: decision,
+      finalDecisionReason: decision === "PASS" ? null : "มติที่ประชุมจากคะแนนที่ส่งแล้ว"
+    }, { now: () => now });
+
+    expect(harness.read().result).toMatchObject({
+      finalDecision: decision,
+      submittedCount: 3,
+      missingCount: 6
+    });
+    expect(harness.read().project.status).toBe(projectStatus);
+    expect(harness.read().cancelledAdvisorRequestCount).toBe(decision === "NOT_PASS" ? 1 : 0);
   });
 
   it.each([
