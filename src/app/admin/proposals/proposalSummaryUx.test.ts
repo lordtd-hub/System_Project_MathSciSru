@@ -64,4 +64,13 @@ describe("admin proposal summary UX", () => {
     expect(pageSource).toContain("isLatestAttempt && attempt.proposalResult");
     expect(pageSource).toContain("ยืนยันเปิดข้อเสนอแนะของ");
   });
+
+  it("finishes feedback release through a typed action result instead of redirecting", () => {
+    expect(pageSource).toContain("<ProposalLifecycleActionForm action={releaseFeedback}");
+    expect(pageSource).toContain('pendingText="กำลังเปิดข้อเสนอแนะ..."');
+    expect(actionSource).toContain('runProposalLifecycleAction("admin.releaseFeedback"');
+    expect(actionSource).toContain('code: "PROPOSAL_FEEDBACK_RELEASED"');
+    expect(actionSource).toContain('unchanged: outcome === "unchanged"');
+    expect(actionSource).not.toContain('redirect("/admin/proposals?success=feedback_released")');
+  });
 });

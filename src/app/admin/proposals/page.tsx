@@ -386,7 +386,7 @@ export default async function AdminProposalsPage({
                             missingScoreCount={summary.missingCount}
                           />
                         )}
-                        {isLatestAttempt && attempt.proposalResult ? <form action={releaseFeedback} className="mt-3">
+                        {isLatestAttempt && attempt.proposalResult ? <ProposalLifecycleActionForm action={releaseFeedback} className="mt-3">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
                           <SubmitButton
                             className="button-secondary w-full"
@@ -396,7 +396,7 @@ export default async function AdminProposalsPage({
                           >
                             {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                           </SubmitButton>
-                        </form> : null}
+                        </ProposalLifecycleActionForm> : null}
                         <details className="mt-3 rounded-md border border-line bg-surface p-2">
                           <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
                           <div className="mt-2 space-y-2 text-xs text-muted">
@@ -559,7 +559,7 @@ export default async function AdminProposalsPage({
                                 missingScoreCount={summary.missingCount}
                               />
                             )}
-                            {isLatestAttempt && attempt.proposalResult ? <form action={releaseFeedback} className="mt-3">
+                            {isLatestAttempt && attempt.proposalResult ? <ProposalLifecycleActionForm action={releaseFeedback} className="mt-3">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
                               <SubmitButton
                                 className="button-secondary w-full"
@@ -569,7 +569,7 @@ export default async function AdminProposalsPage({
                               >
                                 {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                               </SubmitButton>
-                            </form> : null}
+                            </ProposalLifecycleActionForm> : null}
                           </td>
                         </tr>
                       );

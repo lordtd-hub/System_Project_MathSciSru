@@ -1089,77 +1089,103 @@ export async function assignProjectCommittee(formData: FormData) {
   redirect("/admin/committee?success=committee_saved");
 }
 
-export async function releaseFeedback(formData: FormData) {
-  const adminUserId = await requireAdminUserId();
-  assertRateLimit(`admin:${adminUserId}:releaseFeedback`, pilotRateLimits.workflowMutation);
-  const attemptId = String(formData.get("attempt_id") ?? "").trim();
-  if (!attemptId) redirect("/admin/proposals?error=feedback_release_not_available");
+export async function releaseFeedback(
+  _previousState: ProposalLifecycleActionResult,
+  formData: FormData
+): Promise<ProposalLifecycleActionResult> {
+  return runProposalLifecycleAction("admin.releaseFeedback", async (requestId) => {
+    const adminUserId = await requireAdminUserId();
+    assertRateLimit(`admin:${adminUserId}:releaseFeedback`, pilotRateLimits.workflowMutation);
+    const attemptId = String(formData.get("attempt_id") ?? "").trim();
+    if (!attemptId) {
+      throw new ProposalLifecycleValidationError(
+        "FEEDBACK_RELEASE_NOT_AVAILABLE",
+        "ไม่พบรายการที่ต้องการเปิดข้อเสนอแนะ กรุณารีเฟรชหน้าแล้วลองใหม่",
+        ["attempt_id"]
+      );
+    }
 
-  const outcome = await prisma.$transaction(async (tx) => {
-    const context = await tx.assessmentAttempt.findUnique({
-      where: { id: attemptId },
-      select: { projectId: true, assessmentRoundId: true }
-    });
-    if (!context) return "not_available" as const;
-    await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${context.projectId} FOR UPDATE`;
-
-    const [attempt, latestAttempt] = await Promise.all([
-      tx.assessmentAttempt.findUnique({
+    const outcome = await prisma.$transaction(async (tx) => {
+      const context = await tx.assessmentAttempt.findUnique({
         where: { id: attemptId },
-        select: { id: true, projectId: true, proposalResult: { select: { id: true } }, scoreRelease: { select: { id: true, showFeedback: true } } }
-      }),
-      tx.assessmentAttempt.findFirst({
-        where: { projectId: context.projectId, assessmentRoundId: context.assessmentRoundId },
-        orderBy: { attemptNo: "desc" },
-        select: { id: true }
-      })
-    ]);
-    if (!attempt) return "not_available" as const;
-    const releaseOutcome = proposalFeedbackReleaseOutcome({
-      hasProposalResult: Boolean(attempt.proposalResult),
-      isLatestProposalAttempt: latestAttempt?.id === attempt.id,
-      feedbackAlreadyReleased: Boolean(attempt.scoreRelease?.showFeedback)
-    });
-    if (releaseOutcome !== "release") return releaseOutcome;
+        select: { projectId: true, assessmentRoundId: true }
+      });
+      if (!context) return "not_available" as const;
+      await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${context.projectId} FOR UPDATE`;
 
-    await tx.scoreRelease.upsert({
-      where: { assessmentAttemptId: attemptId },
-      update: { showFeedback: true, releasedByAdminId: adminUserId, releasedAt: new Date() },
-      create: {
-        assessmentAttemptId: attemptId,
-        projectId: attempt.projectId,
-        showFeedback: true,
-        showScore: false,
-        releasedByAdminId: adminUserId
-      }
-    });
-    await tx.projectTimelineEvent.create({
-      data: {
-        projectId: attempt.projectId,
-        eventType: "FEEDBACK_RELEASED",
-        eventTitle: "เปิดข้อเสนอแนะให้นักศึกษาเห็น",
-        actorUserId: adminUserId,
-        relatedEntityType: "AssessmentAttempt",
-        relatedEntityId: attemptId
-      }
-    });
-    await tx.auditLog.create({
-      data: {
-        actorUserId: adminUserId,
-        action: "FEEDBACK_RELEASED",
-        entityType: "AssessmentAttempt",
-        entityId: attemptId,
-        afterJson: { showFeedback: true, showScore: false },
-        metadataJson: { projectId: attempt.projectId }
-      }
-    });
-    return "released" as const;
-  }, { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
+      const [attempt, latestAttempt] = await Promise.all([
+        tx.assessmentAttempt.findUnique({
+          where: { id: attemptId },
+          select: { id: true, projectId: true, proposalResult: { select: { id: true } }, scoreRelease: { select: { id: true, showFeedback: true } } }
+        }),
+        tx.assessmentAttempt.findFirst({
+          where: { projectId: context.projectId, assessmentRoundId: context.assessmentRoundId },
+          orderBy: { attemptNo: "desc" },
+          select: { id: true }
+        })
+      ]);
+      if (!attempt) return "not_available" as const;
+      const releaseOutcome = proposalFeedbackReleaseOutcome({
+        hasProposalResult: Boolean(attempt.proposalResult),
+        isLatestProposalAttempt: latestAttempt?.id === attempt.id,
+        feedbackAlreadyReleased: Boolean(attempt.scoreRelease?.showFeedback)
+      });
+      if (releaseOutcome !== "release") return releaseOutcome;
 
-  if (outcome === "not_available") redirect("/admin/proposals?error=feedback_release_not_available");
+      await tx.scoreRelease.upsert({
+        where: { assessmentAttemptId: attemptId },
+        update: { showFeedback: true, releasedByAdminId: adminUserId, releasedAt: new Date() },
+        create: {
+          assessmentAttemptId: attemptId,
+          projectId: attempt.projectId,
+          showFeedback: true,
+          showScore: false,
+          releasedByAdminId: adminUserId
+        }
+      });
+      await tx.projectTimelineEvent.create({
+        data: {
+          projectId: attempt.projectId,
+          eventType: "FEEDBACK_RELEASED",
+          eventTitle: "เปิดข้อเสนอแนะให้นักศึกษาเห็น",
+          actorUserId: adminUserId,
+          relatedEntityType: "AssessmentAttempt",
+          relatedEntityId: attemptId
+        }
+      });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: adminUserId,
+          action: "FEEDBACK_RELEASED",
+          entityType: "AssessmentAttempt",
+          entityId: attemptId,
+          afterJson: { showFeedback: true, showScore: false },
+          metadataJson: { projectId: attempt.projectId, requestId }
+        }
+      });
+      return "released" as const;
+    }, { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
 
-  revalidatePath("/admin/proposals");
-  redirect("/admin/proposals?success=feedback_released");
+    if (outcome === "not_available") {
+      throw new ProposalLifecycleValidationError(
+        "FEEDBACK_RELEASE_NOT_AVAILABLE",
+        "ยังเปิดข้อเสนอแนะของรายการนี้ไม่ได้ กรุณาตรวจสอบมติล่าสุดแล้วลองใหม่"
+      );
+    }
+
+    revalidatePath("/admin/proposals");
+    revalidatePath("/student");
+    revalidatePath("/student/proposal");
+    return {
+      status: "success",
+      code: "PROPOSAL_FEEDBACK_RELEASED",
+      message: outcome === "unchanged"
+        ? "ข้อเสนอแนะรายการนี้เปิดให้นักศึกษาเห็นอยู่แล้ว"
+        : "เปิดข้อเสนอแนะให้นักศึกษาเห็นแล้ว",
+      requestId,
+      unchanged: outcome === "unchanged"
+    };
+  });
 }
 
 export async function completeProjectCloseout(formData: FormData) {
