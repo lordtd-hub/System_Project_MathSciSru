@@ -40,6 +40,7 @@ import {
   saveAdminProposalFinalDecisionAtomic,
   unlockProposalRevisionAtomic
 } from "@/lib/proposals/proposalRevisionLifecycle";
+import { proposalFeedbackReleaseOutcome } from "@/lib/scoring/proposalAttemptAccess";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
 import { assertTextSize, requestSizeLimits, sizeError } from "@/lib/security/requestSize";
 
@@ -1091,11 +1092,37 @@ export async function assignProjectCommittee(formData: FormData) {
 export async function releaseFeedback(formData: FormData) {
   const adminUserId = await requireAdminUserId();
   assertRateLimit(`admin:${adminUserId}:releaseFeedback`, pilotRateLimits.workflowMutation);
-  const attemptId = String(formData.get("attempt_id"));
-  const attempt = await prisma.assessmentAttempt.findUniqueOrThrow({ where: { id: attemptId } });
+  const attemptId = String(formData.get("attempt_id") ?? "").trim();
+  if (!attemptId) redirect("/admin/proposals?error=feedback_release_not_available");
 
-  await prisma.$transaction([
-    prisma.scoreRelease.upsert({
+  const outcome = await prisma.$transaction(async (tx) => {
+    const context = await tx.assessmentAttempt.findUnique({
+      where: { id: attemptId },
+      select: { projectId: true, assessmentRoundId: true }
+    });
+    if (!context) return "not_available" as const;
+    await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${context.projectId} FOR UPDATE`;
+
+    const [attempt, latestAttempt] = await Promise.all([
+      tx.assessmentAttempt.findUnique({
+        where: { id: attemptId },
+        select: { id: true, projectId: true, proposalResult: { select: { id: true } }, scoreRelease: { select: { id: true, showFeedback: true } } }
+      }),
+      tx.assessmentAttempt.findFirst({
+        where: { projectId: context.projectId, assessmentRoundId: context.assessmentRoundId },
+        orderBy: { attemptNo: "desc" },
+        select: { id: true }
+      })
+    ]);
+    if (!attempt) return "not_available" as const;
+    const releaseOutcome = proposalFeedbackReleaseOutcome({
+      hasProposalResult: Boolean(attempt.proposalResult),
+      isLatestProposalAttempt: latestAttempt?.id === attempt.id,
+      feedbackAlreadyReleased: Boolean(attempt.scoreRelease?.showFeedback)
+    });
+    if (releaseOutcome !== "release") return releaseOutcome;
+
+    await tx.scoreRelease.upsert({
       where: { assessmentAttemptId: attemptId },
       update: { showFeedback: true, releasedByAdminId: adminUserId, releasedAt: new Date() },
       create: {
@@ -1105,8 +1132,8 @@ export async function releaseFeedback(formData: FormData) {
         showScore: false,
         releasedByAdminId: adminUserId
       }
-    }),
-    prisma.projectTimelineEvent.create({
+    });
+    await tx.projectTimelineEvent.create({
       data: {
         projectId: attempt.projectId,
         eventType: "FEEDBACK_RELEASED",
@@ -1115,8 +1142,8 @@ export async function releaseFeedback(formData: FormData) {
         relatedEntityType: "AssessmentAttempt",
         relatedEntityId: attemptId
       }
-    }),
-    prisma.auditLog.create({
+    });
+    await tx.auditLog.create({
       data: {
         actorUserId: adminUserId,
         action: "FEEDBACK_RELEASED",
@@ -1125,8 +1152,11 @@ export async function releaseFeedback(formData: FormData) {
         afterJson: { showFeedback: true, showScore: false },
         metadataJson: { projectId: attempt.projectId }
       }
-    })
-  ]);
+    });
+    return "released" as const;
+  }, { isolationLevel: "Serializable", maxWait: 5_000, timeout: 15_000 });
+
+  if (outcome === "not_available") redirect("/admin/proposals?error=feedback_release_not_available");
 
   revalidatePath("/admin/proposals");
   redirect("/admin/proposals?success=feedback_released");

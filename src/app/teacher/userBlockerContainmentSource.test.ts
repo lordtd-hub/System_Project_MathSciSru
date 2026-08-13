@@ -21,6 +21,9 @@ describe("teacher user-blocker containment", () => {
     );
     expect(openProposalAction).not.toContain("revalidatePath(");
     expect(openProposalAction).toContain("redirect(`/teacher/scoring/");
+    expect(service).toContain("!teacher.active || !teacher.isInternal || !teacher.canEvaluateProposal");
+    expect(openProposalAction).toContain('FOR UPDATE`');
+    expect(openProposalAction).toContain('isolationLevel: "Serializable"');
     expect(form).toContain("useActionState");
     expect(form).toContain("router.push");
     expect(service).not.toContain("updateAssignment");

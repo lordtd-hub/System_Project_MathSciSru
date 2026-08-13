@@ -22,4 +22,14 @@ describe("proposal workload queries", () => {
       ]
     });
   });
+
+  it("includes a project-scoped Re-proposal without reopening the shared round", () => {
+    const openWhere = openProposalScoringAttemptWhere();
+    expect(openWhere.OR).toContainEqual({
+      attemptType: "REPROPOSAL",
+      status: "SCORING_OPEN",
+      assessmentRound: { roundType: "PROPOSAL" },
+      project: { status: "PROPOSAL_REVIEW" }
+    });
+  });
 });

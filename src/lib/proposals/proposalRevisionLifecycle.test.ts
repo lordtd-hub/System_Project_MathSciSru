@@ -40,6 +40,10 @@ type State = {
   notifications: Array<Record<string, unknown>>;
   activeCommitteeCount: number;
   latestAdvisorRequestStatus: "APPROVED" | "PENDING" | "REJECTED" | "CANCELLED";
+  attemptNo: number;
+  attemptType: "MAIN_PROPOSAL" | "REPROPOSAL";
+  attemptStatus: "SCORING_OPEN" | "SCORING_CLOSED";
+  cancelledAdvisorRequestCount: number;
 };
 
 const now = new Date("2026-08-12T03:00:00.000Z");
@@ -88,7 +92,11 @@ function initialState(): State {
     audits: [],
     notifications: [],
     activeCommitteeCount: 0,
-    latestAdvisorRequestStatus: "APPROVED"
+    latestAdvisorRequestStatus: "APPROVED",
+    attemptNo: 1,
+    attemptType: "MAIN_PROPOSAL",
+    attemptStatus: "SCORING_OPEN",
+    cancelledAdvisorRequestCount: 0
   };
 }
 
@@ -127,7 +135,10 @@ function createHarness(seed: State = initialState()) {
         : {
             id: "attempt-1",
             projectId: state.project.id,
-            attemptType: "MAIN_PROPOSAL",
+            assessmentRoundId: "round-proposal",
+            attemptNo: state.attemptNo,
+            attemptType: state.attemptType,
+            status: state.attemptStatus,
             project: { ...state.project, student: { ...state.project.student } },
             presentationSubmission: { ...state.submission },
             proposalResult: state.result ? { ...state.result } : null,
@@ -135,7 +146,12 @@ function createHarness(seed: State = initialState()) {
               { scoreSubmission: { totalScore: 80, status: "SUBMITTED", proposalDecision: { decision: "PASS", reason: null } } },
               { scoreSubmission: { totalScore: 60, status: "SUBMITTED", proposalDecision: { decision: "PASS_WITH_REVISION", reason: "แก้ไข" } } }
             ]
-          })
+          }),
+      findFirst: vi.fn(async () => ({ id: "attempt-1" })),
+      update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        if (typeof data.status === "string") state.attemptStatus = data.status as State["attemptStatus"];
+        return { id: "attempt-1", ...data };
+      })
     },
     projectProposalResult: {
       findFirst: vi.fn(async () => state.result ? {
@@ -178,7 +194,12 @@ function createHarness(seed: State = initialState()) {
         status: state.latestAdvisorRequestStatus,
         reviewedAt: new Date("2026-07-15T03:00:00.000Z"),
         advisorTeacher: { id: "advisor-1", userId: "advisor-user", active: true }
-      }))
+      })),
+      updateMany: vi.fn(async ({ where }: { where: { status?: { in?: string[] } } }) => {
+        const count = where.status?.in ? 1 : 0;
+        state.cancelledAdvisorRequestCount += count;
+        return { count };
+      })
     },
     committeeAssignment: { count: vi.fn(async () => state.activeCommitteeCount) },
     projectStatusHistory: { create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => state.histories.push(data)) },
@@ -248,7 +269,37 @@ describe("Proposal revision lifecycle transactional services", () => {
     expect(harness.read().timeline).toHaveLength(1);
     expect(harness.read().audits).toHaveLength(1);
     expect(harness.read().notifications).toHaveLength(1);
-    expect((harness.tx.assessmentAttempt as Record<string, unknown>).update).toBeUndefined();
+    expect(harness.read().attemptStatus).toBe("SCORING_OPEN");
+  });
+
+  it.each([
+    ["PASS", "TOPIC_APPROVED"],
+    ["PASS_WITH_REVISION", "PROPOSAL_REVISION_REQUIRED"],
+    ["NOT_PASS", "DRAFT"]
+  ] as const)("closes only the latest Re-proposal attempt after Admin records %s", async (decision, projectStatus) => {
+    const seed = initialState();
+    seed.attemptNo = 2;
+    seed.attemptType = "REPROPOSAL";
+    seed.submission.assessmentAttemptId = "attempt-1";
+    harness = createHarness(seed);
+
+    const outcome = await saveAdminProposalFinalDecisionAtomic(harness.db, {
+      actorUserId: "admin-user",
+      requestId: `request-reproposal-${decision}`,
+      assessmentAttemptId: "attempt-1",
+      finalDecision: decision,
+      finalDecisionReason: decision === "PASS" ? null : "มติการสอบหัวข้อรอบใหม่"
+    }, { now: () => now });
+
+    expect(outcome.unchanged).toBe(false);
+    expect(harness.read().project.status).toBe(projectStatus);
+    expect(harness.read().attemptStatus).toBe("SCORING_CLOSED");
+    expect(harness.read().result).toMatchObject({ finalDecision: decision });
+    expect(harness.read().cancelledAdvisorRequestCount).toBe(decision === "NOT_PASS" ? 1 : 0);
+    expect(harness.read().audits.at(-1)).toMatchObject({
+      afterJson: expect.objectContaining({ attemptStatus: "SCORING_CLOSED" }),
+      metadataJson: expect.objectContaining({ attemptType: "REPROPOSAL" })
+    });
   });
 
   it("rolls every Admin write back on a fault and deduplicates a committed retry", async () => {

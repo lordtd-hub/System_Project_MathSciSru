@@ -45,10 +45,11 @@ export default async function ProposalSubmissionPage({
       projects: {
         orderBy: { createdAt: "desc" },
         include: {
-          presentationSubmissions: { orderBy: { createdAt: "desc" }, take: 1 },
+          presentationSubmissions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
           origin: true,
-          proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
+          proposalResults: { orderBy: [{ decidedAt: "desc" }, { id: "desc" }], take: 1 },
           attempts: {
+            where: { assessmentRound: { roundType: "PROPOSAL" } },
             orderBy: { attemptNo: "desc" },
             include: {
               proposalVotes: { include: { teacher: true }, orderBy: { submittedAt: "desc" } },
@@ -64,9 +65,19 @@ export default async function ProposalSubmissionPage({
   const project = student?.projects[0];
   const submission = project?.presentationSubmissions[0];
   const latestProposalResult = project?.proposalResults[0];
-  const content = submission?.contentJson as Record<string, unknown> | undefined;
+  const latestProposalAttempt = project?.attempts[0];
+  const currentProposalResult = latestProposalAttempt?.id === latestProposalResult?.assessmentAttemptId
+    ? latestProposalResult
+    : null;
   const proposalComments = project?.attempts.flatMap((attempt) =>
-    submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments).filter((vote) => vote.visibleToStudent)
+    submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments)
+      .filter((vote) => vote.visibleToStudent)
+      .map((vote) => ({
+        ...vote,
+        attemptNo: attempt.attemptNo,
+        attemptType: attempt.attemptType,
+        isCurrentAttempt: attempt.id === latestProposalAttempt?.id
+      }))
   ) ?? [];
   const proposalRound = project
     ? await prisma.assessmentRound.findFirst({
@@ -83,19 +94,26 @@ export default async function ProposalSubmissionPage({
   const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
   const latePenaltyRequired = requiresLateRoundPenalty(lateRoundExceptions);
   const canPrepareInitialProposal = project?.status === "PROPOSAL_PENDING";
+  const canSubmitReproposal = Boolean(
+    canPrepareInitialProposal
+    && currentProposalResult?.finalDecision === "NOT_PASS"
+  );
   const canSubmitInitialProposal = Boolean(
     canPrepareInitialProposal
+    && !canSubmitReproposal
     && proposalRound
     && ((isRoundOpen(proposalRound.status) && canEditUntilDeadline(new Date(), proposalRound.submissionDeadline)) || hasLateOverride)
   );
   const canSubmitRevision = Boolean(
     project?.status === "PROPOSAL_REVISION_REQUIRED"
-    && latestProposalResult?.finalDecision === "PASS_WITH_REVISION"
+    && currentProposalResult?.finalDecision === "PASS_WITH_REVISION"
     && submission?.status === "RETURNED_FOR_REVISION"
   );
-  const canPrepareProposal = canPrepareInitialProposal || canSubmitRevision;
-  const canSubmitProposal = canSubmitInitialProposal || canSubmitRevision;
-  const showSubmittedProposalState = Boolean(submission && !canSubmitRevision && project?.status !== "PROPOSAL_PENDING");
+  const canPrepareProposal = canPrepareInitialProposal || canSubmitRevision || canSubmitReproposal;
+  const canSubmitProposal = canSubmitInitialProposal || canSubmitRevision || canSubmitReproposal;
+  const formSubmission = canSubmitReproposal ? null : submission;
+  const content = formSubmission?.contentJson as Record<string, unknown> | undefined;
+  const showSubmittedProposalState = Boolean(submission && !canSubmitRevision && !canSubmitReproposal && project?.status !== "PROPOSAL_PENDING");
   const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState && !canSubmitRevision;
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
@@ -114,20 +132,20 @@ export default async function ProposalSubmissionPage({
         }
       />
       <ActionFeedback success={params.success} error={params.error} />
-      {latestProposalResult ? (
+      {currentProposalResult ? (
         <section className="panel space-y-2" data-testid="student-proposal-final-decision">
           <h2 className="text-lg font-semibold">มติการเสนอหัวข้อ</h2>
           <p className="font-medium">
-            {latestProposalResult.finalDecision === "PASS"
+            {currentProposalResult.finalDecision === "PASS"
               ? "ผ่าน"
-              : latestProposalResult.finalDecision === "PASS_WITH_REVISION"
+              : currentProposalResult.finalDecision === "PASS_WITH_REVISION"
                 ? "ผ่านโดยให้แก้ไข"
                 : "ไม่ผ่าน"}
           </p>
-          {latestProposalResult.finalDecisionReason ? (
+          {currentProposalResult.finalDecisionReason ? (
             <MarkdownLatexViewer
               className="border-0 bg-transparent p-0 text-sm text-muted"
-              value={latestProposalResult.finalDecisionReason}
+              value={currentProposalResult.finalDecisionReason}
             />
           ) : null}
           <p className="text-xs text-muted">หน้านี้ไม่แสดงคะแนนดิบของกรรมการ</p>
@@ -151,9 +169,9 @@ export default async function ProposalSubmissionPage({
           },
           {
             label: "ส่งแล้ว",
-            value: submission ? 1 : 0,
+            value: formSubmission ? 1 : 0,
             detail: "เมื่อส่งแล้วให้ติดตามผลการพิจารณาและความเห็นจากอาจารย์ในหน้านี้",
-            tone: submission ? "done" : "locked"
+            tone: formSubmission ? "done" : "locked"
           },
           {
             label: "ความเห็น",
@@ -177,7 +195,7 @@ export default async function ProposalSubmissionPage({
             ? "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษ ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
             : "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษโดยผู้ดูแลระบบ กรุณาส่งข้อมูลให้ครบตามที่ได้รับอนุญาต"}
         </WarningAlert>
-      ) : canPrepareInitialProposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
+      ) : canPrepareInitialProposal && !canSubmitReproposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
         <WarningAlert title="พ้นกำหนดส่ง Proposal แล้ว">
           ขณะนี้รอบ Proposal ปิดแล้ว หากจำเป็นต้องส่งย้อนหลัง กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดเป็นรายกรณี
         </WarningAlert>
@@ -190,6 +208,12 @@ export default async function ProposalSubmissionPage({
       {canSubmitRevision ? (
         <InfoAlert title="ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษาตรวจ">
           แก้ข้อมูลในแบบฟอร์มให้ครบตามมติและข้อเสนอแนะ เมื่อส่งแล้วระบบจะเพิ่มประวัติฉบับใหม่โดยไม่สร้างการสอบหรือคะแนนชุดใหม่
+        </InfoAlert>
+      ) : null}
+      {canSubmitReproposal ? (
+        <InfoAlert title="ส่ง Proposal สำหรับการสอบใหม่">
+          กรุณากรอก Proposal ฉบับใหม่สำหรับ Re-proposal ข้อมูลและผลประเมินจากครั้งก่อนยังคงอยู่ในประวัติ
+          การส่งครั้งนี้เปิดเฉพาะโครงการของคุณแม้รอบรวมปิดแล้ว และไม่ถือเป็นการส่งล่าช้า
         </InfoAlert>
       ) : null}
       <InfoAlert title="การแสดงผลให้นักศึกษา">
@@ -232,20 +256,30 @@ export default async function ProposalSubmissionPage({
           </div>
         </section>
       ) : (
-      <StudentRecoverableActionForm action={saveProposalSubmission} resultMode="typed" storageKey={`student-proposal-draft:${project.id}`}>
-        {submission ? <input type="hidden" name="proposal_submission_id" value={submission.id} /> : null}
+      <StudentRecoverableActionForm
+        action={saveProposalSubmission}
+        resultMode="typed"
+        storageKey={`student-proposal-draft:${project.id}${canSubmitReproposal ? `:reproposal:${latestProposalAttempt?.id}:${currentProposalResult?.id}` : ""}`}
+      >
+        {formSubmission ? <input type="hidden" name="proposal_submission_id" value={formSubmission.id} /> : null}
+        {canSubmitReproposal && latestProposalAttempt && currentProposalResult ? (
+          <>
+            <input type="hidden" name="expected_reproposal_attempt_id" value={latestProposalAttempt.id} />
+            <input type="hidden" name="expected_reproposal_result_id" value={currentProposalResult.id} />
+          </>
+        ) : null}
         <FormSection title="แบบฟอร์มเอกสารเสนอหัวข้อ" description="รองรับ Markdown และ LaTeX แต่ไม่อนุญาต raw HTML">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label>ชื่อเอกสารเสนอหัวข้อภาษาไทย</label>
-              <input name="project_title_th" required defaultValue={submission?.titleTh ?? project.currentTitleTh ?? ""} />
+              <input name="project_title_th" required defaultValue={formSubmission?.titleTh ?? project.currentTitleTh ?? ""} />
             </div>
             <div>
               <label>ชื่อเอกสารเสนอหัวข้อภาษาอังกฤษ</label>
-              <input name="project_title_en" defaultValue={submission?.titleEn ?? project.currentTitleEn ?? ""} />
+              <input name="project_title_en" defaultValue={formSubmission?.titleEn ?? project.currentTitleEn ?? ""} />
             </div>
             <div className="md:col-span-2">
-              <MarkdownLatexEditor name="abstract_of_talk" label="บทคัดย่อการนำเสนอ" defaultValue={submission?.abstractText ?? ""} rows={7} />
+              <MarkdownLatexEditor name="abstract_of_talk" label="บทคัดย่อการนำเสนอ" defaultValue={formSubmission?.abstractText ?? ""} rows={7} />
             </div>
             <div className="md:col-span-2">
               <MarkdownLatexEditor name="motivation_background" label="ที่มาและความสำคัญ" defaultValue={typeof content?.motivationBackground === "string" ? content.motivationBackground : ""} rows={5} />
@@ -277,10 +311,10 @@ export default async function ProposalSubmissionPage({
               />
             </div>
             <div className="md:col-span-2">
-              <MaterialLinkField defaultValue={submission?.materialLink} />
+              <MaterialLinkField defaultValue={formSubmission?.materialLink} />
             </div>
             <label className="flex items-center gap-2 md:col-span-2">
-              <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={submission?.declarationAccepted ?? false} />
+              <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={formSubmission?.declarationAccepted ?? false} />
               <span>ข้าพเจ้ารับรองว่าเอกสารเสนอหัวข้อนี้เป็นงานของตนเองและไม่ใช้ raw HTML</span>
             </label>
           </div>
@@ -296,6 +330,8 @@ export default async function ProposalSubmissionPage({
             <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่งเอกสารเสนอหัวข้อ..." className="w-full sm:w-auto" autoRecovery={false}>
               {canSubmitRevision
                 ? "ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษา"
+                : canSubmitReproposal
+                  ? "ส่ง Proposal สำหรับ Re-proposal"
                 : canSubmitProposal
                   ? "ส่งเอกสารเสนอหัวข้อ"
                   : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}
@@ -311,7 +347,12 @@ export default async function ProposalSubmissionPage({
           {proposalComments.length ? (
             proposalComments.map((vote) => (
               <div key={vote.id} className="rounded-md border border-line p-3 text-sm">
-                <div className="font-medium">{teacherDisplayName(vote.teacher)} · {proposalVoteLabel(vote.vote)}</div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-medium">{teacherDisplayName(vote.teacher)} · {proposalVoteLabel(vote.vote)}</div>
+                  <span className="rounded-full border border-line px-2 py-1 text-xs text-muted">
+                    {vote.isCurrentAttempt ? "รอบปัจจุบัน" : "ประวัติ"} · ครั้งที่ {vote.attemptNo} · {vote.attemptType === "REPROPOSAL" ? "Re-proposal" : "Proposal"}
+                  </span>
+                </div>
                 <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={vote.comment} emptyText="ไม่มีข้อเสนอแนะเพิ่มเติม" />
               </div>
             ))

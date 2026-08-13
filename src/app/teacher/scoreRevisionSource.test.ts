@@ -13,7 +13,8 @@ describe("teacher score revision source coverage", () => {
     expect(actions).toContain("isProposalScoreEditable");
     expect(actions).toContain('const isSubmittingScore = submitMode === "submit" || isScoreRevision');
     expect(actions).toContain("isScoreRevision && assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : null");
-    expect(scoringPage).toContain("const isScoreFormUnavailable = !isProposalScoreEditable");
+    expect(scoringPage).toContain("const isScoreFormUnavailable = !canScoreProposalAttempt");
+    expect(scoringPage).toContain('attemptType: assignment.assessmentAttempt.attemptType');
     expect(scoringPage).toContain("ยืนยันส่งคะแนนที่แก้ไข");
   });
 

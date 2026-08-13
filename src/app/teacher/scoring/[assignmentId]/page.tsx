@@ -14,6 +14,7 @@ import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/asses
 import { readProposalConditionRubric } from "@/lib/rubrics/readProposalConditionRubric";
 import { calculateCriterionScore, findProposalQaCriterion } from "@/lib/rubrics/proposalQaRubric";
 import { isProposalScoreEditable } from "@/lib/scoring/scoreEditability";
+import { canScoreProposalAttempt } from "@/lib/scoring/proposalAttemptAccess";
 import {
   PROPOSAL_DRAFT_V2_AUDIT_ACTION,
   proposalDraftConditionCounts,
@@ -45,6 +46,7 @@ export default async function ProposalScoringPage({
             project: { include: { student: true } }
           }
         },
+        teacher: { select: { active: true, isInternal: true, canEvaluateProposal: true } },
         scoreSubmission: { include: { scoreItems: true, proposalDecision: true } }
       }
     }),
@@ -63,6 +65,16 @@ export default async function ProposalScoringPage({
   }
 
   if (assignment.evaluatorUserId !== session.user.id) return <div className="panel">ไม่สามารถประเมินงานของผู้อื่นได้</div>;
+  if (!assignment.teacher?.active || !assignment.teacher.isInternal || !assignment.teacher.canEvaluateProposal) {
+    return (
+      <EmptyState
+        title="บัญชีนี้ไม่มีสิทธิ์ประเมิน Proposal"
+        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบสถานะอาจารย์ภายในและสิทธิ์ประเมิน Proposal"
+        actionLabel="กลับหน้าประเมิน Proposal"
+        href="/teacher/proposals"
+      />
+    );
+  }
 
   const submission = assignment.assessmentAttempt.presentationSubmission;
   const content = submission?.contentJson as Record<string, string> | undefined;
@@ -75,8 +87,17 @@ export default async function ProposalScoringPage({
     },
     select: { exceptionType: true, status: true }
   });
-  const hasLateRoundOverride = hasOpenLateRoundException(lateRoundExceptions);
-  const latePenaltyRequired = requiresLateRoundPenalty(lateRoundExceptions);
+  const latestProposalAttempt = await prisma.assessmentAttempt.findFirst({
+    where: {
+      projectId: assignment.assessmentAttempt.projectId,
+      assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId
+    },
+    orderBy: { attemptNo: "desc" },
+    select: { id: true }
+  });
+  const isReproposal = assignment.assessmentAttempt.attemptType === "REPROPOSAL";
+  const hasLateRoundOverride = !isReproposal && hasOpenLateRoundException(lateRoundExceptions);
+  const latePenaltyRequired = !isReproposal && requiresLateRoundPenalty(lateRoundExceptions);
 
   if (!rubric || rubric.items.length === 0) {
     return (
@@ -163,13 +184,22 @@ export default async function ProposalScoringPage({
     : "";
   const restoredConditionCounts = proposalDraftConditionCounts(latestScoreAudit?.afterJson ?? draftV2Marker?.afterJson);
   const hasAdminProposalDecision = Boolean(assignment.assessmentAttempt.proposalResult);
-  const isProposalRoundClosed = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && !hasLateRoundOverride;
-  const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;
-  const isScoreFormUnavailable = !isProposalScoreEditable({
+  const isScoreFormUnavailable = !canScoreProposalAttempt({
+    attemptType: assignment.assessmentAttempt.attemptType,
+    attemptStatus: assignment.assessmentAttempt.status,
+    projectStatus: assignment.assessmentAttempt.project.status,
+    roundType: assignment.assessmentAttempt.assessmentRound.roundType,
     roundStatus: assignment.assessmentAttempt.assessmentRound.status,
-    hasAdminDecision: hasAdminProposalDecision,
-    roundExceptions: lateRoundExceptions
+    hasProposalResult: hasAdminProposalDecision,
+    isLatestProposalAttempt: latestProposalAttempt?.id === assignment.assessmentAttempt.id,
+    hasOpenLateRoundException: isProposalScoreEditable({
+      roundStatus: assignment.assessmentAttempt.assessmentRound.status,
+      hasAdminDecision: hasAdminProposalDecision,
+      roundExceptions: lateRoundExceptions
+    })
   });
+  const isProposalRoundClosed = isScoreFormUnavailable && !hasAdminProposalDecision;
+  const isLateProposalOverride = assignment.assessmentAttempt.assessmentRound.status !== "SCORING_OPEN" && hasLateRoundOverride;
   const groupedRubric = rubric.items.reduce<Record<string, typeof rubric.items>>((groups, item) => {
     const key = item.groupLabelTh;
     groups[key] = groups[key] ?? [];
@@ -189,6 +219,11 @@ export default async function ProposalScoringPage({
         actions={<span className="sticky-score rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold">รวมที่เลือกไว้ {currentTotal}/100</span>}
       />
       <ActionFeedback success={query.success} error={query.error} />
+      {isReproposal && !isScoreFormUnavailable ? (
+        <InfoAlert title="การประเมิน Re-proposal เฉพาะโครงการ">
+          รายการนี้เป็นการสอบหัวข้อรอบใหม่ ระบบไม่เปิดรอบ Proposal ทั้งรายวิชาและไม่หักคะแนนส่งสาย
+        </InfoAlert>
+      ) : null}
       {isLateProposalOverride ? (
         <WarningAlert title="เปิดประเมินย้อนหลังเป็นรายกรณี">
           {latePenaltyRequired

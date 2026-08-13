@@ -173,6 +173,8 @@ export async function saveProjectOrigin(
     if (!tentativeAdvisorId) {
       throw new StudentActionValidationError("STUDENT_ADVISOR_REQUIRED", "กรุณาเลือกอาจารย์ที่ปรึกษาก่อนส่งคำขอ", ["tentative_advisor_id"]);
     }
+    const expectedReproposalAttemptId = String(formData.get("expected_reproposal_restart_attempt_id") ?? "").trim();
+    const expectedReproposalResultId = String(formData.get("expected_reproposal_restart_result_id") ?? "").trim();
     const input = {
       initialProjectTitleTh: typedRequiredText(formData, "initial_project_title_th", "ชื่อหัวข้อภาษาไทย"),
       initialProjectTitleEn: String(formData.get("initial_project_title_en") ?? "").trim() || null,
@@ -183,7 +185,10 @@ export async function saveProjectOrigin(
       consultationSummary: typedRequiredText(formData, "consultation_summary", "สรุปการปรึกษา"),
       initialReferences: typedRequiredText(formData, "initial_references", "เอกสารอ้างอิงเบื้องต้น"),
       materialLink: linkResult.normalizedUrl,
-      declarationAccepted: true as const
+      declarationAccepted: true as const,
+      expectedReproposalPredecessor: expectedReproposalAttemptId && expectedReproposalResultId
+        ? { attemptId: expectedReproposalAttemptId, resultId: expectedReproposalResultId }
+        : null
     };
     typedTextSize(input.reasonForTopic, requestSizeLimits.markdownTextBytes, "เหตุผลที่เลือกหัวข้อ", "reason_for_topic");
     typedTextSize(input.expectedMathArea, requestSizeLimits.markdownTextBytes, "ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง", "expected_math_area");
@@ -255,13 +260,18 @@ export async function saveProposalSubmission(
     typedMarkdown(content.expectedOutcomes, "ผลที่คาดว่าจะได้รับ", "expected_outcomes");
     typedMarkdown(content.timeline, "แผนดำเนินงาน", "timeline");
 
+    const expectedReproposalAttemptId = String(formData.get("expected_reproposal_attempt_id") ?? "").trim();
+    const expectedReproposalResultId = String(formData.get("expected_reproposal_result_id") ?? "").trim();
     const proposalInput = {
       titleTh: typedRequiredText(formData, "project_title_th", "ชื่อ Proposal ภาษาไทย"),
       titleEn: String(formData.get("project_title_en") ?? "").trim() || null,
       abstractText,
       content,
       materialLink: linkResult.normalizedUrl,
-      declarationAccepted: true as const
+      declarationAccepted: true as const,
+      expectedReproposalPredecessor: expectedReproposalAttemptId && expectedReproposalResultId
+        ? { attemptId: expectedReproposalAttemptId, resultId: expectedReproposalResultId }
+        : null
     };
     const isRevision = project.status === "PROPOSAL_REVISION_REQUIRED";
     let outcome: { unchanged: boolean };

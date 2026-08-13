@@ -242,11 +242,24 @@ export async function saveAdminProposalFinalDecisionAtomic(
         }
       }
     });
-    if (!attempt || attempt.attemptType !== "MAIN_PROPOSAL" || !attempt.presentationSubmission) {
+    if (!attempt || !["MAIN_PROPOSAL", "REPROPOSAL"].includes(attempt.attemptType) || !attempt.presentationSubmission) {
       throw new ProposalLifecycleConflictError(
         "PROPOSAL_ATTEMPT_NOT_READY",
         "ข้อมูล Proposal ยังไม่พร้อมให้บันทึกมติ กรุณารีเฟรชหน้าและตรวจสอบสถานะล่าสุด"
       );
+    }
+    if (attempt.attemptType === "REPROPOSAL") {
+      const latestAttempt = await tx.assessmentAttempt.findFirst({
+        where: { projectId: attempt.projectId, assessmentRoundId: attempt.assessmentRoundId },
+        orderBy: { attemptNo: "desc" },
+        select: { id: true }
+      });
+      if (latestAttempt?.id !== attempt.id) {
+        throw new ProposalLifecycleConflictError(
+          "REPROPOSAL_ATTEMPT_NOT_LATEST",
+          "รอบสอบหัวข้อนี้ไม่ใช่รอบล่าสุด กรุณารีเฟรชหน้าและเลือกผลของรอบล่าสุด"
+        );
+      }
     }
 
     const summary = summarizeProposalScores(
@@ -370,6 +383,20 @@ export async function saveAdminProposalFinalDecisionAtomic(
         }
       });
     }
+    let cancelledAdvisorRequestCount = 0;
+    if (input.finalDecision === "NOT_PASS") {
+      const cancelled = await tx.advisorRequest.updateMany({
+        where: { projectId: attempt.projectId, status: { in: ["PENDING", "APPROVED"] } },
+        data: { status: "CANCELLED", reviewedAt: now }
+      });
+      cancelledAdvisorRequestCount = cancelled.count;
+    }
+    if (attempt.attemptType === "REPROPOSAL") {
+      await tx.assessmentAttempt.update({
+        where: { id: attempt.id },
+        data: { status: "SCORING_CLOSED", closedAt: now }
+      });
+    }
     await hooks.fault?.("admin_decision_state_saved");
 
     await tx.projectStatusHistory.create({
@@ -383,7 +410,9 @@ export async function saveAdminProposalFinalDecisionAtomic(
           requestId: input.requestId,
           assessmentAttemptId: attempt.id,
           proposalResultId: proposalResult.id,
-          finalDecision: input.finalDecision
+          finalDecision: input.finalDecision,
+          attemptType: attempt.attemptType,
+          cancelledAdvisorRequestCount
         }
       }
     });
@@ -416,12 +445,18 @@ export async function saveAdminProposalFinalDecisionAtomic(
         afterJson: {
           projectStatus: target.projectStatus,
           submissionStatus: target.submissionStatus ?? attempt.presentationSubmission.status,
+          attemptStatus: attempt.attemptType === "REPROPOSAL" ? "SCORING_CLOSED" : attempt.status,
           finalDecision: input.finalDecision,
           averageScore: summary.averageScore,
           submittedCount: summary.submittedCount,
           missingCount: summary.missingCount
         },
-        metadataJson: { requestId: input.requestId, assessmentAttemptId: attempt.id }
+        metadataJson: {
+          requestId: input.requestId,
+          assessmentAttemptId: attempt.id,
+          attemptType: attempt.attemptType,
+          cancelledAdvisorRequestCount
+        }
       }
     });
     await tx.notification.create({

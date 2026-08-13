@@ -6,8 +6,12 @@ export function openProposalScoringAttemptWhere(): Prisma.AssessmentAttemptWhere
     presentationSubmission: { status: { in: ["SUBMITTED", "LOCKED"] } },
     proposalResult: { is: null },
     OR: [
-      { assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" } },
       {
+        attemptType: "MAIN_PROPOSAL",
+        assessmentRound: { roundType: "PROPOSAL", status: "SCORING_OPEN" }
+      },
+      {
+        attemptType: "MAIN_PROPOSAL",
         assessmentRound: { roundType: "PROPOSAL" },
         project: {
           roundExceptions: {
@@ -18,6 +22,12 @@ export function openProposalScoringAttemptWhere(): Prisma.AssessmentAttemptWhere
             }
           }
         }
+      },
+      {
+        attemptType: "REPROPOSAL",
+        status: "SCORING_OPEN",
+        assessmentRound: { roundType: "PROPOSAL" },
+        project: { status: "PROPOSAL_REVIEW" }
       }
     ]
   };

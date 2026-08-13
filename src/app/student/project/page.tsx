@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { InfoAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormSection } from "@/components/ui/FormSection";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
@@ -31,7 +32,16 @@ export default async function StudentProjectPage({
   const [student] = await Promise.all([
     prisma.student.findUnique({
       where: { generatedEmail: session.user.email.toLowerCase() },
-      include: { projects: { orderBy: { createdAt: "desc" }, include: { origin: true, advisorRequests: { include: { advisorTeacher: true }, orderBy: { requestedAt: "desc" } } } } }
+      include: {
+        projects: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            origin: true,
+            proposalResults: { orderBy: { decidedAt: "desc" }, take: 1 },
+            advisorRequests: { include: { advisorTeacher: true }, orderBy: { requestedAt: "desc" } }
+          }
+        }
+      }
     })
   ]);
   const project = student?.projects[0];
@@ -41,18 +51,37 @@ export default async function StudentProjectPage({
   const teachers = await prisma.teacher.findMany({ where: { active: true, isInternal: true }, orderBy: [{ firstNameTh: "asc" }] });
   const advisorRequest = project?.advisorRequests[0];
   const canEditProject = project?.status === "DRAFT";
+  const latestProposalResult = project.proposalResults[0];
+  const isReproposalRestart = canEditProject && latestProposalResult?.finalDecision === "NOT_PASS";
+  const draftOrigin = isReproposalRestart ? null : project.origin;
   const latestAdvisorRejected = canEditProject && advisorRequest?.status === "REJECTED";
 
   if (!student || !project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   return (
-    <StudentRecoverableActionForm action={saveProjectOrigin} resultMode="typed" storageKey={`student-project-origin-draft:${project.id}`} className="space-y-6">
+    <StudentRecoverableActionForm
+      action={saveProjectOrigin}
+      resultMode="typed"
+      storageKey={`student-project-origin-draft:${project.id}:${isReproposalRestart ? latestProposalResult.id : "main"}`}
+      className="space-y-6"
+    >
+      {isReproposalRestart ? (
+        <>
+          <input type="hidden" name="expected_reproposal_restart_attempt_id" value={latestProposalResult.assessmentAttemptId} />
+          <input type="hidden" name="expected_reproposal_restart_result_id" value={latestProposalResult.id} />
+        </>
+      ) : null}
       <PageHeader
         title="สร้าง/แก้ไขข้อมูลโครงงาน"
         description="ระบุที่มาของหัวข้อ เลือกอาจารย์ที่ปรึกษา และส่งคำขออนุมัติ"
         actions={<StatusBadge status={project.status} />}
       />
       <ActionFeedback success={params.success} error={params.error} />
+      {isReproposalRestart ? (
+        <InfoAlert title="เริ่มหัวข้อใหม่สำหรับ Re-proposal">
+          มติรอบล่าสุดคือไม่ผ่าน กรุณากรอกหัวข้อและเลือกอาจารย์ที่ปรึกษาใหม่ ข้อมูลรอบเดิมยังเก็บไว้ในประวัติและจะไม่ถูกนำมาเติมในแบบฟอร์มนี้
+        </InfoAlert>
+      ) : null}
       <StudentReadabilitySummary
         title="สรุปสถานะหัวข้อและที่ปรึกษา"
         description="แยกสิ่งที่นักศึกษาต้องทำเองออกจากสถานะที่กำลังรออาจารย์หรือผู้ดูแลระบบ เพื่อไม่ให้เข้าใจว่าต้องส่งซ้ำระหว่างรอผล"
@@ -121,24 +150,24 @@ export default async function StudentProjectPage({
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label>ชื่อหัวข้อภาษาไทย<RequiredMark /></label>
-            <input name="initial_project_title_th" required defaultValue={project.origin?.initialProjectTitleTh ?? project.currentTitleTh ?? ""} />
+            <input name="initial_project_title_th" required defaultValue={draftOrigin?.initialProjectTitleTh ?? (isReproposalRestart ? "" : project.currentTitleTh ?? "")} />
           </div>
           <div>
             <label>ชื่อหัวข้อภาษาอังกฤษ</label>
-            <input name="initial_project_title_en" defaultValue={project.origin?.initialProjectTitleEn ?? project.currentTitleEn ?? ""} />
+            <input name="initial_project_title_en" defaultValue={draftOrigin?.initialProjectTitleEn ?? (isReproposalRestart ? "" : project.currentTitleEn ?? "")} />
           </div>
           <div className="md:col-span-2">
-            <MarkdownLatexEditor name="reason_for_topic" label="เหตุผลที่เลือกหัวข้อ" defaultValue={project.origin?.reasonForTopic ?? ""} rows={4} />
+            <MarkdownLatexEditor name="reason_for_topic" label="เหตุผลที่เลือกหัวข้อ" defaultValue={draftOrigin?.reasonForTopic ?? ""} rows={4} />
           </div>
           <div className="md:col-span-2">
-            <MarkdownLatexEditor name="expected_math_area" label="ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง" defaultValue={project.origin?.expectedMathArea ?? ""} rows={4} />
+            <MarkdownLatexEditor name="expected_math_area" label="ขอบเขตคณิตศาสตร์ที่เกี่ยวข้อง" defaultValue={draftOrigin?.expectedMathArea ?? ""} rows={4} />
           </div>
           <div className="md:col-span-2">
-            <MarkdownLatexEditor name="consultation_summary" label="สรุปการปรึกษาเบื้องต้น" defaultValue={project.origin?.consultationSummary ?? ""} rows={4} />
+            <MarkdownLatexEditor name="consultation_summary" label="สรุปการปรึกษาเบื้องต้น" defaultValue={draftOrigin?.consultationSummary ?? ""} rows={4} />
           </div>
           <div>
             <label>อาจารย์ที่ปรึกษา<RequiredMark /></label>
-            <select name="tentative_advisor_id" required defaultValue={project.origin?.tentativeAdvisorId ?? ""}>
+            <select name="tentative_advisor_id" required defaultValue={draftOrigin?.tentativeAdvisorId ?? ""}>
               <option value="">เลือกอาจารย์ที่ปรึกษา</option>
               {teachers.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>{teacherDisplayName(teacher)}</option>
@@ -147,20 +176,20 @@ export default async function StudentProjectPage({
           </div>
           <div>
             <label>แหล่งที่มาหัวข้อ</label>
-            <select name="source_type" defaultValue={project.origin?.sourceType ?? "STUDENT_INITIATED"}>
+            <select name="source_type" defaultValue={draftOrigin?.sourceType ?? "STUDENT_INITIATED"}>
               {selectableSourceTypes.map((sourceType) => (
                 <option key={sourceType} value={sourceType}>{sourceTypeLabelTh(sourceType)}</option>
               ))}
             </select>
           </div>
           <div className="md:col-span-2">
-            <MarkdownLatexEditor name="initial_references" label="เอกสารอ้างอิงเบื้องต้น" defaultValue={project.origin?.initialReferences ?? ""} rows={4} />
+            <MarkdownLatexEditor name="initial_references" label="เอกสารอ้างอิงเบื้องต้น" defaultValue={draftOrigin?.initialReferences ?? ""} rows={4} />
           </div>
           <div className="md:col-span-2">
-            <MaterialLinkField defaultValue={project.origin?.materialLink} />
+            <MaterialLinkField defaultValue={draftOrigin?.materialLink} />
           </div>
           <label className="flex items-center gap-2 md:col-span-2">
-            <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={project.origin?.declarationAccepted ?? false} />
+            <input className="h-4 w-4" type="checkbox" name="student_declaration" required defaultChecked={draftOrigin?.declarationAccepted ?? false} />
             <span>
               ข้าพเจ้ารับรองว่าเนื้อหาที่ส่งเป็นงานของตนเอง และใช้เฉพาะข้อความ/สูตรที่ระบบรองรับ
               <span className="mt-1 block text-xs text-muted">รองรับข้อความธรรมดา Markdown และสูตรคณิตศาสตร์ LaTeX หากต้องการแนบไฟล์ รูปภาพ หรือเอกสาร ให้ใส่เป็นลิงก์ Google Drive/Docs/Classroom แทน</span>

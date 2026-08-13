@@ -10,6 +10,7 @@ import {
   type TeacherScoreSnapshot
 } from "./scoreSnapshots";
 import { retryScoreTransaction } from "./transactionRetry";
+import { canScoreProposalAttempt } from "./proposalAttemptAccess";
 
 type ProposalRubricItem = {
   id: string;
@@ -74,7 +75,8 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
     const assignment = await tx.evaluatorAssignment.findUnique({
       where: { id: input.assignmentId },
       include: {
-        assessmentAttempt: { include: { assessmentRound: true, proposalResult: true } },
+        teacher: { select: { active: true, isInternal: true, canEvaluateProposal: true } },
+        assessmentAttempt: { include: { assessmentRound: true, proposalResult: true, project: { select: { status: true } } } },
         scoreSubmission: {
           include: {
             proposalDecision: true,
@@ -83,11 +85,27 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
         }
       }
     });
-    if (!assignment || assignment.evaluatorUserId !== input.actorUserId || !assignment.teacherId) {
+    if (
+      !assignment
+      || assignment.evaluatorUserId !== input.actorUserId
+      || !assignment.teacherId
+      || !assignment.teacher?.active
+      || !assignment.teacher.isInternal
+      || !assignment.teacher.canEvaluateProposal
+    ) {
       throw new ScorePersistenceConflict("score_evaluator_not_eligible");
     }
     if (assignment.assessmentAttempt.proposalResult) throw new ScorePersistenceConflict("proposal_decision_already_saved");
-    const roundExceptions = await tx.projectRoundException.findMany({
+    const latestProposalAttempt = await tx.assessmentAttempt.findFirst({
+      where: {
+        projectId: assignment.assessmentAttempt.projectId,
+        assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId
+      },
+      orderBy: { attemptNo: "desc" },
+      select: { id: true }
+    });
+    const isReproposal = assignment.assessmentAttempt.attemptType === "REPROPOSAL";
+    const roundExceptions = isReproposal ? [] : await tx.projectRoundException.findMany({
       where: {
         projectId: assignment.assessmentAttempt.projectId,
         assessmentRoundId: assignment.assessmentAttempt.assessmentRoundId,
@@ -95,11 +113,21 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
       },
       select: { exceptionType: true, status: true }
     });
-    if (!isProposalScoreEditable({
+    const canScore = canScoreProposalAttempt({
+      attemptType: assignment.assessmentAttempt.attemptType,
+      attemptStatus: assignment.assessmentAttempt.status,
+      projectStatus: assignment.assessmentAttempt.project.status,
+      roundType: assignment.assessmentAttempt.assessmentRound.roundType,
       roundStatus: assignment.assessmentAttempt.assessmentRound.status,
-      hasAdminDecision: false,
-      roundExceptions
-    })) throw new ScorePersistenceConflict("proposal_round_not_open");
+      hasProposalResult: false,
+      isLatestProposalAttempt: latestProposalAttempt?.id === assignment.assessmentAttempt.id,
+      hasOpenLateRoundException: isProposalScoreEditable({
+        roundStatus: assignment.assessmentAttempt.assessmentRound.status,
+        hasAdminDecision: false,
+        roundExceptions
+      })
+    });
+    if (!canScore) throw new ScorePersistenceConflict("proposal_round_not_open");
 
     const latePenaltyRequired = requiresLateRoundPenalty(roundExceptions);
     const totalScore = latePenaltyRequired ? applyLatePenalty(input.rawTotalScore) : input.rawTotalScore;

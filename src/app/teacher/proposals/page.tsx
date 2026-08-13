@@ -16,13 +16,13 @@ export default async function TeacherProposalsPage() {
 
   const teacher = await prisma.teacher.findUnique({
     where: session.user.teacherId ? { id: session.user.teacherId } : { userId: session.user.id },
-    select: { id: true }
+    select: { id: true, active: true, isInternal: true, canEvaluateProposal: true }
   });
-  if (!teacher) {
+  if (!teacher || !teacher.active || !teacher.isInternal || !teacher.canEvaluateProposal) {
     return (
       <EmptyState
-        title="ไม่พบโปรไฟล์อาจารย์ของบัญชีนี้"
-        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบการผูกบัญชี หรือส่งคำขอผูกบัญชีอาจารย์ใหม่ก่อนเริ่มประเมิน"
+        title="บัญชีนี้ยังไม่มีสิทธิ์ประเมิน Proposal"
+        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบโปรไฟล์ สถานะอาจารย์ภายใน และสิทธิ์ประเมิน Proposal"
         actionLabel="ตรวจสอบการผูกบัญชี"
         href="/teacher/claim"
       />
