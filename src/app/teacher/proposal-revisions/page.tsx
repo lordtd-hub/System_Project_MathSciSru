@@ -4,10 +4,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalLifecycleActionForm } from "@/components/ui/ProposalLifecycleActionForm";
+import { ProposalRevisionDetails } from "@/components/ui/ProposalRevisionDetails";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { prisma } from "@/lib/db";
+import { buildProposalRevisionView } from "@/lib/proposals/proposalRevisionView";
 
 export default async function TeacherProposalRevisionsPage() {
   const session = await auth();
@@ -36,7 +38,7 @@ export default async function TeacherProposalRevisionsPage() {
       presentationSubmissions: {
         orderBy: { updatedAt: "desc" },
         take: 1,
-        include: { versions: { orderBy: { versionNo: "desc" } } }
+        include: { versions: { orderBy: { versionNo: "desc" }, take: 1 } }
       }
     },
     orderBy: { updatedAt: "desc" }
@@ -58,6 +60,9 @@ export default async function TeacherProposalRevisionsPage() {
           const result = project.proposalResults[0];
           const waitingForStudent = submission?.status === "RETURNED_FOR_REVISION";
           const readyForReview = submission?.status === "SUBMITTED";
+          const revision = submission
+            ? buildProposalRevisionView(submission, submission.versions[0] ?? null)
+            : null;
           return (
             <section key={project.id} className="panel space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -80,17 +85,7 @@ export default async function TeacherProposalRevisionsPage() {
                 </div>
               ) : null}
 
-              {submission ? (
-                <div className="grid gap-3 text-sm md:grid-cols-2">
-                  <div className="rounded-md border border-line bg-paper p-3 md:col-span-2">
-                    <div className="font-medium">Proposal ฉบับที่ {submission.versions[0]?.versionNo ?? 1}</div>
-                    <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-muted" value={submission.abstractText} />
-                  </div>
-                  <a className="text-brand underline md:col-span-2" href={submission.materialLink} target="_blank" rel="noreferrer">
-                    เปิดเอกสารประกอบ
-                  </a>
-                </div>
-              ) : null}
+              {revision ? <ProposalRevisionDetails revision={revision} /> : null}
 
               {readyForReview && submission ? (
                 <ProposalLifecycleActionForm action={reviewProposalRevision} className="space-y-3">
