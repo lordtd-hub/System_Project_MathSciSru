@@ -94,10 +94,12 @@ describe("post-submit stabilization source checks", () => {
   it("renders advisor requests and saved proposal decisions as explicit follow-up states", () => {
     const advisorRequestsPage = read("src/app/teacher/advisor-requests/page.tsx");
     const adminProposalPage = read("src/app/admin/proposals/page.tsx");
+    const adminProposalDecisionForm = read("src/components/ui/AdminProposalDecisionForm.tsx");
 
     expect(advisorRequestsPage).toContain('request.status === "PENDING" ?');
     expect(advisorRequestsPage).toContain("อนุมัติคำขอเป็นที่ปรึกษาแล้ว");
     expect(advisorRequestsPage).toContain("ปฏิเสธคำขอแล้ว");
-    expect(adminProposalPage).toContain("แก้ไขผลการตัดสิน");
+    expect(adminProposalPage).toContain("AdminProposalDecisionForm");
+    expect(adminProposalDecisionForm).toContain("ยืนยันการแก้ไขมติ");
   });
 });

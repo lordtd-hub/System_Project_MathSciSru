@@ -79,13 +79,14 @@ describe("admin operational UX source", () => {
 
   it("keeps proposal decision controls semantic while replacing programmer-facing labels", () => {
     const source = readSource("src/app/admin/proposals/page.tsx");
+    const decisionFormSource = readSource("src/components/ui/AdminProposalDecisionForm.tsx");
 
     expect(source).toContain("proposalVoteLabel");
     expect(source).toContain("ผลโหวต");
     expect(source).toContain("มติสุดท้าย");
-    expect(source).toContain('<option value="PASS">ผ่าน</option>');
-    expect(source).toContain('<option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>');
-    expect(source).toContain('<option value="NOT_PASS">ไม่ผ่าน</option>');
+    expect(decisionFormSource).toContain('<option value="PASS">ผ่าน</option>');
+    expect(decisionFormSource).toContain('<option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>');
+    expect(decisionFormSource).toContain('<option value="NOT_PASS">ไม่ผ่าน</option>');
     expect(source).not.toContain("decided_by:");
     expect(source).not.toContain("decided_at:");
   });

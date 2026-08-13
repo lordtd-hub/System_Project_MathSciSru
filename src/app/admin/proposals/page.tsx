@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminProposalDecisionForm } from "@/components/ui/AdminProposalDecisionForm";
 import { AdminOperationalSummary } from "@/components/ui/AdminOperationalQueue";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
+import { proposalDecisionEditBlockReason } from "@/lib/proposals/proposalDecisionPresentation";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
 import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
@@ -286,16 +288,18 @@ export default async function AdminProposalsPage({
                   const certifiedRevision = finalDecision === "PASS_WITH_REVISION"
                     && attempt.presentationSubmission?.status === "LOCKED"
                     && attempt.project.status === "TOPIC_APPROVED";
-                  const decisionConfirm =
-                    finalDecision === "NOT_PASS" || finalDecision === "PASS"
-                      ? "ยืนยันการบันทึกผลการตัดสินหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานตามผลที่เลือกและบันทึกประวัติไว้"
-                      : "ยืนยันการบันทึกผลการตัดสินหรือไม่?";
+                  const decisionEditBlockReason = proposalDecisionEditBlockReason({
+                    finalDecision,
+                    projectStatus: attempt.project.status,
+                    submissionStatus: attempt.presentationSubmission?.status,
+                    hasActiveCommittee: attempt.project.committeeAssignments.some((assignment) => assignment.active)
+                  });
 
                   return (
                     <article key={attempt.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm">
                       <dl className="grid gap-4 text-sm">
                         <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">นักศึกษา</dt>
+                          <dt className="text-xs font-semibold text-muted">นักศึกษา</dt>
                           <dd className="mt-1">
                             <div className="font-semibold">{attempt.project.student.studentCode}</div>
                             <div className="text-muted">
@@ -304,11 +308,11 @@ export default async function AdminProposalsPage({
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">หัวข้อ</dt>
+                          <dt className="text-xs font-semibold text-muted">หัวข้อ</dt>
                           <dd className="mt-1 break-words font-medium">{attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}</dd>
                         </div>
                         <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">สถานะ</dt>
+                          <dt className="text-xs font-semibold text-muted">สถานะ</dt>
                           <dd className="mt-2">
                             <StatusBadge status={attempt.project.status} />
                             <div className="mt-2 text-xs text-muted">
@@ -318,7 +322,7 @@ export default async function AdminProposalsPage({
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="rounded-lg border border-line bg-paperSoft p-3">
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">คะแนน</dt>
+                            <dt className="text-xs font-semibold text-muted">คะแนน</dt>
                             <dd className="mt-2 space-y-1">
                               <div>ส่งแล้ว {summary.submittedCount}</div>
                               <div>ขาด {summary.missingCount}</div>
@@ -326,7 +330,7 @@ export default async function AdminProposalsPage({
                             </dd>
                           </div>
                           <div className="rounded-lg border border-line bg-paperSoft p-3">
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">ผลโหวต</dt>
+                            <dt className="text-xs font-semibold text-muted">ผลโหวต</dt>
                             <dd className="mt-2 space-y-1">
                               <div>{proposalVoteLabel("PASS")} {passVotes}</div>
                               <div>{proposalVoteLabel("REVISE")} {reviseVotes}</div>
@@ -335,7 +339,7 @@ export default async function AdminProposalsPage({
                           </div>
                         </div>
                         <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">มติสุดท้าย</dt>
+                          <dt className="text-xs font-semibold text-muted">มติสุดท้าย</dt>
                           <dd className="mt-1">
                             <div className="font-semibold">{decisionLabel(finalDecision)}</div>
                             {attempt.proposalResult ? (
@@ -354,7 +358,7 @@ export default async function AdminProposalsPage({
                       </dl>
 
                       <div className="mt-4 rounded-lg border border-line bg-paperSoft p-3">
-                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">การทำงาน</div>
+                        <div className="mb-2 text-xs font-semibold text-muted">การทำงาน</div>
                         {!isLatestAttempt ? (
                           <InfoAlert title="ประวัติการสอบหัวข้อ">
                             Attempt นี้ถูกล็อกแบบอ่านอย่างเดียว การบันทึกมติและคะแนนใช้ได้เฉพาะ Attempt ล่าสุด
@@ -367,23 +371,29 @@ export default async function AdminProposalsPage({
                               ปลดล็อกมติ
                             </SubmitButton>
                           </ProposalLifecycleActionForm>
+                        ) : decisionEditBlockReason ? (
+                          <InfoAlert title="มติถูกล็อกแล้ว">{decisionEditBlockReason}</InfoAlert>
                         ) : (
-                          <ProposalLifecycleActionForm action={saveFinalDecision} className="grid gap-2">
-                            <input type="hidden" name="attempt_id" value={attempt.id} />
-                            <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                              <option value="PASS">ผ่าน</option>
-                              <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
-                              <option value="NOT_PASS">ไม่ผ่าน</option>
-                            </select>
-                            <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
-                            <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm} autoRecovery={false}>
-                              {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
-                            </SubmitButton>
-                          </ProposalLifecycleActionForm>
+                          <AdminProposalDecisionForm
+                            key={`${attempt.id}:${finalDecision ?? "undecided"}`}
+                            action={saveFinalDecision}
+                            attemptId={attempt.id}
+                            formInstance="mobile"
+                            studentLabel={`${attempt.project.student.studentCode} ${attempt.project.student.firstNameTh} ${attempt.project.student.lastNameTh}`}
+                            initialDecision={finalDecision}
+                            initialReason={attempt.proposalResult?.finalDecisionReason}
+                            isEditing={decided}
+                            missingScoreCount={summary.missingCount}
+                          />
                         )}
-                        {isLatestAttempt ? <form action={releaseFeedback} className="mt-2">
+                        {isLatestAttempt && attempt.proposalResult ? <form action={releaseFeedback} className="mt-3">
                           <input type="hidden" name="attempt_id" value={attempt.id} />
-                          <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
+                          <SubmitButton
+                            className="button-secondary w-full"
+                            disabled={Boolean(attempt.scoreRelease)}
+                            pendingText="กำลังเปิดข้อเสนอแนะ..."
+                            confirmMessage={`ยืนยันเปิดข้อเสนอแนะของ ${attempt.project.student.studentCode} ให้นักศึกษาเห็นหรือไม่?`}
+                          >
                             {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                           </SubmitButton>
                         </form> : null}
@@ -408,16 +418,17 @@ export default async function AdminProposalsPage({
               </div>
 
               <div className="hidden overflow-x-auto md:block">
-                <table className="responsive-table">
+                <table className="responsive-table table-fixed">
+                  <colgroup>
+                    <col className="w-[36%]" />
+                    <col className="w-[25%]" />
+                    <col className="w-[39%]" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-line text-left text-muted">
-                      <th className="py-2 pr-3">นักศึกษา</th>
-                      <th className="py-2 pr-3">หัวข้อ</th>
-                      <th className="py-2 pr-3">สถานะ</th>
-                      <th className="py-2 pr-3">คะแนน</th>
-                      <th className="py-2 pr-3">ผลโหวต</th>
-                      <th className="py-2 pr-3">มติสุดท้าย</th>
-                      <th className="py-2 pr-3">การทำงาน</th>
+                      <th>โครงการ</th>
+                      <th>ผลประเมิน</th>
+                      <th>มติและขั้นตอนถัดไป</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -446,55 +457,81 @@ export default async function AdminProposalsPage({
                       const certifiedRevision = finalDecision === "PASS_WITH_REVISION"
                         && attempt.presentationSubmission?.status === "LOCKED"
                         && attempt.project.status === "TOPIC_APPROVED";
-                      const decisionConfirm =
-                        finalDecision === "NOT_PASS" || finalDecision === "PASS"
-                          ? "ยืนยันการบันทึกผลการตัดสินหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานตามผลที่เลือกและบันทึกประวัติไว้"
-                          : "ยืนยันการบันทึกผลการตัดสินหรือไม่?";
+                      const decisionEditBlockReason = proposalDecisionEditBlockReason({
+                        finalDecision,
+                        projectStatus: attempt.project.status,
+                        submissionStatus: attempt.presentationSubmission?.status,
+                        hasActiveCommittee: attempt.project.committeeAssignments.some((assignment) => assignment.active)
+                      });
 
                       return (
-                        <tr key={attempt.id} className="border-b border-line align-top">
-                          <td className="py-3 pr-3">
-                            <div className="font-medium">
+                        <tr key={attempt.id} className="border-b border-line align-top last:border-b-0">
+                          <td>
+                            <div className="text-base font-semibold text-ink">
                               {attempt.project.student.studentCode}
                             </div>
-                            <div className="text-muted">
+                            <div className="mt-0.5 text-sm text-muted">
                               {attempt.project.student.firstNameTh} {attempt.project.student.lastNameTh}
                             </div>
-                          </td>
-                          <td className="py-3 pr-3 min-w-56">
-                            {attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}
-                          </td>
-                          <td className="py-3 pr-3">
-                            <StatusBadge status={attempt.project.status} />
-                            <div className="mt-2 whitespace-nowrap text-xs text-muted">
-                              ครั้งที่ {attempt.attemptNo} · {attempt.attemptType === "REPROPOSAL" ? "Re-proposal" : "Proposal"}
+                            <div className="mt-3 break-words text-sm font-medium leading-6">
+                              {attempt.presentationSubmission?.titleTh ?? "ยังไม่มีชื่อหัวข้อ"}
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <StatusBadge status={attempt.project.status} />
+                              <span className="text-xs text-muted">
+                                ครั้งที่ {attempt.attemptNo} · {attempt.attemptType === "REPROPOSAL" ? "Re-proposal" : "Proposal"}
+                              </span>
                             </div>
                           </td>
-                          <td className="py-3 pr-3 whitespace-nowrap">
-                            <div>ส่งแล้ว {summary.submittedCount}</div>
-                            <div>ขาด {summary.missingCount}</div>
-                            <div>เฉลี่ย {summary.averageScore}</div>
-                          </td>
-                          <td className="py-3 pr-3 whitespace-nowrap">
-                            <div>{proposalVoteLabel("PASS")} {passVotes}</div>
-                            <div>{proposalVoteLabel("REVISE")} {reviseVotes}</div>
-                            <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>{proposalVoteLabel("FAIL")} {failVotes} ({failRatio}%)</div>
-                          </td>
-                          <td className="py-3 pr-3 min-w-56">
-                            <div className="font-semibold">{decisionLabel(finalDecision)}</div>
-                            {attempt.proposalResult ? (
-                              <div className="mt-1 text-xs leading-5 text-muted">
-                                ผู้บันทึก: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}
-                                <br />
-                                เวลาบันทึก: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
+                          <td>
+                            <dl className="grid grid-cols-3 gap-2 text-center">
+                              <div className="rounded-md border border-line bg-paperSoft px-2 py-3">
+                                <dt className="text-xs text-muted">เฉลี่ย</dt>
+                                <dd className="mt-1 text-lg font-semibold text-ink">{summary.averageScore}</dd>
                               </div>
-                            ) : null}
-                            {attempt.proposalResult?.finalDecisionReason ? (
-                              <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-xs text-muted" value={attempt.proposalResult.finalDecisionReason} />
-                            ) : null}
-                            <div className="mt-2 rounded-md border border-line bg-paper p-2 text-xs">{nextDecisionStep(finalDecision)}</div>
+                              <div className="rounded-md border border-line bg-paperSoft px-2 py-3">
+                                <dt className="text-xs text-muted">ส่งแล้ว</dt>
+                                <dd className="mt-1 text-lg font-semibold text-ink">{summary.submittedCount}</dd>
+                              </div>
+                              <div className={`rounded-md border px-2 py-3 ${summary.missingCount ? "border-amber-200 bg-amber-50" : "border-line bg-paperSoft"}`}>
+                                <dt className="text-xs text-muted">ขาด</dt>
+                                <dd className={`mt-1 text-lg font-semibold ${summary.missingCount ? "text-amber-900" : "text-ink"}`}>{summary.missingCount}</dd>
+                              </div>
+                            </dl>
+                            <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                              <div>{proposalVoteLabel("PASS")} <strong>{passVotes}</strong></div>
+                              <div>{proposalVoteLabel("REVISE")} <strong>{reviseVotes}</strong></div>
+                              <div className={failRatio >= 50 ? "font-semibold text-red-700" : ""}>{proposalVoteLabel("FAIL")} <strong>{failVotes}</strong> ({failRatio}%)</div>
+                            </div>
+                            <details className="mt-4 rounded-md border border-line bg-surface p-3">
+                              <summary className="cursor-pointer text-sm font-medium">ดูคะแนนและข้อเสนอแนะรายคน</summary>
+                              <div className="mt-3 space-y-2 text-xs text-muted">
+                                {attempt.evaluatorAssignments.map((assignment) => (
+                                  <div key={assignment.id} className="border-t border-line pt-2 first:border-t-0 first:pt-0">
+                                    <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
+                                    <div>สถานะ: {isSubmittedScoreStatus(assignment.scoreSubmission?.status) ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
+                                    <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
+                                    <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="ไม่มีข้อเสนอแนะ" />
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
                           </td>
-                          <td className="py-3 pr-3 min-w-80">
+                          <td>
+                            <div className="mb-3 rounded-md border border-line bg-paperSoft p-3">
+                              <div className="text-xs font-semibold text-muted">มติปัจจุบัน</div>
+                              <div className="mt-1 font-semibold text-ink">{decisionLabel(finalDecision)}</div>
+                              {attempt.proposalResult ? (
+                                <div className="mt-1 text-xs leading-5 text-muted">
+                                  ผู้บันทึก: {attempt.proposalResult.decidedByAdmin.email ?? attempt.proposalResult.decidedByAdmin.name ?? "Admin"}<br />
+                                  เวลาบันทึก: {formatThaiDateTime24(attempt.proposalResult.decidedAt)}
+                                </div>
+                              ) : null}
+                              {attempt.proposalResult?.finalDecisionReason ? (
+                                <MarkdownLatexViewer className="mt-2 border-0 bg-transparent p-0 text-xs text-muted" value={attempt.proposalResult.finalDecisionReason} />
+                              ) : null}
+                              <div className="mt-2 text-xs leading-5 text-muted">{nextDecisionStep(finalDecision)}</div>
+                            </div>
                             {!isLatestAttempt ? (
                               <InfoAlert title="ประวัติการสอบหัวข้อ">
                                 Attempt นี้ถูกล็อกแบบอ่านอย่างเดียว การบันทึกมติและคะแนนใช้ได้เฉพาะ Attempt ล่าสุด
@@ -507,40 +544,32 @@ export default async function AdminProposalsPage({
                                   ปลดล็อกมติ
                                 </SubmitButton>
                               </ProposalLifecycleActionForm>
+                            ) : decisionEditBlockReason ? (
+                              <InfoAlert title="มติถูกล็อกแล้ว">{decisionEditBlockReason}</InfoAlert>
                             ) : (
-                              <ProposalLifecycleActionForm action={saveFinalDecision} className="grid gap-2">
-                                <input type="hidden" name="attempt_id" value={attempt.id} />
-                                <select name="final_decision" defaultValue={finalDecision ?? "PASS"}>
-                                  <option value="PASS">ผ่าน</option>
-                                  <option value="PASS_WITH_REVISION">ผ่านโดยให้แก้ไข</option>
-                                  <option value="NOT_PASS">ไม่ผ่าน</option>
-                                </select>
-                                <input name="final_decision_reason" placeholder="เหตุผล/มติที่ประชุม" defaultValue={attempt.proposalResult?.finalDecisionReason ?? ""} />
-                                <SubmitButton pendingText="กำลังบันทึกผล..." confirmMessage={decisionConfirm} autoRecovery={false}>
-                                  {decided ? "แก้ไขผลการตัดสิน" : "บันทึกผลการตัดสิน"}
-                                </SubmitButton>
-                              </ProposalLifecycleActionForm>
+                              <AdminProposalDecisionForm
+                                key={`${attempt.id}:${finalDecision ?? "undecided"}`}
+                                action={saveFinalDecision}
+                                attemptId={attempt.id}
+                                formInstance="desktop"
+                                studentLabel={`${attempt.project.student.studentCode} ${attempt.project.student.firstNameTh} ${attempt.project.student.lastNameTh}`}
+                                initialDecision={finalDecision}
+                                initialReason={attempt.proposalResult?.finalDecisionReason}
+                                isEditing={decided}
+                                missingScoreCount={summary.missingCount}
+                              />
                             )}
-                            {isLatestAttempt ? <form action={releaseFeedback} className="mt-2">
+                            {isLatestAttempt && attempt.proposalResult ? <form action={releaseFeedback} className="mt-3">
                               <input type="hidden" name="attempt_id" value={attempt.id} />
-                              <SubmitButton disabled={!attempt.proposalResult || Boolean(attempt.scoreRelease)} pendingText="กำลังเปิดข้อเสนอแนะ...">
+                              <SubmitButton
+                                className="button-secondary w-full"
+                                disabled={Boolean(attempt.scoreRelease)}
+                                pendingText="กำลังเปิดข้อเสนอแนะ..."
+                                confirmMessage={`ยืนยันเปิดข้อเสนอแนะของ ${attempt.project.student.studentCode} ให้นักศึกษาเห็นหรือไม่?`}
+                              >
                                 {attempt.scoreRelease ? "เปิดข้อเสนอแนะแล้ว" : "เปิดข้อเสนอแนะให้นักศึกษาเห็น"}
                               </SubmitButton>
                             </form> : null}
-                            <details className="mt-3 rounded-md border border-line p-2">
-                              <summary className="cursor-pointer font-medium">รายละเอียดคะแนน / ข้อเสนอแนะ / ประวัติ</summary>
-                              <div className="mt-2 space-y-2 text-xs text-muted">
-                                {attempt.evaluatorAssignments.map((assignment) => (
-                                  <div key={assignment.id} className="rounded border border-line p-2">
-                                    <div className="font-medium text-ink">{assignment.evaluatorDisplayNameSnapshot}</div>
-                                    <div>สถานะ: {isSubmittedScoreStatus(assignment.scoreSubmission?.status) ? "ส่งแล้ว" : "ยังไม่ส่ง"}</div>
-                                    <div>คะแนน: {assignment.scoreSubmission ? Number(assignment.scoreSubmission.totalScore) : "-"}</div>
-                                    <div>ข้อเสนอแนะ:</div>
-                                    <MarkdownLatexViewer className="mt-1 border-0 bg-transparent p-0 text-xs" value={assignment.scoreSubmission?.overallComment} emptyText="-" />
-                                  </div>
-                                ))}
-                              </div>
-                            </details>
                           </td>
                         </tr>
                       );
