@@ -17,8 +17,13 @@ import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { buildCloseAssessmentRoundData } from "@/lib/assessments/roundClosure";
 import { getCourseRoundResetState } from "@/lib/assessments/roundReset";
-import { getRoundOpenGate } from "@/lib/assessments/roundSequence";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
+import {
+  AdminRoundValidationError,
+  runAdminRoundAction,
+  type AdminRoundActionResult
+} from "@/lib/assessments/adminRoundActionResult";
+import { openCourseRoundAtomic } from "@/lib/assessments/openCourseRoundAtomic";
 import {
   LATE_ROUND_EXCEPTION_TYPE,
   LATE_ROUND_EXCUSED_EXCEPTION_TYPE,
@@ -670,66 +675,53 @@ export async function openLateRoundSubmissionForProject(formData: FormData) {
   redirectWithQuery(redirectPath, { success: "late_round_opened" });
 }
 
-export async function openCourseRound(formData: FormData) {
-  const adminUserId = await requireAdminUserId();
-  assertRateLimit(`admin:${adminUserId}:openCourseRound`, pilotRateLimits.workflowMutation);
-  const courseOfferingId = String(formData.get("course_offering_id"));
-  const roundType = String(formData.get("round_type")) as "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION" | "PROPOSAL";
-  if (!courseLevelRoundTypes.includes(roundType)) throw new Error("รอบสอบไม่ถูกต้อง");
-  const existingRounds = await prisma.assessmentRound.findMany({
-    where: { courseOfferingId, roundType: { in: [...courseLevelRoundTypes] } },
-    select: { roundType: true, status: true }
-  });
-  const roundStatuses = Object.fromEntries(existingRounds.map((round) => [round.roundType, round.status]));
-  const progress1Eligibility = roundType === "PROGRESS_1" ? await getRoundEligibility(courseOfferingId, "PROGRESS_1") : null;
-  const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility?.eligible.length ?? 0 });
-  if (!openGate.canOpen) redirectWithQuery("/admin/rounds", { error: openGate.reasonKey });
+export async function openCourseRound(
+  _previousState: AdminRoundActionResult,
+  formData: FormData
+): Promise<AdminRoundActionResult> {
+  return runAdminRoundAction("admin.openCourseRound", async (requestId) => {
+    const adminUserId = await requireAdminUserId();
+    assertRateLimit(`admin:${adminUserId}:openCourseRound`, pilotRateLimits.workflowMutation);
+    const courseOfferingId = String(formData.get("course_offering_id") ?? "").trim();
+    const roundType = String(formData.get("round_type") ?? "") as CourseRoundType;
+    const openModeValue = String(formData.get("open_mode") ?? "NORMAL");
+    const reason = String(formData.get("override_reason") ?? "").trim();
 
-  const round = await prisma.assessmentRound.upsert({
-    where: { courseOfferingId_roundType: { courseOfferingId, roundType } },
-    update: {
-      name: defaultCourseRoundName(roundType),
-      status: roundType === "PROPOSAL" ? "SCORING_OPEN" : "SUBMISSION_OPEN",
-      submissionOpenAt: new Date(),
-      closedAt: null,
-      closedByAdminId: null,
-      courseWeight: defaultCourseRoundWeight(roundType),
-      rawScoreMax: 100,
-      showScoreToStudent: false,
-      showFeedbackToStudent: false,
-      showEvaluatorNameToStudent: false
-    },
-    create: {
+    if (!courseLevelRoundTypes.includes(roundType)) {
+      throw new AdminRoundValidationError("ROUND_TYPE_INVALID", "รอบสอบไม่ถูกต้อง", ["round_type"]);
+    }
+    if (!courseOfferingId) {
+      throw new AdminRoundValidationError("COURSE_OFFERING_REQUIRED", "ไม่พบรายวิชาที่ต้องการเปิดรอบ", ["course_offering_id"]);
+    }
+    if (!["NORMAL", "SCHEDULED_ZERO_READY"].includes(openModeValue)) {
+      throw new AdminRoundValidationError("OPEN_MODE_INVALID", "รูปแบบการเปิดรอบไม่ถูกต้อง", ["open_mode"]);
+    }
+
+    const outcome = await openCourseRoundAtomic(prisma, {
+      actorUserId: adminUserId,
+      requestId,
       courseOfferingId,
       roundType,
-      name: defaultCourseRoundName(roundType),
-      status: roundType === "PROPOSAL" ? "SCORING_OPEN" : "SUBMISSION_OPEN",
-      submissionOpenAt: new Date(),
-      courseWeight: defaultCourseRoundWeight(roundType),
-      rawScoreMax: 100,
-      showScoreToStudent: false,
-      showFeedbackToStudent: false,
-      showEvaluatorNameToStudent: false
-    }
-  });
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: adminUserId,
-      action: "ASSESSMENT_ROUND_OPENED",
-      entityType: "AssessmentRound",
-      entityId: round.id,
-      afterJson: {
-        status: round.status,
-        submissionOpenAt: round.submissionOpenAt,
-        closedAt: round.closedAt,
-        closedByAdminId: round.closedByAdminId
-      },
-      metadataJson: { roundType, courseOfferingId }
-    }
-  });
+      openMode: openModeValue as "NORMAL" | "SCHEDULED_ZERO_READY",
+      reason: reason || null
+    });
 
-  revalidatePath("/admin/rounds");
-  redirectWithQuery("/admin/rounds", { success: roundType === "PROGRESS_1" ? "progress_1_opened" : "round_opened" });
+    revalidatePath("/admin");
+    revalidatePath("/admin/rounds");
+    revalidatePath("/student");
+    revalidatePath("/student/schedule");
+    return {
+      status: "success",
+      code: outcome.unchanged ? "ROUND_ALREADY_OPEN" : "ROUND_OPENED",
+      message: outcome.unchanged
+        ? "รอบนี้เปิดอยู่แล้ว ระบบไม่สร้างรายการซ้ำ"
+        : outcome.scheduledZeroReady
+          ? "เปิดรอบสอบความก้าวหน้าครั้งที่ 1 ตามกำหนดการแล้ว โครงงานที่ยังไม่พร้อมจะยังถูกล็อกไว้"
+          : "เปิดรอบเรียบร้อยแล้ว",
+      requestId,
+      unchanged: outcome.unchanged
+    };
+  });
 }
 
 export async function closeCourseRound(formData: FormData) {

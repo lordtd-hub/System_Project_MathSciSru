@@ -18,6 +18,24 @@ describe("course round sequence gating", () => {
     expect(getRoundOpenGate("PROGRESS_1", { PROPOSAL: "SCORING_CLOSED" }, { progress1EligibleCount: 1 }).canOpen).toBe(true);
   });
 
+  it("allows only the explicit Progress 1 zero-ready override after Proposal closes", () => {
+    expect(getRoundOpenGate(
+      "PROGRESS_1",
+      { PROPOSAL: "SCORING_CLOSED" },
+      { progress1EligibleCount: 0, allowZeroReadyProgress1: true }
+    ).canOpen).toBe(true);
+    expect(getRoundOpenGate(
+      "PROGRESS_1",
+      { PROPOSAL: "SCORING_OPEN" },
+      { progress1EligibleCount: 0, allowZeroReadyProgress1: true }
+    )).toMatchObject({ canOpen: false, reasonKey: "proposal_must_close_first" });
+    expect(getRoundOpenGate(
+      "PROGRESS_2",
+      { PROGRESS_1: "DRAFT" },
+      { progress1EligibleCount: 0, allowZeroReadyProgress1: true }
+    )).toMatchObject({ canOpen: false, reasonKey: "progress_1_must_close_first" });
+  });
+
   it("blocks Progress 2 and Final until previous rounds are closed", () => {
     expect(getRoundOpenGate("PROGRESS_2", { PROGRESS_1: "DRAFT" })).toMatchObject({
       canOpen: false,

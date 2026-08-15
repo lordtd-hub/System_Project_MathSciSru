@@ -109,6 +109,82 @@ describe("student future-stage atomic persistence", () => {
     expect(harness.read().timeline).toHaveLength(1);
   });
 
+  it("keeps project gates and evidence-before-schedule after a zero-ready Progress 1 round opens", async () => {
+    const assessmentSubmissionFindFirst = vi.fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "evidence-1" });
+    const tx = {
+      $queryRaw: vi.fn(async () => [{ id: context.projectId }]),
+      project: {
+        findUnique: vi.fn(async () => ({
+          id: context.projectId,
+          courseOfferingId: "course-1",
+          status: "IN_PROGRESS",
+          currentTitleTh: "หัวข้อที่ยังขาดกรรมการ"
+        }))
+      },
+      assessmentSubmission: { findFirst: assessmentSubmissionFindFirst },
+      assessmentRound: { findUnique: vi.fn(async () => ({ id: "round-1", status: "SUBMISSION_OPEN" })) },
+      projectRoundException: { findMany: vi.fn(async () => []) },
+      projectProposalResult: { findFirst: vi.fn(async () => ({ finalDecision: "PASS" })) },
+      committeeAssignment: { findMany: vi.fn(async () => []) },
+      assessmentAttempt: { findFirst: vi.fn(async () => null) },
+      examScheduleProposal: {
+        findFirst: vi.fn(async () => null),
+        findUnique: vi.fn(async () => null)
+      }
+    };
+    const db = {
+      $transaction: vi.fn(async (operation: (client: typeof tx) => Promise<unknown>) => operation(tx))
+    } as unknown as Pick<PrismaClient, "$transaction">;
+
+    await expect(saveAssessmentEvidenceAtomic(db, context, evidenceInput)).rejects.toMatchObject({
+      code: "PROGRESS_1_PROJECT_NOT_READY"
+    });
+
+    const scheduleInput: ExamScheduleInput = {
+      roundType: "PROGRESS_1",
+      assessmentKind: "PROGRESS_1",
+      start: new Date("2026-08-20T02:00:00.000Z"),
+      end: null,
+      room: null,
+      note: null
+    };
+    await expect(submitExamScheduleAtomic(db, context, scheduleInput)).rejects.toMatchObject({
+      code: "PROGRESS_1_PROJECT_NOT_READY"
+    });
+  });
+
+  it("still requires Progress 1 evidence before an otherwise ready project can propose a schedule", async () => {
+    const tx = {
+      $queryRaw: vi.fn(async () => [{ id: context.projectId }]),
+      project: {
+        findUnique: vi.fn(async () => ({
+          id: context.projectId,
+          courseOfferingId: "course-1",
+          status: "IN_PROGRESS",
+          currentTitleTh: "หัวข้อพร้อมสอบ"
+        }))
+      },
+      assessmentRound: { findUnique: vi.fn(async () => ({ id: "round-1", status: "SUBMISSION_OPEN" })) },
+      examScheduleProposal: { findUnique: vi.fn(async () => null) },
+      projectRoundException: { findMany: vi.fn(async () => []) },
+      assessmentSubmission: { findFirst: vi.fn(async () => null) }
+    };
+    const db = {
+      $transaction: vi.fn(async (operation: (client: typeof tx) => Promise<unknown>) => operation(tx))
+    } as unknown as Pick<PrismaClient, "$transaction">;
+
+    await expect(submitExamScheduleAtomic(db, context, {
+      roundType: "PROGRESS_1",
+      assessmentKind: "PROGRESS_1",
+      start: new Date("2026-08-20T02:00:00.000Z"),
+      end: null,
+      room: null,
+      note: null
+    })).rejects.toMatchObject({ code: "ASSESSMENT_EVIDENCE_REQUIRED" });
+  });
+
   it("rolls schedule, approvers, timeline, audit, and in-app notifications back together", async () => {
     const input: ExamScheduleInput = {
       roundType: "PROGRESS_1",
