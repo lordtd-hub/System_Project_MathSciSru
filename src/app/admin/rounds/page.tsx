@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminRoundActionForm } from "@/components/ui/AdminRoundActionForm";
 import { AdminDangerZone, AdminOperationalSummary, AdminQueueBadge } from "@/components/ui/AdminOperationalQueue";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -218,6 +219,10 @@ export default async function AdminRoundsPage({
           const completedCount = eligibility.completed.length;
           const exceptionCount = round?.projectExceptions.filter((exception) => exception.status !== "RESOLVED").length ?? 0;
           const openGate = getRoundOpenGate(roundType, roundStatuses, { progress1EligibleCount: progress1Eligibility.eligible.length });
+          const canScheduledZeroReadyOpen = roundType === "PROGRESS_1"
+            && openGate.reasonKey === "progress_1_not_ready"
+            && isRoundClosed(roundStatuses.PROPOSAL ?? "DRAFT")
+            && progress1Eligibility.eligible.length === 0;
           const firstNotReadyReason = eligibility.notReady.flatMap((item) => item.reasons)[0];
           const requireProposalCloseAck = roundType === "PROPOSAL" && Boolean(round && isRoundOpen(round.status) && missingProposalProjects.length);
           const requireIncompleteCloseAck = roundType !== "PROPOSAL" && Boolean(round && isRoundOpen(round.status) && eligibility.eligibleButIncomplete.length);
@@ -335,15 +340,47 @@ export default async function AdminRoundsPage({
                       <div className="text-sm font-semibold">การเปิดรอบ</div>
                       <p className="mt-1 text-xs text-muted">เปิดได้เฉพาะเมื่อผ่านเงื่อนไขลำดับรอบและความพร้อมที่ระบบคำนวณไว้แล้ว</p>
                     </div>
-                    <AdminQueueBadge tone={openGate.canOpen ? "action" : "locked"}>{openGate.canOpen ? "เปิดได้" : "ยังเปิดไม่ได้"}</AdminQueueBadge>
+                    <AdminQueueBadge tone={openGate.canOpen || canScheduledZeroReadyOpen ? "action" : "locked"}>
+                      {openGate.canOpen ? "เปิดได้" : canScheduledZeroReadyOpen ? "เปิดตามกำหนดการได้" : "ยังเปิดไม่ได้"}
+                    </AdminQueueBadge>
                   </div>
-                  <form action={openCourseRound} className="mt-3">
-                    <input type="hidden" name="course_offering_id" value={offering.id} />
-                    <input type="hidden" name="round_type" value={roundType} />
-                    <SubmitButton disabled={!openGate.canOpen} pendingText="กำลังเปิดรอบ...">
-                      เปิดรอบ
-                    </SubmitButton>
-                  </form>
+                  {openGate.canOpen ? (
+                    <AdminRoundActionForm action={openCourseRound} className="mt-3">
+                      <input type="hidden" name="course_offering_id" value={offering.id} />
+                      <input type="hidden" name="round_type" value={roundType} />
+                      <input type="hidden" name="open_mode" value="NORMAL" />
+                      <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ</SubmitButton>
+                    </AdminRoundActionForm>
+                  ) : canScheduledZeroReadyOpen ? (
+                    <AdminRoundActionForm action={openCourseRound} className="mt-3 space-y-3">
+                      <input type="hidden" name="course_offering_id" value={offering.id} />
+                      <input type="hidden" name="round_type" value="PROGRESS_1" />
+                      <input type="hidden" name="open_mode" value="SCHEDULED_ZERO_READY" />
+                      <WarningAlert title="ขณะนี้ยังไม่มีโครงงานพร้อมเข้าสู่รอบ">
+                        การเปิดตามกำหนดการจะเปิดเฉพาะรอบระดับรายวิชา โครงงานที่ยังไม่ผ่าน Proposal หรือยังแต่งตั้งกรรมการไม่ครบจะยังส่งหลักฐานและเสนอวันสอบไม่ได้
+                      </WarningAlert>
+                      <label className="block text-sm font-medium" htmlFor="progress1-zero-ready-reason">
+                        เหตุผลการเปิดรอบตามกำหนดการ
+                      </label>
+                      <textarea
+                        id="progress1-zero-ready-reason"
+                        name="override_reason"
+                        className="min-h-24 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
+                        required
+                        maxLength={500}
+                        placeholder="เช่น เปิดรอบล่วงหน้าเพื่อให้นักศึกษาที่พร้อมภายหลังดำเนินการได้ตามปฏิทินรายวิชา"
+                      />
+                      <p className="text-xs text-muted">ไม่เกิน 500 ตัวอักษร และจะถูกเก็บใน Audit Log</p>
+                      <SubmitButton
+                        pendingText="กำลังเปิดรอบ..."
+                        confirmMessage="ยืนยันเปิดรอบสอบความก้าวหน้าครั้งที่ 1 ขณะที่มีโครงงานพร้อม 0 โครงงานหรือไม่? โครงงานที่ยังไม่พร้อมจะยังส่งหลักฐานหรือนัดสอบไม่ได้"
+                      >
+                        เปิดรอบตามกำหนดการ
+                      </SubmitButton>
+                    </AdminRoundActionForm>
+                  ) : (
+                    <p className="mt-3 text-xs text-muted">{roundSequenceReasonLabelTh(openGate.reasonKey)}</p>
+                  )}
                 </div>
                 {round ? (
                   <AdminDangerZone

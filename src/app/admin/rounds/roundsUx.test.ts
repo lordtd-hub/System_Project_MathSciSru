@@ -17,16 +17,24 @@ describe("admin course round management UX", () => {
 
   it("opens Progress 1 through one course-level upsert", () => {
     expect(actionSource).toContain("openCourseRound");
-    expect(actionSource).toContain("courseOfferingId_roundType");
-    expect(actionSource).toContain("progress_1_opened");
+    expect(actionSource).toContain("openCourseRoundAtomic");
+    expect(actionSource).toContain("AdminRoundActionResult");
   });
 
   it("uses lifecycle sequence gates before opening course rounds", () => {
     expect(pageSource).toContain("getRoundOpenGate");
     expect(pageSource).toContain("roundSequenceReasonLabelTh");
-    expect(pageSource).toContain("disabled={!openGate.canOpen}");
-    expect(actionSource).toContain("getRoundOpenGate");
-    expect(actionSource).toContain('redirectWithQuery("/admin/rounds", { error: openGate.reasonKey })');
+    expect(pageSource).toContain("AdminRoundActionForm");
+    expect(pageSource).toContain("openGate.canOpen");
+    expect(actionSource).toContain("runAdminRoundAction");
+  });
+
+  it("offers the audited Progress 1 zero-ready opening only with a reason and confirmation", () => {
+    expect(pageSource).toContain("canScheduledZeroReadyOpen");
+    expect(pageSource).toContain('name="open_mode" value="SCHEDULED_ZERO_READY"');
+    expect(pageSource).toContain('name="override_reason"');
+    expect(pageSource).toContain("maxLength={500}");
+    expect(pageSource).toContain("โครงงานที่ยังไม่พร้อมจะยังส่งหลักฐานหรือนัดสอบไม่ได้");
   });
 
   it("checks active rubric versions instead of only version 1", () => {
@@ -46,7 +54,6 @@ describe("admin course round management UX", () => {
   });
 
   it("does not create project-level AssessmentRound rows from the open action", () => {
-    expect(actionSource).toContain("prisma.assessmentRound.upsert");
     expect(actionSource).not.toContain("projectId_roundType");
     expect(actionSource).not.toContain("assessmentRound.createMany");
   });

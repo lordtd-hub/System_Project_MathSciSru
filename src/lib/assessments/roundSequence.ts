@@ -14,7 +14,7 @@ type RoundStatusByType = Partial<Record<CourseLevelRoundType, AssessmentStatus |
 export function getRoundOpenGate(
   roundType: CourseLevelRoundType,
   statuses: RoundStatusByType,
-  options: { progress1EligibleCount?: number } = {}
+  options: { progress1EligibleCount?: number; allowZeroReadyProgress1?: boolean } = {}
 ) {
   const currentStatus = statuses[roundType] ?? "DRAFT";
   if (isRoundOpen(currentStatus)) return { canOpen: false, reasonKey: "round_already_open" as const };
@@ -26,7 +26,7 @@ export function getRoundOpenGate(
     if (!isRoundClosed(statuses.PROPOSAL ?? "DRAFT")) {
       return { canOpen: false, reasonKey: "proposal_must_close_first" as const };
     }
-    if ((options.progress1EligibleCount ?? 0) <= 0) {
+    if ((options.progress1EligibleCount ?? 0) <= 0 && !options.allowZeroReadyProgress1) {
       return { canOpen: false, reasonKey: "progress_1_not_ready" as const };
     }
     return { canOpen: true, reasonKey: null };

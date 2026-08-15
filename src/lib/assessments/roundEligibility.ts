@@ -1,4 +1,4 @@
-import type { AssessmentRoundType, CommitteeRole, Decision, ProjectStatus, ScoreStatus } from "@prisma/client";
+import type { AssessmentRoundType, CommitteeRole, Decision, PrismaClient, ProjectStatus, ScoreStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isPresentationAssessmentComplete } from "./presentationCompletion";
 import { hasOpenLateRoundException } from "./roundExceptions";
@@ -192,8 +192,14 @@ export function reasonLabelTh(reason: string) {
   }
 }
 
-export async function getRoundEligibility(courseOfferingId: string, roundType: AssessmentRoundType) {
-  const projects = await prisma.project.findMany({
+type RoundEligibilityDb = Pick<PrismaClient, "project">;
+
+export async function getRoundEligibility(
+  courseOfferingId: string,
+  roundType: AssessmentRoundType,
+  db: RoundEligibilityDb = prisma
+) {
+  const projects = await db.project.findMany({
     where: { courseOfferingId },
     select: {
       id: true,

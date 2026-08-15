@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
+import { AdminRoundActionForm } from "@/components/ui/AdminRoundActionForm";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CompactLifecycleBadge } from "@/components/ui/LifecycleStepper";
@@ -532,11 +533,12 @@ async function AdminRoundGateSection({
           </div>
           <div className="flex flex-wrap gap-2">
             {focusGate.canOpen && activeOfferingId ? (
-              <form action={openCourseRound}>
+              <AdminRoundActionForm action={openCourseRound}>
                 <input type="hidden" name="course_offering_id" value={activeOfferingId} />
                 <input type="hidden" name="round_type" value={focusRoundType} />
+                <input type="hidden" name="open_mode" value="NORMAL" />
                 <SubmitButton pendingText="กำลังเปิดรอบ...">เปิดรอบ {roundTypeLabelTh(focusRoundType)}</SubmitButton>
-              </form>
+              </AdminRoundActionForm>
             ) : null}
             <Link className="button-secondary" href="/admin/rounds">จัดการรอบสอบ</Link>
           </div>
