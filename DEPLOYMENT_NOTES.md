@@ -27,6 +27,35 @@ Required production variables:
 
 Set `AUTH_URL` and `NEXTAUTH_URL` to the same production HTTPS URL. Set `AUTH_SECRET` and `NEXTAUTH_SECRET` to the same strong secret. On Vercel, set `AUTH_TRUST_HOST=true`.
 
+## QA Preview Branch Checklist
+
+Before testing a newly created Preview branch on Vercel, verify the branch-specific
+Preview environment configuration. Record only whether each variable is present;
+never record its value in Git, screenshots, or test evidence.
+
+- Scope `DATABASE_URL` to Preview and the exact QA branch, and point it to the QA
+  Supabase connection pool. Never reuse the Production database URL.
+- Scope `DIRECT_URL` to Preview and the exact QA branch, and point it to the same
+  QA Supabase project through its direct connection.
+- Confirm `QA_LOGIN_SECRET` is available to Preview and `ENABLE_QA_LOGIN=1` for
+  the QA deployment only.
+- Keep `ENABLE_ADMIN_TEST_TOOLS` disabled unless a separately approved QA test
+  explicitly requires it. It must remain disabled in Production.
+- Redeploy the Preview after adding or changing environment variables. Existing
+  deployments do not receive branch environment changes retroactively.
+- Verify a real `POST /qa-login`, then open the role-specific page being tested.
+  A successful `GET /qa-login` alone does not prove that the database variables
+  are available at runtime.
+- Check Preview runtime logs for missing environment variables, database
+  initialization errors, and 5xx responses before running a mutating QA test.
+- Recheck the Vercel environment scope before every new QA branch because values
+  scoped to an older branch are not inherited automatically.
+
+For the PR26 QA run, the missing Preview branch `DATABASE_URL` and `DIRECT_URL`
+were added for `codex/progress1-controlled-zero-ready-open`, the Preview was
+redeployed, and QA login succeeded. Production environment variables were not
+changed.
+
 ## Build and Migration Flow
 
 1. Install dependencies: `npm install`
