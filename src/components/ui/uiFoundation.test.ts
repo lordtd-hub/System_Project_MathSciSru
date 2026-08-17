@@ -51,7 +51,7 @@ describe("UI foundation", () => {
     const lifecycle = readFileSync("src/components/ui/LifecycleStepper.tsx", "utf8");
 
     expect(lifecycle).toContain("CompactLifecycleBadge");
-    expect(lifecycle).toContain("currentStepIndex(status)");
+    expect(lifecycle).toContain("lifecycleStepPosition(status)");
     expect(lifecycle).toContain("lifecycle-step-scroll");
     expect(lifecycle).toContain("lifecycle-step-track");
   });

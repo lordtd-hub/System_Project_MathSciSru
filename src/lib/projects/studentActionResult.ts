@@ -36,38 +36,78 @@ export function studentActionSuccess(
   return { status: "success", code, message, requestId, unchanged };
 }
 
+type StudentActionOutcomeLog = {
+  type: "student_action_outcome";
+  action: string;
+  requestId: string;
+  status: StudentActionResult["status"];
+  code: string;
+  durationMs: number;
+  errorName?: string;
+};
+
+export function studentActionOutcomeLog(
+  action: string,
+  requestId: string,
+  result: StudentActionResult,
+  durationMs: number,
+  errorName?: string
+): StudentActionOutcomeLog {
+  return {
+    type: "student_action_outcome",
+    action,
+    requestId: result.status === "idle" ? requestId : result.requestId,
+    status: result.status,
+    code: result.status === "idle" ? "IDLE" : result.code,
+    durationMs,
+    ...(errorName ? { errorName } : {})
+  };
+}
+
 export async function runStudentAction(
   action: string,
   operation: (requestId: string) => Promise<StudentActionResult>
 ): Promise<StudentActionResult> {
   const requestId = randomUUID();
   const startedAt = performance.now();
+  const finish = (result: StudentActionResult, errorName?: string) => {
+    const record = studentActionOutcomeLog(
+      action,
+      requestId,
+      result,
+      Math.round(performance.now() - startedAt),
+      errorName
+    );
+    const serialized = JSON.stringify(record);
+    if (result.status === "unexpected") console.error(serialized);
+    else console.info(serialized);
+    return result;
+  };
+
   try {
-    return await operation(requestId);
+    return finish(await operation(requestId));
   } catch (error) {
     if (error instanceof StudentActionValidationError) {
-      return { status: "validation", code: error.code, message: error.message, requestId, missingFields: error.missingFields };
+      return finish({ status: "validation", code: error.code, message: error.message, requestId, missingFields: error.missingFields });
     }
     if (error instanceof StudentActionConflictError) {
-      return { status: "conflict", code: error.code, message: error.message, requestId };
+      return finish({ status: "conflict", code: error.code, message: error.message, requestId });
     }
     if (error instanceof RateLimitExceededError) {
-      return {
+      return finish({
         status: "rate_limit",
         code: error.code,
         message: "ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่ โดยข้อมูลที่กรอกไว้ยังอยู่ครบ",
         requestId
-      };
+      });
     }
 
-    const durationMs = Math.round(performance.now() - startedAt);
     const errorName = error instanceof Error ? error.name : "UnknownError";
-    console.error(JSON.stringify({ type: "student_action_unexpected", action, requestId, durationMs, errorName }));
-    return {
+    return finish({
       status: "unexpected",
       code: "UNEXPECTED_ERROR",
       message: `ระบบยังบันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หากยังพบปัญหาให้แจ้งรหัส ${requestId}`,
       requestId
-    };
+    }, errorName);
   }
 }

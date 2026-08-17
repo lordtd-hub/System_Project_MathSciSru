@@ -1,4 +1,7 @@
+import * as React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import type { StudentActionResult } from "@/lib/projects/studentActionResult";
 import {
   STUDENT_FORM_SNAPSHOT_TTL_MS,
   attemptStorageOperation,
@@ -6,8 +9,12 @@ import {
   createFormSnapshot,
   parseFormSnapshot,
   reconcileFormValues,
-  studentActionRecoveryPlan
+  studentActionFeedbackCopy,
+  studentActionRecoveryPlan,
+  StudentActionFeedbackView
 } from "./StudentRecoverableActionForm";
+
+vi.stubGlobal("React", React);
 
 describe("student recoverable action form snapshots", () => {
   it("round-trips native, controlled, hidden timeline, radio, and same-name checkbox values", () => {
@@ -120,5 +127,55 @@ describe("student recoverable action form snapshots", () => {
     expect(writeDraft).not.toHaveBeenCalled();
     expect(timer.current).toBeNull();
     vi.useRealTimers();
+  });
+
+  it.each([
+    ["success", "ส่งแล้ว"],
+    ["validation", "กรุณาตรวจข้อมูล"],
+    ["conflict", "สถานะข้อมูลมีการเปลี่ยนแปลง"],
+    ["rate_limit", "กรุณารอสักครู่"]
+  ] as const)("builds visible feedback for the %s outcome", (status, title) => {
+    const result: StudentActionResult = status === "success"
+      ? { status, code: "SAVED", message: "บันทึกแล้ว", requestId: "req-1", unchanged: false }
+      : status === "validation"
+        ? { status, code: "MISSING", message: "กรุณากรอกข้อมูล", requestId: "req-1", missingFields: ["objectives"] }
+        : { status, code: "RETRY", message: "กรุณาลองใหม่", requestId: "req-1" };
+
+    expect(studentActionFeedbackCopy(result)).toMatchObject({ title });
+  });
+
+  it("adds the Proposal next step to successful feedback only", () => {
+    const result = {
+      status: "success",
+      code: "PROPOSAL_SUBMISSION_SAVED",
+      message: "ส่งเอกสาร Proposal เรียบร้อยแล้ว",
+      requestId: "req-2",
+      unchanged: false
+    } as const;
+
+    expect(studentActionFeedbackCopy(result, "ส่งแล้ว", "รออาจารย์ประเมิน")).toEqual({
+      title: "ส่งแล้ว",
+      message: "ส่งเอกสาร Proposal เรียบร้อยแล้ว",
+      nextStep: "รออาจารย์ประเมิน",
+      tone: "success"
+    });
+  });
+
+  it("renders the successful Proposal outcome and next step in the action feedback", () => {
+    const html = renderToStaticMarkup(React.createElement(StudentActionFeedbackView, {
+      result: {
+        status: "success",
+        code: "PROPOSAL_SUBMISSION_SAVED",
+        message: "ส่งเอกสาร Proposal เรียบร้อยแล้ว",
+        requestId: "req-3",
+        unchanged: false
+      },
+      successTitle: "ส่งแล้ว",
+      successNextStep: "รออาจารย์ประเมิน"
+    }));
+
+    expect(html).toContain('data-student-action-status="success"');
+    expect(html).toContain("ส่งแล้ว");
+    expect(html).toContain("ขั้นตอนถัดไป: รออาจารย์ประเมิน");
   });
 });
