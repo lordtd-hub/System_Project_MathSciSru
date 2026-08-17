@@ -1,26 +1,7 @@
 import type { ProjectStatus } from "@prisma/client";
+import { lifecyclePhases, lifecycleStepPosition } from "@/lib/lifecycle/statusLabels";
 
-const steps: Array<{ label: string; statuses: ProjectStatus[] }> = [
-  { label: "ข้อมูลนักศึกษา", statuses: ["STUDENT_PROFILE"] },
-  { label: "ร่างหัวข้อ", statuses: ["DRAFT"] },
-  { label: "รอที่ปรึกษา", statuses: ["PENDING_ADVISOR"] },
-  { label: "รอผู้ดูแลระบบ", statuses: ["PENDING_ADMIN"] },
-  { label: "รอส่งเอกสารเสนอหัวข้อ", statuses: ["PROPOSAL_PENDING"] },
-  { label: "สอบหัวข้อ", statuses: ["PROPOSAL_REVIEW"] },
-  { label: "มติ/แก้ไขหัวข้อ", statuses: ["PROPOSAL_ADMIN_DECISION", "PROPOSAL_REVISION_REQUIRED"] },
-  { label: "หัวข้อผ่านแล้ว", statuses: ["TOPIC_APPROVED"] },
-  { label: "ดำเนินโครงงาน", statuses: ["IN_PROGRESS", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING"] },
-  { label: "สอบขั้นสุดท้าย/ยืนยันจบ", statuses: ["FINAL_DONE", "COMPLETED"] }
-];
-
-function currentStepIndex(status: ProjectStatus): number {
-  const index = steps.findIndex((step) => step.statuses.includes(status));
-  return index >= 0 ? index : 0;
-}
-
-export function lifecycleStepPosition(status: ProjectStatus) {
-  return { current: currentStepIndex(status) + 1, total: steps.length };
-}
+export { lifecycleStepPosition };
 
 export function CompactLifecycleBadge({ status }: { status: ProjectStatus }) {
   const position = lifecycleStepPosition(status);
@@ -37,7 +18,7 @@ export function CompactLifecycleBadge({ status }: { status: ProjectStatus }) {
 }
 
 export function LifecycleStepper({ status }: { status: ProjectStatus }) {
-  const current = currentStepIndex(status);
+  const current = lifecycleStepPosition(status).current - 1;
 
   return (
     <div className="panel lifecycle-panel overflow-hidden">
@@ -50,7 +31,7 @@ export function LifecycleStepper({ status }: { status: ProjectStatus }) {
       </div>
       <div className="lifecycle-step-scroll">
         <div className="lifecycle-step-track">
-          {steps.map((step, index) => {
+          {lifecyclePhases.map((step, index) => {
             const isDone = status === "COMPLETED" ? index <= current : index < current;
             const isCurrent = status === "COMPLETED" ? false : index === current;
             const state = isDone ? "เสร็จแล้ว" : isCurrent ? "ตอนนี้" : "ล็อก";
