@@ -178,3 +178,53 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #26 สำเร็จ โดย Production คงอยู่ที่ `main@53d886c`
 - เหตุรอบเปิดผิดลำดับ โครงงานที่ยังไม่พร้อมส่งหลักฐานหรือนัดสอบได้ ปุ่มค้าง `500/digest` หรือ audit ผิดปกติที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-08-17 - Student Proposal feedback and lifecycle display rollout closeout
+
+ประเภท: Production reliability maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main ก่อนปล่อย: `53d886c0c9dcd2679428d0d5c83356d01c178812`
+- Final GitHub main: `d3a32a0679febfac4bbf38c891d815f5530dff11`
+- Final Vercel deployment: `dpl_2uFnzbvTCXzMR1RAiFJKDwzwLJx2`
+- Vercel deployment status: `READY`
+- Rollback deployment: `dpl_ork7h6nka6hDgFDbUkCjM6TVFFTk`
+- Rollback tag: `prod-before-pr28-20260817-1907`
+
+Patch ที่ปล่อย:
+
+| Patch | PR | Merge commit |
+| --- | --- | --- |
+| Student Proposal submit feedback and lifecycle display | #28 | `d3a32a0679febfac4bbf38c891d815f5530dff11` |
+
+ผลการทดสอบก่อนปล่อย:
+
+- ผ่าน typecheck, lint, tests `602/602`, production build, `git diff --check` และ secret scan
+- Vercel Preview `dpl_9RghCs9Ty2EpmvAtx3eEFR8KEd3L` เป็น `READY` และ read-only browser smoke ผ่าน
+- QA ยืนยันการส่ง Proposal ฉบับแก้ไข, การเพิ่ม version เพียงหนึ่งรายการ, คิวตรวจของที่ปรึกษา และ structured outcome log โดยไม่บันทึกเนื้อหา Proposal หรือข้อมูลส่วนบุคคล
+- Lifecycle display ครอบคลุมทุก `ProjectStatus` เพียงระยะเดียวและไม่ย้อนลำดับ; `PASS_WITH_REVISION` อยู่ขั้นที่ 7 จาก 14 ก่อนที่ปรึกษารับรอง
+
+ผลการเฝ้าดู Production:
+
+- เฝ้าดูครบอย่างน้อย 60 นาที โดยตรวจทันทีและที่ประมาณนาที 15, 30, 45 และ 60
+- Production HTTP ที่ `/` และ `/login` ตอบ HTTP 200
+- Read-only Edge smoke แสดงหน้า Admin, Teacher และ Student Proposal route โดยไม่พบ application error, digest หรือ auth failure
+- Vercel deployment คงเป็น `READY`; ไม่พบ error-level runtime log หรือ Production `5xx` ตลอด observation window
+- Production และ QA Supabase ตอบ read-only `SELECT 1` สำเร็จทุก checkpoint
+- GitHub main คงอยู่ที่ merge commit ของ PR #28 และ rollback tag ชี้กลับ Production baseline เดิมตลอดช่วงตรวจ
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback
+
+ขอบเขตและความปลอดภัย:
+
+- ไม่มี database migration หรือการเปลี่ยน environment variable
+- การตรวจ Production เป็น read-only; ผู้ทดสอบไม่ได้ส่ง Production form หรือแก้ Production database
+- ไม่มี rollback และไม่มีการลบหรือแก้ไข audit/evidence history
+- Patch เปลี่ยนการแสดงผลและ feedback หลังส่ง ไม่เปลี่ยน lifecycle transition, scoring, auth หรือ eligibility semantics
+- GitHub Supabase heartbeat เป็นระบบแยกและไม่ได้ถูกเปลี่ยนแปลง
+
+ผลลัพธ์:
+
+- ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
+- เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
