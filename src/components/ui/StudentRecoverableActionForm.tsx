@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useActionState, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { StudentActionResult } from "@/lib/projects/studentActionResult";
 
 const idleStudentActionResult: StudentActionResult = { status: "idle" };
+const StudentActionResultContext = createContext<StudentActionResult>(idleStudentActionResult);
 
 export const STUDENT_FORM_SNAPSHOT_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
 
@@ -100,6 +101,78 @@ export function cancelScheduledDraftSave(timer: { current: ReturnType<typeof set
   timer.current = null;
 }
 
+export function studentActionFeedbackCopy(
+  result: StudentActionResult,
+  successTitle = "ส่งแล้ว",
+  successNextStep?: string
+) {
+  switch (result.status) {
+    case "success":
+      return { title: successTitle, message: result.message, nextStep: successNextStep, tone: "success" as const };
+    case "validation":
+      return { title: "กรุณาตรวจข้อมูล", message: result.message, nextStep: undefined, tone: "warning" as const };
+    case "conflict":
+      return { title: "สถานะข้อมูลมีการเปลี่ยนแปลง", message: result.message, nextStep: undefined, tone: "warning" as const };
+    case "rate_limit":
+      return { title: "กรุณารอสักครู่", message: result.message, nextStep: undefined, tone: "warning" as const };
+    case "unexpected":
+      return { title: "ยังส่งไม่สำเร็จ", message: result.message, nextStep: undefined, tone: "warning" as const };
+    case "idle":
+      return null;
+  }
+}
+
+export function StudentActionFeedbackView({
+  result,
+  successTitle,
+  successNextStep,
+  className = ""
+}: {
+  result: StudentActionResult;
+  successTitle?: string;
+  successNextStep?: string;
+  className?: string;
+}) {
+  const copy = studentActionFeedbackCopy(result, successTitle, successNextStep);
+  if (!copy) return null;
+
+  return (
+    <div
+      className={`${copy.tone === "success"
+        ? "rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900"
+        : "rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"} ${className}`.trim()}
+      role={copy.tone === "success" ? "status" : "alert"}
+      aria-live="polite"
+      data-student-action-status={result.status}
+      data-student-action-feedback
+    >
+      <p className="font-semibold">{copy.title}</p>
+      <p className="mt-1">{copy.message}</p>
+      {copy.nextStep ? <p className="mt-1 font-medium">ขั้นตอนถัดไป: {copy.nextStep}</p> : null}
+    </div>
+  );
+}
+
+export function StudentActionFeedback({
+  successTitle,
+  successNextStep,
+  className
+}: {
+  successTitle?: string;
+  successNextStep?: string;
+  className?: string;
+}) {
+  const result = useContext(StudentActionResultContext);
+  return (
+    <StudentActionFeedbackView
+      result={result}
+      successTitle={successTitle}
+      successNextStep={successNextStep}
+      className={className}
+    />
+  );
+}
+
 export function readForm(form: HTMLFormElement): DraftMap {
   const values: DraftMap = {};
 
@@ -169,6 +242,7 @@ export function StudentRecoverableActionForm({
   className,
   children,
   id,
+  successHref,
   ...formProps
 }: {
   action: FormAction | TypedFormAction;
@@ -177,6 +251,7 @@ export function StudentRecoverableActionForm({
   storage?: StorageScope;
   className?: string;
   children: React.ReactNode;
+  successHref?: string;
 } & Omit<React.ComponentPropsWithoutRef<"form">, "action" | "children" | "className" | "onChange" | "onInput" | "onSubmit">) {
   const formRef = useRef<HTMLFormElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -258,7 +333,10 @@ export function StudentRecoverableActionForm({
       const removeResult = attemptStorageOperation(() => browserStorage(storage).removeItem(storageKey));
       if (!removeResult.ok) setStorageUnavailable(true);
       setStatus("success");
-      if (plan.refresh) router.refresh();
+      if (plan.refresh) {
+        if (successHref) router.replace(successHref);
+        router.refresh();
+      }
       return;
     }
 
@@ -271,9 +349,12 @@ export function StudentRecoverableActionForm({
     }
     if (form && plan.focusField) {
       const field = form.elements.namedItem(plan.focusField);
-      if (field instanceof HTMLElement) field.focus();
+      if (field instanceof HTMLElement) {
+        field.focus({ preventScroll: true });
+        field.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     }
-  }, [result, resultMode, router, storage, storageKey]);
+  }, [result, resultMode, router, storage, storageKey, successHref]);
 
   return (
     <form
@@ -295,33 +376,24 @@ export function StudentRecoverableActionForm({
       }}
       onSubmit={() => saveDraft()}
     >
-      {resultMode === "typed" && result.status !== "idle" ? (
-        <div
-          className={result.status === "success"
-            ? "mb-4 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900"
-            : "mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"}
-          role={result.status === "success" ? "status" : "alert"}
-          aria-live="polite"
-          data-student-action-status={result.status}
-        >
-          {result.message}
-        </div>
-      ) : null}
-      {children}
-      {status !== "idle" ? (
-        <p className="mt-2 text-xs text-muted" aria-live="polite">
-          {status === "restored"
-            ? "กู้คืนข้อมูลที่เคยกรอกไว้ในเครื่องนี้แล้ว"
-            : status === "success"
-              ? "บันทึกข้อมูลเข้าระบบเรียบร้อยแล้ว"
-              : "บันทึกร่างไว้ในเครื่องนี้แล้ว ยังไม่ได้ส่งเข้าระบบ"}
-        </p>
-      ) : null}
-      {storageUnavailable ? (
-        <p className="mt-2 text-xs text-amber-800" role="status">
-          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บร่างในเครื่อง แต่ยังส่งข้อมูลเข้าระบบได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
-        </p>
-      ) : null}
+      <StudentActionResultContext.Provider value={result}>
+        {resultMode === "typed" ? <StudentActionFeedback className="mb-4" /> : null}
+        {children}
+        {status !== "idle" ? (
+          <p className="mt-2 text-xs text-muted" aria-live="polite">
+            {status === "restored"
+              ? "กู้คืนข้อมูลที่เคยกรอกไว้ในเครื่องนี้แล้ว"
+              : status === "success"
+                ? "บันทึกข้อมูลเข้าระบบเรียบร้อยแล้ว"
+                : "บันทึกร่างไว้ในเครื่องนี้แล้ว ยังไม่ได้ส่งเข้าระบบ"}
+          </p>
+        ) : null}
+        {storageUnavailable ? (
+          <p className="mt-2 text-xs text-amber-800" role="status">
+            เบราว์เซอร์นี้ไม่อนุญาตให้เก็บร่างในเครื่อง แต่ยังส่งข้อมูลเข้าระบบได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
+          </p>
+        ) : null}
+      </StudentActionResultContext.Provider>
     </form>
   );
 }

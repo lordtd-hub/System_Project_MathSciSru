@@ -53,3 +53,62 @@ export const lifecycleV2Steps: ProjectStatus[] = [
   "ADVISOR_SCORING",
   "COMPLETED"
 ];
+
+export const lifecyclePhases = [
+  { label: "ข้อมูลนักศึกษา", statuses: ["STUDENT_PROFILE"] },
+  { label: "จัดทำหัวข้อ", statuses: ["DRAFT"] },
+  { label: "ที่ปรึกษาพิจารณา", statuses: ["PENDING_ADVISOR", "ORIGIN_SUBMITTED"] },
+  { label: "ผู้ดูแลระบบยืนยัน", statuses: ["PENDING_ADMIN"] },
+  { label: "ส่ง Proposal", statuses: ["PROPOSAL_PENDING", "COMMITTEE_ASSIGNED_FOR_REPROPOSAL"] },
+  {
+    label: "ประเมิน Proposal",
+    statuses: ["PROPOSAL_REVIEW", "PROPOSAL_SUBMITTED", "PROPOSAL_UNDER_REVIEW", "REPROPOSAL_SUBMITTED", "REPROPOSAL_UNDER_REVIEW"]
+  },
+  { label: "มติ/แก้ไข Proposal", statuses: ["PROPOSAL_ADMIN_DECISION", "PROPOSAL_REVISION_REQUIRED", "PROPOSAL_FAILED", "REPROPOSAL_FAILED"] },
+  { label: "หัวข้อผ่าน/แต่งตั้งกรรมการ", statuses: ["TOPIC_APPROVED", "PROPOSAL_PASSED", "REPROPOSAL_PASSED"] },
+  { label: "ดำเนินโครงงาน/สอบความก้าวหน้า", statuses: ["IN_PROGRESS", "READY_FOR_PROGRESS_1", "IN_PROGRESS_1", "IN_PROGRESS_2"] },
+  { label: "สอบนำเสนอขั้นสุดท้าย", statuses: ["READY_FOR_FINAL", "FINAL_DONE"] },
+  { label: "ตรวจรายงาน", statuses: ["REPORT_REVIEW"] },
+  { label: "รายงานผ่าน", statuses: ["REPORT_APPROVED"] },
+  { label: "คะแนนที่ปรึกษา/ยืนยันจบ", statuses: ["ADVISOR_SCORING"] },
+  { label: "เสร็จสมบูรณ์", statuses: ["COMPLETED"] }
+] as const satisfies ReadonlyArray<{ label: string; statuses: readonly ProjectStatus[] }>;
+
+const lifecyclePhaseNumberByStatus = {
+  STUDENT_PROFILE: 1,
+  DRAFT: 2,
+  PENDING_ADVISOR: 3,
+  ORIGIN_SUBMITTED: 3,
+  PENDING_ADMIN: 4,
+  PROPOSAL_PENDING: 5,
+  COMMITTEE_ASSIGNED_FOR_REPROPOSAL: 5,
+  PROPOSAL_REVIEW: 6,
+  PROPOSAL_SUBMITTED: 6,
+  PROPOSAL_UNDER_REVIEW: 6,
+  REPROPOSAL_SUBMITTED: 6,
+  REPROPOSAL_UNDER_REVIEW: 6,
+  PROPOSAL_ADMIN_DECISION: 7,
+  PROPOSAL_REVISION_REQUIRED: 7,
+  PROPOSAL_FAILED: 7,
+  REPROPOSAL_FAILED: 7,
+  TOPIC_APPROVED: 8,
+  PROPOSAL_PASSED: 8,
+  REPROPOSAL_PASSED: 8,
+  IN_PROGRESS: 9,
+  READY_FOR_PROGRESS_1: 9,
+  IN_PROGRESS_1: 9,
+  IN_PROGRESS_2: 9,
+  READY_FOR_FINAL: 10,
+  FINAL_DONE: 10,
+  REPORT_REVIEW: 11,
+  REPORT_APPROVED: 12,
+  ADVISOR_SCORING: 13,
+  COMPLETED: 14
+} satisfies Record<ProjectStatus, number>;
+
+export function lifecycleStepPosition(status: ProjectStatus) {
+  return {
+    current: lifecyclePhaseNumberByStatus[status],
+    total: lifecyclePhases.length
+  };
+}

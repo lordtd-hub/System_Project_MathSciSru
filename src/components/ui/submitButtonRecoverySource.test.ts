@@ -17,7 +17,10 @@ describe("submit button recovery source", () => {
     expect(source).not.toContain("SUBMIT_AUTO_RECOVERY_EVENT");
     expect(source).not.toContain("window.location.reload()");
     expect(source).toContain('type="submit"');
-    expect(source).toContain("disabled={disabled || pending}");
+    expect(source).toContain("submitButtonInteractionState(pending, disabled)");
+    expect(source).toContain("disabled={interaction.disabled}");
+    expect(source).toContain("aria-busy={pending}");
+    expect(source).toContain("data-submit-state={interaction.state}");
     expect(source).toContain("event.preventDefault();");
     expect(draftFormSource).toContain('target.closest(\'button[type="submit"],input[type="submit"]\')');
     expect(draftFormSource).toContain("saveDraft();");
