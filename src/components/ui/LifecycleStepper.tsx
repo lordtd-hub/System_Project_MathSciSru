@@ -7,7 +7,7 @@ const steps: Array<{ label: string; statuses: ProjectStatus[] }> = [
   { label: "รอผู้ดูแลระบบ", statuses: ["PENDING_ADMIN"] },
   { label: "รอส่งเอกสารเสนอหัวข้อ", statuses: ["PROPOSAL_PENDING"] },
   { label: "สอบหัวข้อ", statuses: ["PROPOSAL_REVIEW"] },
-  { label: "ตัดสินผลเสนอหัวข้อ", statuses: ["PROPOSAL_ADMIN_DECISION"] },
+  { label: "มติ/แก้ไขหัวข้อ", statuses: ["PROPOSAL_ADMIN_DECISION", "PROPOSAL_REVISION_REQUIRED"] },
   { label: "หัวข้อผ่านแล้ว", statuses: ["TOPIC_APPROVED"] },
   { label: "ดำเนินโครงงาน", statuses: ["IN_PROGRESS", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING"] },
   { label: "สอบขั้นสุดท้าย/ยืนยันจบ", statuses: ["FINAL_DONE", "COMPLETED"] }
@@ -18,14 +18,19 @@ function currentStepIndex(status: ProjectStatus): number {
   return index >= 0 ? index : 0;
 }
 
+export function lifecycleStepPosition(status: ProjectStatus) {
+  return { current: currentStepIndex(status) + 1, total: steps.length };
+}
+
 export function CompactLifecycleBadge({ status }: { status: ProjectStatus }) {
-  const current = currentStepIndex(status);
+  const position = lifecycleStepPosition(status);
   const completed = status === "COMPLETED";
 
   return (
     <span className="inline-flex min-h-8 max-w-full items-center gap-2 rounded-full border border-brand/20 bg-red-50 px-3 py-1 text-xs font-semibold text-brandDark shadow-sm">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] text-white">{current + 1}</span>
-      <span className="text-muted">/ {steps.length}</span>
+      <span className="text-muted">ขั้นที่</span>
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] text-white">{position.current}</span>
+      <span className="text-muted">/ {position.total}</span>
       {completed ? <span className="text-[11px] text-[var(--ok-700)]">เสร็จสมบูรณ์</span> : null}
     </span>
   );

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ProposalQaRubricPanel } from "@/components/ui/ProposalQaRubricPanel";
 import { ProposalTimelineBuilder } from "@/components/ui/ProposalTimelineBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
+import { StudentActionFeedback, StudentRecoverableActionForm } from "@/components/ui/StudentRecoverableActionForm";
 import { StudentReadabilitySummary } from "@/components/ui/StudentReadabilitySummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
@@ -114,6 +114,11 @@ export default async function ProposalSubmissionPage({
   const formSubmission = canSubmitReproposal ? null : submission;
   const content = formSubmission?.contentJson as Record<string, unknown> | undefined;
   const showSubmittedProposalState = Boolean(submission && !canSubmitRevision && !canSubmitReproposal && project?.status !== "PROPOSAL_PENDING");
+  const isSubmittedRevision = Boolean(
+    currentProposalResult?.finalDecision === "PASS_WITH_REVISION"
+    && project?.status === "PROPOSAL_REVISION_REQUIRED"
+    && submission?.status === "SUBMITTED"
+  );
   const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState && !canSubmitRevision;
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
@@ -201,8 +206,10 @@ export default async function ProposalSubmissionPage({
         </WarningAlert>
       ) : null}
       {params.success === "proposal_submitted" ? (
-        <InfoAlert title="ส่ง Proposal สำเร็จ">
-          ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์และผู้ดูแลระบบดำเนินการตามสถานะโครงงาน
+        <InfoAlert title={isSubmittedRevision ? "ส่ง Proposal ฉบับแก้ไขแล้ว" : "ส่ง Proposal สำเร็จ"}>
+          {isSubmittedRevision
+            ? "ระบบบันทึกฉบับแก้ไขแล้ว ขั้นตอนถัดไปคือรออาจารย์ที่ปรึกษาตรวจและรับรอง"
+            : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์ประเมินและติดตามสถานะในหน้านี้"}
         </InfoAlert>
       ) : null}
       {canSubmitRevision ? (
@@ -226,12 +233,14 @@ export default async function ProposalSubmissionPage({
         </WarningAlert>
       ) : null}
       {showSubmittedProposalState && submission ? (
-        <section className="panel space-y-4" data-testid="student-proposal-submitted-summary">
+        <section id="student-proposal-submitted-summary" className="panel space-y-4" data-testid="student-proposal-submitted-summary" tabIndex={-1}>
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-accent">สถานะเอกสารเสนอหัวข้อ</p>
-            <h2 className="text-lg font-semibold">ส่งเอกสารเสนอหัวข้อแล้ว</h2>
+            <h2 className="text-lg font-semibold">{isSubmittedRevision ? "ส่ง Proposal ฉบับแก้ไขแล้ว" : "ส่งเอกสารเสนอหัวข้อแล้ว"}</h2>
             <p className="mt-1 text-sm text-muted">
-              ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วน Comment ด้านล่าง
+              {isSubmittedRevision
+                ? "ระบบบันทึกฉบับแก้ไขแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ที่ปรึกษาตรวจและรับรอง นักศึกษาติดตามสถานะได้จากหน้านี้"
+                : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วน Comment ด้านล่าง"}
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -260,6 +269,7 @@ export default async function ProposalSubmissionPage({
         action={saveProposalSubmission}
         resultMode="typed"
         storageKey={`student-proposal-draft:${project.id}${canSubmitReproposal ? `:reproposal:${latestProposalAttempt?.id}:${currentProposalResult?.id}` : ""}`}
+        successHref="/student/proposal?success=proposal_submitted#student-proposal-submitted-summary"
       >
         {formSubmission ? <input type="hidden" name="proposal_submission_id" value={formSubmission.id} /> : null}
         {canSubmitReproposal && latestProposalAttempt && currentProposalResult ? (
@@ -323,7 +333,18 @@ export default async function ProposalSubmissionPage({
               สามารถกรอกและกด “บันทึกไว้ก่อน” ได้ ข้อมูลจะเก็บไว้ในเครื่องนี้ เมื่อผู้ดูแลระบบเปิดรอบเสนอหัวข้อแล้วจึงกลับมากดส่งเอกสารเสนอหัวข้อ
             </InfoAlert>
           ) : null}
-          <div className="sticky bottom-0 -mx-4 mt-4 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="sticky bottom-0 -mx-4 mt-4 flex flex-col gap-2 border-t border-line bg-surface/95 p-4 backdrop-blur sm:static sm:mx-0 sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0">
+            <StudentActionFeedback
+              className="w-full sm:basis-full"
+              successTitle={canSubmitRevision
+                ? "ส่ง Proposal ฉบับแก้ไขแล้ว"
+                : canSubmitReproposal
+                  ? "ส่ง Proposal สำหรับ Re-proposal แล้ว"
+                  : "ส่งแล้ว"}
+              successNextStep={canSubmitRevision
+                ? "รออาจารย์ที่ปรึกษาตรวจและรับรองฉบับแก้ไข"
+                : "รออาจารย์ประเมินการเสนอหัวข้อ และติดตามสถานะในหน้านี้"}
+            />
             <button type="button" data-proposal-draft-save className="button-secondary w-full sm:w-auto">
               บันทึกไว้ก่อน
             </button>

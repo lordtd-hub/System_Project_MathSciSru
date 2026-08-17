@@ -49,6 +49,13 @@ function formatScore(score: number) {
   return Number.isInteger(score) ? String(score) : score.toFixed(2).replace(/\.00$/, "");
 }
 
+export function submitButtonInteractionState(pending: boolean, disabled = false) {
+  return {
+    disabled: disabled || pending,
+    state: pending ? "pending" as const : "idle" as const
+  };
+}
+
 export function SubmitButton({
   children,
   pendingText = "กำลังบันทึก...",
@@ -74,6 +81,7 @@ export function SubmitButton({
   autoRecovery?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const interaction = submitButtonInteractionState(pending, disabled);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [scoreSummary, setScoreSummary] = useState<ScoreSummary>({
     completed: 0,
@@ -116,8 +124,10 @@ export function SubmitButton({
       value={value}
       formNoValidate={formNoValidate}
       className={className}
-      disabled={disabled || pending}
-      aria-disabled={disabled || pending}
+      disabled={interaction.disabled}
+      aria-disabled={interaction.disabled}
+      aria-busy={pending}
+      data-submit-state={interaction.state}
       onClick={(event) => {
         const form = event.currentTarget.form;
         if (!form) return;
