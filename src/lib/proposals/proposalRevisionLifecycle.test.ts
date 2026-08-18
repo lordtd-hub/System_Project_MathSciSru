@@ -14,7 +14,7 @@ type State = {
     status: string;
     currentTitleTh: string | null;
     currentTitleEn: string | null;
-    student: { id: string; userId: string };
+    student: { id: string; userId: string | null };
   };
   submission: {
     id: string;
@@ -50,6 +50,7 @@ const now = new Date("2026-08-12T03:00:00.000Z");
 
 const revisionInput: ProposalRevisionInput = {
   actorUserId: "student-user",
+  actorStudentId: "student-1",
   requestId: "request-revision",
   projectId: "project-1",
   titleTh: "หัวข้อฉบับแก้ไข",
@@ -67,7 +68,7 @@ function initialState(): State {
       status: "PROPOSAL_ADMIN_DECISION",
       currentTitleTh: "หัวข้อเดิม",
       currentTitleEn: null,
-      student: { id: "student-1", userId: "student-user" }
+      student: { id: "student-1", userId: null }
     },
     submission: {
       id: "submission-1",
@@ -483,6 +484,20 @@ describe("Proposal revision lifecycle transactional services", () => {
     expect((harness.tx as Record<string, unknown>).evaluatorAssignment).toBeUndefined();
     expect((harness.tx as Record<string, unknown>).proposalVote).toBeUndefined();
     expect((harness.tx as Record<string, unknown>).scoreSubmission).toBeUndefined();
+  });
+
+  it("checks the authenticated roster student instead of requiring a legacy User relation", async () => {
+    await decideRevision(harness);
+
+    await expect(submitProposalRevisionAtomic(harness.db, {
+      ...revisionInput,
+      actorStudentId: "another-student"
+    })).rejects.toMatchObject({ code: "STUDENT_PROJECT_NOT_AUTHORIZED" });
+
+    await expect(submitProposalRevisionAtomic(harness.db, revisionInput)).resolves.toMatchObject({
+      unchanged: false,
+      projectId: "project-1"
+    });
   });
 
   it("requires the latest AdvisorRequest overall to be APPROVED", async () => {

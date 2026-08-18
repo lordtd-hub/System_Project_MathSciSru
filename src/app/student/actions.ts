@@ -279,6 +279,7 @@ export async function saveProposalSubmission(
       try {
         outcome = await submitProposalRevisionAtomic(prisma, {
           actorUserId: userId,
+          actorStudentId: student.id,
           requestId,
           projectId: project.id,
           titleTh: proposalInput.titleTh,

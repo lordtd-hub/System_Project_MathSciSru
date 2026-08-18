@@ -24,6 +24,7 @@ export type AdminProposalFinalDecisionInput = ProposalLifecycleActorInput & {
 };
 
 export type ProposalRevisionInput = ProposalLifecycleActorInput & {
+  actorStudentId: string;
   projectId: string;
   titleTh: string;
   titleEn: string | null;
@@ -498,9 +499,9 @@ export async function submitProposalRevisionAtomic(
     await lockProject(tx, input.projectId);
     const project = await tx.project.findUnique({
       where: { id: input.projectId },
-      include: { student: { select: { id: true, userId: true } } }
+      include: { student: { select: { id: true } } }
     });
-    if (!project || project.student.userId !== input.actorUserId) {
+    if (!project || project.student.id !== input.actorStudentId) {
       throw new ProposalLifecycleConflictError(
         "STUDENT_PROJECT_NOT_AUTHORIZED",
         "บัญชีนักศึกษานี้ไม่ใช่เจ้าของโครงงาน กรุณารีเฟรชหน้าและเข้าสู่ระบบใหม่"
