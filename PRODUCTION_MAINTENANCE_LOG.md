@@ -228,3 +228,54 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
 - เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-08-22 - Re-proposal next-action guidance rollout closeout
+
+ประเภท: Production UI and lifecycle-guidance maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main ก่อนปล่อย: `a369bac09489942041a44ea7547dc7ca57a564eb`
+- Final GitHub main: `013497a1b6d72084794e8b5149118f976485dc34`
+- Final Vercel deployment: `dpl_GZRqS8mBvc1564s61uFLYED68p2t`
+- Vercel deployment status: `READY`
+- Rollback deployment: `dpl_5eqZH2Wdovh5p9enHMDD6R7Gct5j`
+- Rollback tag: `prod-before-pr30-20260822-1833`
+
+Patch ที่ปล่อย:
+
+| Patch | PR | Merge commit |
+| --- | --- | --- |
+| General Re-proposal next-action guidance without attempt numbers | #30 | `013497a1b6d72084794e8b5149118f976485dc34` |
+
+ผลการทดสอบก่อนปล่อย:
+
+- ผ่าน typecheck, lint, tests `608/608`, production build, `git diff --check` และ changed-file secret scan
+- Vercel Preview ของ PR #30 เป็น `READY` และ GitHub checks ผ่าน
+- Behavioral tests ยืนยันว่า Re-proposal มีลำดับเหนือข้อความปิดรอบครั้งแรก, รองรับรอบถัดไปโดยไม่แสดงเลขครั้ง และไม่เปลี่ยน flow `PASS_WITH_REVISION`
+- QA และ Production Supabase ตอบ read-only `SELECT 1` สำเร็จก่อน merge
+- ไม่ได้ส่ง QA form ผ่าน Preview เนื่องจาก Deployment Protection และ Preview runtime environment ไม่พร้อมสำหรับ QA login; ไม่มีการลดระดับ Production safety gate เพื่อข้ามข้อจำกัดนี้
+
+ผลการเฝ้าดู Production:
+
+- เฝ้าดูครบอย่างน้อย 60 นาที โดยตรวจทันทีและที่ประมาณนาที 15, 30, 45 และ 60
+- Production HTTP ที่ `/` และ `/student/proposal` ตอบ HTTP 200 ทุก checkpoint
+- Read-only Edge smoke แสดง Student Proposal access guard โดยไม่พบ application error, digest หรือ auth failure
+- Vercel deployment คงเป็น `READY`; ไม่พบ error-level runtime log หรือ Production `5xx` ตลอด observation window
+- Production และ QA Supabase ตอบ read-only `SELECT 1` สำเร็จทุก checkpoint
+- GitHub main คงอยู่ที่ merge commit ของ PR #30 และ rollback tag อยู่บน remote ตลอดช่วงตรวจ
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback
+
+ขอบเขตและความปลอดภัย:
+
+- ไม่มี database migration หรือการเปลี่ยน environment variable
+- การตรวจ Production เป็น read-only; ผู้ทดสอบไม่ได้ส่ง Production form หรือแก้ Production database
+- ไม่มี rollback และไม่มีการลบหรือแก้ไข audit/evidence history
+- Patch เปลี่ยนข้อความและการเลือก next action สำหรับ Re-proposal โดยไม่เปลี่ยน lifecycle transition, scoring, auth หรือ eligibility semantics
+- GitHub Supabase heartbeat เป็นระบบแยกและไม่ได้ถูกเปลี่ยนแปลง
+
+ผลลัพธ์:
+
+- ปิด rollout PR #30 สำเร็จ โดย Production คงอยู่ที่ `main@013497a`
+- เหตุข้อความหรือสิทธิ์ Re-proposal ผิดสถานะ, Student Proposal ใช้งานไม่ได้, ปุ่มค้าง, `500/digest`, auth failure หรือ lifecycle count ผิดปกติที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
