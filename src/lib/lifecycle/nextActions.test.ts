@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAssessmentCardState, getNextActionForAdmin, getNextActionForStudent, getNextActionForTeacher, getStudentAvailableActions } from "./nextActions";
+import { getAssessmentCardState, getNextActionForAdmin, getNextActionForStudent, getNextActionForTeacher, getProposalStudentNextAction, getStudentAvailableActions } from "./nextActions";
 import { getProposalStudentVisibility } from "./visibility";
 
 describe("next action helpers", () => {
@@ -71,11 +71,90 @@ describe("next action helpers", () => {
     const closedProposal = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, { proposalRoundOpen: false });
     expect(closedProposal.available_now.map((item) => item.key)).not.toContain("proposal");
     expect(closedProposal.blocked_waiting_for.map((item) => item.key)).toContain("proposal_round_closed");
+    expect(closedProposal.blocked_waiting_for[0].title).toBe("รอบส่ง Proposal ครั้งแรกสิ้นสุดแล้ว");
 
     const openProposal = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, { proposalRoundOpen: true });
     expect(openProposal.available_now.map((item) => item.key)).toContain("proposal");
   });
 
+  it("prioritizes a permitted Re-proposal over the closed course round", () => {
+    const proposal = {
+      latestAttemptNo: 1,
+      latestAttemptType: "MAIN_PROPOSAL" as const,
+      latestResultAttemptNo: 1,
+      latestDecision: "NOT_PASS" as const
+    };
+    const nextAction = getProposalStudentNextAction("PROPOSAL_PENDING", proposal);
+    const actions = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, {
+      proposalRoundOpen: false,
+      proposal
+    });
+
+    expect(nextAction?.title).toBe("พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป");
+    expect(nextAction?.title).not.toMatch(/ครั้งที่\s*\d/);
+    expect(nextAction?.actionLabel).toBe("กรอกและส่ง Proposal ฉบับใหม่");
+    expect(actions.available_now.map((item) => item.key)).toContain("reproposal");
+    expect(actions.blocked_waiting_for.map((item) => item.key)).not.toContain("proposal_round_closed");
+  });
+
+  it("uses stable general copy across later Re-proposal cycles", () => {
+    const failedLaterAttempt = {
+      latestAttemptNo: 3,
+      latestAttemptType: "REPROPOSAL" as const,
+      latestResultAttemptNo: 3,
+      latestDecision: "NOT_PASS" as const
+    };
+    const nextPreparation = getProposalStudentNextAction("DRAFT", failedLaterAttempt);
+    const submittedAgain = getProposalStudentNextAction("PROPOSAL_REVIEW", {
+      latestAttemptNo: 4,
+      latestAttemptType: "REPROPOSAL",
+      latestResultAttemptNo: 3,
+      latestDecision: "NOT_PASS"
+    });
+
+    expect(nextPreparation?.title).toBe("เริ่มเตรียมการสอบหัวข้อครั้งถัดไป");
+    expect(submittedAgain?.title).toBe("ส่ง Proposal ฉบับใหม่แล้ว");
+    expect(`${nextPreparation?.title} ${submittedAgain?.title}`).not.toMatch(/ครั้งที่\s*\d/);
+  });
+
+  it("keeps PASS_WITH_REVISION in the revision flow instead of Re-proposal", () => {
+    const action = getProposalStudentNextAction("PROPOSAL_REVISION_REQUIRED", {
+      latestAttemptNo: 2,
+      latestAttemptType: "REPROPOSAL",
+      latestResultAttemptNo: 2,
+      latestDecision: "PASS_WITH_REVISION"
+    });
+    const actions = getStudentAvailableActions("PROPOSAL_REVISION_REQUIRED", {}, undefined, {
+      proposalRevisionSubmitted: false,
+      proposal: {
+        latestAttemptNo: 2,
+        latestAttemptType: "REPROPOSAL",
+        latestResultAttemptNo: 2,
+        latestDecision: "PASS_WITH_REVISION"
+      }
+    });
+
+    expect(action).toBeNull();
+    expect(actions.available_now.map((item) => item.key)).toContain("proposal_revision");
+    expect(actions.available_now.map((item) => item.key)).not.toContain("reproposal");
+  });
+
+  it("shows Re-proposal waiting states without exposing an attempt number", () => {
+    const proposal = {
+      latestAttemptNo: 2,
+      latestAttemptType: "REPROPOSAL" as const,
+      latestResultAttemptNo: 2,
+      latestDecision: "NOT_PASS" as const
+    };
+
+    expect(getProposalStudentNextAction("PENDING_ADVISOR", proposal)?.title).toBe("รออาจารย์ที่ปรึกษาพิจารณาหัวข้อใหม่");
+    expect(getProposalStudentNextAction("PENDING_ADMIN", proposal)?.title).toBe("รอผู้ดูแลระบบอนุมัติหัวข้อและที่ปรึกษา");
+    expect(getProposalStudentNextAction("PROPOSAL_ADMIN_DECISION", {
+      ...proposal,
+      latestAttemptNo: 3,
+      latestResultAttemptNo: 2
+    })?.title).toBe("รอบันทึกมติการสอบหัวข้อรอบใหม่");
+  });
   it("shows a submitted Proposal revision as history while waiting for the advisor", () => {
     const revision = getStudentAvailableActions("PROPOSAL_REVISION_REQUIRED", {}, undefined, {
       proposalRevisionSubmitted: true
