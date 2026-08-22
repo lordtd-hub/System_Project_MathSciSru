@@ -15,7 +15,7 @@ import { prisma } from "@/lib/db";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
-import { getNextActionForStudent, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
+import { getNextActionForStudent, getProposalStudentNextAction, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
 import { getStudentReportActionLabel } from "@/lib/reports/reportWorkflow";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
@@ -223,7 +223,24 @@ export default async function StudentDashboardPage() {
             take: 6
           },
           reportVersions: { select: { versionNo: true, reviews: { select: { decision: true } } }, orderBy: { versionNo: "desc" }, take: 1 },
-          presentationSubmissions: { select: { id: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          presentationSubmissions: {
+            where: { assessmentAttempt: { assessmentRound: { roundType: "PROPOSAL" } } },
+            select: {
+              id: true,
+              status: true,
+              assessmentAttempt: { select: { attemptNo: true, attemptType: true } }
+            },
+            orderBy: { createdAt: "desc" },
+            take: 1
+          },
+          proposalResults: {
+            select: {
+              finalDecision: true,
+              assessmentAttempt: { select: { attemptNo: true } }
+            },
+            orderBy: [{ decidedAt: "desc" }, { id: "desc" }],
+            take: 1
+          },
           roundExceptions: {
             where: { status: "OPEN" },
             select: {
@@ -350,7 +367,16 @@ export default async function StudentDashboardPage() {
       : project.status === "REPORT_APPROVED"
         ? "รายงานได้รับการอนุมัติแล้ว ขั้นตอนถัดไปคือคะแนนสรุปของอาจารย์ที่ปรึกษาและการปิดโครงงาน"
         : "ส่งรายงานแล้ว ขณะนี้อยู่ระหว่างรอผู้ตรวจพิจารณารายงาน";
-  const baseNextAction = getNextActionForStudent(project.status);
+  const proposal = project.presentationSubmissions[0];
+  const latestProposalResult = project.proposalResults[0];
+  const proposalActionContext = {
+    latestAttemptNo: proposal?.assessmentAttempt.attemptNo,
+    latestAttemptType: proposal?.assessmentAttempt.attemptType,
+    latestResultAttemptNo: latestProposalResult?.assessmentAttempt.attemptNo,
+    latestDecision: latestProposalResult?.finalDecision
+  };
+  const proposalNextAction = getProposalStudentNextAction(project.status, proposalActionContext);
+  const baseNextAction = proposalNextAction ?? getNextActionForStudent(project.status);
   const nextAction = ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED"].includes(project.status)
     ? {
         ...baseNextAction,
@@ -361,10 +387,10 @@ export default async function StudentDashboardPage() {
         tone: project.status === "REPORT_APPROVED" ? "success" as const : baseNextAction.tone
       }
     : baseNextAction;
-  const proposal = project.presentationSubmissions[0];
   const studentWorkflowContext = {
     proposalRoundOpen: Boolean(roundStatusByType.get("PROPOSAL") && isRoundOpen(roundStatusByType.get("PROPOSAL")!)),
     proposalRevisionSubmitted: project.status === "PROPOSAL_REVISION_REQUIRED" && proposal?.status === "SUBMITTED",
+    proposal: proposalActionContext,
     roundAvailability: {
       PROGRESS_1: Boolean(roundStatusByType.get("PROGRESS_1") && isRoundOpen(roundStatusByType.get("PROGRESS_1")!)),
       PROGRESS_2: Boolean(roundStatusByType.get("PROGRESS_2") && isRoundOpen(roundStatusByType.get("PROGRESS_2")!)),

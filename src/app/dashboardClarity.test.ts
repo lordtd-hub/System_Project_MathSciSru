@@ -6,6 +6,9 @@ describe("dashboard clarity phase 2", () => {
     const page = readFileSync("src/app/student/page.tsx", "utf8");
 
     expect(page).toContain("getStudentAvailableActions(project.status, assessmentStates, reportStatus, studentWorkflowContext)");
+    expect(page).toContain("getProposalStudentNextAction(project.status, proposalActionContext)");
+    expect(page).toContain("proposal: proposalActionContext");
+
     expect(page).toContain("StudentWorkflowGroup");
     expect(page).toContain("visibleAssessmentResults");
     expect(page).toContain("showScoreToStudent");

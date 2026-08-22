@@ -17,6 +17,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
+import { getProposalStudentNextAction } from "@/lib/lifecycle/nextActions";
 import { canEditUntilDeadline } from "@/lib/submissions/versioning";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 import { isQaProgressPlanCheckEnabled } from "@/lib/qa/progressPlanCheckConfig";
@@ -69,6 +70,15 @@ export default async function ProposalSubmissionPage({
   const currentProposalResult = latestProposalAttempt?.id === latestProposalResult?.assessmentAttemptId
     ? latestProposalResult
     : null;
+  const latestProposalResultAttempt = project?.attempts.find((attempt) => attempt.id === latestProposalResult?.assessmentAttemptId);
+  const proposalActionContext = {
+    latestAttemptNo: latestProposalAttempt?.attemptNo,
+    latestAttemptType: latestProposalAttempt?.attemptType,
+    latestResultAttemptNo: latestProposalResultAttempt?.attemptNo,
+    latestDecision: latestProposalResult?.finalDecision
+  };
+  const proposalNextAction = getProposalStudentNextAction(project?.status, proposalActionContext);
+  const isCurrentReproposal = latestProposalAttempt?.attemptType === "REPROPOSAL";
   const proposalComments = project?.attempts.flatMap((attempt) =>
     submittedProposalVotes(attempt.proposalVotes, attempt.evaluatorAssignments)
       .filter((vote) => vote.visibleToStudent)
@@ -201,15 +211,21 @@ export default async function ProposalSubmissionPage({
             : "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษโดยผู้ดูแลระบบ กรุณาส่งข้อมูลให้ครบตามที่ได้รับอนุญาต"}
         </WarningAlert>
       ) : canPrepareInitialProposal && !canSubmitReproposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
-        <WarningAlert title="พ้นกำหนดส่ง Proposal แล้ว">
-          ขณะนี้รอบ Proposal ปิดแล้ว หากจำเป็นต้องส่งย้อนหลัง กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดเป็นรายกรณี
+        <WarningAlert title="รอบส่ง Proposal ครั้งแรกสิ้นสุดแล้ว">
+          หากยังไม่เคยส่ง Proposal กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดให้ส่งเป็นรายกรณี
         </WarningAlert>
       ) : null}
       {params.success === "proposal_submitted" ? (
-        <InfoAlert title={isSubmittedRevision ? "ส่ง Proposal ฉบับแก้ไขแล้ว" : "ส่ง Proposal สำเร็จ"}>
+        <InfoAlert title={isSubmittedRevision
+          ? "ส่ง Proposal ฉบับแก้ไขแล้ว"
+          : isCurrentReproposal
+            ? proposalNextAction?.title ?? "ส่ง Proposal ฉบับใหม่แล้ว"
+            : "ส่ง Proposal สำเร็จ"}>
           {isSubmittedRevision
             ? "ระบบบันทึกฉบับแก้ไขแล้ว ขั้นตอนถัดไปคือรออาจารย์ที่ปรึกษาตรวจและรับรอง"
-            : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์ประเมินและติดตามสถานะในหน้านี้"}
+            : isCurrentReproposal
+              ? proposalNextAction?.description ?? "ระบบบันทึก Proposal ฉบับใหม่แล้ว ขั้นตอนถัดไปคือรออาจารย์ประเมิน"
+              : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขั้นตอนถัดไปคือรออาจารย์ประเมินและติดตามสถานะในหน้านี้"}
         </InfoAlert>
       ) : null}
       {canSubmitRevision ? (
@@ -218,9 +234,9 @@ export default async function ProposalSubmissionPage({
         </InfoAlert>
       ) : null}
       {canSubmitReproposal ? (
-        <InfoAlert title="ส่ง Proposal สำหรับการสอบใหม่">
-          กรุณากรอก Proposal ฉบับใหม่สำหรับ Re-proposal ข้อมูลและผลประเมินจากครั้งก่อนยังคงอยู่ในประวัติ
-          การส่งครั้งนี้เปิดเฉพาะโครงการของคุณแม้รอบรวมปิดแล้ว และไม่ถือเป็นการส่งล่าช้า
+        <InfoAlert title={proposalNextAction?.title ?? "พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป"}>
+          {proposalNextAction?.description ?? "กรุณาตรวจสอบข้อมูลและส่ง Proposal ฉบับใหม่เพื่อเข้าสู่การประเมินอีกครั้ง"}
+          {" "}การส่งครั้งนี้เปิดเฉพาะโครงการของคุณแม้รอบรวมปิดแล้ว และไม่ถือเป็นการส่งล่าช้า
         </InfoAlert>
       ) : null}
       <InfoAlert title="การแสดงผลให้นักศึกษา">
@@ -236,11 +252,13 @@ export default async function ProposalSubmissionPage({
         <section id="student-proposal-submitted-summary" className="panel space-y-4" data-testid="student-proposal-submitted-summary" tabIndex={-1}>
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-accent">สถานะเอกสารเสนอหัวข้อ</p>
-            <h2 className="text-lg font-semibold">{isSubmittedRevision ? "ส่ง Proposal ฉบับแก้ไขแล้ว" : "ส่งเอกสารเสนอหัวข้อแล้ว"}</h2>
+            <h2 className="text-lg font-semibold">{isSubmittedRevision ? "ส่ง Proposal ฉบับแก้ไขแล้ว" : isCurrentReproposal ? proposalNextAction?.title ?? "ส่ง Proposal ฉบับใหม่แล้ว" : "ส่งเอกสารเสนอหัวข้อแล้ว"}</h2>
             <p className="mt-1 text-sm text-muted">
               {isSubmittedRevision
                 ? "ระบบบันทึกฉบับแก้ไขแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ที่ปรึกษาตรวจและรับรอง นักศึกษาติดตามสถานะได้จากหน้านี้"
-                : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วน Comment ด้านล่าง"}
+                : isCurrentReproposal
+                  ? proposalNextAction?.description ?? "ระบบบันทึก Proposal ฉบับใหม่แล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน"
+                  : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วน Comment ด้านล่าง"}
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -339,7 +357,7 @@ export default async function ProposalSubmissionPage({
               successTitle={canSubmitRevision
                 ? "ส่ง Proposal ฉบับแก้ไขแล้ว"
                 : canSubmitReproposal
-                  ? "ส่ง Proposal สำหรับ Re-proposal แล้ว"
+                  ? "ส่ง Proposal ฉบับใหม่แล้ว"
                   : "ส่งแล้ว"}
               successNextStep={canSubmitRevision
                 ? "รออาจารย์ที่ปรึกษาตรวจและรับรองฉบับแก้ไข"
@@ -352,7 +370,7 @@ export default async function ProposalSubmissionPage({
               {canSubmitRevision
                 ? "ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษา"
                 : canSubmitReproposal
-                  ? "ส่ง Proposal สำหรับ Re-proposal"
+                  ? proposalNextAction?.actionLabel ?? "กรอกและส่ง Proposal ฉบับใหม่"
                 : canSubmitProposal
                   ? "ส่งเอกสารเสนอหัวข้อ"
                   : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}

@@ -1,4 +1,4 @@
-import type { ProjectStatus } from "@prisma/client";
+import type { AttemptType, Decision, ProjectStatus } from "@prisma/client";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 
 export type NextAction = {
@@ -29,8 +29,85 @@ export type StudentAssessmentRoundKey = "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRE
 export type StudentWorkflowContext = {
   proposalRoundOpen?: boolean;
   proposalRevisionSubmitted?: boolean;
+  proposal?: ProposalStudentActionContext;
   roundAvailability?: Partial<Record<StudentAssessmentRoundKey, boolean>>;
 };
+
+export type ProposalStudentActionContext = {
+  latestAttemptNo?: number | null;
+  latestAttemptType?: AttemptType | null;
+  latestResultAttemptNo?: number | null;
+  latestDecision?: Decision | null;
+};
+
+export function getProposalStudentNextAction(
+  status?: ProjectStatus | null,
+  context: ProposalStudentActionContext = {}
+): NextAction | null {
+  const latestAttemptNo = context.latestAttemptNo && context.latestAttemptNo > 0
+    ? context.latestAttemptNo
+    : null;
+  const latestResultMatchesAttempt = Boolean(
+    latestAttemptNo
+    && context.latestResultAttemptNo === latestAttemptNo
+  );
+  const preparingAfterNotPass = context.latestDecision === "NOT_PASS"
+    && (context.latestResultAttemptNo == null || latestResultMatchesAttempt);
+  const hasReproposalAttempt = context.latestAttemptType === "REPROPOSAL";
+  const isPreparingNextAttempt = ["DRAFT", "PENDING_ADVISOR", "PENDING_ADMIN", "PROPOSAL_PENDING"].includes(status ?? "");
+  const isReviewingReproposal = ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"].includes(status ?? "");
+
+  if (isPreparingNextAttempt && !preparingAfterNotPass) return null;
+  if (isReviewingReproposal && !hasReproposalAttempt) return null;
+  if (!isPreparingNextAttempt && !isReviewingReproposal) return null;
+
+  switch (status) {
+    case "DRAFT":
+      return {
+        title: "เริ่มเตรียมการสอบหัวข้อครั้งถัดไป",
+        description: "กรอกหัวข้อโครงงานใหม่ เลือกอาจารย์ที่ปรึกษา และส่งคำขอเพื่อเริ่มกระบวนการสอบหัวข้อครั้งถัดไป",
+        actionLabel: "กรอกหัวข้อโครงงานใหม่",
+        href: "/student/project"
+      };
+    case "PENDING_ADVISOR":
+      return {
+        title: "รออาจารย์ที่ปรึกษาพิจารณาหัวข้อใหม่",
+        description: "ส่งคำขอสำหรับการสอบหัวข้อครั้งถัดไปแล้ว เมื่ออาจารย์ที่ปรึกษาอนุมัติ ระบบจะส่งต่อให้ผู้ดูแลระบบยืนยัน",
+        tone: "warning"
+      };
+    case "PENDING_ADMIN":
+      return {
+        title: "รอผู้ดูแลระบบอนุมัติหัวข้อและที่ปรึกษา",
+        description: "อาจารย์ที่ปรึกษาอนุมัติหัวข้อใหม่แล้ว ขั้นนี้นักศึกษาไม่ต้องดำเนินการเพิ่มเติม",
+        tone: "warning"
+      };
+    case "PROPOSAL_PENDING":
+      return {
+        title: "พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป",
+        description: "หัวข้อใหม่และอาจารย์ที่ปรึกษาได้รับการอนุมัติแล้ว กรุณาตรวจสอบข้อมูลและส่ง Proposal ฉบับใหม่เพื่อเข้าสู่การประเมินอีกครั้ง ผลการสอบครั้งก่อนทั้งหมดจะถูกเก็บไว้เป็นประวัติ",
+        actionLabel: "กรอกและส่ง Proposal ฉบับใหม่",
+        href: "/student/proposal"
+      };
+    case "PROPOSAL_REVIEW":
+      return {
+        title: "ส่ง Proposal ฉบับใหม่แล้ว",
+        description: "ระบบบันทึก Proposal สำหรับการสอบหัวข้อรอบใหม่แล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน โดยผลการสอบครั้งก่อนยังคงอยู่ในประวัติ",
+        actionLabel: "ดูสถานะ Proposal",
+        href: "/student/proposal",
+        tone: "success"
+      };
+    case "PROPOSAL_ADMIN_DECISION":
+      return {
+        title: "รอบันทึกมติการสอบหัวข้อรอบใหม่",
+        description: "อาจารย์ประเมินแล้ว ขณะนี้อยู่ระหว่างรอผู้ดูแลระบบบันทึกมติของการสอบหัวข้อรอบนี้",
+        actionLabel: "ดูสถานะ Proposal",
+        href: "/student/proposal",
+        tone: "warning"
+      };
+    default:
+      return null;
+  }
+}
 
 function action(
   key: string,
@@ -75,6 +152,40 @@ export function getStudentAvailableActions(
     );
   };
 
+  const proposalNextAction = getProposalStudentNextAction(status, context.proposal);
+  if (proposalNextAction) {
+    switch (status) {
+      case "DRAFT":
+        result.available_now.push(action("reproposal_project", proposalNextAction.title, proposalNextAction.description, "available", proposalNextAction.href));
+        result.locked_future.push(
+          action("proposal", "Proposal สำหรับการสอบหัวข้อครั้งถัดไป", "ส่งได้หลังอาจารย์ที่ปรึกษาและผู้ดูแลระบบยืนยัน", "locked"),
+          action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "ยังไม่ถึงขั้นตอน", "locked")
+        );
+        return result;
+      case "PENDING_ADVISOR":
+        result.available_now.push(action("view_project", "ดูข้อมูลโครงงานใหม่", "ตรวจสอบคำขอที่ส่งแล้ว", "available", "/student/project"));
+        result.blocked_waiting_for.push(action("waiting_reproposal_advisor", proposalNextAction.title, proposalNextAction.description, "blocked"));
+        return result;
+      case "PENDING_ADMIN":
+        result.available_now.push(action("view_status", "ดูสถานะ", "ยังไม่มีรายการที่ต้องแก้ไข", "available", "/student"));
+        result.blocked_waiting_for.push(action("waiting_reproposal_admin", proposalNextAction.title, proposalNextAction.description, "blocked"));
+        return result;
+      case "PROPOSAL_PENDING":
+        result.available_now.push(action("reproposal", proposalNextAction.title, proposalNextAction.description, "available", proposalNextAction.href));
+        result.read_only_history.push(action("previous_proposal", "ผลการสอบหัวข้อครั้งก่อน", "เก็บไว้เป็นประวัติและไม่ถูกแก้ไข", "history", "/student/proposal"));
+        result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอผลการสอบหัวข้อรอบใหม่", "locked"));
+        return result;
+      case "PROPOSAL_REVIEW":
+      case "PROPOSAL_ADMIN_DECISION":
+        result.read_only_history.push(action("reproposal", "Proposal สำหรับการสอบหัวข้อรอบใหม่", "ส่งแล้ว ดูสถานะและข้อเสนอแนะได้", "history", "/student/proposal"));
+        result.blocked_waiting_for.push(action("waiting_reproposal_decision", proposalNextAction.title, proposalNextAction.description, "blocked"));
+        result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอผลการสอบหัวข้อรอบใหม่", "locked"));
+        return result;
+      default:
+        break;
+    }
+  }
+
   switch (status) {
     case "STUDENT_PROFILE":
       result.available_now.push(action("student_profile", "กรอกข้อมูลนักศึกษา", "ทำขั้นตอนนี้ก่อนสร้างโครงงาน", "available", "/student/profile"));
@@ -103,7 +214,7 @@ export function getStudentAvailableActions(
       break;
     case "PROPOSAL_PENDING":
       if (context.proposalRoundOpen === false) {
-        result.blocked_waiting_for.push(action("proposal_round_closed", "พ้นกำหนดส่ง Proposal แล้ว", "กรุณาติดต่อผู้ดูแลระบบหรืออาจารย์ผู้รับผิดชอบรายวิชาเพื่อพิจารณาแนวทางดำเนินการต่อ", "blocked"));
+        result.blocked_waiting_for.push(action("proposal_round_closed", "รอบส่ง Proposal ครั้งแรกสิ้นสุดแล้ว", "หากยังไม่เคยส่ง Proposal กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดให้ส่งเป็นรายกรณี", "blocked"));
         break;
       }
       result.available_now.push(action("proposal", "ส่งเอกสารเสนอหัวข้อ", "แนบบทคัดย่อและลิงก์เอกสารประกอบ", "available", "/student/proposal"));
