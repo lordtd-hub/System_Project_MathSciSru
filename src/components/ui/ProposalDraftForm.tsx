@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   StudentRecoverableActionForm,
   attemptStorageOperation,
@@ -22,7 +23,6 @@ export {
 
 export type ScoreActionRecoveryState = {
   lastRequestId: string | null;
-  reloadStarted: boolean;
 };
 
 type ScoreActionRecoveryEffects = {
@@ -30,7 +30,7 @@ type ScoreActionRecoveryEffects = {
   readSnapshot: () => DraftMap | null;
   restoreSnapshot: (values: DraftMap, missingFields: string[]) => void;
   clearSnapshot: () => void;
-  reload: () => void;
+  refresh: () => void;
 };
 
 export function reconcileTeacherScoreActionResult(
@@ -38,18 +38,18 @@ export function reconcileTeacherScoreActionResult(
   state: ScoreActionRecoveryState,
   effects: ScoreActionRecoveryEffects
 ): ScoreActionRecoveryState {
-  if (result.status === "idle" || state.reloadStarted || state.lastRequestId === result.requestId) return state;
+  if (result.status === "idle" || state.lastRequestId === result.requestId) return state;
 
   effects.cancelPendingSave();
   if (result.status === "success") {
     effects.clearSnapshot();
-    effects.reload();
-    return { lastRequestId: result.requestId, reloadStarted: true };
+    effects.refresh();
+    return { lastRequestId: result.requestId };
   }
 
   const values = effects.readSnapshot();
   if (values) effects.restoreSnapshot(values, result.missingFields ?? []);
-  return { lastRequestId: result.requestId, reloadStarted: false };
+  return { lastRequestId: result.requestId };
 }
 
 export const DraftPreservingForm = StudentRecoverableActionForm;
@@ -71,8 +71,9 @@ export function RecoverableScoreActionForm({
   className?: string;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const recoveryState = useRef<ScoreActionRecoveryState>({ lastRequestId: null, reloadStarted: false });
+  const recoveryState = useRef<ScoreActionRecoveryState>({ lastRequestId: null });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [restored, setRestored] = useState(false);
   const [storageUnavailable, setStorageUnavailable] = useState(false);
@@ -160,9 +161,12 @@ export function RecoverableScoreActionForm({
         const removeResult = attemptStorageOperation(() => sessionStorage.removeItem(storageKey));
         if (!removeResult.ok) setStorageUnavailable(true);
       },
-      reload: () => window.location.reload()
+      refresh: () => {
+        setRestored(false);
+        router.refresh();
+      }
     });
-  }, [result, storageKey]);
+  }, [result, router, storageKey]);
 
   return (
     <form
