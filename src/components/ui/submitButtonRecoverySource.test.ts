@@ -45,6 +45,7 @@ describe("submit button recovery source", () => {
 
   it("allows Proposal feedback drafts without weakening final score validation", () => {
     const buttonSource = readFileSync(join(process.cwd(), "src/components/ui/SubmitButton.tsx"), "utf8");
+    const scoringActionSource = readFileSync(join(process.cwd(), "src/app/teacher/scoringActions.ts"), "utf8");
     const proposalScoringSource = readFileSync(
       join(process.cwd(), "src/app/teacher/scoring/[assignmentId]/page.tsx"),
       "utf8"
@@ -57,9 +58,11 @@ describe("submit button recovery source", () => {
       /<SubmitButton[\s\S]*?value="draft"[\s\S]*?formNoValidate[\s\S]*?autoRecovery=\{false\}/
     );
     expect(proposalScoringSource).toMatch(/value="submit"[\s\S]*?scoreGuard/);
+    expect(scoringActionSource).toContain("if (isSubmitting && !overallComment)");
+    expect(scoringActionSource).not.toContain("if (!overallComment) return");
   });
 
-  it("preserves teacher score entries before an automatic recovery reload", () => {
+  it("refreshes committed teacher scores without reloading the document", () => {
     const formSource = readFileSync(join(process.cwd(), "src/components/ui/ProposalDraftForm.tsx"), "utf8");
     const proposalScorePage = readFileSync(join(process.cwd(), "src/app/teacher/scoring/[assignmentId]/page.tsx"), "utf8");
     const typedScorePages = [
@@ -75,8 +78,8 @@ describe("submit button recovery source", () => {
     expect(formSource).toContain("clearTimeout(saveTimer.current)");
     expect(formSource).toContain("reconcileTeacherScoreActionResult");
     expect(formSource).toContain("restoreSnapshot: (values, missingFields)");
-    expect(formSource).toContain("window.location.reload()");
-    expect(formSource).not.toContain("router.refresh()");
+    expect(formSource).not.toContain("window.location.reload()");
+    expect(formSource).toContain("router.refresh()");
     expect(formSource).not.toContain("SUBMIT_AUTO_RECOVERY_EVENT");
     expect(proposalScorePage).toContain("<RecoverableScoreActionForm");
     expect(proposalScorePage).toContain("<SubmitButton");

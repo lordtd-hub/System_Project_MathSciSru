@@ -273,6 +273,29 @@ async function expectEveryWriteToRollback(input: typeof baseInput) {
 describe("atomic Proposal score persistence", () => {
   beforeEach(() => fake.reset());
 
+  it("persists a private Draft when feedback is empty", async () => {
+    const outcome = await persistProposalScore({
+      ...baseInput,
+      decision: null,
+      overallComment: ""
+    });
+
+    expect(outcome).toMatchObject({ unchanged: false, isRevision: false });
+    expect(fake.state().submission).toMatchObject({
+      status: "DRAFT",
+      totalScore: 10,
+      overallComment: null,
+      proposalDecision: null,
+      scoreItems: [expect.objectContaining({ rubricItemId: "rubric-1", pointsAwarded: 10 })]
+    });
+    expect(fake.state()).toMatchObject({
+      assignmentStatus: "ASSIGNED",
+      voteCount: 0,
+      auditCount: 1,
+      timelineCount: 0,
+      historyCount: 0
+    });
+  });
   it("rolls back Draft and final Submit at every write position", async () => {
     await expectEveryWriteToRollback(baseInput);
     fake.reset();

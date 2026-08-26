@@ -13,9 +13,9 @@ function createHarness(snapshot: Record<string, string | boolean> | null = { sco
     readSnapshot: vi.fn(() => snapshot),
     restoreSnapshot: vi.fn(),
     clearSnapshot: vi.fn(),
-    reload: vi.fn()
+    refresh: vi.fn()
   };
-  const state: ScoreActionRecoveryState = { lastRequestId: null, reloadStarted: false };
+  const state: ScoreActionRecoveryState = { lastRequestId: null };
   return { effects, state };
 }
 
@@ -38,27 +38,45 @@ describe("teacher score action recovery", () => {
     expect(isCheckboxSelected(false, "legacy")).toBe(false);
   });
 
-  it("clears the pending save and snapshot before one reload after a committed success", () => {
+  it("clears the pending save and snapshot before refreshing server data after a committed success", () => {
     const { effects, state } = createHarness();
     const success: TeacherScoreActionResult = { status: "success", code: "proposal_score_submitted", requestId: "req-1" };
 
     const next = reconcileTeacherScoreActionResult(success, state, effects);
     const repeated = reconcileTeacherScoreActionResult(
-      { status: "success", code: "proposal_score_submitted", requestId: "req-2" },
+      { status: "success", code: "proposal_score_submitted", requestId: "req-1" },
       next,
       effects
     );
 
     expect(effects.cancelPendingSave).toHaveBeenCalledTimes(1);
     expect(effects.clearSnapshot).toHaveBeenCalledTimes(1);
-    expect(effects.reload).toHaveBeenCalledTimes(1);
+    expect(effects.refresh).toHaveBeenCalledTimes(1);
     expect(effects.readSnapshot).not.toHaveBeenCalled();
     expect(effects.restoreSnapshot).not.toHaveBeenCalled();
-    expect(repeated).toEqual({ lastRequestId: "req-1", reloadStarted: true });
+    expect(repeated).toEqual({ lastRequestId: "req-1" });
   });
 
+  it("handles a later successful save while the form remains mounted", () => {
+    const { effects, state } = createHarness();
+    const first = reconcileTeacherScoreActionResult(
+      { status: "success", code: "proposal_score_draft_saved", requestId: "req-1" },
+      state,
+      effects
+    );
+
+    const second = reconcileTeacherScoreActionResult(
+      { status: "success", code: "proposal_score_draft_saved", requestId: "req-2" },
+      first,
+      effects
+    );
+
+    expect(effects.clearSnapshot).toHaveBeenCalledTimes(2);
+    expect(effects.refresh).toHaveBeenCalledTimes(2);
+    expect(second).toEqual({ lastRequestId: "req-2" });
+  });
   it.each(["validation", "conflict", "rate_limit", "unexpected"] as const)(
-    "restores every entered value and does not reload after %s",
+    "restores every entered value and does not refresh after %s",
     (status) => {
       const snapshot = { score_1: "0", score_2: "2", comment: "keep this" };
       const { effects, state } = createHarness(snapshot);
@@ -78,8 +96,8 @@ describe("teacher score action recovery", () => {
         status === "validation" ? ["score_3"] : []
       );
       expect(effects.clearSnapshot).not.toHaveBeenCalled();
-      expect(effects.reload).not.toHaveBeenCalled();
-      expect(next).toEqual({ lastRequestId: `req-${status}`, reloadStarted: false });
+      expect(effects.refresh).not.toHaveBeenCalled();
+      expect(next).toEqual({ lastRequestId: `req-${status}` });
     }
   );
 
@@ -96,6 +114,6 @@ describe("teacher score action recovery", () => {
 
     expect(effects.cancelPendingSave).toHaveBeenCalledTimes(1);
     expect(effects.restoreSnapshot).toHaveBeenCalledTimes(1);
-    expect(effects.reload).not.toHaveBeenCalled();
+    expect(effects.refresh).not.toHaveBeenCalled();
   });
 });
