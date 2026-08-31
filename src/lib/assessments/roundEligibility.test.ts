@@ -66,6 +66,42 @@ describe("round eligibility", () => {
     expect(readiness.eligible).toBe(true);
   });
 
+  it("keeps certified PASS_WITH_REVISION eligible after committee appointment moves the project to IN_PROGRESS", () => {
+    const readiness = getProgress1Readiness({
+      ...baseProject,
+      status: "IN_PROGRESS",
+      proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }],
+      attempts: [{
+        attemptNo: 1,
+        status: "SCORING_CLOSED",
+        assessmentRound: { roundType: "PROPOSAL" },
+        presentationSubmission: { status: "LOCKED" },
+        evaluatorAssignments: []
+      }]
+    });
+
+    expect(readiness.eligible).toBe(true);
+    expect(readiness.reasons).toEqual([]);
+  });
+
+  it("still blocks an uncertified PASS_WITH_REVISION project after its status advances", () => {
+    const readiness = getProgress1Readiness({
+      ...baseProject,
+      status: "IN_PROGRESS",
+      proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }],
+      attempts: [{
+        attemptNo: 1,
+        status: "SCORING_CLOSED",
+        assessmentRound: { roundType: "PROPOSAL" },
+        presentationSubmission: { status: "SUBMITTED" },
+        evaluatorAssignments: []
+      }]
+    });
+
+    expect(readiness.eligible).toBe(false);
+    expect(readiness.reasons).toContain("proposal failed/revise");
+  });
+
   it("shows exact waiting reason before admin confirmation", () => {
     const readiness = getProgress1Readiness({ ...baseProject, status: "PENDING_ADMIN", proposalResults: [] });
     expect(readiness.reasons).toContain("project still PENDING_ADMIN");

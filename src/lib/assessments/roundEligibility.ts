@@ -50,7 +50,7 @@ function hasPassedTopicGateStatus(status: ProjectStatus) {
 export function hasApprovedProposalOutcome(project: RoundEligibilityProject) {
   const finalDecision = project.proposalResults?.[0]?.finalDecision;
   if (finalDecision === "PASS") return true;
-  if (finalDecision !== "PASS_WITH_REVISION" || project.status !== "TOPIC_APPROVED") return false;
+  if (finalDecision !== "PASS_WITH_REVISION") return false;
 
   const latestProposalAttempt = [...(project.attempts ?? [])]
     .filter((attempt) => attempt.assessmentRound?.roundType === "PROPOSAL")
