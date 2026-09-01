@@ -154,6 +154,12 @@ export default async function StudentSchedulePage({
           attempts: {
             where: { attemptType: { in: ["MAIN_PROPOSAL", "REPROPOSAL", "PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] } },
             include: {
+              assessmentRound: {
+                select: { roundType: true }
+              },
+              presentationSubmission: {
+                select: { status: true }
+              },
               evaluatorAssignments: {
                 select: {
                   evaluatorUserId: true,

@@ -54,6 +54,9 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("ProposalPlanMiniReference");
     expect(page).toContain("normalizeProgressPlanTasks");
     expect(page).toContain("doesTaskOverlapWeekWindow");
+    expect(page).toMatch(
+      /attempts:\s*{[\s\S]*?assessmentRound:\s*{\s*select:\s*{\s*roundType:\s*true\s*}\s*}[\s\S]*?presentationSubmission:\s*{\s*select:\s*{\s*status:\s*true\s*}\s*}/
+    );
     expect(page).toContain("hasCompletedScores");
     expect(page).toContain("activeScheduleByKind");
     expect(page).toContain("lockedScheduleRounds");
