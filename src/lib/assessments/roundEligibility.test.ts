@@ -102,6 +102,67 @@ describe("round eligibility", () => {
     expect(readiness.reasons).toContain("proposal failed/revise");
   });
 
+  it("uses the latest Re-proposal certification instead of an older locked attempt", () => {
+    const readiness = getProgress1Readiness({
+      ...baseProject,
+      status: "IN_PROGRESS",
+      proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }],
+      attempts: [
+        {
+          attemptNo: 1,
+          status: "SCORING_CLOSED",
+          assessmentRound: { roundType: "PROPOSAL" },
+          presentationSubmission: { status: "LOCKED" },
+          evaluatorAssignments: []
+        },
+        {
+          attemptNo: 2,
+          status: "SCORING_CLOSED",
+          assessmentRound: { roundType: "PROPOSAL" },
+          presentationSubmission: { status: "SUBMITTED" },
+          evaluatorAssignments: []
+        }
+      ]
+    });
+
+    expect(readiness.eligible).toBe(false);
+    expect(readiness.reasons).toContain("proposal failed/revise");
+  });
+
+  it("accepts a certified third Proposal attempt regardless of earlier attempt states", () => {
+    const readiness = getProgress1Readiness({
+      ...baseProject,
+      status: "IN_PROGRESS",
+      proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }],
+      attempts: [
+        {
+          attemptNo: 3,
+          status: "SCORING_CLOSED",
+          assessmentRound: { roundType: "PROPOSAL" },
+          presentationSubmission: { status: "LOCKED" },
+          evaluatorAssignments: []
+        },
+        {
+          attemptNo: 1,
+          status: "SCORING_CLOSED",
+          assessmentRound: { roundType: "PROPOSAL" },
+          presentationSubmission: { status: "SUBMITTED" },
+          evaluatorAssignments: []
+        },
+        {
+          attemptNo: 2,
+          status: "SCORING_CLOSED",
+          assessmentRound: { roundType: "PROPOSAL" },
+          presentationSubmission: { status: "SUBMITTED" },
+          evaluatorAssignments: []
+        }
+      ]
+    });
+
+    expect(readiness.eligible).toBe(true);
+    expect(readiness.reasons).toEqual([]);
+  });
+
   it("shows exact waiting reason before admin confirmation", () => {
     const readiness = getProgress1Readiness({ ...baseProject, status: "PENDING_ADMIN", proposalResults: [] });
     expect(readiness.reasons).toContain("project still PENDING_ADMIN");
