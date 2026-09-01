@@ -19,6 +19,11 @@ export type FormSnapshot = {
   values: DraftMap;
 };
 
+export type StudentSuccessAction = {
+  href: string;
+  label: string;
+};
+
 export type ParsedFormSnapshot =
   | { status: "valid"; snapshot: FormSnapshot }
   | { status: "expired" | "invalid" };
@@ -173,6 +178,24 @@ export function StudentActionFeedback({
   );
 }
 
+export function StudentSuccessActionView({
+  result,
+  action
+}: {
+  result: StudentActionResult;
+  action?: StudentSuccessAction;
+}) {
+  if (result.status !== "success" || !action) return null;
+
+  return (
+    <div className="mt-4 border-t border-line pt-4" data-student-success-action>
+      <a className="button-secondary inline-flex" href={action.href}>
+        {action.label}
+      </a>
+    </div>
+  );
+}
+
 export function readForm(form: HTMLFormElement): DraftMap {
   const values: DraftMap = {};
 
@@ -243,6 +266,7 @@ export function StudentRecoverableActionForm({
   children,
   id,
   successHref,
+  successAction,
   ...formProps
 }: {
   action: FormAction | TypedFormAction;
@@ -252,6 +276,7 @@ export function StudentRecoverableActionForm({
   className?: string;
   children: React.ReactNode;
   successHref?: string;
+  successAction?: StudentSuccessAction;
 } & Omit<React.ComponentPropsWithoutRef<"form">, "action" | "children" | "className" | "onChange" | "onInput" | "onSubmit">) {
   const formRef = useRef<HTMLFormElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -379,6 +404,7 @@ export function StudentRecoverableActionForm({
       <StudentActionResultContext.Provider value={result}>
         {resultMode === "typed" ? <StudentActionFeedback className="mb-4" /> : null}
         {children}
+        {resultMode === "typed" ? <StudentSuccessActionView result={result} action={successAction} /> : null}
         {status !== "idle" ? (
           <p className="mt-2 text-xs text-muted" aria-live="polite">
             {status === "restored"

@@ -40,4 +40,15 @@ describe("student dashboard source", () => {
     expect(page).toContain("student-project-workflow-secondary");
     expect(page).toContain("student-workflow-group");
   });
+
+  it("routes the current assessment CTA by evidence and schedule status", () => {
+    const page = source();
+
+    expect(page).toContain("assessmentSubmissions");
+    expect(page).toContain("currentAssessmentKind");
+    expect(page).toContain("getStudentScheduleGuidance({");
+    expect(page).toContain("currentScheduleHref");
+    expect(page).toContain("studentScheduleStatusAnchor");
+    expect(page).toContain("scheduleAwareStudentNextAction");
+  });
 });

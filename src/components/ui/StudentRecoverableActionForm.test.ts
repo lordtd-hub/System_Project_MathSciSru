@@ -11,7 +11,8 @@ import {
   reconcileFormValues,
   studentActionFeedbackCopy,
   studentActionRecoveryPlan,
-  StudentActionFeedbackView
+  StudentActionFeedbackView,
+  StudentSuccessActionView
 } from "./StudentRecoverableActionForm";
 
 vi.stubGlobal("React", React);
@@ -177,5 +178,33 @@ describe("student recoverable action form snapshots", () => {
     expect(html).toContain('data-student-action-status="success"');
     expect(html).toContain("ส่งแล้ว");
     expect(html).toContain("ขั้นตอนถัดไป: รออาจารย์ประเมิน");
+  });
+
+  it("renders a follow-up action only after a successful commit", () => {
+    const action = { href: "#schedule-proposal-form", label: "ดำเนินการเสนอวันสอบต่อ" };
+    const successHtml = renderToStaticMarkup(React.createElement(StudentSuccessActionView, {
+      result: {
+        status: "success",
+        code: "ASSESSMENT_EVIDENCE_SAVED",
+        message: "บันทึกหลักฐานแล้ว",
+        requestId: "req-success",
+        unchanged: false
+      },
+      action
+    }));
+    const validationHtml = renderToStaticMarkup(React.createElement(StudentSuccessActionView, {
+      result: {
+        status: "validation",
+        code: "MISSING",
+        message: "กรุณากรอกข้อมูล",
+        requestId: "req-validation",
+        missingFields: ["material_link"]
+      },
+      action
+    }));
+
+    expect(successHtml).toContain('href="#schedule-proposal-form"');
+    expect(successHtml).toContain("ดำเนินการเสนอวันสอบต่อ");
+    expect(validationHtml).toBe("");
   });
 });

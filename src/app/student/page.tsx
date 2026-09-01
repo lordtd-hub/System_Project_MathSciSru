@@ -17,6 +17,7 @@ import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForStudent, getProposalStudentNextAction, getStudentAvailableActions, type StudentWorkflowAction } from "@/lib/lifecycle/nextActions";
 import { getStudentReportActionLabel } from "@/lib/reports/reportWorkflow";
+import { getStudentScheduleGuidance, studentScheduleStatusAnchor, type StudentScheduleKind } from "@/lib/scheduling/studentScheduleGuidance";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 function daysWaiting(from?: Date | null) {
@@ -222,6 +223,9 @@ export default async function StudentDashboardPage() {
             orderBy: { createdAt: "desc" },
             take: 6
           },
+          assessmentSubmissions: {
+            select: { kind: true }
+          },
           reportVersions: { select: { versionNo: true, reviews: { select: { decision: true } } }, orderBy: { versionNo: "desc" }, take: 1 },
           presentationSubmissions: {
             where: { assessmentAttempt: { assessmentRound: { roundType: "PROPOSAL" } } },
@@ -346,6 +350,13 @@ export default async function StudentDashboardPage() {
     PROGRESS_2: hasCompletedScores("PROGRESS_2") ? "COMPLETED" as const : "NOT_STARTED" as const,
     FINAL_PRESENT: hasCompletedScores("FINAL_PRESENTATION") ? "COMPLETED" as const : "NOT_STARTED" as const
   };
+  const currentAssessmentKind: StudentScheduleKind | null = assessmentStates.PROGRESS_1 !== "COMPLETED"
+    ? "PROGRESS_1"
+    : assessmentStates.PROGRESS_2 !== "COMPLETED"
+      ? "PROGRESS_2"
+      : assessmentStates.FINAL_PRESENT !== "COMPLETED"
+        ? "FINAL_PRESENT"
+        : null;
   const latestReport = project.reportVersions[0];
   const latestReportHasRevisionRequest = Boolean(latestReport?.reviews.some((review) => review.decision === "FAIL"));
   const reportStatus = !latestReport
@@ -499,36 +510,65 @@ export default async function StudentDashboardPage() {
             tone: "success" as const
           }
         : roundAwareNextAssessmentAction;
-  const scheduleAwareStudentNextAction = actionableSchedule && ["PROPOSED", "CONFIRMED"].includes(actionableSchedule.status)
-    ? { ...studentNextAction, description: `${actionableScheduleDateText} · ${studentNextAction.description}` }
+  const currentScheduleGuidance = project.status === "IN_PROGRESS" && currentAssessmentKind
+    ? getStudentScheduleGuidance({
+        kind: currentAssessmentKind,
+        completed: false,
+        actionable: Boolean(studentNextAction.href),
+        hasEvidence: project.assessmentSubmissions.some((submission) => submission.kind === currentAssessmentKind),
+        scheduleStatus: actionableSchedule?.assessmentKind === currentAssessmentKind
+          ? actionableSchedule.status === "CONFIRMED"
+            ? "CONFIRMED"
+            : actionableSchedule.status === "PROPOSED"
+              ? "PROPOSED"
+              : actionableSchedule.status === "REJECTED"
+                ? "REJECTED"
+                : "NONE"
+          : "NONE"
+      })
+    : null;
+  const currentScheduleHref = currentScheduleGuidance?.href
+    ? currentScheduleGuidance.href.startsWith("/")
+      ? currentScheduleGuidance.href
+      : `/student/schedule${currentScheduleGuidance.href}`
+    : undefined;
+  const guidedStudentNextAction = currentScheduleGuidance
+    ? {
+        ...studentNextAction,
+        actionLabel: currentScheduleGuidance.actionLabel,
+        href: currentScheduleHref
+      }
     : studentNextAction;
+  const scheduleAwareStudentNextAction = actionableSchedule && ["PROPOSED", "CONFIRMED"].includes(actionableSchedule.status)
+    ? { ...guidedStudentNextAction, description: `${actionableScheduleDateText} · ${guidedStudentNextAction.description}` }
+    : guidedStudentNextAction;
   const studentTrackingTasks: TaskListItem[] = project.status === "IN_PROGRESS"
     ? actionableSchedule?.status === "REJECTED"
       ? [{
           title: `${actionableScheduleRoundLabel} มีอาจารย์ไม่สะดวก`,
           description: `มีผู้ไม่สะดวก ${actionableScheduleRejectedCount} คน กรุณาเสนอวันสอบใหม่เพื่อให้กรรมการทุกคนพิจารณาอีกครั้ง`,
-          href: "/student/schedule",
+          href: currentScheduleHref ?? "/student/schedule#schedule-proposal-form",
           urgency: "สูง"
         }]
       : actionableSchedule?.status === "PROPOSED"
         ? [{
             title: `รอกรรมการยืนยันวันสอบ ${actionableScheduleRoundLabel}`,
             description: `อนุมัติแล้ว ${actionableScheduleApprovedCount}/${actionableScheduleTotalCount} คน ยังรอ ${actionableSchedulePendingCount} คน`,
-            href: "/student/schedule",
+            href: `/student/schedule#${studentScheduleStatusAnchor(actionableSchedule.assessmentKind)}`,
             urgency: "รอคนอื่น"
           }]
         : actionableSchedule?.status === "CONFIRMED"
           ? [{
               title: `${actionableScheduleRoundLabel} ยืนยันวันสอบแล้ว`,
               description: `${actionableScheduleDateText} หลังสอบแล้วรอกรรมการบันทึกคะแนน`,
-              href: "/student/schedule"
+              href: `/student/schedule#${studentScheduleStatusAnchor(actionableSchedule.assessmentKind)}`
             }]
           : assessmentStates.PROGRESS_1 !== "COMPLETED"
-            ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 1", description: "บันทึกเอกสาร/หลักฐานการสอบความก้าวหน้าครั้งที่ 1 แล้วเสนอวันสอบ", href: "/student/schedule", urgency: "สูง" }]
+            ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 1", description: "บันทึกเอกสาร/หลักฐานการสอบความก้าวหน้าครั้งที่ 1 แล้วเสนอวันสอบ", href: currentScheduleHref ?? "/student/schedule", urgency: "สูง" }]
             : assessmentStates.PROGRESS_2 !== "COMPLETED"
-              ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 2", description: "การสอบความก้าวหน้าครั้งที่ 1 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบความก้าวหน้าครั้งที่ 2", href: "/student/schedule", urgency: "สูง" }]
+              ? [{ title: "เตรียมสอบความก้าวหน้าครั้งที่ 2", description: "การสอบความก้าวหน้าครั้งที่ 1 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบความก้าวหน้าครั้งที่ 2", href: currentScheduleHref ?? "/student/schedule", urgency: "สูง" }]
               : assessmentStates.FINAL_PRESENT !== "COMPLETED"
-                ? [{ title: "เตรียมสอบนำเสนอขั้นสุดท้าย", description: "การสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบนำเสนอขั้นสุดท้าย", href: "/student/schedule", urgency: "สูง" }]
+                ? [{ title: "เตรียมสอบนำเสนอขั้นสุดท้าย", description: "การสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 เสร็จแล้ว ขั้นตอนถัดไปคือการสอบนำเสนอขั้นสุดท้าย", href: currentScheduleHref ?? "/student/schedule", urgency: "สูง" }]
               : [{ title: reportActionLabel, description: reportActionDescription, href: "/student/report", urgency: latestReportHasRevisionRequest ? "สูง" : undefined }]
     : ["FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED"].includes(project.status)
       ? [{

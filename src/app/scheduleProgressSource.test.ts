@@ -35,6 +35,7 @@ describe("self-scheduling and progress scoring source guards", () => {
 
   it("keeps student schedule rubric guidance separated by round", () => {
     const page = read("src/app/student/schedule/page.tsx");
+    const guidance = read("src/lib/scheduling/studentScheduleGuidance.ts");
     expect(page).toContain("ProgressQaRubricPanel");
     expect(page).toContain("FinalQaRubricPanel");
     expect(page).toContain("visibleGuidanceRounds.map");
@@ -61,8 +62,15 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(page).toContain("activeScheduleByKind");
     expect(page).toContain("lockedScheduleRounds");
     expect(page).toContain("editableEvidenceRounds");
-    expect(page).toContain("ส่งขอนัดแล้ว");
-    expect(page).toContain("ยืนยันวันสอบแล้ว");
+    expect(page).toContain("getStudentScheduleGuidance");
+    expect(page).toContain("studentScheduleEvidenceAnchor");
+    expect(page).toContain("studentScheduleStatusAnchor");
+    expect(page).toContain('id="schedule-proposal-form"');
+    expect(page).toContain('successAction={{ href: "#schedule-proposal-form"');
+    expect(guidance).toContain("ส่งขอนัดแล้ว");
+    expect(guidance).toContain("ยืนยันวันสอบแล้ว");
+    expect(guidance).toContain("1. บันทึกหลักฐานก่อน");
+    expect(guidance).toContain("2. เสนอวันสอบ");
     expect(page).toContain("ตรวจสอบก่อนส่งวันสอบ");
     expect(page).toContain("ส่งข้อเสนอวันสอบ");
     expect(page).toContain("ยังแก้ไขเอกสารได้จนกว่าจะส่งเสนอวันสอบ");

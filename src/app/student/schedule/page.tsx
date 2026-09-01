@@ -21,7 +21,11 @@ import { hasOpenLateRoundException } from "@/lib/assessments/roundExceptions";
 import { getProgress1Readiness, reasonLabelTh } from "@/lib/assessments/roundEligibility";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24, formatThaiScheduleRange } from "@/lib/format/dateTime";
-import { getAssessmentCardState } from "@/lib/lifecycle/nextActions";
+import {
+  getStudentScheduleGuidance,
+  studentScheduleEvidenceAnchor,
+  studentScheduleStatusAnchor
+} from "@/lib/scheduling/studentScheduleGuidance";
 import {
   classifyPlanTaskForRound,
   doesTaskOverlapWeekWindow,
@@ -237,7 +241,11 @@ export default async function StudentSchedulePage({
   }
   const anyOpenRound = scheduleRoundTypes.some((roundType) => isRoundAvailable(roundType));
   const activeScheduleByKind = new Map<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", (typeof project.scheduleProposals)[number]>();
+  const latestScheduleByKind = new Map<"PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT", (typeof project.scheduleProposals)[number]>();
   for (const proposal of project.scheduleProposals) {
+    if (!latestScheduleByKind.has(proposal.assessmentKind)) {
+      latestScheduleByKind.set(proposal.assessmentKind, proposal);
+    }
     if ((proposal.status === "PROPOSED" || proposal.status === "CONFIRMED") && !activeScheduleByKind.has(proposal.assessmentKind)) {
       activeScheduleByKind.set(proposal.assessmentKind, proposal);
     }
@@ -368,37 +376,55 @@ export default async function StudentSchedulePage({
             const roundType = assessmentKindToRoundType(kind);
             const round = roundMap.get(roundType);
             const roundOpen = Boolean(round && isRoundAvailable(roundType));
-            const latest = project.scheduleProposals.find((proposal) => proposal.assessmentKind === kind);
-            const hasEvidence = project.assessmentSubmissions.some((item) => item.kind === kind);
+            const latest = latestScheduleByKind.get(kind);
+            const hasEvidence = latestSubmissionByKind.has(kind);
             const activeSchedule = activeScheduleByKind.get(kind);
-            const rawState = getAssessmentCardState(
+            const sequenceReady = kind === "PROGRESS_1"
+              ? progress1Readiness.eligible
+              : kind === "PROGRESS_2"
+                ? completed.PROGRESS_1
+                : completed.PROGRESS_1 && completed.PROGRESS_2;
+            const blockedReason = project.status !== "IN_PROGRESS"
+              ? "โครงงานยังไม่อยู่ในขั้นดำเนินโครงงาน"
+              : !roundOpen
+                ? `${scheduleKindLabel(kind)} ยังไม่เปิด`
+                : !sequenceReady
+                  ? kind === "PROGRESS_1"
+                    ? progress1BlockedText
+                    : kind === "PROGRESS_2"
+                      ? "รอสอบความก้าวหน้าครั้งที่ 1 เสร็จ"
+                      : "รอสอบความก้าวหน้าครั้งที่ 2 เสร็จ"
+                  : undefined;
+            const guidance = getStudentScheduleGuidance({
               kind,
-              project.status,
-              completed,
-              latest?.status === "CONFIRMED" ? "CONFIRMED" : latest?.status === "PROPOSED" ? "PROPOSED" : latest?.status === "REJECTED" ? "REJECTED" : "NONE",
-              false,
-              roundOpen
-            );
-          const evidenceReadyState = hasEvidence && rawState.editable
-            ? { label: "มีเอกสารแล้ว", buttonLabel: "แก้เอกสาร/เสนอวันสอบ", editable: true }
-            : rawState;
-          const state = activeSchedule?.status === "CONFIRMED"
-            ? { label: "ยืนยันวันสอบแล้ว", buttonLabel: "ล็อกแล้ว", editable: false }
-            : activeSchedule?.status === "PROPOSED"
-              ? { label: "ส่งขอนัดแล้ว", buttonLabel: "รอกรรมการ", editable: false }
-              : kind === "PROGRESS_1" && (!progress1Open || !progress1Readiness.eligible)
-                ? { label: progress1BlockedText, buttonLabel: "ยังไม่พร้อม", editable: false }
-                : evidenceReadyState;
+              completed: completed[kind],
+              actionable: project.status === "IN_PROGRESS" && roundOpen && sequenceReady,
+              hasEvidence,
+              scheduleStatus: latest?.status === "CONFIRMED"
+                ? "CONFIRMED"
+                : latest?.status === "PROPOSED"
+                  ? "PROPOSED"
+                  : latest?.status === "REJECTED"
+                    ? "REJECTED"
+                    : "NONE",
+              blockedReason
+            });
           return (
             <div key={kind} className="panel" data-testid={`student-schedule-round-card-${kind}`} data-round-kind={kind}>
               <div className="text-sm text-muted">{scheduleKindLabel(kind)}</div>
-              <h2 className="mt-1 text-lg font-semibold">{state.label}</h2>
+              <h2 className="mt-1 text-lg font-semibold">{guidance.title}</h2>
               <p className="mt-2 text-sm text-muted">
                 {activeSchedule
-                  ? `${formatThaiScheduleRange(activeSchedule.proposedStartAt, activeSchedule.proposedEndAt)}${activeSchedule.room ? ` · ห้อง ${activeSchedule.room}` : ""}`
-                  : state.editable ? "ดำเนินการได้จากแบบฟอร์มด้านล่างเมื่อรอบสอบเปิดอยู่" : "ขั้นตอนนี้ยังไม่ใช่ action หลักที่แก้ไขได้ตอนนี้"}
+                  ? `${formatThaiScheduleRange(activeSchedule.proposedStartAt, activeSchedule.proposedEndAt)}${activeSchedule.room ? ` · ห้อง ${activeSchedule.room}` : ""} · ${guidance.description}`
+                  : guidance.description}
               </p>
-              <button type="button" disabled={!state.editable} className="mt-3">{state.buttonLabel}</button>
+              {guidance.href && guidance.actionLabel ? (
+                <Link className="button-secondary mt-3 inline-flex" href={guidance.href}>{guidance.actionLabel}</Link>
+              ) : (
+                <p className="mt-3 text-sm font-medium text-muted" data-testid={`student-schedule-round-blocked-${kind}`}>
+                  ยังไม่เปิดให้ดำเนินการ
+                </p>
+              )}
             </div>
           );
         })}
@@ -455,13 +481,14 @@ export default async function StudentSchedulePage({
             return (
               <StudentRecoverableActionForm
                 key={kind}
-                id={`evidence-form-${kind.toLowerCase().replaceAll("_", "-")}`}
+                id={studentScheduleEvidenceAnchor(kind)}
                 action={saveAssessmentEvidence}
                 resultMode="typed"
                 storageKey={`student-assessment-evidence-draft:${project.id}:${kind}`}
                 className="scroll-mt-24 rounded-md border border-line bg-surface p-4"
                 data-testid={`student-assessment-evidence-form-${kind}`}
                 data-round-kind={kind}
+                successAction={{ href: "#schedule-proposal-form", label: "ดำเนินการเสนอวันสอบต่อ" }}
               >
                 <input type="hidden" name="assessment_kind" value={kind} />
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -528,6 +555,7 @@ export default async function StudentSchedulePage({
           })}
         </div>
       </FormSection>
+      <div id="schedule-proposal-form" className="scroll-mt-24">
       <FormSection title="2. เสนอวันสอบ" description="หลังส่งแล้วระบบจะล็อกวัน เวลา และห้องสอบไว้ให้กรรมการพิจารณา หากต้องเปลี่ยนต้องรอให้กรรมการไม่อนุมัติหรือประสานผู้ดูแลระบบ">
         {lockedScheduleRounds.length ? (
           <WarningAlert title="ส่งขอนัดวันสอบแล้ว">
@@ -605,14 +633,19 @@ export default async function StudentSchedulePage({
         </div>
         ) : null}
       </FormSection>
-      <section className="panel" data-testid="student-schedule-latest-proposals">
+      </div>
+      <section id="schedule-latest-status" className="panel scroll-mt-24" data-testid="student-schedule-latest-proposals">
         <h2 className="text-lg font-semibold">ข้อเสนอวันสอบล่าสุด</h2>
         <div className="mt-3 space-y-3">
           {project.scheduleProposals.length ? (
             project.scheduleProposals.map((proposal) => {
               const confirmed = proposal.approvals.length > 0 && proposal.approvals.every((approval) => approval.decision === "APPROVE");
               return (
-                <div key={proposal.id} className="rounded-md border border-line p-3 text-sm">
+                <div
+                  key={proposal.id}
+                  id={latestScheduleByKind.get(proposal.assessmentKind)?.id === proposal.id ? studentScheduleStatusAnchor(proposal.assessmentKind) : undefined}
+                  className="scroll-mt-24 rounded-md border border-line p-3 text-sm"
+                >
                   <div className="font-medium">{scheduleKindLabel(proposal.assessmentKind)} · {scheduleStatusLabel(proposal.status)}</div>
                   <div className="mt-1 text-muted">
                     {formatThaiScheduleRange(proposal.proposedStartAt, proposal.proposedEndAt)} {proposal.room ? `· ห้อง ${proposal.room}` : ""}
