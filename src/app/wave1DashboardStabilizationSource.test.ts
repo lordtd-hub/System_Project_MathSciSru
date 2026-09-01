@@ -32,7 +32,9 @@ describe("wave 1 dashboard stabilization source", () => {
     expect(studentPage).toContain("roundAwareNextAssessmentAction");
     expect(studentPage).toContain("displayStudentTrackingTasks");
     expect(studentSchedulePage).toContain("roundOpen");
-    expect(studentSchedulePage).toContain("getAssessmentCardState(");
+    expect(studentSchedulePage).toContain("getStudentScheduleGuidance({");
+    expect(studentSchedulePage).toContain('href={guidance.href}');
+    expect(studentSchedulePage).not.toContain('<button type="button" disabled={!state.editable}');
     expect(teacherPage).toContain("Array.from(new Set");
     expect(teacherPage).toContain("teacherRoleBadgeLabel");
     expect(teacherSchedulesPage).toContain('orderBy: [{ createdAt: "asc" }, { proposedStartAt: "asc" }]');
