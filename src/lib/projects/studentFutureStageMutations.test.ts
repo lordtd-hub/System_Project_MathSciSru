@@ -109,6 +109,75 @@ describe("student future-stage atomic persistence", () => {
     expect(harness.read().timeline).toHaveLength(1);
   });
 
+  it.each([
+    { label: "PASS after Re-proposal", decision: "PASS", attemptNo: 2, submissionStatus: "LOCKED", allowed: true },
+    { label: "certified PASS_WITH_REVISION after a third attempt", decision: "PASS_WITH_REVISION", attemptNo: 3, submissionStatus: "LOCKED", allowed: true },
+    { label: "uncertified PASS_WITH_REVISION after a third attempt", decision: "PASS_WITH_REVISION", attemptNo: 3, submissionStatus: "SUBMITTED", allowed: false },
+    { label: "NOT_PASS after a third attempt", decision: "NOT_PASS", attemptNo: 3, submissionStatus: "SUBMITTED", allowed: false }
+  ] as const)("applies the latest Proposal outcome before Progress 1 evidence: $label", async ({
+    decision,
+    attemptNo,
+    submissionStatus,
+    allowed
+  }) => {
+    const initial = {
+      project: { id: context.projectId, courseOfferingId: "course-1", status: "IN_PROGRESS", currentTitleTh: "หัวข้อ" },
+      submission: null as Record<string, unknown> | null,
+      timeline: [] as unknown[]
+    };
+    const latestProposalAttempt = vi.fn(async () => ({
+      attemptNo,
+      status: "SCORING_CLOSED",
+      assessmentRound: { roundType: "PROPOSAL" },
+      presentationSubmission: { status: submissionStatus },
+      evaluatorAssignments: []
+    }));
+    const harness = transactionalHarness(initial, (read) => ({
+      $queryRaw: vi.fn(async () => [{ id: context.projectId }]),
+      project: { findUnique: vi.fn(async () => ({ ...read().project })) },
+      assessmentSubmission: {
+        findFirst: vi.fn(async () => read().submission),
+        create: vi.fn(async ({ data }) => {
+          read().submission = { id: "evidence-1", ...data };
+          return read().submission;
+        }),
+        update: vi.fn(async ({ data }) => {
+          read().submission = { ...read().submission, ...data };
+          return read().submission;
+        })
+      },
+      assessmentRound: { findUnique: vi.fn(async () => ({ id: "round-1", status: "SUBMISSION_OPEN" })) },
+      projectRoundException: { findMany: vi.fn(async () => []) },
+      examScheduleProposal: { findFirst: vi.fn(async () => null) },
+      projectTimelineEvent: { create: vi.fn(async ({ data }) => read().timeline.push(data)) },
+      projectProposalResult: { findFirst: vi.fn(async () => ({ finalDecision: decision })) },
+      assessmentAttempt: { findFirst: latestProposalAttempt },
+      committeeAssignment: {
+        findMany: vi.fn(async () => [
+          { role: "ADVISOR", active: true, teacherId: "advisor" },
+          { role: "HEAD", active: true, teacherId: "head" },
+          { role: "MEMBER", active: true, teacherId: "member" }
+        ])
+      }
+    }));
+
+    if (allowed) {
+      await expect(saveAssessmentEvidenceAtomic(harness.db, context, evidenceInput)).resolves.toMatchObject({
+        unchanged: false,
+        submissionId: "evidence-1"
+      });
+      expect(harness.read().submission).not.toBeNull();
+    } else {
+      await expect(saveAssessmentEvidenceAtomic(harness.db, context, evidenceInput)).rejects.toMatchObject({
+        code: "PROGRESS_1_PROJECT_NOT_READY"
+      });
+      expect(harness.read().submission).toBeNull();
+    }
+    expect(latestProposalAttempt).toHaveBeenCalledWith(expect.objectContaining({
+      orderBy: { attemptNo: "desc" }
+    }));
+  });
+
   it("keeps project gates and evidence-before-schedule after a zero-ready Progress 1 round opens", async () => {
     const assessmentSubmissionFindFirst = vi.fn()
       .mockResolvedValueOnce(null)
