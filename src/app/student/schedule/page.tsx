@@ -593,6 +593,7 @@ export default async function StudentSchedulePage({
           <div>
             <label>วันที่</label>
             <input name="schedule_date" type="date" required />
+            <p className="mt-1 text-xs text-muted">เลือกจากปฏิทินได้ตามรูปแบบของเครื่อง ระบบรองรับทั้งปี พ.ศ. และ ค.ศ.</p>
           </div>
           <div>
             <label>ห้องสอบ</label>
