@@ -430,10 +430,12 @@ export async function submitExamSchedule(
         String(formData.get("start_time") ?? ""),
         String(formData.get("end_time") ?? "")
       );
-    } catch {
+    } catch (error) {
       throw new StudentActionValidationError(
         "SCHEDULE_TIME_INVALID",
-        "กรุณาระบุวันที่และเวลาให้ถูกต้อง โดยเวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม",
+        error instanceof Error
+          ? error.message
+          : "กรุณาระบุวันที่และเวลาให้ถูกต้อง โดยเวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม",
         ["schedule_date", "start_time", "end_time"]
       );
     }
