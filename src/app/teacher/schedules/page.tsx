@@ -12,6 +12,12 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { hasOpenLateRoundException } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
+import {
+  confirmedTeacherScheduleWhere,
+  latestAllowedAssessmentAttachment,
+  teacherScheduleAttachmentSelect,
+  teacherVisibleScheduleKinds
+} from "@/lib/scheduling/confirmedScheduleAttachments";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
 
 function uniqueIds(ids: string[]) {
@@ -53,6 +59,12 @@ export default async function TeacherSchedulesPage({
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" />;
 
+  const activeOffering = await prisma.courseOffering.findFirst({
+    where: { status: "ACTIVE" },
+    orderBy: { id: "desc" },
+    select: { id: true, term: { select: { displayName: true } } }
+  });
+
   const [schedules, confirmedScheduleCalendar] = await Promise.all([
     prisma.examScheduleProposal.findMany({
       where: {
@@ -81,8 +93,8 @@ export default async function TeacherSchedulesPage({
       },
       orderBy: [{ createdAt: "asc" }, { proposedStartAt: "asc" }]
     }),
-    prisma.examScheduleProposal.findMany({
-      where: { status: "CONFIRMED" },
+    activeOffering ? prisma.examScheduleProposal.findMany({
+      where: confirmedTeacherScheduleWhere(activeOffering.id),
       select: {
         id: true,
         assessmentKind: true,
@@ -95,6 +107,11 @@ export default async function TeacherSchedulesPage({
             id: true,
             currentTitleTh: true,
             student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+            assessmentSubmissions: {
+              where: { kind: { in: [...teacherVisibleScheduleKinds] } },
+              orderBy: { submittedAt: "desc" },
+              select: teacherScheduleAttachmentSelect
+            },
             committeeAssignments: {
               where: { active: true },
               select: {
@@ -108,7 +125,7 @@ export default async function TeacherSchedulesPage({
       },
       orderBy: { proposedStartAt: "asc" },
       take: 100
-    })
+    }) : Promise.resolve([])
   ]);
   const isScheduleRoundReviewable = (schedule: (typeof schedules)[number]) => {
     if (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) return true;
@@ -207,10 +224,12 @@ export default async function TeacherSchedulesPage({
       <section className="panel order-3">
         <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
         <p className="mt-1 text-sm text-muted">
-          อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วได้ เพื่อวางแผนเข้าร่วมฟังหรือหลีกเลี่ยงเวลาซ้อนกัน โดยส่วนนี้ไม่แสดงเอกสารหลักฐานของนักศึกษา
+          อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วและเปิดเอกสารประกอบของรอบสอบใน{activeOffering?.term.displayName ?? "ภาคเรียนปัจจุบัน"}
         </p>
         <div className="teacher-scroll-list mt-3 space-y-2">
-          {confirmedScheduleCalendar.length ? confirmedScheduleCalendar.map((schedule) => (
+          {confirmedScheduleCalendar.length ? confirmedScheduleCalendar.map((schedule) => {
+            const attachment = latestAllowedAssessmentAttachment(schedule.assessmentKind, schedule.project.assessmentSubmissions);
+            return (
             <div key={schedule.id} className="rounded-md border border-line bg-surface p-3 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -232,9 +251,22 @@ export default async function TeacherSchedulesPage({
                   </span>
                 ))}
               </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                {attachment ? (
+                  <>
+                    <span className="min-w-0 text-muted">{attachment.title ?? "เอกสารประกอบรอบสอบ"}</span>
+                    <a className="button-secondary" href={attachment.materialLink} target="_blank" rel="noreferrer">
+                      เปิดเอกสารประกอบการสอบ
+                    </a>
+                  </>
+                ) : (
+                  <span className="text-muted">ยังไม่พบเอกสารของรอบนี้</span>
+                )}
+              </div>
             </div>
-          )) : (
-            <EmptyState title="ยังไม่มีตารางสอบที่ยืนยันแล้ว" description="เมื่อกรรมการอนุมัติวันสอบครบ รายการจะปรากฏที่นี่" />
+            );
+          }) : (
+            <EmptyState title="ยังไม่มีตารางสอบที่ยืนยันแล้ว" description="เมื่อกรรมการอนุมัติวันสอบครบ รายการของภาคเรียนปัจจุบันจะปรากฏที่นี่" />
           )}
         </div>
       </section>

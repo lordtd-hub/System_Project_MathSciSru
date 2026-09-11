@@ -97,14 +97,20 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(actions).not.toContain("roundStatus: project.courseOffering.assessmentRounds");
   });
 
-  it("shows assessment evidence to committee teachers before scoring", () => {
+  it("keeps review evidence scoped while sharing confirmed current-offering attachments with teachers", () => {
     const teacherSchedules = read("src/app/teacher/schedules/page.tsx");
+    const confirmedAttachments = read("src/lib/scheduling/confirmedScheduleAttachments.ts");
     const progress1 = read("src/app/teacher/progress1/page.tsx");
     const progress2 = read("src/app/teacher/progress2/page.tsx");
     expect(teacherSchedules).toContain("assessmentSubmissions");
     expect(teacherSchedules).toContain("confirmedScheduleCalendar");
     expect(teacherSchedules).toContain("ตารางสอบที่ยืนยันแล้ว");
-    expect(teacherSchedules).toContain("ไม่แสดงเอกสารหลักฐานของนักศึกษา");
+    expect(teacherSchedules).toContain("confirmedTeacherScheduleWhere(activeOffering.id)");
+    expect(teacherSchedules).toContain("latestAllowedAssessmentAttachment");
+    expect(teacherSchedules).toContain("เปิดเอกสารประกอบการสอบ");
+    expect(confirmedAttachments).toContain('status: "CONFIRMED"');
+    expect(confirmedAttachments).toContain("courseOfferingId: activeOfferingId");
+    expect(confirmedAttachments).not.toContain("contentJson");
     expect(teacherSchedules).toContain("reviewExamSchedule");
     expect(teacherSchedules).toContain("อนุมัติวันสอบ");
     expect(teacherSchedules).toContain("ไม่อนุมัติ / ขอเปลี่ยนเวลา");
