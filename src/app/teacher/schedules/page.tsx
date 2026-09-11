@@ -224,7 +224,8 @@ export default async function TeacherSchedulesPage({
       <section className="panel order-3">
         <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
         <p className="mt-1 text-sm text-muted">
-          อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วและเปิดเอกสารประกอบของรอบสอบใน{activeOffering?.term.displayName ?? "ภาคเรียนปัจจุบัน"}
+          อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วและเปิดเอกสารประกอบของรอบสอบใน{" "}
+          {activeOffering?.term.displayName ?? "ภาคเรียนปัจจุบัน"}
         </p>
         <div className="teacher-scroll-list mt-3 space-y-2">
           {confirmedScheduleCalendar.length ? confirmedScheduleCalendar.map((schedule) => {
