@@ -228,3 +228,54 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
 - เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-09-11 - Teacher confirmed-schedule attachments rollout closeout
+
+ประเภท: Production access-scope maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main ก่อนปล่อย: `2d5c7273a76554963341e9e0391f4ab0410d62ec`
+- Final GitHub main: `a5038fbebd5bdd86784d9b580324539a97300264`
+- Final Vercel deployment: `dpl_P74NUvjvkGoTzQ2hP8uvpUUbA7Nb`
+- Vercel deployment status: `READY`
+- Rollback deployment: `dpl_131grKUHZiNQE4WjmZuzge66iUaf`
+- Rollback tag: `prod-before-pr40-20260911-1832`
+
+Patch ที่ปล่อย:
+
+| Patch | PR | Merge commit |
+| --- | --- | --- |
+| เปิดเอกสารประกอบของตารางสอบที่ยืนยันแล้วให้อาจารย์ที่ได้รับอนุมัติ | #40 | `a5038fbebd5bdd86784d9b580324539a97300264` |
+
+ผลการทดสอบก่อนปล่อย:
+
+- ผ่าน typecheck, lint, tests `639/639`, production build, `git diff --check` และ secret scan
+- Vercel Preview ของ commit `c75c9f438aae332477ce14cf401ffefeebb521d1` เป็น `READY`
+- QA ยืนยันด้วยบัญชีอาจารย์ที่ไม่ได้เป็นที่ปรึกษาหรือกรรมการของโครงการว่าเห็นตาราง `CONFIRMED` ในภาคเรียนปัจจุบันและเห็นลิงก์หลักฐาน Progress 1 ที่ตรงรอบ
+- ลิงก์หลักฐานใช้โดเมนที่อนุญาต เปิดแท็บใหม่ และมี `rel="noreferrer"`; หน้าไม่ได้เปิดสิทธิ์แฟ้มโครงงาน คะแนน ข้อเสนอแนะ หรือประวัติอื่น
+- ข้อมูลจำลอง QA สองรายการถูกลบและตรวจยืนยันว่าเหลือ `0` หลังจบการทดสอบ
+
+ผลการเฝ้าดู Production:
+
+- เฝ้าดูครบอย่างน้อย 60 นาที โดยตรวจทันทีและที่ประมาณนาที 15, 30, 45 และ 60
+- Production HTTP ที่ `/`, `/login` และ `/teacher/schedules` ตอบ HTTP 200 ทุก checkpoint ที่ตรวจ
+- Read-only browser smoke ยืนยันว่า route ใช้งานได้และ auth guard ยังปฏิเสธผู้ไม่ล็อกอิน โดยไม่พบ application error หรือ digest
+- Vercel deployment คงเป็น `READY`; ไม่พบ Production `5xx` ตลอดช่วง observation
+- Production และ QA Supabase คงสถานะ `ACTIVE_HEALTHY` และ read-only `SELECT 1` สำเร็จทุก checkpoint
+- Read-only integrity check ของ Production พบตารางสอบที่ยืนยันแล้วในภาคเรียนปัจจุบัน 7 รายการ และทั้ง 7 รายการมีหลักฐานโดเมนที่อนุญาตซึ่งตรงกับรอบสอบ
+- GitHub main คงอยู่ที่ merge commit ของ PR #40 และ rollback tag อยู่บน remote ตลอดช่วงตรวจ
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback
+
+ขอบเขตและความปลอดภัย:
+
+- ไม่มี database migration หรือการเปลี่ยน environment variable ใน Production
+- การตรวจ Production เป็น read-only; ผู้ทดสอบไม่ได้ส่ง Production form เปิดเอกสารภายนอก หรือแก้ Production database
+- ไม่มี rollback และไม่มีการลบหรือแก้ไขคะแนน ข้อเสนอแนะ audit/evidence history หรือ lifecycle เดิม
+- Patch จำกัดการมองเห็นไว้ที่ metadata และลิงก์หลักฐานล่าสุดซึ่งตรงกับ Progress 1, Progress 2 หรือ Final ของตาราง `CONFIRMED` ในภาคเรียนปัจจุบัน
+
+ผลลัพธ์:
+
+- ปิด rollout PR #40 สำเร็จ โดย Production คงอยู่ที่ `main@a5038fb`
+- เหตุเปิดเผยข้อมูลข้ามภาคเรียน เลือกไฟล์ผิดรอบ ขยายสิทธิ์แฟ้มโครงงาน auth failure หรือ `500/digest` ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่และอ้างอิง rollback point ข้างต้น
