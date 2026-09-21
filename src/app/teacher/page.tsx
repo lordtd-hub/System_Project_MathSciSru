@@ -14,6 +14,11 @@ import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { pendingProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
+import {
+  confirmedTeacherScheduleWhere,
+  teacherScheduleDisplayState,
+  teacherScheduleOfferingWhere
+} from "@/lib/scheduling/confirmedScheduleAttachments";
 import { openProposalScoring } from "./actions";
 
 function assessmentKindLabel(kind?: string | null) {
@@ -46,6 +51,13 @@ async function getTeacherWorkloadCounts(teacherId: string) {
       { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" as const } } }
     ]
   };
+  const activeOffering = await prisma.courseOffering.findFirst({
+    where: { status: "ACTIVE" },
+    orderBy: { id: "desc" },
+    select: {
+      id: true
+    }
+  });
   const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") => {
     const roundType: AssessmentRoundType = assessmentKind === "FINAL_PRESENT" ? "FINAL_PRESENTATION" : assessmentKind;
     return ({
@@ -81,7 +93,7 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     progress1ScoreReadyCount,
     progress2ScoreReadyCount,
     finalScoreReadyCount,
-    confirmedScheduleCalendarCount
+    confirmedOwnSchedules
   ] = await Promise.all([
     prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
     prisma.project.findMany({
@@ -93,18 +105,23 @@ async function getTeacherWorkloadCounts(teacherId: string) {
       },
       select: { advisorRequests: { orderBy: { requestedAt: "desc" }, take: 1, select: { advisorTeacherId: true, status: true } } }
     }),
-    prisma.examScheduleProposal.count({
+    activeOffering ? prisma.examScheduleProposal.count({
       where: {
-        status: "PROPOSED",
-        assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } },
-        OR: [
-          { approvals: { some: { teacherId, decision: "PENDING" } } },
-          { project: { committeeAssignments: { some: { teacherId, active: true, role: { in: ["ADVISOR", "HEAD", "MEMBER"] } } } } },
-          { project: { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" } } } }
+        AND: [
+          teacherScheduleOfferingWhere(activeOffering.id),
+          {
+            status: "PROPOSED",
+            assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } },
+            OR: [
+              { approvals: { some: { teacherId, decision: "PENDING" } } },
+              { project: { committeeAssignments: { some: { teacherId, active: true, role: { in: ["ADVISOR", "HEAD", "MEMBER"] } } } } },
+              { project: { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" } } } }
+            ],
+            NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }
+          }
         ],
-        NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }
       }
-    }),
+    }) : Promise.resolve(0),
     prisma.project.findMany({
       where: {
         status: "REPORT_REVIEW",
@@ -135,12 +152,38 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_1") }),
     prisma.examScheduleProposal.count({ where: readyScoreWhere("PROGRESS_2") }),
     prisma.examScheduleProposal.count({ where: readyScoreWhere("FINAL_PRESENT") }),
-    prisma.examScheduleProposal.count({
+    activeOffering ? prisma.examScheduleProposal.findMany({
       where: {
-        status: "CONFIRMED",
-        ...teacherProjectInvolvementWhere
-      }
-    })
+        AND: [
+          confirmedTeacherScheduleWhere(activeOffering.id),
+          teacherProjectInvolvementWhere
+        ]
+      },
+      select: {
+        id: true,
+        assessmentKind: true,
+        roundType: true,
+        proposedStartAt: true,
+        proposedEndAt: true,
+        room: true,
+        assessmentRound: { select: { status: true } },
+        project: {
+          select: {
+            currentTitleTh: true,
+            student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
+            committeeAssignments: {
+              where: { teacherId, active: true },
+              select: { role: true }
+            },
+            advisorRequests: {
+              where: { advisorTeacherId: teacherId, status: "APPROVED" },
+              select: { id: true }
+            }
+          }
+        }
+      },
+      orderBy: { proposedStartAt: "asc" }
+    }) : Promise.resolve([])
   ]);
   const reportReviewCount = reportReviewProjects.filter((project) => {
     const latestReport = project.reportVersions[0];
@@ -152,6 +195,15 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     const latestAdvisorRequest = project.advisorRequests[0];
     return latestAdvisorRequest?.status === "APPROVED" && latestAdvisorRequest.advisorTeacherId === teacherId;
   }).length;
+  const scheduleState = (schedule: (typeof confirmedOwnSchedules)[number]) => {
+    return teacherScheduleDisplayState({
+      proposedStartAt: schedule.proposedStartAt,
+      proposedEndAt: schedule.proposedEndAt,
+      roundStatus: schedule.assessmentRound?.status ?? null
+    });
+  };
+  const upcomingOwnSchedules = confirmedOwnSchedules.filter((schedule) => scheduleState(schedule) === "UPCOMING").slice(0, 8);
+  const historicalScheduleCount = confirmedOwnSchedules.filter((schedule) => scheduleState(schedule) === "HISTORY").length;
 
   return [
     advisorRequestCount,
@@ -162,7 +214,8 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     progress1ScoreReadyCount,
     progress2ScoreReadyCount,
     finalScoreReadyCount,
-    confirmedScheduleCalendarCount
+    historicalScheduleCount,
+    upcomingOwnSchedules
   ] as const;
 }
 
@@ -242,7 +295,8 @@ export default async function TeacherDashboardPage() {
     progress1ScoreReadyCount,
     progress2ScoreReadyCount,
     finalScoreReadyCount,
-    confirmedScheduleCalendarCount
+    historicalScheduleCount,
+    upcomingOwnSchedules
   ] = await (
     sessionTeacherWorkloadQuery ?? timer.measure("teacher_workload_queries", () => getTeacherWorkloadCounts(teacher.id))
   );
@@ -290,38 +344,6 @@ export default async function TeacherDashboardPage() {
         orderBy: { proposedStartAt: "asc" }
       })
     : null;
-  const ownConfirmedScheduleAgenda = await prisma.examScheduleProposal.findMany({
-    where: {
-      status: "CONFIRMED",
-      OR: [
-        { project: { committeeAssignments: { some: { teacherId: teacher.id, active: true } } } },
-        { project: { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } } }
-      ]
-    },
-    select: {
-      id: true,
-      assessmentKind: true,
-      proposedStartAt: true,
-      proposedEndAt: true,
-      room: true,
-      project: {
-        select: {
-          currentTitleTh: true,
-          student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } },
-          committeeAssignments: {
-            where: { teacherId: teacher.id, active: true },
-            select: { role: true }
-          },
-          advisorRequests: {
-            where: { advisorTeacherId: teacher.id, status: "APPROVED" },
-            select: { id: true }
-          }
-        }
-      }
-    },
-    orderBy: { proposedStartAt: "asc" },
-    take: 8
-  });
   const teacherActionableTaskCount =
     advisorRequestCount +
     proposalRevisionReviewCount +
@@ -364,19 +386,11 @@ export default async function TeacherDashboardPage() {
   const teacherWorkloadSummaryMetrics = [
     { label: "ต้องดำเนินการ", count: teacherActionableTaskCount, tone: "action" as const, description: "งานที่รอให้อาจารย์ตอบรับ ตรวจ ประเมิน หรือให้คะแนน" },
     { label: "รอ", count: 0, tone: "waiting" as const, description: "งานที่รอคนอื่นดำเนินการจะไม่ปนกับงานที่ต้องทำ" },
-    { label: "เสร็จแล้ว", count: confirmedScheduleCalendarCount, tone: "completed" as const, description: "รายการที่ยืนยันแล้วหรือใช้ดูประกอบการวางแผน" },
+    { label: "ย้อนหลัง", count: historicalScheduleCount, tone: "completed" as const, description: "ตารางสอบที่เสร็จหรือปิดรอบแล้ว ดูได้จากหน้าประวัติ" },
     { label: "ส่งกลับ", count: 0, tone: "returned" as const, description: "รายการที่ต้องรอนักศึกษาส่งใหม่จะแยกจากงานหลัก" },
     { label: "ล็อก/ไม่เกี่ยวข้อง", count: 0, tone: "locked" as const, description: "สิ่งที่ยังไม่เปิดหรือไม่ใช่บทบาทของท่านจะไม่แสดงเป็นงาน" }
   ];
   const teacherActionQueue = [
-    {
-      title: "ตารางสอบที่ยืนยันแล้ว",
-      description: confirmedScheduleCalendarCount ? "ดูวัน เวลา ห้องสอบ และรายชื่อนักศึกษาที่มีกำหนดสอบยืนยันแล้ว" : "ยังไม่มีตารางสอบที่กรรมการยืนยันครบ",
-      href: "/teacher/schedules",
-      count: confirmedScheduleCalendarCount,
-      tone: confirmedScheduleCalendarCount ? "complete" as const : "quiet" as const,
-      statusLabel: confirmedScheduleCalendarCount ? "ดูตาราง" : "ยังไม่มี"
-    },
     {
       title: "คำขอที่ปรึกษา",
       description: advisorRequestCount ? "นักศึกษารออาจารย์พิจารณารับเป็นที่ปรึกษา" : "ยังไม่มีคำขอที่ปรึกษาที่รอดำเนินการ",
@@ -475,11 +489,11 @@ export default async function TeacherDashboardPage() {
           <NextActionCard action={teacherNextAction} />
           <section className="panel dashboard-console-panel dashboard-agenda-panel">
             <DashboardSectionHeader
-              title="ตารางสอบของท่าน"
-              description="เรียงตามวันเวลา สำหรับโครงงานที่ท่านเป็นที่ปรึกษา ประธานกรรมการ หรือกรรมการ"
+              title="ตารางสอบที่กำลังจะมาถึง"
+              description="เฉพาะรอบที่ยังเปิดและยังไม่สิ้นสุด สำหรับโครงงานที่ท่านเกี่ยวข้อง"
             />
             <div className="teacher-agenda-list mt-3 space-y-2">
-              {ownConfirmedScheduleAgenda.length ? ownConfirmedScheduleAgenda.map((schedule) => {
+              {upcomingOwnSchedules.length ? upcomingOwnSchedules.map((schedule) => {
                 const roles = Array.from(new Set([
                   ...schedule.project.committeeAssignments.map((assignment) => assignment.role),
                   ...(schedule.project.advisorRequests.length ? ["ADVISOR" as const] : [])
@@ -507,10 +521,10 @@ export default async function TeacherDashboardPage() {
                   </Link>
                 );
               }) : (
-                <p className="text-sm text-muted">ยังไม่มีตารางสอบที่ยืนยันแล้วสำหรับโครงงานที่ท่านเกี่ยวข้อง</p>
+                <p className="text-sm text-muted">ยังไม่มีตารางสอบรอบถัดไปที่ยืนยันแล้วสำหรับโครงงานที่ท่านเกี่ยวข้อง</p>
               )}
             </div>
-            <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบทั้งหมด</Link>
+            <Link className="button-secondary mt-3 inline-flex" href="/teacher/schedules">ดูตารางสอบและประวัติทั้งหมด</Link>
           </section>
         </div>
       </div>

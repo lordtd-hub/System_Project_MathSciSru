@@ -70,6 +70,22 @@ describe("teacher workload UX source", () => {
     expect(source).toContain('approval.teacherId === teacher.id && approval.decision === "PENDING"');
   });
 
+  it("separates current schedules from history with one shared classification rule", () => {
+    const dashboard = readSource("src/app/teacher/page.tsx");
+    const schedules = readSource("src/app/teacher/schedules/page.tsx");
+
+    expect(dashboard).toContain("upcomingOwnSchedules");
+    expect(dashboard).toContain("historicalScheduleCount");
+    expect(dashboard).toContain("ตารางสอบที่กำลังจะมาถึง");
+    expect(dashboard).not.toContain('title: "ตารางสอบที่ยืนยันแล้ว"');
+    expect(schedules).toContain("upcomingConfirmedSchedules");
+    expect(schedules).toContain("historicalConfirmedSchedules");
+    expect(schedules).toContain("teacherScheduleDisplayState");
+    expect(schedules).toContain("schedule.assessmentRound?.status ?? null");
+    expect(schedules).toContain("ประวัติการสอบ");
+    expect(schedules).toContain("เปิดเอกสารประกอบการสอบ");
+  });
+
   it("adds compact proposal navigation before long proposal review cards", () => {
     const source = readSource("src/app/teacher/proposals/page.tsx");
 
