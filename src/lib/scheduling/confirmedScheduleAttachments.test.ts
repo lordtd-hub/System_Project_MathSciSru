@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   confirmedTeacherScheduleWhere,
   latestAllowedAssessmentAttachment,
+  teacherScheduleDisplayState,
   teacherScheduleAttachmentSelect,
+  teacherScheduleOfferingWhere,
   teacherVisibleScheduleKinds
 } from "./confirmedScheduleAttachments";
 
@@ -23,6 +25,53 @@ describe("confirmed schedule attachments visible to approved teachers", () => {
         { courseOfferingId: null, project: { courseOfferingId: "offering-active" } }
       ]
     });
+  });
+
+  it("reuses the active-offering filter for current queues and legacy schedules", () => {
+    expect(teacherScheduleOfferingWhere("offering-active")).toEqual({
+      OR: [
+        { courseOfferingId: "offering-active" },
+        { courseOfferingId: null, project: { courseOfferingId: "offering-active" } }
+      ]
+    });
+  });
+
+  it("keeps only open, not-yet-ended schedules in the upcoming bucket", () => {
+    const now = new Date("2026-09-21T12:00:00Z");
+    expect(teacherScheduleDisplayState({
+      proposedStartAt: new Date("2026-09-22T08:00:00Z"),
+      proposedEndAt: new Date("2026-09-22T09:00:00Z"),
+      roundStatus: "SCORING_OPEN",
+      now
+    })).toBe("UPCOMING");
+    expect(teacherScheduleDisplayState({
+      proposedStartAt: new Date("2026-09-20T08:00:00Z"),
+      proposedEndAt: new Date("2026-09-20T09:00:00Z"),
+      roundStatus: "SCORING_OPEN",
+      now
+    })).toBe("HISTORY");
+    expect(teacherScheduleDisplayState({
+      proposedStartAt: new Date("2026-09-22T08:00:00Z"),
+      proposedEndAt: new Date("2026-09-22T09:00:00Z"),
+      roundStatus: "SCORING_CLOSED",
+      now
+    })).toBe("HISTORY");
+  });
+
+  it("uses the start time as the legacy cutoff when an end time or round relation is missing", () => {
+    const now = new Date("2026-09-21T12:00:00Z");
+    expect(teacherScheduleDisplayState({
+      proposedStartAt: new Date("2026-09-21T13:00:00Z"),
+      proposedEndAt: null,
+      roundStatus: null,
+      now
+    })).toBe("UPCOMING");
+    expect(teacherScheduleDisplayState({
+      proposedStartAt: new Date("2026-09-21T11:00:00Z"),
+      proposedEndAt: null,
+      roundStatus: null,
+      now
+    })).toBe("HISTORY");
   });
 
   it("selects only attachment metadata and never submission content", () => {

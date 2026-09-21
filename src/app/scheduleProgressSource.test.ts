@@ -104,8 +104,12 @@ describe("self-scheduling and progress scoring source guards", () => {
     const progress2 = read("src/app/teacher/progress2/page.tsx");
     expect(teacherSchedules).toContain("assessmentSubmissions");
     expect(teacherSchedules).toContain("confirmedScheduleCalendar");
-    expect(teacherSchedules).toContain("ตารางสอบที่ยืนยันแล้ว");
+    expect(teacherSchedules).toContain("ตารางสอบที่กำลังจะมาถึง");
+    expect(teacherSchedules).toContain("ประวัติการสอบ");
+    expect(teacherSchedules).toContain("upcomingConfirmedSchedules");
+    expect(teacherSchedules).toContain("historicalConfirmedSchedules");
     expect(teacherSchedules).toContain("confirmedTeacherScheduleWhere(activeOffering.id)");
+    expect(teacherSchedules).toContain("teacherScheduleDisplayState");
     expect(teacherSchedules).toContain("latestAllowedAssessmentAttachment");
     expect(teacherSchedules).toContain("เปิดเอกสารประกอบการสอบ");
     expect(confirmedAttachments).toContain('status: "CONFIRMED"');
@@ -199,9 +203,11 @@ describe("self-scheduling and progress scoring source guards", () => {
     const teacherPage = read("src/app/teacher/page.tsx");
     const studentPage = read("src/app/student/page.tsx");
     expect(teacherPage).toContain("nextConfirmedScoringSchedule");
-    expect(teacherPage).toContain("confirmedScheduleCalendarCount");
-    expect(teacherPage).toContain("ownConfirmedScheduleAgenda");
-    expect(teacherPage).toContain("ตารางสอบของท่าน");
+    expect(teacherPage).toContain("historicalScheduleCount");
+    expect(teacherPage).toContain("upcomingOwnSchedules");
+    expect(teacherPage).toContain("ตารางสอบที่กำลังจะมาถึง");
+    expect(teacherPage).toContain("ดูตารางสอบและประวัติทั้งหมด");
+    expect(teacherPage).not.toContain('title: "ตารางสอบที่ยืนยันแล้ว"');
     expect(teacherPage).toContain("ADVISOR");
     expect(teacherPage).toContain("scoreSubmission: { is: { status: submittedScoreStatus } }");
     expect(studentPage).toContain("latestScheduleDateText");

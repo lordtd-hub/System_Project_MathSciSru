@@ -15,7 +15,9 @@ import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import {
   confirmedTeacherScheduleWhere,
   latestAllowedAssessmentAttachment,
+  teacherScheduleDisplayState,
   teacherScheduleAttachmentSelect,
+  teacherScheduleOfferingWhere,
   teacherVisibleScheduleKinds
 } from "@/lib/scheduling/confirmedScheduleAttachments";
 import { teacherDisplayName } from "@/lib/teachers/displayName";
@@ -62,16 +64,24 @@ export default async function TeacherSchedulesPage({
   const activeOffering = await prisma.courseOffering.findFirst({
     where: { status: "ACTIVE" },
     orderBy: { id: "desc" },
-    select: { id: true, term: { select: { displayName: true } } }
+    select: {
+      id: true,
+      term: { select: { displayName: true } }
+    }
   });
 
   const [schedules, confirmedScheduleCalendar] = await Promise.all([
-    prisma.examScheduleProposal.findMany({
+    activeOffering ? prisma.examScheduleProposal.findMany({
       where: {
-        OR: [
-          { approvals: { some: { teacherId: teacher.id } } },
-          { project: { committeeAssignments: { some: { teacherId: teacher.id, active: true } } } },
-          { project: { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } } }
+        AND: [
+          teacherScheduleOfferingWhere(activeOffering.id),
+          {
+            OR: [
+              { approvals: { some: { teacherId: teacher.id } } },
+              { project: { committeeAssignments: { some: { teacherId: teacher.id, active: true } } } },
+              { project: { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } } }
+            ]
+          }
         ]
       },
       include: {
@@ -92,7 +102,7 @@ export default async function TeacherSchedulesPage({
         approvals: { include: { teacher: true } }
       },
       orderBy: [{ createdAt: "asc" }, { proposedStartAt: "asc" }]
-    }),
+    }) : Promise.resolve([]),
     activeOffering ? prisma.examScheduleProposal.findMany({
       where: confirmedTeacherScheduleWhere(activeOffering.id),
       select: {
@@ -102,6 +112,7 @@ export default async function TeacherSchedulesPage({
         proposedStartAt: true,
         proposedEndAt: true,
         room: true,
+        assessmentRound: { select: { status: true } },
         project: {
           select: {
             id: true,
@@ -127,6 +138,23 @@ export default async function TeacherSchedulesPage({
       take: 100
     }) : Promise.resolve([])
   ]);
+  const confirmedScheduleRoundStatus = (schedule: (typeof confirmedScheduleCalendar)[number]) => {
+    return schedule.assessmentRound?.status ?? null;
+  };
+  const upcomingConfirmedSchedules = confirmedScheduleCalendar.filter((schedule) =>
+    teacherScheduleDisplayState({
+      proposedStartAt: schedule.proposedStartAt,
+      proposedEndAt: schedule.proposedEndAt,
+      roundStatus: confirmedScheduleRoundStatus(schedule)
+    }) === "UPCOMING"
+  );
+  const historicalConfirmedSchedules = confirmedScheduleCalendar.filter((schedule) =>
+    teacherScheduleDisplayState({
+      proposedStartAt: schedule.proposedStartAt,
+      proposedEndAt: schedule.proposedEndAt,
+      roundStatus: confirmedScheduleRoundStatus(schedule)
+    }) === "HISTORY"
+  ).reverse();
   const isScheduleRoundReviewable = (schedule: (typeof schedules)[number]) => {
     if (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) return true;
     const roundType = schedule.roundType ?? schedule.assessmentRound.roundType;
@@ -146,6 +174,58 @@ export default async function TeacherSchedulesPage({
     !pendingReviewScheduleIds.has(schedule.id)
   );
   const returnedSchedules = schedules.filter((schedule) => schedule.status === "REJECTED");
+  const renderConfirmedSchedule = (
+    schedule: (typeof confirmedScheduleCalendar)[number],
+    state: "UPCOMING" | "HISTORY"
+  ) => {
+    const attachment = latestAllowedAssessmentAttachment(schedule.assessmentKind, schedule.project.assessmentSubmissions);
+    const roundStatus = confirmedScheduleRoundStatus(schedule);
+    const statusLabel = state === "UPCOMING"
+      ? "กำลังจะมาถึง"
+      : roundStatus && !isRoundOpen(roundStatus)
+        ? "ปิดรอบแล้ว"
+        : "สอบเสร็จแล้ว";
+
+    return (
+      <div key={schedule.id} className="rounded-md border border-line bg-surface p-3 text-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="font-semibold">{scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)}</div>
+              <TeacherQueueBadge tone={state === "UPCOMING" ? "waiting" : "completed"}>{statusLabel}</TeacherQueueBadge>
+            </div>
+            <div className="mt-1 text-muted">
+              {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
+              {schedule.project.currentTitleTh ? ` · ${schedule.project.currentTitleTh}` : ""}
+            </div>
+          </div>
+          <div className="text-right font-semibold text-ink">
+            {formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}
+            {schedule.room ? <div className="text-xs text-muted">ห้อง {schedule.room}</div> : null}
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {schedule.project.committeeAssignments.map((assignment) => (
+            <span key={`${schedule.id}-${assignment.role}-${teacherDisplayName(assignment.teacher)}`} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">
+              {committeeRoleLabel(assignment.role)}: {teacherDisplayName(assignment.teacher)}
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+          {attachment ? (
+            <>
+              <span className="min-w-0 text-muted">{attachment.title ?? "เอกสารประกอบรอบสอบ"}</span>
+              <a className="button-secondary" href={attachment.materialLink} target="_blank" rel="noreferrer">
+                เปิดเอกสารประกอบการสอบ
+              </a>
+            </>
+          ) : (
+            <span className="text-muted">ยังไม่พบเอกสารของรอบนี้</span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -155,7 +235,8 @@ export default async function TeacherSchedulesPage({
         metrics={[
           { label: "ต้องดำเนินการ", count: pendingReviewSchedules.length, tone: "action", description: "คำขอวันสอบที่รอท่านอนุมัติ" },
           { label: "รอ", count: waitingSchedules.length, tone: "waiting", description: "รายการที่รอกรรมการท่านอื่นหรือรอสรุปสถานะ" },
-          { label: "เสร็จแล้ว", count: confirmedScheduleCalendar.length, tone: "completed", description: "ตารางสอบที่ยืนยันแล้ว" },
+          { label: "กำลังจะมาถึง", count: upcomingConfirmedSchedules.length, tone: "waiting", description: "ตารางสอบที่ยืนยันและยังไม่สิ้นสุด" },
+          { label: "ย้อนหลัง", count: historicalConfirmedSchedules.length, tone: "completed", description: "ตารางสอบที่เสร็จหรือปิดรอบแล้ว" },
           { label: "ส่งกลับ", count: returnedSchedules.length, tone: "returned", description: "คำขอที่มีผู้ไม่สะดวก" },
           { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รอบที่ปิดแล้วไม่ใช่งานอนุมัติ" }
         ]}
@@ -222,55 +303,30 @@ export default async function TeacherSchedulesPage({
         </TeacherQueueSection>
       ) : null}
       <section className="panel order-3">
-        <h2 className="text-lg font-semibold">ตารางสอบที่ยืนยันแล้ว</h2>
+        <h2 className="text-lg font-semibold">ตารางสอบที่กำลังจะมาถึง</h2>
         <p className="mt-1 text-sm text-muted">
-          อาจารย์ทุกท่านสามารถดูตารางสอบที่ยืนยันแล้วและเปิดเอกสารประกอบของรอบสอบใน{" "}
+          แสดงเฉพาะตารางที่ยืนยันแล้ว รอบยังเปิด และยังไม่สิ้นสุดใน{" "}
           {activeOffering?.term.displayName ?? "ภาคเรียนปัจจุบัน"}
         </p>
         <div className="teacher-scroll-list mt-3 space-y-2">
-          {confirmedScheduleCalendar.length ? confirmedScheduleCalendar.map((schedule) => {
-            const attachment = latestAllowedAssessmentAttachment(schedule.assessmentKind, schedule.project.assessmentSubmissions);
-            return (
-            <div key={schedule.id} className="rounded-md border border-line bg-surface p-3 text-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold">{scheduleRoundLabel(schedule.roundType ?? schedule.assessmentKind)}</div>
-                  <div className="mt-1 text-muted">
-                    {schedule.project.student.studentCode} {schedule.project.student.firstNameTh} {schedule.project.student.lastNameTh}
-                    {schedule.project.currentTitleTh ? ` · ${schedule.project.currentTitleTh}` : ""}
-                  </div>
-                </div>
-                <div className="text-right font-semibold text-ink">
-                  {formatThaiScheduleRange(schedule.proposedStartAt, schedule.proposedEndAt)}
-                  {schedule.room ? <div className="text-xs text-muted">ห้อง {schedule.room}</div> : null}
-                </div>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {schedule.project.committeeAssignments.map((assignment) => (
-                  <span key={`${schedule.id}-${assignment.role}-${teacherDisplayName(assignment.teacher)}`} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">
-                    {committeeRoleLabel(assignment.role)}: {teacherDisplayName(assignment.teacher)}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-                {attachment ? (
-                  <>
-                    <span className="min-w-0 text-muted">{attachment.title ?? "เอกสารประกอบรอบสอบ"}</span>
-                    <a className="button-secondary" href={attachment.materialLink} target="_blank" rel="noreferrer">
-                      เปิดเอกสารประกอบการสอบ
-                    </a>
-                  </>
-                ) : (
-                  <span className="text-muted">ยังไม่พบเอกสารของรอบนี้</span>
-                )}
-              </div>
-            </div>
-            );
-          }) : (
-            <EmptyState title="ยังไม่มีตารางสอบที่ยืนยันแล้ว" description="เมื่อกรรมการอนุมัติวันสอบครบ รายการของภาคเรียนปัจจุบันจะปรากฏที่นี่" />
+          {upcomingConfirmedSchedules.length ? upcomingConfirmedSchedules.map((schedule) => renderConfirmedSchedule(schedule, "UPCOMING")) : (
+            <EmptyState title="ยังไม่มีตารางสอบที่กำลังจะมาถึง" description="เมื่อมีตารางของรอบที่เปิดอยู่และกรรมการยืนยันครบ รายการจะปรากฏที่นี่" />
           )}
         </div>
       </section>
+      {historicalConfirmedSchedules.length ? (
+        <details className="panel order-3">
+          <summary className="cursor-pointer text-lg font-semibold">
+            ประวัติการสอบ ({historicalConfirmedSchedules.length})
+          </summary>
+          <p className="mt-2 text-sm text-muted">
+            ตารางที่สอบเสร็จหรือปิดรอบแล้ว เก็บไว้สำหรับดูวันสอบและเปิดเอกสารประกอบย้อนหลัง
+          </p>
+          <div className="teacher-scroll-list mt-3 space-y-2">
+            {historicalConfirmedSchedules.map((schedule) => renderConfirmedSchedule(schedule, "HISTORY"))}
+          </div>
+        </details>
+      ) : null}
       <section className="panel order-1">
         <h2 className="text-lg font-semibold">รายการรออนุมัติวันสอบของท่าน</h2>
         <p className="mt-1 text-sm text-muted">
