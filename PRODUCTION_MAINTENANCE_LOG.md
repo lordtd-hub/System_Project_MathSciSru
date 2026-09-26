@@ -228,3 +228,55 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
 - เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-09-01 - Student schedule guided actions rollout closeout
+
+ประเภท: Production usability and reliability maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main ก่อนปล่อย: `68ecf116ec7243f022c8f2c35f7894bd5911c760`
+- Final GitHub main: `6ee75912567bfb1c741330a80855d4bcd60934b4`
+- Final Vercel deployment: `dpl_423jYqa6G4vAhfSPUGFsMUxqaTpg`
+- Vercel deployment status: `READY`
+- Rollback deployment: `dpl_FSvxGLVJoueUd4aYmxY1CKA3Ruzs`
+- Rollback tag: `prod-before-pr36-20260901-1905`
+
+Patch ที่ปล่อย:
+
+| Patch | PR | Merge commit |
+| --- | --- | --- |
+| Student guided evidence and exam scheduling actions | #36 | `6ee75912567bfb1c741330a80855d4bcd60934b4` |
+
+ผลการทดสอบก่อนปล่อย:
+
+- ผ่าน typecheck, lint, tests `633/633`, production build, `git diff --check` และ secret scan
+- Vercel QA Preview `dpl_3s38ngYEseEKGTdBFasmYYDLQUrc` เป็น `READY`; ใช้ branch `qa-preview` ที่ผูก QA environment เดิมโดยไม่มีการเปลี่ยนค่า environment variable
+- Read-only QA browser smoke ยืนยันว่า state ที่ล็อกแสดงเป็นข้อความล้วน ไม่มีปุ่มที่ดูเหมือนกดได้ และหน้า `/student/schedule` ไม่มี application error หรือ digest
+- Desktop `1440x900` และ mobile `390x844` ไม่มี horizontal overflow, control ล้น หรือ control ขนาดศูนย์
+- Behavioral tests ครอบคลุม Progress 1, Progress 2 และ Final ทั้งสถานะยังไม่มีหลักฐาน, มีหลักฐาน, ส่งขอนัดแล้ว, ยืนยันแล้ว, ถูกปฏิเสธ, เสร็จแล้ว และถูกล็อก
+
+ผลการเฝ้าดู Production:
+
+- เฝ้าดูครบอย่างน้อย 60 นาที โดยตรวจทันทีและที่ประมาณนาที 15, 30, 45 และ 60
+- Production HTTP ที่ `/`, `/student` และ `/student/schedule` ตอบ HTTP 200 ทุก checkpoint
+- Read-only visible browser smoke แสดง Student schedule access guard โดยไม่พบ application error หรือ digest
+- Vercel deployment คงเป็น `READY`; ไม่พบ error-level runtime log หรือ Production `5xx` ตลอด observation window
+- Production Supabase `project-course-system` เป็น `ACTIVE_HEALTHY` และ read-only `SELECT 1` สำเร็จทุก checkpoint
+- QA Supabase `lordtd-hub's project-scoring` เป็น `ACTIVE_HEALTHY` และ read-only `SELECT 1` สำเร็จทุก checkpoint
+- GitHub main คงอยู่ที่ merge commit ของ PR #36 และ rollback tag ชี้กลับ Production baseline เดิมตลอดช่วงตรวจ
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback
+
+ขอบเขตและความปลอดภัย:
+
+- ไม่มี database migration หรือการเปลี่ยน environment variable
+- การตรวจ Production เป็น read-only; ผู้ทดสอบไม่ได้ส่ง Production form, เปิดรอบสอบ หรือแก้ Production database
+- การตรวจ QA เป็น read-only และไม่ได้สร้างหรือแก้ข้อมูลทดสอบ
+- ไม่มี rollback และไม่มีการลบหรือแก้ไข audit/evidence history
+- Patch เปลี่ยน CTA, anchor และผลสำเร็จหลังบันทึกหลักฐาน โดยไม่เปลี่ยน lifecycle, Server gate, auth หรือ eligibility semantics
+
+ผลลัพธ์:
+
+- ปิด rollout PR #36 สำเร็จ โดย Production คงอยู่ที่ `main@6ee7591`
+- เหตุปุ่มชี้ผิดขั้นตอน นักศึกษาข้ามการบันทึกหลักฐานได้ ข้อมูลฟอร์มหาย action ค้าง หรือเกิด `500/digest` ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
