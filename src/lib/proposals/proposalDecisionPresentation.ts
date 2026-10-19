@@ -21,8 +21,12 @@ export function proposalDecisionEditBlockReason({
     return "มติไม่ผ่านถูกล็อกไว้เป็นหลักฐาน นักศึกษาต้องดำเนินการผ่าน Proposal รอบใหม่";
   }
   if (finalDecision === "PASS") {
-    if (projectStatus !== "TOPIC_APPROVED" || submissionStatus !== "LOCKED") {
+    const advancedStatus = ["IN_PROGRESS", "FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"].includes(projectStatus);
+    if ((!advancedStatus && projectStatus !== "TOPIC_APPROVED") || submissionStatus !== "LOCKED") {
       return "สถานะ Proposal ที่ผ่านแล้วไม่สอดคล้องกับหลักฐาน กรุณาตรวจสอบประวัติ";
+    }
+    if (advancedStatus) {
+      return "โครงงานดำเนินการพ้นขั้นเสนอหัวข้อแล้ว จึงไม่สามารถแก้ไขมติ Proposal จากหน้านี้ได้";
     }
     return hasActiveCommittee
       ? "แต่งตั้งกรรมการแล้ว จึงไม่สามารถแก้ไขมติ Proposal จากหน้านี้ได้"

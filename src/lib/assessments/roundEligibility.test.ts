@@ -330,3 +330,58 @@ describe("round eligibility", () => {
     expect(buckets.notReady).toEqual([]);
   });
 });
+
+const advancedStatuses = ["REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] as const;
+function advancedProject(status: (typeof advancedStatuses)[number]) {
+  return {
+    ...baseProject,
+    status,
+    committeeAssignments: [
+      { role: "ADVISOR" as const, active: true, teacherId: "advisor" },
+      { role: "HEAD" as const, active: true, teacherId: "head" },
+      { role: "MEMBER" as const, active: true, teacherId: "member" }
+    ],
+    assessmentSubmissions: [{ kind: "PROGRESS_1" as const }, { kind: "PROGRESS_2" as const }, { kind: "FINAL_PRESENT" as const }],
+    attempts: (["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const).map((roundType) => ({
+      status: "SCORING_OPEN",
+      assessmentRound: { roundType },
+      evaluatorAssignments: [
+        { teacherId: "head", scoreSubmission: { status: "SUBMITTED" as const } },
+        { teacherId: "member", scoreSubmission: { status: "SUBMITTED" as const } }
+      ]
+    }))
+  };
+}
+
+describe.each(advancedStatuses)("advanced lifecycle readiness: %s", (status) => {
+  it.each(["PROGRESS_1", "PROGRESS_2", "FINAL_PRESENTATION"] as const)("retains actual completed evidence in %s buckets", (roundType) => {
+    const buckets = buildRoundEligibilityBuckets([advancedProject(status)], roundType);
+    expect(buckets.eligible).toHaveLength(1);
+    expect(buckets.submitted).toHaveLength(1);
+    expect(buckets.completed).toHaveLength(1);
+    expect(buckets.notReady).toEqual([]);
+    expect(buckets.eligibleButIncomplete).toEqual([]);
+  });
+
+  it("still requires the Proposal decision, committee and absence of an administrative hold", () => {
+    const project = advancedProject(status);
+    expect(getProgress1Readiness({ ...project, proposalResults: [] }).eligible).toBe(false);
+    expect(getProgress1Readiness({ ...project, proposalResults: [{ finalDecision: "NOT_PASS" }] }).eligible).toBe(false);
+    expect(getProgress1Readiness({ ...project, proposalResults: [{ finalDecision: "PASS_WITH_REVISION" }] }).eligible).toBe(false);
+    expect(getProgress1Readiness({ ...project, committeeAssignments: [] }).eligible).toBe(false);
+    expect(getProgress1Readiness({ ...project, roundExceptions: [{ status: "OPEN", reason: "hold", exceptionType: "ADMIN_HOLD" }] }).eligible).toBe(false);
+  });
+
+  it("does not substitute advanced status for required Progress scores", () => {
+    const project = advancedProject(status);
+    expect(getRoundReadiness({ ...project, attempts: [] }, "PROGRESS_2").reasons).toContain("progress 1 assessment incomplete");
+    const partialProgressScores = { ...project, attempts: project.attempts.map((attempt) => ({ ...attempt, evaluatorAssignments: attempt.evaluatorAssignments.slice(0, 1) })) };
+    expect(getRoundReadiness(partialProgressScores, "PROGRESS_2").reasons).toContain("progress 1 assessment incomplete");
+    expect(getRoundReadiness({ ...project, attempts: project.attempts.filter((attempt) => attempt.assessmentRound.roundType !== "PROGRESS_2") }, "FINAL_PRESENTATION").reasons).toContain("progress 2 assessment incomplete");
+    const missingFinalScores = { ...project, attempts: project.attempts.filter((attempt) => attempt.assessmentRound.roundType !== "FINAL_PRESENTATION") };
+    const buckets = buildRoundEligibilityBuckets([missingFinalScores], "FINAL_PRESENTATION");
+    expect(buckets.eligible).toHaveLength(1);
+    expect(buckets.completed).toEqual([]);
+    expect(buckets.eligibleButIncomplete).toHaveLength(1);
+  });
+});

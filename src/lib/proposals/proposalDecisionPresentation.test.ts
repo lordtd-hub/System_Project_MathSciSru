@@ -74,3 +74,14 @@ describe("Admin Proposal decision presentation", () => {
     })).toBeNull();
   });
 });
+
+describe.each(["IN_PROGRESS", "FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"])("advanced PASS presentation: %s", (projectStatus) => {
+  it.each([true, false])("explains the immutable historical decision with active committee = %s", (hasActiveCommittee) => {
+    const reason = proposalDecisionEditBlockReason({ finalDecision: "PASS", projectStatus, submissionStatus: "LOCKED", hasActiveCommittee });
+    expect(reason).toContain("พ้นขั้นเสนอหัวข้อแล้ว");
+    expect(reason).not.toContain("ไม่สอดคล้อง");
+  });
+  it.each(["SUBMITTED", "RETURNED_FOR_REVISION", null])("retains the inconsistency warning for unlocked evidence %s", (submissionStatus) => {
+    expect(proposalDecisionEditBlockReason({ finalDecision: "PASS", projectStatus, submissionStatus, hasActiveCommittee: true })).toContain("ไม่สอดคล้อง");
+  });
+});
