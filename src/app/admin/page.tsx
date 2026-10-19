@@ -426,6 +426,7 @@ export default async function AdminDashboardPage({
           compact
           tasks={[
             { title: "รอบสอบของรายวิชา", description: "รอบสอบระดับรายวิชา", href: "/admin/rounds" },
+            { title: "เปิดส่งย้อนหลังรายกรณี", description: "จัดการผู้พลาดรอบเสนอหัวข้อ ความก้าวหน้า และขั้นสุดท้าย", href: "/admin/round-exceptions" },
             { title: "รายวิชาที่เปิดสอน", description: `${offerings.length} รายวิชา/ภาคเรียน`, href: "/admin/import-students" },
             { title: "ยืนยันจบโครงงาน", description: "ตรวจสอบเงื่อนไขครบก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์", href: "/admin/closeout" }
           ]}

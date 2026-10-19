@@ -588,6 +588,7 @@ export async function openLateRoundSubmissionForProject(formData: FormData) {
   const roundType = parseCourseRoundType(formData.get("round_type"));
   const returnTo = String(formData.get("return_to") ?? "");
   const redirectPath = returnTo === "/admin/round-exceptions" ? "/admin/round-exceptions" : "/admin/rounds";
+  const redirectParams = { round_type: returnTo === "/admin/round-exceptions" ? roundType : undefined };
   const reason = String(formData.get("reason") ?? "").trim() || lateRoundPenaltyNotice;
   const excused = String(formData.get("excused") ?? "") === "yes";
   const exceptionType = excused ? LATE_ROUND_EXCUSED_EXCEPTION_TYPE : LATE_ROUND_EXCEPTION_TYPE;
@@ -604,7 +605,7 @@ export async function openLateRoundSubmissionForProject(formData: FormData) {
   const round = await prisma.assessmentRound.findUniqueOrThrow({
     where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType } }
   });
-  if (!isRoundClosed(round.status)) redirectWithQuery(redirectPath, { error: "late_round_requires_closed_round" });
+  if (!isRoundClosed(round.status)) redirectWithQuery(redirectPath, { ...redirectParams, error: "late_round_requires_closed_round" });
 
   const existing = await prisma.projectRoundException.findFirst({
     where: { projectId: project.id, assessmentRoundId: round.id, status: "OPEN" },
@@ -672,7 +673,7 @@ export async function openLateRoundSubmissionForProject(formData: FormData) {
   revalidatePath("/student");
   revalidatePath("/student/proposal");
   revalidatePath("/teacher");
-  redirectWithQuery(redirectPath, { success: "late_round_opened" });
+  redirectWithQuery(redirectPath, { ...redirectParams, success: "late_round_opened" });
 }
 
 export async function openCourseRound(

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { courseLevelRoundTypes, isRoundClosed, roundStatusLabelTh, roundTypeLabelTh } from "@/lib/assessments/courseRounds";
 import { getRoundEligibility } from "@/lib/assessments/roundEligibility";
+import { LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { openLateRoundSubmissionForProject } from "../actions";
@@ -230,7 +231,7 @@ export default async function AdminRoundExceptionsPage({
             </thead>
             <tbody className="divide-y divide-line">
               {rows.map(({ project, latestException, hasSubmission, isOpen, status }) => {
-                const excused = latestException?.exceptionType === "LATE_ROUND_EXCUSED";
+                const excused = latestException?.exceptionType === LATE_ROUND_EXCUSED_EXCEPTION_TYPE;
                 const canOpen = Boolean(round && isRoundClosed(round.status) && !isOpen && !(selectedRoundType === "PROPOSAL" && hasSubmission));
                 return (
                   <tr key={project.id} className="align-top">

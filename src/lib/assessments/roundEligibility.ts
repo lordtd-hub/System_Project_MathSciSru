@@ -44,7 +44,7 @@ function hasCommittee(project: RoundEligibilityProject, role: CommitteeRole) {
 }
 
 function hasPassedTopicGateStatus(status: ProjectStatus) {
-  return ["TOPIC_APPROVED", "IN_PROGRESS", "FINAL_DONE", "COMPLETED"].includes(status);
+  return ["TOPIC_APPROVED", "IN_PROGRESS", "FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"].includes(status);
 }
 
 export function hasApprovedProposalOutcome(project: RoundEligibilityProject) {

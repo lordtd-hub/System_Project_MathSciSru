@@ -154,6 +154,7 @@ export default async function AdminRoundsPage({
       <PageHeader
         title="รอบสอบของรายวิชา"
         description={`${offering.term.displayName} · ${offering.courseTitle}`}
+        actions={<a className="button-secondary" href="/admin/round-exceptions">เปิดส่งย้อนหลังรายกรณี</a>}
       />
       <ActionFeedback success={params.success} error={params.error} />
 
@@ -254,6 +255,13 @@ export default async function AdminRoundsPage({
                 <div className="flex justify-between gap-3"><dt>ยังไม่พร้อมรอบนี้</dt><dd>{eligibility.notReady.length}</dd></div>
                 <div className="flex justify-between gap-3"><dt>ข้อยกเว้น/เปิดส่งย้อนหลัง</dt><dd>{exceptionCount}</dd></div>
               </dl>
+              <a
+                className="button-secondary mt-4"
+                href={`/admin/round-exceptions?round_type=${roundType}`}
+                aria-label={`เปิดส่งย้อนหลังรายกรณี: ${roundTypeLabelTh(roundType)}`}
+              >
+                เปิดส่งย้อนหลังรายกรณี
+              </a>
 
               <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm">
                 {openGate.canOpen ? (
