@@ -10,6 +10,25 @@ describe("admin dashboard duplicate and batch round UX", () => {
     expect(pageSource).toContain("findDuplicateActiveProjectGroups(rawProjects)");
   });
 
+  it("keeps advisor-score waiting in passive tracking with a status link", () => {
+    const primaryCandidates = pageSource.slice(pageSource.indexOf("const nextActionProjects"), pageSource.indexOf("const nextAction ="));
+    const tracking = pageSource.slice(pageSource.indexOf('<DashboardSectionHeader title="งานที่ต้องติดตาม"'), pageSource.indexOf("{failAlertCount ? (", pageSource.indexOf("<NextActionCard")));
+
+    expect(primaryCandidates).not.toContain("REPORT_APPROVED");
+    expect(tracking).toContain("รายงานผ่านแล้ว รอคะแนนอาจารย์ที่ปรึกษา");
+    expect(tracking).toContain('countFromStatus(statusCounts, "REPORT_APPROVED")');
+    expect(tracking).toContain('href="/admin/closeout">ดูสถานะ</Link>');
+    expect(tracking).not.toContain("ดำเนินการ");
+  });
+
+  it("uses the closeout service eligibility for primary candidates and ready metrics", () => {
+    expect(pageSource).toContain("getCompletionEligibility(project.id)");
+    expect(pageSource).toContain("eligibilities.filter((eligibility) => eligibility.eligible).length");
+    expect(pageSource).toContain('readyCloseoutCount ? [{ status: "ADVISOR_SCORING" as const, completionEligible: true }] : []');
+    expect(pageSource).toContain('label: "พร้อมยืนยันจบโครงงาน", value: readyCloseoutCount');
+    expect(pageSource).not.toContain('count: countFromStatus(statusCounts, "ADVISOR_SCORING")');
+  });
+
   it("surfaces course-level assessment round cards", () => {
     expect(pageSource).toContain("รอบสอบของรายวิชา");
     expect(pageSource).toContain("courseLevelRoundTypes");

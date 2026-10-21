@@ -216,9 +216,36 @@ describe("next action helpers", () => {
     expect(action.title).toContain("การเสนอหัวข้อ");
   });
 
-  it("routes admin closeout states to the closeout page", () => {
-    expect(getNextActionForAdmin([{ status: "ADVISOR_SCORING" }]).href).toBe("/admin/closeout");
-    expect(getNextActionForAdmin([{ status: "REPORT_APPROVED" }]).href).toBe("/admin/closeout");
+  it("does not present waiting advisor scores as an admin action", () => {
+    const waitingOnly = getNextActionForAdmin(Array.from({ length: 3 }, () => ({ status: "REPORT_APPROVED" as const })));
+
+    expect(waitingOnly.href).toBeUndefined();
+    expect(waitingOnly.actionLabel).toBeUndefined();
+    expect(waitingOnly.title).not.toContain("รอคะแนน");
+  });
+
+  it("only offers admin closeout after the existing eligibility check passes", () => {
+    expect(getNextActionForAdmin([{ status: "ADVISOR_SCORING" }]).href).toBeUndefined();
+    expect(getNextActionForAdmin([{ status: "ADVISOR_SCORING", completionEligible: false }]).href).toBeUndefined();
+    expect(getNextActionForAdmin([{ status: "REPORT_APPROVED", completionEligible: true }]).href).toBeUndefined();
+    expect(getNextActionForAdmin([
+      { status: "REPORT_APPROVED" },
+      { status: "ADVISOR_SCORING", completionEligible: true }
+    ]).href).toBe("/admin/closeout");
+  });
+
+  it("preserves other admin task priorities over eligible closeout and waiting scores", () => {
+    const closeout = { status: "ADVISOR_SCORING" as const, completionEligible: true };
+    const waiting = { status: "REPORT_APPROVED" as const };
+    const committee = { status: "TOPIC_APPROVED" as const };
+    const failAlert = { status: "PROPOSAL_REVIEW" as const, proposalVotes: [{ vote: "FAIL" as const }, { vote: "PASS" as const }] };
+    const proposal = { status: "PROPOSAL_ADMIN_DECISION" as const };
+    const confirmation = { status: "PENDING_ADMIN" as const };
+
+    expect(getNextActionForAdmin([waiting, closeout, committee]).href).toBe("/admin/committee");
+    expect(getNextActionForAdmin([waiting, closeout, committee, failAlert]).title).toContain("50%");
+    expect(getNextActionForAdmin([waiting, closeout, committee, failAlert, proposal]).title).toContain("บันทึกมติ");
+    expect(getNextActionForAdmin([waiting, closeout, committee, failAlert, proposal, confirmation]).href).toBe("/admin");
   });
 });
 

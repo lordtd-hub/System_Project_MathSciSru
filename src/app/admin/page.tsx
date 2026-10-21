@@ -22,6 +22,7 @@ import { prisma } from "@/lib/db";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiDateTime24 } from "@/lib/format/dateTime";
 import { getNextActionForAdmin } from "@/lib/lifecycle/nextActions";
+import { getCompletionEligibility } from "@/lib/lifecycle/completionEligibility";
 import { lifecycleV2Steps, projectStatusLabelTh } from "@/lib/lifecycle/statusLabels";
 import { shouldAlertAdminForFailVotes } from "@/lib/lifecycle/transitions";
 import { submittedProposalVotes } from "@/lib/scoring/proposalDraftIntegrity";
@@ -182,6 +183,14 @@ export default async function AdminDashboardPage({
   const recentProjectsQuery = timer.measure("admin_recent_projects", getRecentAdminProjects);
   const notificationsQuery = timer.measure("admin_notifications", getUnreadAdminNotifications);
   const timelineQuery = timer.measure("admin_timeline", getLatestAdminTimelineEvents);
+  const readyCloseoutQuery = timer.measure("admin_closeout_eligibility", async () => {
+    const projects = await prisma.project.findMany({
+      where: { status: "ADVISOR_SCORING" },
+      select: { id: true }
+    });
+    const eligibilities = await Promise.all(projects.map((project) => getCompletionEligibility(project.id)));
+    return eligibilities.filter((eligibility) => eligibility.eligible).length;
+  });
   const independentDashboardQueries = timer.measure("admin_independent_queries", () => Promise.all([
     prisma.student.count(),
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
@@ -227,8 +236,9 @@ export default async function AdminDashboardPage({
 
   const [
     offerings,
+    readyCloseoutCount,
     [students, claims, statusGroups, pendingAdminProjects, proposalVotesForFailAlert, proposalDecisionReadyCount]
-  ] = await Promise.all([offeringsQuery, independentDashboardQueries]);
+  ] = await Promise.all([offeringsQuery, readyCloseoutQuery, independentDashboardQueries]);
 
   const dashboardOfferingIds = offerings.map((offering) => offering.id);
   const activeOffering = offerings[0];
@@ -246,8 +256,7 @@ export default async function AdminDashboardPage({
     ...(proposalDecisionReadyCount ? [{ status: "PROPOSAL_ADMIN_DECISION" as const }] : []),
     ...(failAlertCount ? [{ status: "PROPOSAL_REVIEW" as const, proposalVotes: [{ vote: "FAIL" as const }, { vote: "PASS" as const }] }] : []),
     ...(countFromStatus(statusCounts, "TOPIC_APPROVED") ? [{ status: "TOPIC_APPROVED" as const }] : []),
-    ...(countFromStatus(statusCounts, "ADVISOR_SCORING") ? [{ status: "ADVISOR_SCORING" as const }] : []),
-    ...(countFromStatus(statusCounts, "REPORT_APPROVED") ? [{ status: "REPORT_APPROVED" as const }] : [])
+    ...(readyCloseoutCount ? [{ status: "ADVISOR_SCORING" as const, completionEligible: true }] : [])
   ];
   const nextAction = getNextActionForAdmin(nextActionProjects);
   const adminWorkflowCards = [
@@ -255,7 +264,7 @@ export default async function AdminDashboardPage({
     { label: "รอตัดสินผลเสนอหัวข้อ", value: proposalDecisionReadyCount, href: "/admin/proposals", tone: proposalDecisionReadyCount ? "ready" as const : "quiet" as const },
     { label: "รอตั้งกรรมการ", value: countFromStatus(statusCounts, "TOPIC_APPROVED"), href: "/admin/committee", tone: countFromStatus(statusCounts, "TOPIC_APPROVED") ? "waiting" as const : "quiet" as const },
     { label: "รอคะแนนที่ปรึกษา", value: countFromStatus(statusCounts, "REPORT_APPROVED"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "REPORT_APPROVED") ? "waiting" as const : "quiet" as const },
-    { label: "พร้อมยืนยันจบโครงงาน", value: countFromStatus(statusCounts, "ADVISOR_SCORING"), href: "/admin/closeout", tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const }
+    { label: "พร้อมยืนยันจบโครงงาน", value: readyCloseoutCount, href: "/admin/closeout", tone: readyCloseoutCount ? "complete" as const : "quiet" as const }
   ];
   const adminActionQueue = [
     {
@@ -302,8 +311,8 @@ export default async function AdminDashboardPage({
       title: "ยืนยันจบโครงงาน",
       description: "ตรวจเงื่อนไขครบถ้วนก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์โดยผู้ดูแลระบบเท่านั้น",
       href: "/admin/closeout",
-      count: countFromStatus(statusCounts, "ADVISOR_SCORING"),
-      tone: countFromStatus(statusCounts, "ADVISOR_SCORING") ? "complete" as const : "quiet" as const,
+      count: readyCloseoutCount,
+      tone: readyCloseoutCount ? "complete" as const : "quiet" as const,
       statusLabel: "ตรวจเงื่อนไข"
     }
   ];
@@ -364,6 +373,14 @@ export default async function AdminDashboardPage({
           <section className="panel dashboard-console-panel">
             <DashboardSectionHeader title="งานที่ต้องติดตาม" description="สัญญาณที่ไม่จำเป็นต้องกดทันที แต่ควรเห็นก่อนลงรายละเอียด" />
             <div className="mt-4 space-y-2 text-sm">
+              <div className="rounded-lg border border-line bg-paperSoft p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span>รายงานผ่านแล้ว รอคะแนนอาจารย์ที่ปรึกษา</span>
+                  <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "REPORT_APPROVED")}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted">อาจารย์ที่ปรึกษาเป็นผู้บันทึกคะแนนสรุป 25% ก่อนผู้ดูแลระบบตรวจเงื่อนไขจบโครงงาน</p>
+                <Link className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-brand" href="/admin/closeout">ดูสถานะ</Link>
+              </div>
               <Link className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paperSoft p-3" href="/admin/proposals">
                 <span>การเสนอหัวข้อรอประเมิน</span>
                 <span className="font-semibold tabular-nums text-ink">{countFromStatus(statusCounts, "PROPOSAL_REVIEW")}</span>
