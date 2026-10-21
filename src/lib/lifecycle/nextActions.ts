@@ -476,6 +476,7 @@ export function getNextActionForTeacher(tasks: TeacherTaskCounts): NextAction {
 export type AdminProjectLike = {
   status: ProjectStatus;
   proposalVotes?: Array<{ vote: "PASS" | "REVISE" | "FAIL" }>;
+  completionEligible?: boolean;
 };
 
 export function getNextActionForAdmin(projects: AdminProjectLike[]): NextAction {
@@ -491,11 +492,8 @@ export function getNextActionForAdmin(projects: AdminProjectLike[]): NextAction 
   if (projects.some((project) => project.status === "TOPIC_APPROVED")) {
     return { title: "พร้อมแต่งตั้งประธานและกรรมการ", description: "หัวข้อผ่านแล้ว ต้องตั้งคณะกรรมการก่อนเข้าสู่ขั้นดำเนินโครงงาน", href: "/admin/committee" };
   }
-  if (projects.some((project) => project.status === "ADVISOR_SCORING")) {
+  if (projects.some((project) => project.status === "ADVISOR_SCORING" && project.completionEligible)) {
     return { title: "มีโครงงานรอยืนยันจบ", description: "ตรวจสอบคะแนนสอบความก้าวหน้า คะแนนสอบขั้นสุดท้าย เล่มรายงาน และคะแนนอาจารย์ที่ปรึกษาก่อนยืนยันว่าโครงงานเสร็จสมบูรณ์", href: "/admin/closeout" };
-  }
-  if (projects.some((project) => project.status === "REPORT_APPROVED")) {
-    return { title: "รายงานผ่านแล้ว รอคะแนนอาจารย์ที่ปรึกษา", description: "ติดตามการบันทึกคะแนนสรุปก่อนเข้าสู่ขั้นตอนยืนยันจบโครงงาน", href: "/admin/closeout" };
   }
   return { title: "ภาพรวมระบบเรียบร้อย", description: "ยังไม่มีงานเร่งด่วนสำหรับผู้ดูแลระบบ", tone: "success" };
 }
