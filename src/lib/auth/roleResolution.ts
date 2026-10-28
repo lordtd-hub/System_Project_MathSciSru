@@ -14,7 +14,7 @@ export type RoleResolution =
   | { role: "DENIED"; reason: string; emailDomain?: string };
 
 export function emailDomain(email: string): string {
-  return email.trim().toLowerCase().split("@").at(1) ?? "";
+  return email.trim().toLowerCase().match(/^[^@\s]+@([^@\s]+)$/)?.[1] ?? "";
 }
 
 export function resolveLoginRole(
@@ -28,6 +28,10 @@ export function resolveLoginRole(
   const email = identity.email.trim().toLowerCase();
   const domain = emailDomain(email);
   const initialAdminEmail = options.initialAdminEmail?.trim().toLowerCase();
+
+  if (!identity.sub?.trim() || (domain !== "sru.ac.th" && domain !== "student.sru.ac.th")) {
+    return { role: "DENIED", reason: "บัญชี Google ต้องเป็นบัญชีมหาวิทยาลัยที่ยืนยันแล้ว", emailDomain: domain };
+  }
 
   if (initialAdminEmail && email === initialAdminEmail) {
     return { role: "ADMIN", emailDomain: domain };

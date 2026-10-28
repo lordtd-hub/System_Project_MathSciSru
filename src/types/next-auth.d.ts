@@ -2,6 +2,9 @@ import type { GlobalRole } from "@prisma/client";
 import "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    ownerPasswordVersion?: number;
+  }
   interface Session {
     user: {
       id?: string;
@@ -11,6 +14,7 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
+      authMethod?: "google" | "owner-password";
     };
   }
 }
@@ -22,5 +26,7 @@ declare module "next-auth/jwt" {
     roles?: GlobalRole[];
     teacherId?: string | null;
     roleSyncedAt?: number;
+    ownerPasswordVersion?: number;
+    ownerCanonicalEmail?: string | null;
   }
 }

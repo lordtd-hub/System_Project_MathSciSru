@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth, signIn, signOut } from "@/auth";
 import { getSessionDashboardLinks, getSessionDisplayName, getSessionRoleLabel } from "@/lib/auth/sessionUi";
 import { getAuthRuntimeConfiguration } from "@/lib/config/env";
+import { getOwnerPasswordUserId } from "@/lib/auth/ownerPassword";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -74,6 +75,7 @@ export default async function LoginPage() {
       >
         <button type="submit">เข้าสู่ระบบด้วย Google</button>
       </form>
+      {getOwnerPasswordUserId() && <p className="mt-4 text-sm"><Link href="/owner-login">เจ้าของระบบ: เข้าสู่ระบบด้วยรหัสผ่าน</Link></p>}
     </div>
   );
 }

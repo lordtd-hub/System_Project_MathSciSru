@@ -63,12 +63,15 @@ export function getGoogleOAuthCredentials(env: EnvLike = process.env) {
 }
 
 export function getAuthRuntimeConfiguration(env: EnvLike = process.env): AuthRuntimeConfiguration {
+  const ownerPasswordConfigured = env.ENABLE_OWNER_PASSWORD_LOGIN === "1" && Boolean(readEnv(env, "OWNER_PASSWORD_USER_ID"));
   const required = [
     ["DATABASE_URL", readEnv(env, "DATABASE_URL")],
     ["AUTH_SECRET or NEXTAUTH_SECRET", getAuthSecret(env)],
     ["AUTH_URL or NEXTAUTH_URL", getAuthBaseUrl(env)],
-    ["GOOGLE_CLIENT_ID", readEnv(env, "GOOGLE_CLIENT_ID")],
-    ["GOOGLE_CLIENT_SECRET", readEnv(env, "GOOGLE_CLIENT_SECRET")]
+    ...(!ownerPasswordConfigured ? [
+      ["GOOGLE_CLIENT_ID", readEnv(env, "GOOGLE_CLIENT_ID")],
+      ["GOOGLE_CLIENT_SECRET", readEnv(env, "GOOGLE_CLIENT_SECRET")]
+    ] as const : [])
   ] as const;
   const missing = required.filter(([, value]) => looksUnset(value)).map(([name]) => name);
   return { ready: missing.length === 0, missing };
@@ -91,8 +94,9 @@ export function validateProductionEnv(env: EnvLike = process.env): EnvValidation
   if (looksUnset(databaseUrl)) errors.push("DATABASE_URL is required.");
   if (looksUnset(authSecret)) errors.push("AUTH_SECRET or NEXTAUTH_SECRET is required.");
   if (looksUnset(authUrl)) errors.push("AUTH_URL or NEXTAUTH_URL is required.");
-  if (looksUnset(googleClientId)) errors.push("GOOGLE_CLIENT_ID is required.");
-  if (looksUnset(googleClientSecret)) errors.push("GOOGLE_CLIENT_SECRET is required.");
+  const ownerPasswordConfigured = env.ENABLE_OWNER_PASSWORD_LOGIN === "1" && Boolean(readEnv(env, "OWNER_PASSWORD_USER_ID"));
+  if (!ownerPasswordConfigured && looksUnset(googleClientId)) errors.push("GOOGLE_CLIENT_ID is required.");
+  if (!ownerPasswordConfigured && looksUnset(googleClientSecret)) errors.push("GOOGLE_CLIENT_SECRET is required.");
   if (looksUnset(initialAdminEmail)) errors.push("INITIAL_ADMIN_EMAIL is required for the first production Admin.");
   if (initialAdminEmail && !initialAdminEmail.endsWith("@sru.ac.th")) {
     errors.push("INITIAL_ADMIN_EMAIL must be an @sru.ac.th address.");
