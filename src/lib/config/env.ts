@@ -81,6 +81,17 @@ export function getInitialAdminEmail(env: EnvLike = process.env) {
   return readEnv(env, "INITIAL_ADMIN_EMAIL")?.toLowerCase();
 }
 
+function additionalAdminEmailConfiguration(env: EnvLike) {
+  const raw = readEnv(env, "ADDITIONAL_ADMIN_EMAILS");
+  const emails = raw ? raw.split(",").map((email) => email.trim().toLowerCase()) : [];
+  const valid = emails.every((email) => /^[^\s@,]+@sru\.ac\.th$/.test(email));
+  return { valid, emails: valid ? new Set(emails) : new Set<string>() };
+}
+
+export function getAdditionalAdminEmails(env: EnvLike = process.env) {
+  return additionalAdminEmailConfiguration(env).emails;
+}
+
 export function validateProductionEnv(env: EnvLike = process.env): EnvValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -90,6 +101,9 @@ export function validateProductionEnv(env: EnvLike = process.env): EnvValidation
   const googleClientId = readEnv(env, "GOOGLE_CLIENT_ID");
   const googleClientSecret = readEnv(env, "GOOGLE_CLIENT_SECRET");
   const initialAdminEmail = getInitialAdminEmail(env);
+  if (!additionalAdminEmailConfiguration(env).valid) {
+    errors.push("ADDITIONAL_ADMIN_EMAILS must contain only exact @sru.ac.th addresses separated by commas.");
+  }
 
   if (looksUnset(databaseUrl)) errors.push("DATABASE_URL is required.");
   if (looksUnset(authSecret)) errors.push("AUTH_SECRET or NEXTAUTH_SECRET is required.");

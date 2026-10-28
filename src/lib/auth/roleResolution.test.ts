@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveLoginRole } from "./roleResolution";
+import { isConfiguredGoogleAdminEmail, resolveLoginRole } from "./roleResolution";
 
 const identity = (email: string) => ({
   sub: `google-sub-${email}`,
@@ -8,6 +8,24 @@ const identity = (email: string) => ({
 });
 
 describe("pilot Google role resolution", () => {
+  it("preserves the initial admin while adding exactly designated staff admins", () => {
+    const options = { initialAdminEmail: "original@sru.ac.th", additionalAdminEmails: new Set(["backup@sru.ac.th"]), linkedTeacherEmails: new Set(["backup@sru.ac.th", "teacher@sru.ac.th"]) };
+    expect(resolveLoginRole(identity("original@sru.ac.th"), options).role).toBe("ADMIN");
+    expect(resolveLoginRole(identity(" BACKUP@SRU.AC.TH "), options).role).toBe("ADMIN");
+    expect(resolveLoginRole(identity("teacher@sru.ac.th"), options).role).toBe("TEACHER");
+    expect(resolveLoginRole(identity("new@sru.ac.th"), options).role).toBe("PENDING_TEACHER");
+    expect(resolveLoginRole(identity("65123456789@student.sru.ac.th"), options).role).toBe("STUDENT");
+  });
+  it.each(["backup@gmail.com", "backup@sru.ac.th.evil.test", "backup@sub.sru.ac.th", "backup@evil@sru.ac.th", "backup@student.sru.ac.th"])("never designates a nonstaff/spoofed address: %s", (email) => {
+    const options = { initialAdminEmail: "original@sru.ac.th", additionalAdminEmails: new Set([email]) };
+    expect(isConfiguredGoogleAdminEmail(email, options)).toBe(false);
+    expect(resolveLoginRole(identity(email), options).role).not.toBe("ADMIN");
+  });
+  it("removed designation returns the linked teacher role on the next Google login", () => {
+    const options = { initialAdminEmail: "original@sru.ac.th", additionalAdminEmails: new Set<string>(), linkedTeacherEmails: new Set(["backup@sru.ac.th"]) };
+    expect(resolveLoginRole(identity("backup@sru.ac.th"), options).role).toBe("TEACHER");
+    expect(resolveLoginRole({ email:"backup@sru.ac.th", sub:"" }, { ...options, additionalAdminEmails:new Set(["backup@sru.ac.th"]) }).role).toBe("DENIED");
+  });
   it("resolves INITIAL_ADMIN_EMAIL to Admin only by exact configured email", () => {
     const options = {
       initialAdminEmail: " initial.admin@sru.ac.th ",
