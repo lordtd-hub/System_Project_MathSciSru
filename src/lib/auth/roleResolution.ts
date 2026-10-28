@@ -17,23 +17,33 @@ export function emailDomain(email: string): string {
   return email.trim().toLowerCase().match(/^[^@\s]+@([^@\s]+)$/)?.[1] ?? "";
 }
 
+export function isConfiguredGoogleAdminEmail(email: string, options: {
+  initialAdminEmail?: string;
+  additionalAdminEmails?: Set<string>;
+} = {}) {
+  const normalized = email.trim().toLowerCase();
+  if (emailDomain(normalized) !== "sru.ac.th") return false;
+  return normalized === options.initialAdminEmail?.trim().toLowerCase() ||
+    Boolean(options.additionalAdminEmails?.has(normalized));
+}
+
 export function resolveLoginRole(
   identity: GoogleIdentity,
   options: {
     initialAdminEmail?: string;
+    additionalAdminEmails?: Set<string>;
     importedStudentCodes?: Set<string>;
     linkedTeacherEmails?: Set<string>;
   } = {}
 ): RoleResolution {
   const email = identity.email.trim().toLowerCase();
   const domain = emailDomain(email);
-  const initialAdminEmail = options.initialAdminEmail?.trim().toLowerCase();
 
   if (!identity.sub?.trim() || (domain !== "sru.ac.th" && domain !== "student.sru.ac.th")) {
     return { role: "DENIED", reason: "บัญชี Google ต้องเป็นบัญชีมหาวิทยาลัยที่ยืนยันแล้ว", emailDomain: domain };
   }
 
-  if (initialAdminEmail && email === initialAdminEmail) {
+  if (isConfiguredGoogleAdminEmail(email, options)) {
     return { role: "ADMIN", emailDomain: domain };
   }
 

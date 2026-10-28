@@ -7,8 +7,8 @@ import { prisma } from "@/lib/db";
 import { decodeDevSession, devSessionToAuthSession, DEV_SESSION_COOKIE, isDevLoginEnabled } from "@/lib/auth/devSession";
 import { hasUsableCachedRole } from "@/lib/auth/jwtRoleCache";
 import { isQaLoginEnabled } from "@/lib/auth/qaLogin";
-import { emailDomain, resolveLoginRole } from "@/lib/auth/roleResolution";
-import { getAuthRuntimeConfiguration, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
+import { emailDomain, isConfiguredGoogleAdminEmail, resolveLoginRole } from "@/lib/auth/roleResolution";
+import { getAdditionalAdminEmails, getAuthRuntimeConfiguration, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { authenticateOwnerPassword, getOwnerPasswordSession } from "@/lib/auth/ownerPassword";
 
@@ -45,6 +45,12 @@ const nextAuth = NextAuth({
       const email = rawEmail.trim().toLowerCase();
       const domain = emailDomain(email);
       const studentCode = domain === "student.sru.ac.th" ? email.split("@")[0] : null;
+      const additionalAdminEmails = getAdditionalAdminEmails();
+      // Additional admins must already have an explicit operator-assigned role.
+      // Configuration/email alone cannot create or promote an administrator.
+      const assignedAdditionalAdmin = additionalAdminEmails.has(email)
+        ? await prisma.user.findUnique({ where: { email }, select: { id: true, globalRole: true, active: true } })
+        : null;
 
       const [importedStudent, linkedTeacher] = await Promise.all([
         studentCode
@@ -64,6 +70,8 @@ const nextAuth = NextAuth({
         { email, sub, name: user.name },
         {
           initialAdminEmail: getInitialAdminEmail(),
+          additionalAdminEmails: assignedAdditionalAdmin?.active && assignedAdditionalAdmin.globalRole === "ADMIN"
+            ? additionalAdminEmails : undefined,
           importedStudentCodes: studentCode ? new Set(importedStudent ? [importedStudent.studentCode] : []) : undefined,
           linkedTeacherEmails: domain === "sru.ac.th" ? new Set(linkedTeacher?.email ? [linkedTeacher.email.trim().toLowerCase()] : []) : undefined
         }
@@ -71,7 +79,18 @@ const nextAuth = NextAuth({
 
       if (resolution.role === "DENIED") return false;
 
-      const appUser = await prisma.user.upsert({
+      let appUser: { id: string };
+      if (resolution.role === "ADMIN" && email !== getInitialAdminEmail()) {
+        if (!assignedAdditionalAdmin) return false;
+        // Do not restore ADMIN if an operator demotes/disables this account
+        // between the eligibility lookup and the login write.
+        const updated = await prisma.user.updateMany({
+          where: { id: assignedAdditionalAdmin.id, email, globalRole: "ADMIN", active: true },
+          data: { googleSub: sub, emailDomain: resolution.emailDomain, name: user.name, lastLoginAt: new Date() }
+        });
+        if (updated.count !== 1) return false;
+        appUser = { id: assignedAdditionalAdmin.id };
+      } else appUser = await prisma.user.upsert({
         where: { email },
         update: {
           googleSub: sub,
@@ -138,10 +157,25 @@ const nextAuth = NextAuth({
       }
       const email = user?.email ?? token.email;
       if (email) {
-        if (!user && hasUsableCachedRole(token)) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const initialAdminEmail = getInitialAdminEmail();
+        const configuredAdmin = isConfiguredGoogleAdminEmail(normalizedEmail, {
+          initialAdminEmail, additionalAdminEmails: getAdditionalAdminEmails()
+        });
+        // Removing a designation revokes existing Google ADMIN sessions on the
+        // next auth check, including sessions still inside the ordinary cache TTL.
+        if ((token.role === "ADMIN" || token.roles?.includes("ADMIN")) && !configuredAdmin) {
+          delete token.appUserId;
+          delete token.role;
+          delete token.roles;
+          delete token.teacherId;
+          delete token.roleSyncedAt;
           return token;
         }
-        const normalizedEmail = email.trim().toLowerCase();
+        const additionalAdminSession = token.role === "ADMIN" && normalizedEmail !== initialAdminEmail;
+        if (!user && !additionalAdminSession && hasUsableCachedRole(token)) {
+          return token;
+        }
         const timer = createNavTimer("auth.jwt");
         const appUser = await timer.measure("role_lookup", () => prisma.user.findUnique({
           where: { email: normalizedEmail },
@@ -153,7 +187,7 @@ const nextAuth = NextAuth({
           }
         }));
         timer.end("jwt_ready");
-        if (appUser?.active) {
+        if (appUser?.active && (appUser.globalRole !== "ADMIN" || configuredAdmin)) {
           token.appUserId = appUser.id;
           token.role = appUser.globalRole;
           const teacherId = appUser.teacher?.active ? appUser.teacher.id : null;

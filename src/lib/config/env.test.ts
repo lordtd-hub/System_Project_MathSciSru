@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertProductionRuntimeEnv,
+  getAdditionalAdminEmails,
   getAuthRuntimeConfiguration,
   getAuthSecret,
   getGoogleOAuthCredentials,
@@ -10,6 +11,14 @@ import {
 } from "./env";
 
 describe("production environment validation", () => {
+  it("normalizes and deduplicates optional exact staff admin designations", () => {
+    expect([...getAdditionalAdminEmails({ ADDITIONAL_ADMIN_EMAILS:" Backup@SRU.AC.TH , backup@sru.ac.th,second@sru.ac.th " })]).toEqual(["backup@sru.ac.th","second@sru.ac.th"]);
+    expect([...getAdditionalAdminEmails({})]).toEqual([]);
+  });
+  it.each(["backup@gmail.com", "backup@sru.ac.th.evil.test", "backup@sub.sru.ac.th", "backup@evil@sru.ac.th", "backup@student.sru.ac.th", "valid@sru.ac.th,", "bad address@sru.ac.th"])("fails closed on an invalid additional admin configuration: %s", (email) => {
+    expect([...getAdditionalAdminEmails({ ADDITIONAL_ADMIN_EMAILS:email })]).toEqual([]);
+    expect(validateProductionEnv({ ADDITIONAL_ADMIN_EMAILS:email }).errors).toContain("ADDITIONAL_ADMIN_EMAILS must contain only exact @sru.ac.th addresses separated by commas.");
+  });
   it("accepts AUTH_SECRET or NEXTAUTH_SECRET", () => {
     expect(getAuthSecret({ AUTH_SECRET: "auth-secret" })).toBe("auth-secret");
     expect(getAuthSecret({ NEXTAUTH_SECRET: "nextauth-secret" })).toBe("nextauth-secret");
