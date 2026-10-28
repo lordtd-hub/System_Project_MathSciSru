@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { prisma } from "@/lib/db";
@@ -9,6 +10,7 @@ import { isQaLoginEnabled } from "@/lib/auth/qaLogin";
 import { emailDomain, resolveLoginRole } from "@/lib/auth/roleResolution";
 import { getAuthRuntimeConfiguration, getAuthSecret, getGoogleOAuthCredentials, getInitialAdminEmail } from "@/lib/config/env";
 import { createNavTimer } from "@/lib/diagnostics/navTiming";
+import { authenticateOwnerPassword, getOwnerPasswordSession } from "@/lib/auth/ownerPassword";
 
 const googleOAuth = getGoogleOAuthCredentials();
 
@@ -16,13 +18,27 @@ const nextAuth = NextAuth({
   session: { strategy: "jwt" },
   secret: getAuthSecret(),
   providers: [
-    Google({
+    ...(googleOAuth.clientId && googleOAuth.clientSecret ? [Google({
       clientId: googleOAuth.clientId,
       clientSecret: googleOAuth.clientSecret
+    })] : []),
+    Credentials({
+      id: "owner-password",
+      name: "รหัสผ่านเจ้าของระบบ",
+      credentials: { email: { type: "email" }, password: { type: "password" } },
+      async authorize(credentials) {
+        try { return await authenticateOwnerPassword(credentials.email, credentials.password); }
+        catch { return null; } // Fail closed without logging credential-bearing errors.
+      }
     })
   ],
   callbacks: {
-    async signIn({ user, profile }) {
+    async signIn({ user, profile, account }) {
+      if (account?.provider === "owner-password") {
+        return Boolean(await getOwnerPasswordSession(user.id, user.ownerPasswordVersion));
+      }
+      if (account?.provider !== "google") return false;
+      if (profile?.email_verified !== true) return false;
       const rawEmail = user.email;
       const sub = profile?.sub;
       if (!rawEmail || !sub) return false;
@@ -87,6 +103,39 @@ const nextAuth = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
+      if (user) {
+        if (typeof user.ownerPasswordVersion === "number") {
+          token.ownerPasswordVersion = user.ownerPasswordVersion;
+          token.appUserId = user.id;
+        } else {
+          delete token.ownerPasswordVersion;
+          delete token.ownerCanonicalEmail;
+        }
+      }
+      if (typeof token.ownerPasswordVersion === "number") {
+        // Apply the rollback guard even if revocation races initial JWT creation.
+        token.email = typeof token.appUserId === "string" ? `owner-password:${token.appUserId}` : "owner-password:revoked";
+        delete token.roleSyncedAt;
+        delete token.ownerCanonicalEmail;
+        const owner = await getOwnerPasswordSession(token.appUserId, token.ownerPasswordVersion);
+        if (owner) {
+          token.appUserId = owner.id;
+          token.role = owner.globalRole;
+          token.teacherId = owner.teacher?.active ? owner.teacher.id : null;
+          token.roles = token.teacherId ? [owner.globalRole, "TEACHER"] : [owner.globalRole];
+          // A rollback to the former email-based JWT callback must not treat a
+          // password JWT as a normal Google session. Keep canonical email only
+          // in the private marker and expose it through the session callback.
+          token.ownerCanonicalEmail = owner.email;
+        } else {
+          delete token.appUserId;
+          delete token.role;
+          delete token.roles;
+          delete token.teacherId;
+          delete token.roleSyncedAt;
+        }
+        return token;
+      }
       const email = user?.email ?? token.email;
       if (email) {
         if (!user && hasUsableCachedRole(token)) {
@@ -128,6 +177,10 @@ const nextAuth = NextAuth({
       session.user.role = token.role as typeof session.user.role;
       session.user.roles = Array.isArray(token.roles) ? (token.roles as typeof session.user.roles) : session.user.role ? [session.user.role] : [];
       session.user.teacherId = typeof token.teacherId === "string" ? token.teacherId : null;
+      session.user.authMethod = typeof token.ownerPasswordVersion === "number" ? "owner-password" : "google";
+      if (typeof token.ownerPasswordVersion === "number") {
+        session.user.email = typeof token.ownerCanonicalEmail === "string" ? token.ownerCanonicalEmail : "";
+      }
       return session;
     }
   },

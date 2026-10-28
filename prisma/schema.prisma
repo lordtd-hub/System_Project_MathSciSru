@@ -212,8 +212,30 @@ model User {
   appointedCommittees    CommitteeAssignment[]
   notifications          Notification[]
   auditLogs              AuditLog[]
+  ownerPassword          OwnerPasswordCredential?
 
   @@map("users")
+}
+
+// Separate credential for one explicitly provisioned existing owner; no new User.
+model OwnerPasswordCredential {
+  userId               String    @id @map("user_id")
+  loginEmail           String    @unique @map("login_email")
+  enabled              Boolean   @default(false)
+  passwordHash         String?   @map("password_hash")
+  enrollmentTokenHash  String?   @unique @map("enrollment_token_hash")
+  enrollmentExpiresAt  DateTime? @map("enrollment_expires_at")
+  activatedAt          DateTime? @map("activated_at")
+  revokedAt            DateTime? @map("revoked_at")
+  credentialVersion    Int       @default(0) @map("credential_version")
+  attempts             Int       @default(0)
+  attemptWindowStart   DateTime  @default(now()) @map("attempt_window_start")
+  lastUsedAt           DateTime? @map("last_used_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("owner_password_credentials")
 }
 
 model Student {

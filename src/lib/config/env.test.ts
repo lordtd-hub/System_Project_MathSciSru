@@ -102,4 +102,11 @@ describe("production environment validation", () => {
       GOOGLE_CLIENT_SECRET: "client-secret"
     }).ready).toBe(true);
   });
+
+  it("allows explicitly configured owner passwords without a functioning or configured Google client", () => {
+    const base = { DATABASE_URL: "postgresql://synthetic@127.0.0.1:1/test", AUTH_SECRET: "synthetic-auth-secret", AUTH_URL: "https://app.example.test" };
+    expect(getAuthRuntimeConfiguration({ ...base, ENABLE_OWNER_PASSWORD_LOGIN: "1", OWNER_PASSWORD_USER_ID: "existing-owner" }).ready).toBe(true);
+    expect(getAuthRuntimeConfiguration({ ...base, ENABLE_OWNER_PASSWORD_LOGIN: "1" }).ready).toBe(false);
+    expect(getAuthRuntimeConfiguration({ ...base, ENABLE_OWNER_PASSWORD_LOGIN: "0", OWNER_PASSWORD_USER_ID: "existing-owner" }).ready).toBe(false);
+  });
 });
