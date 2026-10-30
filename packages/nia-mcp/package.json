@@ -1,0 +1,17 @@
+{
+  "name": "nia-synthetic-mcp-transport-validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "mcp-handler": "2.3.0",
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "4.6.6"
+  },
+  "description": "Private dependency boundary for synthetic read-only MCP; does not upgrade application Zod3",
+  "main": "./dist/transport.js",
+  "types": "./dist/transport.d.ts"
+}

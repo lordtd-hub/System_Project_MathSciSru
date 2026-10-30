@@ -9,6 +9,11 @@ export type ReadyDemoConfiguration = Readonly<{
   credential: MachineCredentialRecord;
 }>;
 export type DemoConfiguration = ReadyDemoConfiguration | Readonly<{ state: "disabled" | "misconfigured" }>;
+export type DemoEnvironmentConfiguration = Readonly<{
+  state: "ready";
+  environment: ReadyDemoConfiguration["environment"];
+  origin: string;
+}> | Readonly<{ state: "disabled" | "misconfigured" }>;
 
 function validOrigin(origin: string, environment: ReadyDemoConfiguration["environment"]) {
   try {
@@ -19,10 +24,9 @@ function validOrigin(origin: string, environment: ReadyDemoConfiguration["enviro
   } catch { return false; }
 }
 
-/** Environment values are server configuration, never caller headers/cookies. */
-export function readDemoConfiguration(env: DemoEnvironment): DemoConfiguration {
-  // Do not even read credential configuration outside an explicitly allowed env.
-  if (env.ENABLE_ASSISTANT_DEMO_API !== "1" || env.VERCEL_ENV === "production") {
+/** Shared REST/MCP gate. Environment values are trusted server config, never request input. */
+export function readDemoEnvironment(env: DemoEnvironment, featureEnabled: boolean): DemoEnvironmentConfiguration {
+  if (!featureEnabled || env.VERCEL_ENV === "production") {
     return Object.freeze({ state: "disabled" });
   }
   let environment: ReadyDemoConfiguration["environment"];
@@ -40,6 +44,15 @@ export function readDemoConfiguration(env: DemoEnvironment): DemoConfiguration {
   }
 
   const origin = env.ASSISTANT_DEMO_ORIGIN ?? "";
+  if (!validOrigin(origin, environment)) return Object.freeze({ state: "misconfigured" });
+  return Object.freeze({ state: "ready", environment, origin });
+}
+
+export function readDemoConfiguration(env: DemoEnvironment): DemoConfiguration {
+  // Do not even read credential configuration outside an explicitly allowed env.
+  const gate = readDemoEnvironment(env, env.ENABLE_ASSISTANT_DEMO_API === "1");
+  if (gate.state !== "ready") return gate;
+  const { origin, environment } = gate;
   const audience = env.ASSISTANT_DEMO_AUDIENCE ?? "";
   const credential: MachineCredentialRecord = Object.freeze({
     credentialId: env.ASSISTANT_DEMO_CREDENTIAL_ID ?? "",
@@ -50,7 +63,7 @@ export function readDemoConfiguration(env: DemoEnvironment): DemoConfiguration {
     // Missing revocation config is not interpreted as active approval.
     revoked: env.ASSISTANT_DEMO_CREDENTIAL_REVOKED !== "0"
   });
-  if (!validOrigin(origin, environment) || !validMachineCredentialRecord(credential)) {
+  if (!validMachineCredentialRecord(credential)) {
     return Object.freeze({ state: "misconfigured" });
   }
   return Object.freeze({ state: "ready", environment, origin, audience, credential });

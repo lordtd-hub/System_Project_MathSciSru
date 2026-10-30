@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm ci --prefix packages/nia-mcp --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org && node scripts/validate-assistant-mcp-package.mjs && npm run build",
   "regions": ["sin1"],
   "crons": [
     {

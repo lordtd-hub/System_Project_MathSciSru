@@ -1,0 +1,5 @@
+{
+  "generator": "Node24.14.0 node:module.stripTypeScriptTypes strip; no SDK execution or bundling",
+  "sourceSha256": "217b4223f5dd7916714cbbc1bcf7c465b728a3788ff5c4e5337c21c1f82911de",
+  "generatedSha256": "49d4cd3892003a79f78c5cf250ae71dc7cb62f08479e47d72f1c73e523432ff6"
+}

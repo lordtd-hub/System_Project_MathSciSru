@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { DEMO_FIXTURE_SET, DEMO_PRINCIPAL_ID, DEMO_READ_SCOPE, DEMO_ROOT, DEMO_SCHEMA_VERSION, demoProjects, demoProjectDto } from "./demoFixtures";
+import { DEMO_FIXTURE_SET, DEMO_PRINCIPAL_ID, DEMO_READ_SCOPE, DEMO_ROOT, DEMO_SCHEMA_VERSION } from "./demoFixtures";
+import { findSyntheticProject, listSyntheticProjects } from "./demoQueries";
 import type { DemoConfiguration } from "./demoPolicy";
 import { MAX_DEMO_CREDENTIAL_WINDOW_MS, type MachineIdentity, type MachineVerifier } from "./machineAuth";
 
@@ -70,7 +71,7 @@ export function createDemoApi({ configuration = { state: "disabled" }, verifyBea
       return failure(400, "invalid_request");
     }
     const id = url.pathname === DEMO_ROOT ? undefined : url.pathname.slice(DEMO_ROOT.length + 1);
-    const project = id && /^nia-demo-[0-9]{3}$/.test(id) ? demoProjects.find((item) => item.id === id) : undefined;
+    const project = id ? findSyntheticProject(id) : undefined;
     if (id !== undefined && !project) return failure(404, "not_found");
 
     // Best-effort per-instance quota for synthetic data; not a distributed limit.
@@ -84,7 +85,7 @@ export function createDemoApi({ configuration = { state: "disabled" }, verifyBea
     successfulReads++;
     return response(200, { schemaVersion: DEMO_SCHEMA_VERSION, synthetic: true, fixtureSet: DEMO_FIXTURE_SET,
       environment: config.environment,
-      ...(project ? { project: demoProjectDto(project) } : { projects: demoProjects.map(demoProjectDto) })
+      ...(project ? { project } : { projects: listSyntheticProjects() })
     });
   };
 }
