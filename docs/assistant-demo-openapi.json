@@ -1,0 +1,325 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nia synthetic project read API — local Next.js integration",
+    "version": "0.0.1",
+    "description": "Default-disabled Next.js integration for fixed synthetic fixtures. No deployed API, database access, credential issuance or verified chat caller."
+  },
+  "security": [
+    {
+      "demoBearer": []
+    }
+  ],
+  "paths": {
+    "/api/assistant/v1/demo/projects": {
+      "get": {
+        "operationId": "listDemoProjects",
+        "summary": "List exactly three synthetic fixtures",
+        "description": "Requires trusted principal nia-demo-reader with server-validated demo:projects:read scope and fixture set nia-demo-v1. Queries and bodies are rejected.",
+        "responses": {
+          "200": {
+            "description": "Synthetic list; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/api/assistant/v1/demo/projects/{id}": {
+      "get": {
+        "operationId": "getDemoProject",
+        "summary": "Read one fixed synthetic fixture",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "nia-demo-001",
+                "nia-demo-002",
+                "nia-demo-003"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Synthetic detail; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "demoBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Dedicated short-lived opaque machine credential checked against server-owned digest/validity configuration. No live credential is supplied or issued."
+      }
+    },
+    "schemas": {
+      "Project": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "titleTh",
+          "status",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "nia-demo-001",
+              "nia-demo-002",
+              "nia-demo-003"
+            ]
+          },
+          "titleTh": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PROPOSAL_PENDING",
+              "COMPLETED"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Envelope": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "synthetic",
+          "fixtureSet",
+          "environment",
+          "requestId"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": "1.0"
+          },
+          "synthetic": {
+            "const": true
+          },
+          "fixtureSet": {
+            "const": "nia-demo-v1"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "local-test",
+              "qa-preview"
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          }
+        }
+      },
+      "ProjectList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Envelope"
+          },
+          {
+            "type": "object",
+            "required": [
+              "projects"
+            ],
+            "properties": {
+              "projects": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          }
+        ],
+        "unevaluatedProperties": false
+      },
+      "ProjectDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Envelope"
+          },
+          {
+            "type": "object",
+            "required": [
+              "project"
+            ],
+            "properties": {
+              "project": {
+                "$ref": "#/components/schemas/Project"
+              }
+            }
+          }
+        ],
+        "unevaluatedProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error",
+          "requestId"
+        ],
+        "properties": {
+          "error": {
+            "enum": [
+              "not_found",
+              "service_unavailable",
+              "invalid_request",
+              "method_not_allowed",
+              "unauthorized",
+              "forbidden",
+              "rate_limited"
+            ]
+          },
+          "requestId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "InvalidRequest": {
+        "description": "Invalid request/query/body; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, invalid or expired identity; WWW-Authenticate: Bearer; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated identity lacks exact principal, audience, fixture set or scope; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Disabled/unapproved environment, mismatched origin or fixture not found; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "MethodNotAllowed": {
+        "description": "All methods other than GET rejected, including HEAD/OPTIONS; Allow: GET; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Per-handler synthetic quota exceeded; Retry-After seconds; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Invalid enabled-server config or verifier/clock unavailable; no-store",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}
