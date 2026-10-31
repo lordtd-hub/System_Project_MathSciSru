@@ -26,7 +26,7 @@ export async function buildAuth({root=fileURLToPath(new URL('../',import.meta.ur
  const lock=JSON.parse(lockText);if(Object.keys(lock.packages).length!==61)throw Error('Expected exact60-package graph');
  for(const path of ['.env','auth/.env','auth/prisma/.env']){try{await stat(join(root,path));throw Error('Unexpected local environment file')}catch(error){if(error.code!=='ENOENT')throw error}}
  const childEnv=generationEnvironment(environment);
- if(!detectTarget){const platformModule=await import('@prisma/get-platform');detectTarget=()=>platformModule.getBinaryTargetForCurrentPlatform()}
+ if(!detectTarget){const {default:platformModule}=await import('@prisma/get-platform');detectTarget=()=>platformModule.getBinaryTargetForCurrentPlatform()}
  if(await detectTarget()!==BINARY_TARGET)throw Error('Prisma Linux ABI target mismatch');
  const args=[join(root,'node_modules/prisma/build/index.js'),'generate','--schema',join(root,'auth/prisma/schema.prisma'),'--no-hints'];
  if(!generate)generate=async command=>{const r=spawnSync(process.execPath,command.args,{cwd:root,env:command.env,windowsHide:true,encoding:'utf8',timeout:60000,maxBuffer:1000000});if(r.status!==0)throw Error('Prisma generate failed; exit '+r.status+' '+(r.error?.code??''))};
