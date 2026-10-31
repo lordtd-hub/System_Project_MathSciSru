@@ -1,0 +1,14 @@
+{
+  "name": "nia-standalone-connection-probe",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "mcp-handler": "2.3.0",
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "4.6.6"
+  }
+}

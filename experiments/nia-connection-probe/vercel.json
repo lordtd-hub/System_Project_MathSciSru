@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "framework": null,
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "functions": {
+    "api/mcp.js": {
+      "maxDuration": 10
+    }
+  }
+}
