@@ -1,0 +1,275 @@
+// DRAFT: isolated QA only. Never merge into the business Prisma schema.
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+  binaryTargets = ["rhel-openssl-3.0.x"]
+  output = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("ASSISTANT_OAUTH_DATABASE_URL")
+  schemas = ["nia_oauth"]
+}
+
+model user {
+  id String @id
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  createdAt DateTime @db.Timestamptz(3)
+  updatedAt DateTime @db.Timestamptz(3)
+  back_session_userId session[] @relation("session_userId")
+  back_account_userId account[] @relation("account_userId")
+  back_oauthClient_userId oauthClient[] @relation("oauthClient_userId")
+  back_oauthRefreshToken_userId oauthRefreshToken[] @relation("oauthRefreshToken_userId")
+  back_oauthAccessToken_userId oauthAccessToken[] @relation("oauthAccessToken_userId")
+  back_oauthConsent_userId oauthConsent[] @relation("oauthConsent_userId")
+  @@schema("nia_oauth")
+}
+
+model session {
+  id String @id
+  expiresAt DateTime @db.Timestamptz(3)
+  token String @unique
+  createdAt DateTime @db.Timestamptz(3)
+  updatedAt DateTime @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  userId String
+  @@index([userId])
+  relation_userId user @relation("session_userId", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  back_oauthRefreshToken_sessionId oauthRefreshToken[] @relation("oauthRefreshToken_sessionId")
+  back_oauthAccessToken_sessionId oauthAccessToken[] @relation("oauthAccessToken_sessionId")
+  @@schema("nia_oauth")
+}
+
+model verification {
+  id String @id
+  identifier String
+  @@index([identifier])
+  value String
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @db.Timestamptz(3)
+  updatedAt DateTime @db.Timestamptz(3)
+
+  @@schema("nia_oauth")
+}
+
+model account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  @@index([userId])
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope String?
+  password String?
+  createdAt DateTime @db.Timestamptz(3)
+  updatedAt DateTime @db.Timestamptz(3)
+  @@unique([providerId, accountId])
+  relation_userId user @relation("account_userId", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("nia_oauth")
+}
+
+model oauthClient {
+  id String @id
+  clientId String @unique
+  clientSecret String?
+  clientDiscoveryId String?
+  disabled Boolean? @default(false)
+  skipConsent Boolean?
+  enableEndSession Boolean?
+  subjectType String?
+  scopes String[] @default([])
+  clientCredentialsScopes String[] @default([])
+  userId String?
+  @@index([userId])
+  createdAt DateTime? @db.Timestamptz(3)
+  updatedAt DateTime? @db.Timestamptz(3)
+  name String?
+  uri String?
+  icon String?
+  contacts String[] @default([])
+  tos String?
+  policy String?
+  softwareId String?
+  softwareVersion String?
+  softwareStatement String?
+  redirectUris String[] @default([])
+  postLogoutRedirectUris String[] @default([])
+  backchannelLogoutUri String?
+  backchannelLogoutSessionRequired Boolean?
+  tokenEndpointAuthMethod String?
+  applicationType String?
+  jwks String?
+  jwksUri String?
+  grantTypes String[] @default([])
+  responseTypes String[] @default([])
+  requirePKCE Boolean?
+  dpopBoundAccessTokens Boolean? @default(false)
+  referenceId String?
+  metadata Json?
+  relation_userId user? @relation("oauthClient_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  back_oauthClientResource_clientId oauthClientResource[] @relation("oauthClientResource_clientId")
+  back_oauthRefreshToken_clientId oauthRefreshToken[] @relation("oauthRefreshToken_clientId")
+  back_oauthAccessToken_clientId oauthAccessToken[] @relation("oauthAccessToken_clientId")
+  back_oauthConsent_clientId oauthConsent[] @relation("oauthConsent_clientId")
+  @@schema("nia_oauth")
+}
+
+model oauthResource {
+  id String @id
+  identifier String @unique
+  name String
+  accessTokenTtl Int?
+  refreshTokenTtl Int?
+  signingAlgorithm String?
+  signingKeyId String?
+  allowedScopes String[] @default([])
+  customClaims Json?
+  dpopBoundAccessTokensRequired Boolean? @default(false)
+  disabled Boolean? @default(false)
+  createdAt DateTime? @db.Timestamptz(3)
+  updatedAt DateTime? @db.Timestamptz(3)
+  policyVersion Int? @default(1)
+  metadata Json?
+  back_oauthClientResource_resourceId oauthClientResource[] @relation("oauthClientResource_resourceId")
+  @@schema("nia_oauth")
+}
+
+model oauthClientResource {
+  id String @id
+  clientId String
+  @@index([clientId])
+  resourceId String
+  @@index([resourceId])
+  metadata Json?
+  createdAt DateTime? @db.Timestamptz(3)
+  @@unique([clientId, resourceId])
+  relation_clientId oauthClient @relation("oauthClientResource_clientId", fields: [clientId], references: [clientId], onDelete: Cascade, onUpdate: NoAction)
+  relation_resourceId oauthResource @relation("oauthClientResource_resourceId", fields: [resourceId], references: [identifier], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("nia_oauth")
+}
+
+model oauthRefreshToken {
+  id String @id
+  token String @unique
+  clientId String
+  @@index([clientId])
+  sessionId String?
+  @@index([sessionId])
+  userId String
+  @@index([userId])
+  referenceId String?
+  authorizationCodeId String?
+  @@index([authorizationCodeId])
+  resources String[] @default([])
+  requestedUserInfoClaims String[] @default([])
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @db.Timestamptz(3)
+  revoked DateTime? @db.Timestamptz(3)
+  rotatedAt DateTime? @db.Timestamptz(3)
+  rotationReplayResponse String?
+  rotationReplayExpiresAt DateTime? @db.Timestamptz(3)
+  authTime DateTime? @db.Timestamptz(3)
+  confirmation Json?
+  scopes String[] @default([])
+  relation_clientId oauthClient @relation("oauthRefreshToken_clientId", fields: [clientId], references: [clientId], onDelete: NoAction, onUpdate: NoAction)
+  relation_sessionId session? @relation("oauthRefreshToken_sessionId", fields: [sessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  relation_userId user @relation("oauthRefreshToken_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  back_oauthAccessToken_refreshId oauthAccessToken[] @relation("oauthAccessToken_refreshId")
+  @@schema("nia_oauth")
+}
+
+model oauthAccessToken {
+  id String @id
+  token String @unique
+  clientId String
+  @@index([clientId])
+  sessionId String?
+  @@index([sessionId])
+  userId String?
+  @@index([userId])
+  referenceId String?
+  authorizationCodeId String?
+  @@index([authorizationCodeId])
+  resources String[] @default([])
+  requestedUserInfoClaims String[] @default([])
+  refreshId String?
+  @@index([refreshId])
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @db.Timestamptz(3)
+  revoked DateTime? @db.Timestamptz(3)
+  confirmation Json?
+  scopes String[] @default([])
+  relation_clientId oauthClient @relation("oauthAccessToken_clientId", fields: [clientId], references: [clientId], onDelete: NoAction, onUpdate: NoAction)
+  relation_sessionId session? @relation("oauthAccessToken_sessionId", fields: [sessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  relation_userId user? @relation("oauthAccessToken_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  relation_refreshId oauthRefreshToken? @relation("oauthAccessToken_refreshId", fields: [refreshId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@schema("nia_oauth")
+}
+
+model oauthConsent {
+  id String @id
+  clientId String
+  @@index([clientId])
+  userId String?
+  @@index([userId])
+  referenceId String?
+  resources String[] @default([])
+  requestedUserInfoClaims String[] @default([])
+  scopes String[] @default([])
+  createdAt DateTime @db.Timestamptz(3)
+  updatedAt DateTime @db.Timestamptz(3)
+  relation_clientId oauthClient @relation("oauthConsent_clientId", fields: [clientId], references: [clientId], onDelete: NoAction, onUpdate: NoAction)
+  relation_userId user? @relation("oauthConsent_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@schema("nia_oauth")
+}
+
+model oauthClientAssertion {
+  id String @id
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@schema("nia_oauth")
+}
+
+model jwks {
+  id String @id
+  publicKey String
+  privateKey String
+  createdAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime? @db.Timestamptz(3)
+  alg String?
+  crv String?
+
+  @@schema("nia_oauth")
+}
+
+model rateLimit {
+  id String @id
+  key String @unique
+  count Int
+  lastRequest BigInt
+
+  @@schema("nia_oauth")
+}
+
+model niaTrial {
+  id String @id
+  enabled Boolean @default(false)
+  ownerId String
+  googleSub String
+  clientId String
+  resource String
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @db.Timestamptz(3)
+
+  @@schema("nia_oauth")
+}

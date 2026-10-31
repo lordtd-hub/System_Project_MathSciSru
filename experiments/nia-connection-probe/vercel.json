@@ -1,12 +1,34 @@
 {
   "version": 2,
   "framework": null,
-  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
-  "buildCommand": "",
+  "installCommand": "npm ci --ignore-scripts --include=dev --no-audit --no-fund",
+  "buildCommand": "node ./scripts/build-auth.mjs",
   "outputDirectory": "public",
   "functions": {
     "api/mcp.js": {
       "maxDuration": 10
+    },
+    "api/assistant/mcp.js": {
+      "maxDuration": 10,
+      "includeFiles": "auth/**"
+    },
+    "api/assistant/oauth.js": {
+      "maxDuration": 10,
+      "includeFiles": "auth/**"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/.well-known/oauth-protected-resource/api/assistant/mcp",
+      "destination": "/api/assistant/mcp"
+    },
+    {
+      "source": "/.well-known/oauth-authorization-server/api/assistant/oauth",
+      "destination": "/api/assistant/oauth"
+    },
+    {
+      "source": "/api/assistant/oauth/:path*",
+      "destination": "/api/assistant/oauth"
+    }
+  ]
 }
