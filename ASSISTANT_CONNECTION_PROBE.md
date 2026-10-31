@@ -1,4 +1,4 @@
-# Nia connection probe � public synthetic output only
+# Nia connection probe — public synthetic output only
 
 This independent MCP endpoint is an intermediate connection proof for the project system's reusable assistant integration. It exposes exactly one tool, `nia_connection_probe`, with an empty input object. Its fixed result is:
 
