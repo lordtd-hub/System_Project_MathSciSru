@@ -15,6 +15,10 @@
     "api/assistant/oauth.js": {
       "maxDuration": 10,
       "includeFiles": "auth/**"
+    },
+    "api/assistant/owner-enrollment.js": {
+      "maxDuration": 10,
+      "includeFiles": "auth/**"
     }
   },
   "rewrites": [

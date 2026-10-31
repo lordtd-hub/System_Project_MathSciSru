@@ -9,7 +9,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url = env("ASSISTANT_OAUTH_DATABASE_URL")
-  schemas = ["nia_oauth"]
+  schemas = ["nia_oauth_race_validation"]
 }
 
 model user {
@@ -26,7 +26,7 @@ model user {
   back_oauthRefreshToken_userId oauthRefreshToken[] @relation("oauthRefreshToken_userId")
   back_oauthAccessToken_userId oauthAccessToken[] @relation("oauthAccessToken_userId")
   back_oauthConsent_userId oauthConsent[] @relation("oauthConsent_userId")
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model session {
@@ -42,7 +42,7 @@ model session {
   relation_userId user @relation("session_userId", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   back_oauthRefreshToken_sessionId oauthRefreshToken[] @relation("oauthRefreshToken_sessionId")
   back_oauthAccessToken_sessionId oauthAccessToken[] @relation("oauthAccessToken_sessionId")
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model verification {
@@ -54,7 +54,7 @@ model verification {
   createdAt DateTime @db.Timestamptz(3)
   updatedAt DateTime @db.Timestamptz(3)
 
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model account {
@@ -74,7 +74,7 @@ model account {
   updatedAt DateTime @db.Timestamptz(3)
   @@unique([providerId, accountId])
   relation_userId user @relation("account_userId", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthClient {
@@ -120,7 +120,7 @@ model oauthClient {
   back_oauthRefreshToken_clientId oauthRefreshToken[] @relation("oauthRefreshToken_clientId")
   back_oauthAccessToken_clientId oauthAccessToken[] @relation("oauthAccessToken_clientId")
   back_oauthConsent_clientId oauthConsent[] @relation("oauthConsent_clientId")
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthResource {
@@ -140,7 +140,7 @@ model oauthResource {
   policyVersion Int? @default(1)
   metadata Json?
   back_oauthClientResource_resourceId oauthClientResource[] @relation("oauthClientResource_resourceId")
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthClientResource {
@@ -154,7 +154,7 @@ model oauthClientResource {
   @@unique([clientId, resourceId])
   relation_clientId oauthClient @relation("oauthClientResource_clientId", fields: [clientId], references: [clientId], onDelete: Cascade, onUpdate: NoAction)
   relation_resourceId oauthResource @relation("oauthClientResource_resourceId", fields: [resourceId], references: [identifier], onDelete: Cascade, onUpdate: NoAction)
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthRefreshToken {
@@ -184,7 +184,7 @@ model oauthRefreshToken {
   relation_sessionId session? @relation("oauthRefreshToken_sessionId", fields: [sessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   relation_userId user @relation("oauthRefreshToken_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   back_oauthAccessToken_refreshId oauthAccessToken[] @relation("oauthAccessToken_refreshId")
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthAccessToken {
@@ -212,7 +212,7 @@ model oauthAccessToken {
   relation_sessionId session? @relation("oauthAccessToken_sessionId", fields: [sessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   relation_userId user? @relation("oauthAccessToken_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   relation_refreshId oauthRefreshToken? @relation("oauthAccessToken_refreshId", fields: [refreshId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthConsent {
@@ -229,14 +229,14 @@ model oauthConsent {
   updatedAt DateTime @db.Timestamptz(3)
   relation_clientId oauthClient @relation("oauthConsent_clientId", fields: [clientId], references: [clientId], onDelete: NoAction, onUpdate: NoAction)
   relation_userId user? @relation("oauthConsent_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model oauthClientAssertion {
   id String @id
   expiresAt DateTime @db.Timestamptz(3)
 
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model jwks {
@@ -248,7 +248,7 @@ model jwks {
   alg String?
   crv String?
 
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model rateLimit {
@@ -257,7 +257,7 @@ model rateLimit {
   count Int
   lastRequest BigInt
 
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }
 
 model niaTrial {
@@ -271,5 +271,5 @@ model niaTrial {
   endsAt DateTime @db.Timestamptz(3)
   createdAt DateTime @db.Timestamptz(3)
 
-  @@schema("nia_oauth")
+  @@schema("nia_oauth_race_validation")
 }

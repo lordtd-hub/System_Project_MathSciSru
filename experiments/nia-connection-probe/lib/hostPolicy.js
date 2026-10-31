@@ -2,6 +2,9 @@
 export const OAUTH_BASE_PATH='/api/assistant/oauth';
 export const OAUTH_DISCOVERY_PATH='/.well-known/oauth-authorization-server'+OAUTH_BASE_PATH;
 export const QA_PROJECT_REF='jwkvykuwihpvvmtlawlh';
+export const QA_AUTH_SCHEMA='nia_oauth_race_validation';
+export const QA_AUTH_ROLE='nia_oauth_validation_runner';
+export const QA_SESSION_POOLER='aws-1-ap-southeast-1.pooler.supabase.com';
 export const HOST_SCOPE=Object.freeze({projectId:'prj_MPNUTjWygM12B3vu5u6mIoWfYUG4',host:'project-k5a7o.vercel.app',branch:'codex/nia-synthetic-api-proof'});
                                                                                                                                                                                                                                                                                                 
                                                    
@@ -21,7 +24,7 @@ export function readStandalonePolicy(env    ,now=Date.now())              {
 /** No business credential fallback, weak certificate mode, duplicate keys or unbounded pool. */
 export function validDedicatedQaUrl(value       )        {
  try{
-  const u=new URL(value),expected                      ={schema:'nia_oauth',sslmode:'require',sslaccept:'strict',connection_limit:'1',connect_timeout:'5'};
-  return u.protocol==='postgresql:'&&u.hostname===`db.${QA_PROJECT_REF}.supabase.co`&&(!u.port||u.port==='5432')&&u.pathname==='/postgres'&&decodeURIComponent(u.username)==='nia_oauth_runtime'&&Boolean(u.password)&&!u.hash&&Object.entries(expected).every(([key,val])=>u.searchParams.getAll(key).length===1&&u.searchParams.get(key)===val)&&[...u.searchParams.keys()].every(key=>Object.hasOwn(expected,key));
+  const u=new URL(value),expected                      ={schema:QA_AUTH_SCHEMA,sslmode:'require',sslaccept:'strict',connection_limit:'1',connect_timeout:'5'};
+  return u.protocol==='postgresql:'&&u.hostname===QA_SESSION_POOLER&&u.port==='5432'&&u.pathname==='/postgres'&&decodeURIComponent(u.username)===QA_AUTH_ROLE+'.'+QA_PROJECT_REF&&Boolean(u.password)&&!u.hash&&Object.entries(expected).every(([key,val])=>u.searchParams.getAll(key).length===1&&u.searchParams.get(key)===val)&&[...u.searchParams.keys()].every(key=>Object.hasOwn(expected,key));
  }catch{return false}
 }

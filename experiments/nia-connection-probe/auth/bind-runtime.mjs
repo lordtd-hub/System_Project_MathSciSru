@@ -9,7 +9,13 @@ export function bindOAuthRuntime({config,auth,jose,live,grantTransaction}) {
     if(!grantTransaction)throw new Error('OAuth grant unavailable');
     return grantTransaction(request);
    }
-   if(path.endsWith('/.well-known/oauth-authorization-server'))return Response.json(await auth.api.getOAuthServerConfig());
+   if(path.endsWith('/.well-known/oauth-authorization-server')){
+    // SDK1.7.14 omits none when DCR/discovery are disabled, although predefined
+    // public clients are supported. Advertise only this host's actual client method;
+    // never enable unauthenticated registration to alter discovery metadata.
+    const metadata=await auth.api.getOAuthServerConfig();
+    return Response.json({...metadata,token_endpoint_auth_methods_supported:['none']});
+   }
    if(path.endsWith('/ui/login'))return ownerAuthorizationPage('login',config);
    if(path.endsWith('/ui/consent'))return ownerAuthorizationPage('consent',config);
    return auth.handler(request);
