@@ -8,7 +8,7 @@ import { createGrantTransaction } from './grant-transaction.mjs';
 export async function createOAuthRuntime({config,databaseUrl,secret,googleClientId,googleClientSecret}) {
  const [{betterAuth},{prismaAdapter},{jwt},{oauthProvider},jose,{PrismaClient}]=await Promise.all([
   import('better-auth'),import('@better-auth/prisma-adapter'),import('better-auth/plugins/jwt'),
-  import('@better-auth/oauth-provider'),import('jose'),import('./generated/client/index.js')]);
+  import('@better-auth/oauth-provider'),import('jose'),import('./node_modules/.prisma/client/index.js')]);
  const prisma=new PrismaClient({datasources:{db:{url:await createPinnedQaConnection(databaseUrl)}},log:[]});
  const live=createLiveStore(prisma,config);
  const identity=createGoogleIdentityVerifier({jose,clientId:googleClientId});

@@ -31,7 +31,7 @@ export function enrollmentTransactionClient(createClient){
  * environment switch, published endpoint or alternate authorization mode selects it.
  */
 export function createOwnerEnrollmentRuntime({environment=()=>process.env,now=Date.now,dependencies={},diagnosticWriter}={}){
- const deps={assertBundle:assertServerPrismaBundle,importPrisma:()=>import('../auth/generated/client/index.js'),
+ const deps={assertBundle:assertServerPrismaBundle,importPrisma:()=>import('../auth/node_modules/.prisma/client/index.js'),
   importJose:()=>import('jose'),pinConnection:createPinnedQaConnection,bind:bindQaOwnerEnrollment,...dependencies};
  let cached;
  const unavailable=()=>Response.json({error:'enrollment_unavailable'},{status:503,headers:{'Cache-Control':'no-store'}});

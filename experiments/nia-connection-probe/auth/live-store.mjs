@@ -1,5 +1,5 @@
 /** Every request reads a fresh transaction; no positive cache and no fallback database URL.
- * @param {import('./generated/client').PrismaClient} prisma
+ * @param {import('./node_modules/.prisma/client').PrismaClient} prisma
  * @param {Extract<import('../../src/lib/assistant/oauthQaPolicy').OAuthQaConfig,{state:'ready'}>} config
  */
 export function createLiveStore(prisma, config) {

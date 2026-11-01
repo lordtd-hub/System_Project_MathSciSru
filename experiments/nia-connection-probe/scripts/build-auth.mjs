@@ -13,9 +13,9 @@ export function generationEnvironment(environment){
 export async function inspectGenerated(root,{read=readFile,list=readdir,stat=lstat}={}){
  const base=join(root,'auth'),files=[];
  async function walk(relative){for(const entry of await list(join(base,relative),{withFileTypes:true})){const path=relative+'/'+entry.name;const info=await stat(join(base,path));if(info.isSymbolicLink())throw Error('Generated asset symlink is not permitted');if(info.isDirectory())await walk(path);else if(info.isFile()){if(/\.dll\.node$|\.exe$/.test(path))throw Error('Windows Prisma asset in Linux build');files.push({path,sha256:sha(await read(join(base,path)))})}}}
- await walk('generated/client');files.push({path:'prisma/schema.prisma',sha256:sha(await read(join(base,'prisma/schema.prisma')))});
+ await walk('node_modules/.prisma/client');files.push({path:'prisma/schema.prisma',sha256:sha(await read(join(base,'prisma/schema.prisma')))});
  const ca=await read(join(base,QA_CA_PATH));verifyQaCertificate(ca);files.push({path:QA_CA_PATH,sha256:sha(ca)});files.sort((a,b)=>a.path.localeCompare(b.path));
- const index=await read(join(base,'generated/client/index.js'),'utf8');
+ const index=await read(join(base,'node_modules/.prisma/client/index.js'),'utf8');
  if(!index.includes(PRISMA_VERSION)||!index.includes(ENGINE_REVISION))throw Error('Generated client version/revision mismatch');
  const metadata={ready:true,platform:'linux',arch:'x64',clientVersion:PRISMA_VERSION,engineRevision:ENGINE_REVISION,binaryTarget:BINARY_TARGET,files};
  validateBundleMetadata(metadata,{platform:'linux',arch:'x64'});return metadata;
