@@ -228,3 +228,48 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
 - เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-09-07 - Buddhist-year exam schedule normalization rollout closeout
+
+ประเภท: Production reliability maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main ก่อนปล่อย: `6ee75912567bfb1c741330a80855d4bcd60934b4`
+- Final GitHub main: `2d5c7273a76554963341e9e0391f4ab0410d62ec`
+- Feature commit: `8b50194966552c5f0cdb7397ac034f8cf14004ba`
+- Final Vercel deployment: `dpl_131grKUHZiNQE4WjmZuzge66iUaf`
+- Vercel deployment status: `READY`
+- Rollback deployment: `dpl_423jYqa6G4vAhfSPUGFsMUxqaTpg`
+- Rollback tag: `prod-before-pr38-20260907-1610`
+
+Patch ที่ปล่อย:
+
+| Patch | PR | Merge commit |
+| --- | --- | --- |
+| Normalize Buddhist-era exam dates before persistence | #38 | `2d5c7273a76554963341e9e0391f4ab0410d62ec` |
+
+ผลการทดสอบและเฝ้าดู:
+
+- ก่อนปล่อยผ่าน typecheck, lint, build และ tests `635/635`
+- Production ผ่าน observation ครบ 60 นาที โดยตรวจทันทีและที่ประมาณนาที 15, 30, 45 และ 60
+- Production HTTP ที่ `/`, `/login` และ `/student/schedule` ตอบ HTTP 200 ทุก checkpoint
+- Vercel deployment คงเป็น `READY`; ไม่พบ error-level runtime log หรือ Production `5xx` ตลอดช่วง observation
+- Production Supabase `project-course-system` เป็น `ACTIVE_HEALTHY` และ read-only `SELECT 1` สำเร็จทุก checkpoint
+- ตารางนัดสอบที่ได้รับการแก้ไขเร่งด่วนยังเก็บปี ค.ศ. `2026`; มีกรรมการ 3 รายและยังไม่มีการตอบรับ ณ checkpoint สุดท้าย
+- ไม่พบรายการวันสอบที่เก็บปี ค.ศ. นอกช่วง `2000-2100`
+- GitHub main คงอยู่ที่ merge commit ของ PR #38 และ rollback tag ชี้กลับ baseline เดิม
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback
+
+ขอบเขตและความปลอดภัย:
+
+- Patch ไม่มี database migration หรือการเปลี่ยน environment variable
+- การตรวจช่วง rollout เป็น read-only; ไม่มีการส่ง Production form, เปลี่ยนข้อมูล หรือส่ง LINE ซ้ำ
+- ก่อนปล่อยโค้ดมีการแก้วันสอบผิดหนึ่งรายการตามคำยืนยันของผู้ดูแล ผ่าน transaction แบบมีเงื่อนไข พร้อม audit และ timeline โดยไม่เปิดเผยข้อมูลส่วนบุคคลในบันทึกนี้
+- ไม่มี rollback และไม่มีการลบหรือแก้ไข audit/evidence history เดิม
+
+ผลลัพธ์:
+
+- ปิด rollout PR #38 สำเร็จ โดย Production คงอยู่ที่ `main@2d5c727`
+- เหตุปีวันสอบผิด, ปุ่มค้าง, `500/digest`, auth failure หรือ Student schedule ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
