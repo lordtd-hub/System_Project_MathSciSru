@@ -228,3 +228,42 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
 - เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-08-26 - PR32 teacher score draft recovery rollout closeout
+
+ประเภท: Production reliability maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main: `c21965b07e07cf39292c16f87307c73227dfc93d`
+- Vercel deployment: `dpl_HVkVWBisSUSUP4x92PwiCEb1Et4f`
+- Vercel deployment status: `READY`
+- Rollback tag: `prod-before-pr32-20260826-1831` ชี้ไปที่ `013497a1b6d72084794e8b5149118f976485dc34`
+
+Patch ที่ปล่อย:
+
+- PR #32 แก้การกู้คืนร่างคะแนน Proposal ของอาจารย์ โดยไม่ reload หน้าแบบจับเวลา
+- เก็บข้อมูล recovery ไว้เมื่อ action ไม่สำเร็จ และล้างเมื่อ Server Action ยืนยันความสำเร็จแล้วเท่านั้น
+- รองรับผลสำเร็จหลาย request ด้วย request ID และคงพฤติกรรม idempotent เมื่อ retry ข้อมูลเดิม
+
+ผลการทดสอบและเฝ้าดู:
+
+- QA ทดสอบการบันทึกร่างที่ไม่มีข้อเสนอแนะ, เปิดกลับมาแก้ต่อ และ retry ข้อมูลเดิมสำเร็จ โดยไม่เกิด submission, score item หรือ audit ซ้ำ
+- Production ผ่าน observation ครบ 60 นาทีที่ checkpoint ประมาณนาที 15, 30, 45 และ 60
+- HTTP แบบ read-only ที่ `/`, `/login`, `/teacher/proposals` และเส้นทาง scoring ทดสอบตอบ HTTP 200 โดยไม่พบ application error
+- Vercel ไม่พบ Production `5xx` ในช่วง observation และ deployment/main SHA คงตรงกัน
+- Production Supabase `project-course-system` และ QA Supabase `lordtd-hub's project-scoring` เป็น `ACTIVE_HEALTHY`; read-only `SELECT 1` สำเร็จทั้งสองระบบ
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback ระหว่าง observation window
+
+ขอบเขตและความปลอดภัย:
+
+- ไม่มี database migration, environment change หรือ Production database mutation
+- ผู้ทดสอบไม่ได้ส่ง Production form หรือเปิดเผยคะแนน/ข้อเสนอแนะ
+- Fresh `pg_dump` รอบนี้สร้างไม่สำเร็จเพราะ Docker engine ในเครื่องไม่พร้อม; PR32 เป็น code-only และเก็บ deployment เดิมกับ rollback tag ไว้สำหรับย้อนกลับ
+- ไม่มีการ rollback และไม่มีการลบหรือแก้ไข audit/evidence history
+
+ผลลัพธ์:
+
+- ปิด rollout PR32 สำเร็จ โดย Production คงอยู่ที่ `main@c21965b`
+- เหตุปุ่มค้าง, ร่างคะแนนหาย, 500/digest, auth failure, workload mismatch หรือ lifecycle regression ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
