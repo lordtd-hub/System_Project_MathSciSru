@@ -1,5 +1,11 @@
 export function isRetryableScoreTransactionError(error: unknown) {
-  return Boolean(error && typeof error === "object" && "code" in error && error.code === "P2034");
+  if (!error || typeof error !== "object" || !("code" in error)) return false;
+  if (error.code === "P2034") return true;
+  // Prisma raw row locks surface PostgreSQL transaction aborts as P2010.
+  // These SQLSTATEs guarantee the whole transaction was aborted, so replaying
+  // the transaction is safe. Never retry arbitrary query or network errors.
+  if (error.code !== "P2010" || !("meta" in error) || !error.meta || typeof error.meta !== "object") return false;
+  return "code" in error.meta && (error.meta.code === "40001" || error.meta.code === "40P01");
 }
 
 export async function retryScoreTransaction<T>(operation: () => Promise<T>, maxAttempts = 3): Promise<T> {

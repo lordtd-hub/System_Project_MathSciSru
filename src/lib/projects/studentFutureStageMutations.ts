@@ -20,6 +20,7 @@ import { canStudentSubmitFinalReport } from "@/lib/reports/reportWorkflow";
 import type { SchedulableRoundType } from "@/lib/scheduling/scheduleRules";
 import { validateMaterialLink } from "@/lib/validators/materialLink";
 import { StudentActionConflictError } from "./studentActionResult";
+import { hasIncompleteRoundAccess } from "@/lib/terms/incompleteAccess";
 
 type MutationDb = Pick<PrismaClient, "$transaction">;
 
@@ -81,9 +82,13 @@ const defaultExternalDeliveryDependencies: ExternalDeliveryDependencies = {
   sendEmail: sendEmailNotification
 };
 
-async function lockProject(tx: Prisma.TransactionClient, projectId: string) {
+async function lockProject(tx: Prisma.TransactionClient, projectId: string, studentId: string) {
+  await tx.$queryRaw`SELECT co.id FROM course_offerings co JOIN projects p ON p.course_offering_id=co.id WHERE p.id=${projectId} AND p.student_id=${studentId} FOR SHARE OF co`;
   const rows = await tx.$queryRaw<Array<{ id: string }>>`
-    SELECT "id" FROM "projects" WHERE "id" = ${projectId} FOR UPDATE
+    SELECT p.id FROM projects p JOIN course_offerings co ON co.id=p.course_offering_id
+LEFT JOIN project_academic_results r ON r.project_id=p.id
+WHERE p.id=${projectId} AND p.student_id=${studentId}
+AND (co.status <> 'CLOSED' OR r.status='INCOMPLETE') FOR UPDATE OF p
   `;
   if (!rows.length) {
     throw new StudentActionConflictError(
@@ -308,13 +313,14 @@ async function readRoundState(
     select: { exceptionType: true, status: true }
   });
   const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
-  if (!isRoundOpen(round.status) && !hasLateOverride) {
+  const incompleteAccess = !isRoundOpen(round.status) && !hasLateOverride && await hasIncompleteRoundAccess(tx, project.id, round.id);
+  if (!isRoundOpen(round.status) && !hasLateOverride && !incompleteAccess) {
     throw new StudentActionConflictError(
       "SCHEDULE_ROUND_NOT_OPEN",
       "รอบสอบนี้ยังไม่เปิดหรือปิดแล้ว กรุณาตรวจสอบสถานะล่าสุด"
     );
   }
-  return { round, lateRoundExceptions, hasLateOverride };
+  return { round, lateRoundExceptions, hasLateOverride, incompleteAccess };
 }
 
 export async function saveAssessmentEvidenceAtomic(
@@ -325,7 +331,7 @@ export async function saveAssessmentEvidenceAtomic(
 ) {
   const now = hooks.now?.() ?? new Date();
   return db.$transaction(async (tx) => {
-    await lockProject(tx, context.projectId);
+    await lockProject(tx, context.projectId, context.studentId);
     const project = await tx.project.findUnique({ where: { id: context.projectId } });
     if (!project) {
       throw new StudentActionConflictError("PROJECT_NOT_FOUND", "ไม่พบโครงงานล่าสุด กรุณารีเฟรชหน้าแล้วลองใหม่");
@@ -407,7 +413,7 @@ export async function submitExamScheduleAtomic(
   hooks: FutureStageMutationHooks = {}
 ) {
   return db.$transaction(async (tx) => {
-    await lockProject(tx, context.projectId);
+    await lockProject(tx, context.projectId, context.studentId);
     const project = await tx.project.findUnique({ where: { id: context.projectId } });
     if (!project) {
       throw new StudentActionConflictError("PROJECT_NOT_FOUND", "ไม่พบโครงงานล่าสุด กรุณารีเฟรชหน้าแล้วลองใหม่");
@@ -446,7 +452,8 @@ export async function submitExamScheduleAtomic(
       select: { exceptionType: true, status: true }
     });
     const hasLateOverride = hasOpenLateRoundException(lateRoundExceptions);
-    if (!isRoundOpen(round.status) && !hasLateOverride) {
+    const incompleteAccess = !isRoundOpen(round.status) && !hasLateOverride && await hasIncompleteRoundAccess(tx, project.id, round.id);
+    if (!isRoundOpen(round.status) && !hasLateOverride && !incompleteAccess) {
       throw new StudentActionConflictError("SCHEDULE_ROUND_NOT_OPEN", "รอบสอบนี้ยังไม่เปิดหรือปิดแล้ว กรุณาตรวจสอบสถานะล่าสุด");
     }
     await assertPreviousPresentationRoundComplete(tx, project.id, input.roundType);
@@ -629,7 +636,7 @@ export async function submitReportVersionAtomic(
     note: normalizeReportNote(rawInput.note)
   };
   return db.$transaction(async (tx) => {
-    await lockProject(tx, context.projectId);
+    await lockProject(tx, context.projectId, context.studentId);
     const project = await tx.project.findUnique({ where: { id: context.projectId } });
     if (!project) {
       throw new StudentActionConflictError("PROJECT_NOT_FOUND", "ไม่พบโครงงานล่าสุด กรุณารีเฟรชหน้าแล้วลองใหม่");

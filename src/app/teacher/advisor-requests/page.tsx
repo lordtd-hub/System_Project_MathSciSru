@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { reviewAdvisorRequest } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -47,7 +48,7 @@ export default async function TeacherAdvisorRequestsPage({
   }
 
   const requests = await prisma.advisorRequest.findMany({
-    where: { advisorTeacherId: teacher.id },
+    where: { advisorTeacherId: teacher.id, project: { courseOfferingId: await selectedOfferingId() } },
     include: { project: { include: { student: true, origin: true } } },
     orderBy: { requestedAt: "desc" }
   });

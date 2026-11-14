@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { saveAssessmentEvidence, submitExamSchedule } from "@/app/student/actions";
@@ -147,9 +148,10 @@ export default async function StudentSchedulePage({
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
     include: {
-      projects: {
+      projects: { where: await selectedStudentProjectWhere(session.user.email!),
         orderBy: { createdAt: "desc" },
         include: {
+          academicResult: { include: { continuations: true } },
           scheduleProposals: {
             include: { approvals: { include: { teacher: true } }, assessmentRound: true },
             orderBy: { createdAt: "desc" }
@@ -211,7 +213,7 @@ export default async function StudentSchedulePage({
   );
   const isRoundAvailable = (roundType: (typeof scheduleRoundTypes)[number]) => {
     const round = roundMap.get(roundType);
-    return Boolean(round && (isRoundOpen(round.status) || openLateRoundTypes.has(roundType)));
+    return Boolean(round && (isRoundOpen(round.status) || openLateRoundTypes.has(roundType) || (project.academicResult?.status === "INCOMPLETE" && project.academicResult.continuations.some(item => item.assessmentRoundId === round.id && item.status === "OPEN"))));
   };
   const progress1Readiness = getProgress1Readiness(project);
   const progress1Open = progress1Round ? isRoundAvailable("PROGRESS_1") : false;
@@ -479,7 +481,7 @@ export default async function StudentSchedulePage({
             const submission = latestSubmissionByKind.get(kind);
             const content = (typeof submission?.contentJson === "object" && submission?.contentJson ? submission.contentJson : {}) as Record<string, unknown>;
             return (
-              <StudentRecoverableActionForm
+              <StudentRecoverableActionForm projectId={project.id}
                 key={kind}
                 id={studentScheduleEvidenceAnchor(kind)}
                 action={saveAssessmentEvidence}
@@ -572,7 +574,7 @@ export default async function StudentSchedulePage({
         ) : null}
         {schedulableRoundsWithEvidence.length ? (
         <div data-testid="student-schedule-proposal-form-wrapper">
-        <StudentRecoverableActionForm action={submitExamSchedule} resultMode="typed" storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} className="mt-4 grid gap-4 md:grid-cols-3">
+        <StudentRecoverableActionForm projectId={project.id} action={submitExamSchedule} resultMode="typed" storageKey={`student-schedule-draft:${project.id}:${defaultScheduleRoundType}`} className="mt-4 grid gap-4 md:grid-cols-3">
           <div>
             <label>รอบการสอบ</label>
             <select name="round_type" defaultValue={defaultScheduleRoundType}>

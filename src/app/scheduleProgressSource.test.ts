@@ -10,7 +10,8 @@ describe("self-scheduling and progress scoring source guards", () => {
     const currentStageMutations = read("src/lib/projects/studentCurrentStageMutations.ts");
     const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
     const currentStageSource = `${actions}\n${currentStageMutations}\n${futureStageMutations}`;
-    expect(actions).toContain("requireStudentContext()");
+    expect(actions).toContain("requireStudentContext(formData)");
+    expect(actions).toContain('id: String(formData.get("project_id")');
     expect(actions).toContain("submitExamSchedule");
     expect(actions).toContain("STUDENT_ADVISOR_REQUIRED");
     expect(currentStageSource).toContain("PROPOSAL_ROUND_NOT_OPEN");
@@ -125,12 +126,16 @@ describe("self-scheduling and progress scoring source guards", () => {
     expect(progress2).toContain('scheduleProposals: { some: { assessmentKind: "PROGRESS_2", status: "CONFIRMED" } }');
   });
 
-  it("keeps schedule approval dashboard counts actionable and round-open only", () => {
+  it("keeps schedule approval counts actionable for open rounds or explicitly authorized continuation", () => {
     const teacherDashboard = read("src/app/teacher/page.tsx");
     const teacherActions = read("src/app/teacher/actions.ts");
     const teacherSchedules = read("src/app/teacher/schedules/page.tsx");
     expect(teacherDashboard).toContain('status: "PROPOSED"');
-    expect(teacherDashboard).toContain('assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } }');
+    expect(teacherDashboard).toContain("scheduleRoundAccessWhere()");
+    const scheduleAccess = read("src/lib/terms/scheduleAccessWhere.ts");
+    expect(scheduleAccess).toContain('assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } }');
+    expect(scheduleAccess).toContain('academicResult: { status: "INCOMPLETE"');
+    expect(scheduleAccess).toContain('continuations: { some: { status: "OPEN", assessmentRound: { roundType } } }');
     expect(teacherDashboard).toContain('role: { in: ["ADVISOR", "HEAD", "MEMBER"] }');
     expect(teacherDashboard).toContain('NOT: { approvals: { some: { teacherId, decision: { in: ["APPROVE", "REJECT"] } } } }');
     expect(teacherActions).toContain("reviewExamSchedule");

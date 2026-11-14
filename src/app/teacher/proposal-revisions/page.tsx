@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { reviewProposalRevision } from "@/app/teacher/actions";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -26,7 +27,7 @@ export default async function TeacherProposalRevisionsPage() {
   }
 
   const candidates = await prisma.project.findMany({
-    where: {
+    where: { courseOfferingId: await selectedOfferingId(),
       status: "PROPOSAL_REVISION_REQUIRED",
       proposalResults: { some: { finalDecision: "PASS_WITH_REVISION" } },
       advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } }

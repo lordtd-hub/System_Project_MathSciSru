@@ -29,13 +29,16 @@ describe("admin course offering workflow source", () => {
 
     expect(openAction).toContain("requireAdminUserId()");
     expect(openAction).toContain("validateCourseOfferingInput");
-    expect(openAction).toContain("prisma.academicYear.upsert");
-    expect(openAction).toContain("prisma.term.upsert");
-    expect(openAction).toContain("prisma.courseOffering.findFirst");
-    expect(openAction).toContain("course_offering_duplicate");
-    expect(openAction).toContain("prisma.courseOffering.create");
-    expect(openAction).toContain("COURSE_OFFERING_OPENED");
-    expect(openAction).toContain("courseOfferingId_roundType");
+    expect(openAction).toContain("openOfferingAtomic(prisma");
+    const service = read("src/lib/terms/offeringLifecycle.ts");
+    expect(service).toContain("tx.academicYear.upsert");
+    expect(service).toContain("tx.term.findUnique");
+    expect(service).toContain("tx.courseOffering.findFirst");
+    expect(service).toContain("unchanged: true");
+    expect(service).toContain("tx.courseOffering.create");
+    expect(service).toContain("COURSE_OFFERING_OPENED");
+    expect(service).toContain("tx.assessmentRound.create");
+    expect(service).toContain('isolationLevel: "Serializable"');
   });
 
   it("keeps the legacy setup action routed through the new guarded workflow", () => {
@@ -54,10 +57,12 @@ describe("admin course offering workflow source", () => {
     const importAction = actions.slice(importStart, confirmStart);
 
     expect(importAction).toContain("requireAdminUserId()");
-    expect(importAction).toContain("parseStudentImportCsv(csv)");
-    expect(importAction).toContain("prisma.courseOffering.findUnique");
-    expect(importAction).toContain("course_offering_missing");
-    expect(importAction).toContain("courseOfferingId_studentId");
+    expect(importAction).toContain("importCohortAtomic(prisma");
+    const service = read("src/lib/terms/offeringLifecycle.ts");
+    expect(service).toContain("parseStudentImportCsv(csv)");
+    expect(service).toContain("tx.courseOffering.findUniqueOrThrow");
+    expect(service).toContain('offering.status !== "ACTIVE"');
+    expect(service).toContain("courseOfferingId_studentId");
     expect(importAction).toContain("students_imported");
   });
 

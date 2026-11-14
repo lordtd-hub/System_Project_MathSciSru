@@ -50,6 +50,8 @@ export default async function ImportStudentsPage({
               <option value="summer">ภาคฤดูร้อน</option>
             </select>
           </div>
+          <div><label>รหัสรายวิชา</label><input name="course_code" defaultValue="SMA6002" required /></div>
+          <div><label>กลุ่มเรียน</label><input name="section" placeholder="P01" required /></div>
           <div className="md:col-span-2">
             <label>ชื่อรายวิชา</label>
             <input name="course_title" defaultValue={defaultCourseTitle} placeholder="Mathematical Project Course" />

@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexViewer } from "@/components/ui/MarkdownLatexViewer";
@@ -52,7 +53,7 @@ export default async function StudentFeedbackPage({ searchParams }: StudentFeedb
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
     include: {
-      projects: {
+      projects: { where: await selectedStudentProjectWhere(session.user.email!),
         include: {
           attempts: {
             include: {

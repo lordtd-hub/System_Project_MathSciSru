@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -10,7 +11,8 @@ export default async function AdminStudentsPage() {
   const session = await auth();
   if (session?.user.role !== "ADMIN") return <div className="panel">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</div>;
   const [students, offerings] = await Promise.all([
-    prisma.student.findMany({ orderBy: { studentCode: "asc" }, take: 100, include: { projects: { take: 1, include: { courseOffering: { include: { term: true } } } } } }),
+    prisma.student.findMany({
+    where: { projects: { some: { courseOfferingId: await selectedOfferingId() } } }, orderBy: { studentCode: "asc" }, take: 100, include: { projects: { take: 1, include: { courseOffering: { include: { term: true } } } } } }),
     prisma.courseOffering.findMany({ include: { term: true, _count: { select: { projects: true } } }, orderBy: { id: "desc" } })
   ]);
 

@@ -1,5 +1,4 @@
 import type { AssessmentStatus, CommitteeRole, ScoreStatus } from "@prisma/client";
-import { isRoundClosed } from "@/lib/assessments/courseRounds";
 
 const presentationCommitteeRoles = new Set<CommitteeRole>(["HEAD", "MEMBER"]);
 
@@ -29,8 +28,6 @@ export function isPresentationAssessmentComplete(input: {
   committeeAssignments: PresentationCommitteeAssignment[];
   scoreSubmissions: PresentationScoreSubmissionEvidence[];
 }) {
-  if (input.roundStatus && isRoundClosed(input.roundStatus)) return true;
-
   const requiredTeacherIds = requiredPresentationCommitteeTeacherIds(input.committeeAssignments);
   if (requiredTeacherIds.length === 0) return false;
 

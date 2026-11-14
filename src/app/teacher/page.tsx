@@ -1,5 +1,7 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
+import { scheduleRoundAccessWhere } from "@/lib/terms/scheduleAccessWhere";
 import Link from "next/link";
-import type { AssessmentRoundType, AssessmentStatus, CommitteeRole, ScoreStatus } from "@prisma/client";
+import type { AssessmentRoundType, AssessmentStatus, CommitteeRole, Prisma, ScoreStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability, isPendingTeacherClaim } from "@/lib/auth/capabilities";
 import { CompactMetricRow, DashboardActionQueue, DashboardSectionHeader } from "@/components/ui/DashboardActionQueue";
@@ -14,6 +16,7 @@ import { createNavTimer } from "@/lib/diagnostics/navTiming";
 import { formatThaiScheduleRange } from "@/lib/format/dateTime";
 import { getNextActionForTeacher } from "@/lib/lifecycle/nextActions";
 import { pendingProposalScoringAttemptWhere } from "@/lib/scoring/proposalWorkload";
+import { LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE } from "@/lib/assessments/roundExceptions";
 import {
   confirmedTeacherScheduleWhere,
   teacherScheduleDisplayState,
@@ -36,6 +39,7 @@ function teacherRoleBadgeLabel(role: CommitteeRole | "ADVISOR") {
 }
 
 async function getTeacherWorkloadCounts(teacherId: string) {
+  const offeringId = await selectedOfferingId();
   const openScoringRoundStatuses: AssessmentStatus[] = ["SUBMISSION_OPEN", "SCORING_OPEN"];
   const scoringCommitteeRoles: CommitteeRole[] = ["HEAD", "MEMBER"];
   const submittedScoreStatus: ScoreStatus = "SUBMITTED";
@@ -52,19 +56,24 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     ]
   };
   const activeOffering = await prisma.courseOffering.findFirst({
-    where: { status: "ACTIVE" },
+    where: { id: await selectedOfferingId() },
     orderBy: { id: "desc" },
     select: {
       id: true
     }
   });
-  const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT") => {
+  const readyScoreWhere = (assessmentKind: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENT"): Prisma.ExamScheduleProposalWhereInput => {
     const roundType: AssessmentRoundType = assessmentKind === "FINAL_PRESENT" ? "FINAL_PRESENTATION" : assessmentKind;
     return ({
     status: "CONFIRMED" as const,
     assessmentKind,
-    assessmentRound: { status: { in: openScoringRoundStatuses } },
+    OR: [
+      { assessmentRound: { status: { in: openScoringRoundStatuses } } },
+      { project: { roundExceptions: { some: { status: "OPEN", exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] }, assessmentRound: { roundType } } } } },
+      { project: { academicResult: { status: "INCOMPLETE", continuations: { some: { status: "OPEN", assessmentRound: { roundType } } } } } }
+    ],
     project: {
+      courseOfferingId: offeringId,
       status: "IN_PROGRESS" as const,
       committeeAssignments: { some: { teacherId, active: true, role: { in: scoringCommitteeRoles } } },
       NOT: {
@@ -95,9 +104,9 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     finalScoreReadyCount,
     confirmedOwnSchedules
   ] = await Promise.all([
-    prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING" } }),
+    prisma.advisorRequest.count({ where: { advisorTeacherId: teacherId, status: "PENDING", project: { courseOfferingId: offeringId } } }),
     prisma.project.findMany({
-      where: {
+    where: { courseOfferingId: await selectedOfferingId(),
         status: "PROPOSAL_REVISION_REQUIRED",
         proposalResults: { some: { finalDecision: "PASS_WITH_REVISION" } },
         presentationSubmissions: { some: { status: "SUBMITTED" } },
@@ -109,9 +118,9 @@ async function getTeacherWorkloadCounts(teacherId: string) {
       where: {
         AND: [
           teacherScheduleOfferingWhere(activeOffering.id),
+          scheduleRoundAccessWhere(),
           {
             status: "PROPOSED",
-            assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } },
             OR: [
               { approvals: { some: { teacherId, decision: "PENDING" } } },
               { project: { committeeAssignments: { some: { teacherId, active: true, role: { in: ["ADVISOR", "HEAD", "MEMBER"] } } } } },
@@ -123,7 +132,7 @@ async function getTeacherWorkloadCounts(teacherId: string) {
       }
     }) : Promise.resolve(0),
     prisma.project.findMany({
-      where: {
+    where: { courseOfferingId: await selectedOfferingId(),
         status: "REPORT_REVIEW",
         ...teacherReportProjectWhere
       },
@@ -142,7 +151,7 @@ async function getTeacherWorkloadCounts(teacherId: string) {
     }),
     prisma.project.count({
       where: {
-        status: "REPORT_APPROVED",
+        status: "REPORT_APPROVED", courseOfferingId: offeringId,
         OR: [
           { advisorRequests: { some: { advisorTeacherId: teacherId, status: "APPROVED" } } },
           { committeeAssignments: { some: { teacherId, active: true, role: "ADVISOR" } } }
@@ -255,7 +264,7 @@ export default async function TeacherDashboardPage() {
     })
   );
   const proposalPreviewLimit = 8;
-  const pendingProposalWhere = pendingProposalScoringAttemptWhere(evaluatorUserId);
+  const pendingProposalWhere: Prisma.AssessmentAttemptWhereInput = { AND: [pendingProposalScoringAttemptWhere(evaluatorUserId), { project: { courseOfferingId: await selectedOfferingId() } }] };
   const independentTeacherQueries = timer.measure("teacher_independent_queries", () => Promise.all([
     prisma.assessmentAttempt.findMany({
       where: pendingProposalWhere,
@@ -306,7 +315,8 @@ export default async function TeacherDashboardPage() {
     ? await prisma.examScheduleProposal.findFirst({
         where: {
           status: "CONFIRMED",
-          assessmentRound: { status: { in: ["SUBMISSION_OPEN", "SCORING_OPEN"] } },
+          project: { courseOfferingId: await selectedOfferingId() },
+          AND: [scheduleRoundAccessWhere()],
           OR: [
             {
               assessmentKind: "PROGRESS_1",

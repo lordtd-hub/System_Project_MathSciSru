@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { reviewReportVersion } from "@/app/teacher/actions";
@@ -36,7 +37,7 @@ export default async function TeacherReportsPage({
 
   const params = (await searchParams) ?? {};
   const projects = await prisma.project.findMany({
-    where: {
+    where: { courseOfferingId: await selectedOfferingId(),
       status: { in: ["REPORT_REVIEW", "REPORT_APPROVED"] },
       OR: [
         { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } } },

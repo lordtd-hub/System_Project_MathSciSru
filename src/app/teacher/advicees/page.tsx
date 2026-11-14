@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -34,7 +35,7 @@ export default async function TeacherAdviceesPage() {
   }
 
   const projects = await prisma.project.findMany({
-    where: {
+    where: { courseOfferingId: await selectedOfferingId(),
       OR: [
         { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } },
         { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: "ADVISOR" } } }

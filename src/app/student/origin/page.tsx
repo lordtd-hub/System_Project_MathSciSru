@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MarkdownLatexEditor } from "@/components/ui/MarkdownLatexEditor";
@@ -12,7 +13,7 @@ export default async function ProjectOriginPage() {
 
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
-    include: { projects: { include: { origin: true } } }
+    include: { projects: { where: await selectedStudentProjectWhere(session.user.email!), include: { origin: true } } }
   });
   if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
 
@@ -23,7 +24,7 @@ export default async function ProjectOriginPage() {
   const teachers = await prisma.teacher.findMany({ where: { active: true }, orderBy: { firstNameTh: "asc" } });
 
   return (
-    <StudentRecoverableActionForm action={saveProjectOrigin} resultMode="typed" storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
+    <StudentRecoverableActionForm projectId={project.id} action={saveProjectOrigin} resultMode="typed" storageKey={`student-project-origin-draft:${project.id}`} className="space-y-4">
       <h1 className="text-2xl font-semibold">ส่งข้อมูลเสนอหัวข้อ</h1>
       <section className="panel grid gap-4 md:grid-cols-2">
         <div>

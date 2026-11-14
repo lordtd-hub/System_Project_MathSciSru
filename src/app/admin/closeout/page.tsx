@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { AdminOperationalSummary, AdminQueueSection } from "@/components/ui/AdminOperationalQueue";
@@ -87,7 +88,7 @@ export default async function AdminCloseoutPage({
   const params = (await searchParams) ?? {};
 
   const projects = await prisma.project.findMany({
-    where: { status: { in: ["REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] } },
+    where: { courseOfferingId: await selectedOfferingId(), status: { in: ["REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] } },
     include: { student: true },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }]
   });

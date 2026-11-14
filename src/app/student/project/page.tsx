@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { InfoAlert } from "@/components/ui/Alert";
@@ -33,7 +34,7 @@ export default async function StudentProjectPage({
     prisma.student.findUnique({
       where: { generatedEmail: session.user.email.toLowerCase() },
       include: {
-        projects: {
+        projects: { where: await selectedStudentProjectWhere(session.user.email!),
           orderBy: { createdAt: "desc" },
           include: {
             origin: true,
@@ -59,7 +60,7 @@ export default async function StudentProjectPage({
   if (!student || !project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   return (
-    <StudentRecoverableActionForm
+    <StudentRecoverableActionForm projectId={project.id}
       action={saveProjectOrigin}
       resultMode="typed"
       storageKey={`student-project-origin-draft:${project.id}:${isReproposalRestart ? latestProposalResult.id : "main"}`}

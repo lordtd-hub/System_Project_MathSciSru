@@ -26,7 +26,7 @@ function transactionalHarness<T extends object>(
 ) {
   let state = structuredClone(initial);
   const read = () => state;
-  const tx = createTx(read);
+  const tx = { incompleteContinuation: { findFirst: vi.fn(async () => null) }, ...createTx(read) };
   const db = {
     $transaction: vi.fn(async (operation: (client: object) => Promise<unknown>) => {
       const before = structuredClone(state);
