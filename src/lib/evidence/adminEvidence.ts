@@ -37,6 +37,7 @@ type GradeProject = {
   student: { studentCode: string; firstNameTh: string; lastNameTh: string };
   attempts: GradeAttempt[];
   advisorScore: { status: string; score: unknown } | null;
+  academicResult?: { status: string; originalGrade: string; resolutionGrade: string | null; reference: string; resolutionReference?: string | null } | null;
 };
 
 type GradeRoundWeight = {
@@ -126,6 +127,9 @@ export type CourseGradeExportRow = {
   advisorWeightedScore: number | null;
   recordedTotalScore: number;
   missingScoreComponents: string[];
+  academicResultCode: string;
+  incompleteStatus: string;
+  resultReference: string;
 };
 
 export type EvidenceDashboardData = {
@@ -376,7 +380,10 @@ export function buildCourseGradeExportRows(projects: GradeProject[], rounds: Gra
         presentationTotalScore,
         advisorWeightedScore,
         recordedTotalScore,
-        missingScoreComponents
+        missingScoreComponents,
+        academicResultCode: project.academicResult?.status === "INCOMPLETE" ? "I" : project.academicResult?.resolutionGrade ?? project.academicResult?.originalGrade ?? "",
+        incompleteStatus: project.academicResult?.status ?? "",
+        resultReference: project.academicResult?.status === "RESOLVED" ? project.academicResult.resolutionReference ?? "" : project.academicResult?.reference ?? ""
       };
     });
 }
@@ -390,6 +397,7 @@ export async function getCourseGradeExportRows(courseOfferingId: string): Promis
         id: true,
         currentTitleTh: true,
         status: true,
+        academicResult: { select: { status: true, originalGrade: true, resolutionGrade: true, reference: true, resolutionReference: true } },
         student: {
           select: {
             studentCode: true,
@@ -707,7 +715,10 @@ export const courseGradeExportHeaders = [
   "recorded_total_65_percent",
   "missing_score_components",
   "project_status",
-  "project_id"
+  "project_id",
+  "academic_result_code",
+  "incomplete_status",
+  "result_reference"
 ];
 
 export function courseGradeExportCsvRows(rows: CourseGradeExportRow[]): CsvValue[][] {
@@ -726,6 +737,9 @@ export function courseGradeExportCsvRows(rows: CourseGradeExportRow[]): CsvValue
     row.recordedTotalScore,
     row.missingScoreComponents.join("; "),
     row.statusLabel,
-    row.projectId
+    row.projectId,
+    row.academicResultCode,
+    row.incompleteStatus,
+    row.resultReference
   ]);
 }

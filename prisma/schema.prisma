@@ -178,6 +178,17 @@ enum CourseStatus {
   CLOSED
 }
 
+enum IncompleteStatus {
+  INCOMPLETE
+  RESOLVED
+  FINALIZED
+}
+
+enum IncompletePenaltyDecision {
+  PRESERVE_EXISTING
+  NO_ADDITIONAL_PENALTY
+}
+
 enum AssignmentStatus {
   ASSIGNED
   IN_PROGRESS
@@ -219,21 +230,21 @@ model User {
 
 // Separate credential for one explicitly provisioned existing owner; no new User.
 model OwnerPasswordCredential {
-  userId               String    @id @map("user_id")
-  loginEmail           String    @unique @map("login_email")
-  enabled              Boolean   @default(false)
-  passwordHash         String?   @map("password_hash")
-  enrollmentTokenHash  String?   @unique @map("enrollment_token_hash")
-  enrollmentExpiresAt  DateTime? @map("enrollment_expires_at")
-  activatedAt          DateTime? @map("activated_at")
-  revokedAt            DateTime? @map("revoked_at")
-  credentialVersion    Int       @default(0) @map("credential_version")
-  attempts             Int       @default(0)
-  attemptWindowStart   DateTime  @default(now()) @map("attempt_window_start")
-  lastUsedAt           DateTime? @map("last_used_at")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String    @id @map("user_id")
+  loginEmail          String    @unique @map("login_email")
+  enabled             Boolean   @default(false)
+  passwordHash        String?   @map("password_hash")
+  enrollmentTokenHash String?   @unique @map("enrollment_token_hash")
+  enrollmentExpiresAt DateTime? @map("enrollment_expires_at")
+  activatedAt         DateTime? @map("activated_at")
+  revokedAt           DateTime? @map("revoked_at")
+  credentialVersion   Int       @default(0) @map("credential_version")
+  attempts            Int       @default(0)
+  attemptWindowStart  DateTime  @default(now()) @map("attempt_window_start")
+  lastUsedAt          DateTime? @map("last_used_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("owner_password_credentials")
 }
@@ -344,6 +355,8 @@ model CourseOffering {
   id                      String       @id @default(cuid())
   termId                  String       @map("term_id")
   courseTitle             String       @default("Mathematical Project Course") @map("course_title")
+  courseCode              String?      @map("course_code")
+  section                 String?
   presentationTotalWeight Decimal      @default(40) @map("presentation_total_weight") @db.Decimal(5, 2)
   status                  CourseStatus @default(DRAFT)
 
@@ -352,6 +365,7 @@ model CourseOffering {
   assessmentRounds  AssessmentRound[]
   scheduleProposals ExamScheduleProposal[]
 
+  @@unique([termId, courseCode, section])
   @@map("course_offerings")
 }
 
@@ -383,9 +397,48 @@ model Project {
   scoreReleases           ScoreRelease[]
   timelineEvents          ProjectTimelineEvent[]
   roundExceptions         ProjectRoundException[]
+  academicResult          ProjectAcademicResult?
 
   @@unique([courseOfferingId, studentId])
   @@map("projects")
+}
+
+// Academic I is independent of workflow status and never replaces real scores.
+model ProjectAcademicResult {
+  projectId           String           @id @map("project_id")
+  status              IncompleteStatus @default(INCOMPLETE)
+  originalGrade       String           @default("I") @map("original_grade")
+  resolutionGrade     String?          @map("resolution_grade")
+  resolutionReason    String?          @map("resolution_reason")
+  resolutionReference String?          @map("resolution_reference")
+  reason              String
+  reference           String
+  version             Int              @default(1)
+  recordedAt          DateTime         @default(now()) @map("recorded_at")
+  resolvedAt          DateTime?        @map("resolved_at")
+  dueAt               DateTime?        @map("due_at")
+  project             Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  continuations       IncompleteContinuation[]
+
+  @@map("project_academic_results")
+}
+
+model IncompleteContinuation {
+  id                String                    @id @default(cuid())
+  projectId         String                    @map("project_id")
+  assessmentRoundId String                    @map("assessment_round_id")
+  penaltyDecision   IncompletePenaltyDecision @map("penalty_decision")
+  reason            String
+  reference         String
+  approvedById      String                    @map("approved_by_id")
+  status            String                    @default("OPEN")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  resolvedAt        DateTime?                 @map("resolved_at")
+  academicResult    ProjectAcademicResult     @relation(fields: [projectId], references: [projectId], onDelete: Restrict)
+  assessmentRound   AssessmentRound           @relation(fields: [assessmentRoundId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, assessmentRoundId])
+  @@map("incomplete_continuations")
 }
 
 model StudentProfile {
@@ -654,6 +707,7 @@ model ProjectOriginVersion {
 
 model AssessmentRound {
   id                         String              @id @default(cuid())
+  incompleteContinuations    IncompleteContinuation[]
   courseOfferingId           String              @map("course_offering_id")
   roundType                  AssessmentRoundType @map("round_type")
   name                       String

@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -43,7 +44,7 @@ export default async function ProposalSubmissionPage({
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
     include: {
-      projects: {
+      projects: { where: await selectedStudentProjectWhere(session.user.email!),
         orderBy: { createdAt: "desc" },
         include: {
           presentationSubmissions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
@@ -283,7 +284,7 @@ export default async function ProposalSubmissionPage({
           </div>
         </section>
       ) : (
-      <StudentRecoverableActionForm
+      <StudentRecoverableActionForm projectId={project.id}
         action={saveProposalSubmission}
         resultMode="typed"
         storageKey={`student-proposal-draft:${project.id}${canSubmitReproposal ? `:reproposal:${latestProposalAttempt?.id}:${currentProposalResult?.id}` : ""}`}

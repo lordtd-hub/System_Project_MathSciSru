@@ -18,6 +18,10 @@ import {
 vi.stubGlobal("React", React);
 
 describe("student recoverable action form snapshots", () => {
+  it("never restores a stale draft's cross-term routing project ID", () => {
+    expect(reconcileFormValues({ project_id: "new-term", title: "current" }, { project_id: "old-term", title: "saved" })).toEqual({ project_id: "new-term", title: "saved" });
+    expect(reconcileFormValues({ title: "current" }, { project_id: "someone-else", title: "saved" })).toEqual({ title: "saved" });
+  });
   it("round-trips native, controlled, hidden timeline, radio, and same-name checkbox values", () => {
     const now = Date.UTC(2026, 7, 12, 10, 0, 0);
     const snapshot = createFormSnapshot({

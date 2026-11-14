@@ -49,6 +49,9 @@ const fake = vi.hoisted(() => {
     project: {
       findUnique: async () => ({
         id: "project-1",
+        courseOfferingId: "course-1",
+        courseOffering: { status: "ACTIVE" },
+        academicResult: null,
         status: working.projectStatus,
         committeeAssignments: [{ active: true, teacherId: "teacher-1", role: "MEMBER" }]
       }),
@@ -57,7 +60,7 @@ const fake = vi.hoisted(() => {
         return { id: "project-1", status: working.projectStatus };
       })
     },
-    assessmentRound: { findUnique: async () => ({ id: "round-1", roundType, status: "SCORING_OPEN" }) },
+    assessmentRound: { findUnique: async () => ({ id: "round-1", courseOfferingId: "course-1", roundType, status: "SCORING_OPEN" }) },
     projectRoundException: { findMany: async () => [] },
     examScheduleProposal: { findFirst: async () => ({ id: "schedule-1" }) },
     assessmentAttempt: {

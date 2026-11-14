@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { submitAdvisorScore } from "@/app/teacher/actions";
@@ -71,7 +72,7 @@ export default async function TeacherAdvisorScorePage({
 
   const params = (await searchParams) ?? {};
   const projects = await prisma.project.findMany({
-    where: {
+    where: { courseOfferingId: await selectedOfferingId(),
       OR: [
         { advisorRequests: { some: { advisorTeacherId: teacher.id, status: "APPROVED" } } },
         { committeeAssignments: { some: { teacherId: teacher.id, active: true, role: "ADVISOR" } } }

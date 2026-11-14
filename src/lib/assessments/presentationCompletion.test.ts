@@ -30,20 +30,23 @@ describe("presentation completion", () => {
     ).toBe(true);
   });
 
-  it("treats explicitly closed or released rounds as complete", () => {
+  it("does not treat course-wide closure/release as proof an individual student sat the exam", () => {
     expect(
       isPresentationAssessmentComplete({
         roundStatus: "SCORING_CLOSED",
         committeeAssignments,
         scoreSubmissions: []
       })
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isPresentationAssessmentComplete({
         roundStatus: "RELEASED",
         committeeAssignments: [],
         scoreSubmissions: []
       })
-    ).toBe(true);
+    ).toBe(false);
+    expect(isPresentationAssessmentComplete({ roundStatus: "SCORING_CLOSED", committeeAssignments, scoreSubmissions: [
+      { teacherId: "head", status: "SUBMITTED" }, { teacherId: "member", status: "LOCKED" }
+    ] })).toBe(true);
   });
 });

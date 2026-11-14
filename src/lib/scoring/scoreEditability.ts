@@ -18,12 +18,14 @@ export function isProposalScoreEditable({
 
 export function isPresentationScoreEditable({
   roundStatus,
-  roundExceptions
+  roundExceptions,
+  incompleteContinuation = false
 }: {
   roundStatus: AssessmentStatus;
   roundExceptions?: RoundException[] | null;
+  incompleteContinuation?: boolean;
 }) {
-  return isRoundOpen(roundStatus) || hasOpenLateRoundException(roundExceptions);
+  return isRoundOpen(roundStatus) || hasOpenLateRoundException(roundExceptions) || incompleteContinuation;
 }
 
 export function isAdvisorScoreEditable(projectStatus: ProjectStatus) {

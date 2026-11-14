@@ -36,6 +36,7 @@ export function teacherScoreActionMessage(result: TeacherScoreActionResult) {
     score_schedule_not_confirmed: "ยังไม่ยืนยันกำหนดการสอบครบ จึงยังบันทึกคะแนนไม่ได้",
     score_evaluator_not_eligible: "บัญชีนี้ไม่มีสิทธิ์ให้คะแนนโครงงานนี้",
     score_editing_closed: "รอบนี้ปิดการแก้ไขคะแนนแล้ว",
+    score_course_results_closed: "รายวิชาปิดผลแล้ว บันทึกต่อได้เฉพาะงาน I ที่ได้รับอนุญาต กรุณาตรวจภาคเรียนและสถานะล่าสุด",
     score_concurrent_update: "มีการบันทึกข้อมูลนี้พร้อมกัน กรุณาตรวจสอบคะแนนล่าสุดแล้วลองอีกครั้ง",
     teacher_score_rate_limited: "มีการส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่",
     teacher_score_unexpected: `บันทึกคะแนนไม่สำเร็จ กรุณาลองใหม่ (รหัส ${result.requestId})`,

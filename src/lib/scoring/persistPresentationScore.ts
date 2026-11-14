@@ -10,6 +10,7 @@ import {
   type TeacherScoreSnapshot
 } from "./scoreSnapshots";
 import { retryScoreTransaction } from "./transactionRetry";
+import { hasIncompleteRoundAccess } from "@/lib/terms/incompleteAccess";
 
 export class ScorePersistenceConflict extends Error {
   constructor(public readonly code: string) {
@@ -79,7 +80,7 @@ export async function persistPresentationScore(input: PersistPresentationScoreIn
     const [project, round, roundExceptions, confirmedSchedule] = await Promise.all([
       tx.project.findUnique({
         where: { id: input.projectId },
-        include: { committeeAssignments: true }
+        include: { committeeAssignments: true, courseOffering: true, academicResult: true }
       }),
       tx.assessmentRound.findUnique({ where: { id: input.assessmentRoundId } }),
       tx.projectRoundException.findMany({
@@ -92,7 +93,8 @@ export async function persistPresentationScore(input: PersistPresentationScoreIn
       })
     ]);
 
-    if (!project || !round || round.roundType !== input.roundType) throw new ScorePersistenceConflict("score_context_missing");
+    if (!project || !round || round.roundType !== input.roundType || project.courseOfferingId !== round.courseOfferingId) throw new ScorePersistenceConflict("score_context_missing");
+    if (project.courseOffering.status === "CLOSED" && project.academicResult?.status !== "INCOMPLETE") throw new ScorePersistenceConflict("score_course_results_closed");
     if (!input.allowedProjectStatuses.includes(project.status)) throw new ScorePersistenceConflict("score_project_state_changed");
     if (!confirmedSchedule) throw new ScorePersistenceConflict("score_schedule_not_confirmed");
     if (!project.committeeAssignments.some(
@@ -100,7 +102,8 @@ export async function persistPresentationScore(input: PersistPresentationScoreIn
         && assignment.teacherId === input.teacherId
         && (assignment.role === "HEAD" || assignment.role === "MEMBER")
     )) throw new ScorePersistenceConflict("score_evaluator_not_eligible");
-    if (!isPresentationScoreEditable({ roundStatus: round.status, roundExceptions })) {
+    const incompleteAccess = project.academicResult?.status === "INCOMPLETE" && await hasIncompleteRoundAccess(tx, project.id, round.id);
+    if (!isPresentationScoreEditable({ roundStatus: round.status, roundExceptions, incompleteContinuation: incompleteAccess })) {
       throw new ScorePersistenceConflict("score_editing_closed");
     }
 
@@ -228,6 +231,7 @@ export async function persistPresentationScore(input: PersistPresentationScoreIn
           assessmentAttemptId: attempt.id,
           isRevision,
           latePenaltyRequired,
+          incompleteContinuationUsed: Boolean(incompleteAccess),
           latePenaltyPercent: latePenaltyRequired ? 10 : 0,
           rawTotalScore: input.rawTotalScore
         }

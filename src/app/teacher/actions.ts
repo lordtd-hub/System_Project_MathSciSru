@@ -8,6 +8,7 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { applyLatePenalty, hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
+import { assertProjectCourseWritable, lockWritableProject } from "@/lib/terms/writableProject";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { isCurrentAdvisorRequestReviewable } from "@/lib/projects/currentAdvisorRequest";
@@ -122,6 +123,7 @@ async function assertPresentationScoreRoundEditable(
 }
 
 async function getLateRoundScoreAdjustment(projectId: string, assessmentRoundId: string, rawScore: number) {
+  await assertProjectCourseWritable(prisma, projectId);
   const exceptions = await prisma.projectRoundException.findMany({
     where: { projectId, assessmentRoundId, status: "OPEN" },
     select: { exceptionType: true, status: true }
@@ -453,6 +455,7 @@ export async function reviewExamSchedule(formData: FormData) {
       approvals: true,
       project: {
         include: {
+          academicResult: { include: { continuations: true } },
           committeeAssignments: { where: { active: true } },
           advisorRequests: { where: { status: "APPROVED" } },
           roundExceptions: {
@@ -476,7 +479,8 @@ export async function reviewExamSchedule(formData: FormData) {
           hasOpenLateRoundException([exception])
       )
     : false;
-  if (schedule.assessmentRound && !isRoundOpen(schedule.assessmentRound.status) && !hasLateRoundOverride) {
+  const incompleteAccess = schedule.project.academicResult?.status === "INCOMPLETE" && schedule.project.academicResult.continuations.some(item => item.status === "OPEN" && item.assessmentRoundId === schedule.assessmentRoundId);
+  if (schedule.assessmentRound && !isRoundOpen(schedule.assessmentRound.status) && !hasLateRoundOverride && !incompleteAccess) {
     redirectWithQuery("/teacher/schedules", { error: "schedule_round_not_open" });
   }
 
@@ -1510,6 +1514,7 @@ export async function submitAdvisorScore(formData: FormData) {
   const timer = createActionTimer("teacher.submitAdvisorScore");
   if (!hasApprovedTeacherCapability(user) || !user.id) throw new Error("ต้องได้รับอนุมัติเป็นอาจารย์ก่อน");
   const projectId = String(formData.get("project_id") ?? "");
+  await assertProjectCourseWritable(prisma, projectId);
   const comment = String(formData.get("comment") ?? "").trim();
   redirectIfTeacherTextTooLong(comment, requestSizeLimits.commentTextBytes, "ข้อเสนอแนะคะแนนสรุปของอาจารย์ที่ปรึกษา", "/teacher/advisor-score");
   redirectIfScoreFieldsIncomplete(
@@ -1549,6 +1554,7 @@ export async function submitAdvisorScore(formData: FormData) {
   const total = totalAdvisorScore(input);
   const shouldMoveToAdvisorScoring = project.status === "REPORT_APPROVED";
   const score = await timer.measure("advisor_score_transaction", () => prisma.$transaction(async (tx) => {
+    await lockWritableProject(tx, project.id);
     const saved = await tx.advisorScore.upsert({
       where: { projectId: project.id },
       update: {

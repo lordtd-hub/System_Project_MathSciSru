@@ -31,7 +31,8 @@ describe("late round policy source coverage", () => {
 
   it("lets eligible projects enter an open Progress/Final round normally and requires late override after close", () => {
     const futureStageMutations = read("src/lib/projects/studentFutureStageMutations.ts");
-    expect(futureStageMutations).toContain("if (!isRoundOpen(round.status) && !hasLateOverride)");
+    expect(futureStageMutations).toContain("if (!isRoundOpen(round.status) && !hasLateOverride && !incompleteAccess)");
+    expect(futureStageMutations).toContain("hasIncompleteRoundAccess(tx, project.id, round.id)");
     expect(futureStageMutations).toContain('"SCHEDULE_ROUND_NOT_OPEN"');
     expect(futureStageMutations).toContain("await assertPreviousPresentationRoundComplete(tx, project.id, input.roundType)");
   });

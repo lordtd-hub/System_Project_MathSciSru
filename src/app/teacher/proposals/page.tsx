@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
@@ -30,7 +31,7 @@ export default async function TeacherProposalsPage() {
   }
 
   const attempts = await prisma.assessmentAttempt.findMany({
-    where: openProposalScoringAttemptWhere(),
+    where: { AND: [openProposalScoringAttemptWhere(), { project: { courseOfferingId: await selectedOfferingId() } }] },
     include: {
       presentationSubmission: true,
       project: { include: { student: true } },

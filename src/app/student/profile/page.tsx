@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -19,7 +20,7 @@ export default async function StudentProfilePage({
 
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
-    include: { profile: true, projects: { orderBy: { createdAt: "desc" }, take: 1 } }
+    include: { profile: true, projects: { where: await selectedStudentProjectWhere(session.user.email!), orderBy: { createdAt: "desc" }, take: 1 } }
   });
 
   if (!student) {
@@ -50,7 +51,7 @@ export default async function StudentProfilePage({
           </div>
         </div>
       </FormSection>
-      <StudentRecoverableActionForm
+      <StudentRecoverableActionForm projectId={student.projects[0]?.id}
         action={saveStudentProfile}
         resultMode="typed"
         storageKey={`student-profile-draft:${student.id}`}

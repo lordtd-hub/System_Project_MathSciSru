@@ -13,7 +13,8 @@ describe("report workflow actions", () => {
     expect(source).toContain('project.status === "FINAL_DONE"');
     expect(source).toContain('data: { status: "REPORT_REVIEW" }');
     expect(source).toContain("reportVersion.create");
-    expect(source).toContain("SELECT \"id\" FROM \"projects\"");
+    expect(source).toContain("FOR UPDATE OF p");
+    expect(source).toContain("p.student_id");
     expect(source).toContain("normalizeReportLink");
     expect(source).toContain('eventType: "REPORT_VERSION_SUBMITTED"');
   });

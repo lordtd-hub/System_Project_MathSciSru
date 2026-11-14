@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { reviewExamSchedule } from "@/app/teacher/actions";
@@ -62,7 +63,7 @@ export default async function TeacherSchedulesPage({
   if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" />;
 
   const activeOffering = await prisma.courseOffering.findFirst({
-    where: { status: "ACTIVE" },
+    where: { id: await selectedOfferingId() },
     orderBy: { id: "desc" },
     select: {
       id: true,
@@ -90,6 +91,7 @@ export default async function TeacherSchedulesPage({
         project: {
           include: {
             student: true,
+            academicResult: { include: { continuations: true } },
             committeeAssignments: { where: { active: true }, include: { teacher: true } },
             advisorRequests: { where: { status: "APPROVED" }, include: { advisorTeacher: true } },
             assessmentSubmissions: { orderBy: { submittedAt: "desc" } },
@@ -157,6 +159,7 @@ export default async function TeacherSchedulesPage({
   ).reverse();
   const isScheduleRoundReviewable = (schedule: (typeof schedules)[number]) => {
     if (!schedule.assessmentRound || isRoundOpen(schedule.assessmentRound.status)) return true;
+    if (schedule.project.academicResult?.status === "INCOMPLETE" && schedule.project.academicResult.continuations.some(item => item.status === "OPEN" && item.assessmentRoundId === schedule.assessmentRoundId)) return true;
     const roundType = schedule.roundType ?? schedule.assessmentRound.roundType;
     return schedule.project.roundExceptions.some(
       (exception) => exception.assessmentRound?.roundType === roundType && hasOpenLateRoundException([exception])

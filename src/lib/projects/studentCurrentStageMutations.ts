@@ -68,9 +68,13 @@ export type StudentMutationOutcome = {
   advisorExternalNotification?: { projectId: string; advisorTeacherId: string };
 };
 
-async function lockProject(tx: Prisma.TransactionClient, projectId: string) {
+async function lockProject(tx: Prisma.TransactionClient, projectId: string, studentId: string) {
+  await tx.$queryRaw`SELECT co.id FROM course_offerings co JOIN projects p ON p.course_offering_id=co.id WHERE p.id=${projectId} AND p.student_id=${studentId} FOR SHARE OF co`;
   const rows = await tx.$queryRaw<Array<{ id: string }>>`
-    SELECT "id" FROM "projects" WHERE "id" = ${projectId} FOR UPDATE
+    SELECT p.id FROM projects p JOIN course_offerings co ON co.id=p.course_offering_id
+LEFT JOIN project_academic_results r ON r.project_id=p.id
+WHERE p.id=${projectId} AND p.student_id=${studentId}
+AND (co.status <> 'CLOSED' OR r.status='INCOMPLETE') FOR UPDATE OF p
   `;
   if (!rows.length) throw new StudentActionConflictError("PROJECT_NOT_FOUND", "ไม่พบโครงงานล่าสุด กรุณารีเฟรชหน้าแล้วลองใหม่");
 }
@@ -170,7 +174,7 @@ export async function saveStudentProfileAtomic(
 ): Promise<StudentMutationOutcome> {
   const now = hooks.now?.() ?? new Date();
   return db.$transaction(async (tx) => {
-    await lockProject(tx, context.projectId);
+    await lockProject(tx, context.projectId, context.studentId);
     const [project, committed] = await Promise.all([
       tx.project.findUniqueOrThrow({ where: { id: context.projectId } }),
       tx.studentProfile.findUnique({ where: { studentId: context.studentId } })
@@ -212,7 +216,7 @@ export async function saveProjectOriginAtomic(
 ): Promise<StudentMutationOutcome> {
   const now = hooks.now?.() ?? new Date();
   return db.$transaction(async (tx) => {
-    await lockProject(tx, context.projectId);
+    await lockProject(tx, context.projectId, context.studentId);
     const project = await tx.project.findUniqueOrThrow({ where: { id: context.projectId } });
     const committed = await tx.projectOrigin.findUnique({ where: { projectId: project.id } });
     if (project.status !== "DRAFT") {
@@ -352,7 +356,7 @@ export async function saveProposalSubmissionAtomic(
 ): Promise<StudentMutationOutcome> {
   const now = hooks.now?.() ?? new Date();
   return db.$transaction(async (tx) => {
-    await lockProject(tx, context.projectId);
+    await lockProject(tx, context.projectId, context.studentId);
     const project = await tx.project.findUniqueOrThrow({ where: { id: context.projectId } });
     const round = await tx.assessmentRound.findUnique({
       where: { courseOfferingId_roundType: { courseOfferingId: project.courseOfferingId, roundType: "PROPOSAL" } }

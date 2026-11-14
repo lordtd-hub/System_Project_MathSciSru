@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -32,10 +33,11 @@ export default async function TeacherFinalPage({
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีกับโปรไฟล์อาจารย์ก่อนใช้งาน" />;
   const params = (await searchParams) ?? {};
+  const chosenOfferingId = await selectedOfferingId();
   const showQaEvidenceAlignment = isQaAunEvidenceAlignmentEnabled();
 
   const finalRound = await prisma.assessmentRound.findFirst({
-    where: { roundType: "FINAL_PRESENTATION" },
+    where: { roundType: "FINAL_PRESENTATION", courseOfferingId: chosenOfferingId },
     orderBy: { createdAt: "desc" }
   });
 
@@ -46,15 +48,10 @@ export default async function TeacherFinalPage({
           courseOfferingId: finalRound.courseOfferingId,
           scheduleProposals: { some: { assessmentKind: "FINAL_PRESENT", status: "CONFIRMED" } },
           committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
-          ...(isRoundOpen(finalRound.status) ? {} : {
-            roundExceptions: {
-              some: {
-                assessmentRoundId: finalRound.id,
-                status: "OPEN",
-                exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] }
-              }
-            }
-          })
+          ...(isRoundOpen(finalRound.status) ? {} : { OR: [
+    { roundExceptions: { some: { assessmentRoundId: finalRound.id, status: "OPEN", exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] } } } },
+    { academicResult: { status: "INCOMPLETE", continuations: { some: { assessmentRoundId: finalRound.id, status: "OPEN" } } } }
+  ] })
         },
         include: {
           student: true,

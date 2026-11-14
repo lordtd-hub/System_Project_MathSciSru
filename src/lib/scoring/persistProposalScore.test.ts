@@ -73,7 +73,7 @@ const fake = vi.hoisted(() => {
       attemptType,
       status: "SCORING_OPEN",
       proposalResult: null,
-      project: { status: working.projectStatus },
+      project: { status: working.projectStatus, courseOffering: { status: "ACTIVE" }, academicResult: null },
       assessmentRound: { id: "round-1", roundType: "PROPOSAL", status: roundStatus }
     },
     scoreSubmission: working.submission

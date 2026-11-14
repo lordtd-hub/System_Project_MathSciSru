@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -162,21 +163,23 @@ export default async function StudentDashboardPage() {
   // Roster lookup stays tied to the authenticated student email: generatedEmail: session.user.email.toLowerCase()
   const studentEmail = session.user.email.toLowerCase();
 
-  const student = await timer.measure("student_dashboard_query", () => prisma.student.findUnique({
+  const student = await timer.measure("student_dashboard_query", async () => prisma.student.findUnique({
     where: { generatedEmail: studentEmail },
     select: {
       firstNameTh: true,
-      projects: {
+      projects: { where: await selectedStudentProjectWhere(session.user.email!),
         orderBy: { createdAt: "desc" },
         take: 1,
         select: {
           id: true,
           status: true,
           currentTitleTh: true,
+          academicResult: { include: { continuations: true } },
           courseOffering: {
             select: {
               assessmentRounds: {
                 select: {
+                  id: true,
                   roundType: true,
                   status: true,
                   showScoreToStudent: true,
@@ -330,6 +333,7 @@ export default async function StudentDashboardPage() {
 
   const advisorRequest = project.advisorRequests[0];
   const waitingDays = daysWaiting(advisorRequest?.requestedAt);
+  const canContinueIncomplete = (type: string) => Boolean(project.academicResult?.status === "INCOMPLETE" && project.academicResult.continuations.some(item => item.status === "OPEN" && project.courseOffering.assessmentRounds.some(round => round.id === item.assessmentRoundId && round.roundType === type)));
   const roundStatusByType = new Map(project.courseOffering.assessmentRounds.map((round) => [round.roundType, round.status]));
   const hasCompletedScores = (roundType: "PROGRESS_1" | "PROGRESS_2" | "FINAL_PRESENTATION") => {
     return isPresentationAssessmentComplete({
@@ -403,9 +407,9 @@ export default async function StudentDashboardPage() {
     proposalRevisionSubmitted: project.status === "PROPOSAL_REVISION_REQUIRED" && proposal?.status === "SUBMITTED",
     proposal: proposalActionContext,
     roundAvailability: {
-      PROGRESS_1: Boolean(roundStatusByType.get("PROGRESS_1") && isRoundOpen(roundStatusByType.get("PROGRESS_1")!)),
-      PROGRESS_2: Boolean(roundStatusByType.get("PROGRESS_2") && isRoundOpen(roundStatusByType.get("PROGRESS_2")!)),
-      FINAL_PRESENT: Boolean(roundStatusByType.get("FINAL_PRESENTATION") && isRoundOpen(roundStatusByType.get("FINAL_PRESENTATION")!))
+      PROGRESS_1: Boolean(roundStatusByType.get("PROGRESS_1") && isRoundOpen(roundStatusByType.get("PROGRESS_1")!)) || canContinueIncomplete("PROGRESS_1"),
+      PROGRESS_2: Boolean(roundStatusByType.get("PROGRESS_2") && isRoundOpen(roundStatusByType.get("PROGRESS_2")!)) || canContinueIncomplete("PROGRESS_2"),
+      FINAL_PRESENT: Boolean(roundStatusByType.get("FINAL_PRESENTATION") && isRoundOpen(roundStatusByType.get("FINAL_PRESENTATION")!)) || canContinueIncomplete("FINAL_PRESENTATION")
     }
   };
   const finalRoundClosed = Boolean(roundStatusByType.get("FINAL_PRESENTATION") && isRoundClosed(roundStatusByType.get("FINAL_PRESENTATION")!));

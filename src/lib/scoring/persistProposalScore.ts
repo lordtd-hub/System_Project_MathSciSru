@@ -76,7 +76,7 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
       where: { id: input.assignmentId },
       include: {
         teacher: { select: { active: true, isInternal: true, canEvaluateProposal: true } },
-        assessmentAttempt: { include: { assessmentRound: true, proposalResult: true, project: { select: { status: true } } } },
+        assessmentAttempt: { include: { assessmentRound: true, proposalResult: true, project: { select: { status: true, courseOffering: { select: { status: true } }, academicResult: { select: { status: true } } } } } },
         scoreSubmission: {
           include: {
             proposalDecision: true,
@@ -96,6 +96,7 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
       throw new ScorePersistenceConflict("score_evaluator_not_eligible");
     }
     if (assignment.assessmentAttempt.proposalResult) throw new ScorePersistenceConflict("proposal_decision_already_saved");
+    if (assignment.assessmentAttempt.project.courseOffering.status === "CLOSED" && assignment.assessmentAttempt.project.academicResult?.status !== "INCOMPLETE") throw new ScorePersistenceConflict("score_course_results_closed");
     const latestProposalAttempt = await tx.assessmentAttempt.findFirst({
       where: {
         projectId: assignment.assessmentAttempt.projectId,

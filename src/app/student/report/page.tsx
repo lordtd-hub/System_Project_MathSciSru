@@ -1,3 +1,4 @@
+import { selectedStudentProjectWhere } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { submitReportVersion } from "@/app/student/actions";
@@ -33,7 +34,7 @@ export default async function StudentReportPage({
   const student = await prisma.student.findUnique({
     where: { generatedEmail: session.user.email.toLowerCase() },
     include: {
-      projects: {
+      projects: { where: await selectedStudentProjectWhere(session.user.email!),
         orderBy: { createdAt: "desc" },
         include: {
           committeeAssignments: { select: { teacherId: true, role: true, active: true } },
@@ -153,7 +154,7 @@ export default async function StudentReportPage({
 
       <FormSection title={reportActionLabel} description={reportSubmissionReasonLabel(gate.reason)}>
         {gate.allowed ? (
-          <StudentRecoverableActionForm action={submitReportVersion} resultMode="typed" storageKey={`student-report-draft:${project.id}`} className="space-y-4">
+          <StudentRecoverableActionForm projectId={project.id} action={submitReportVersion} resultMode="typed" storageKey={`student-report-draft:${project.id}`} className="space-y-4">
             <MaterialLinkField name="report_drive_link" />
             <MarkdownLatexEditor
               name="report_note"

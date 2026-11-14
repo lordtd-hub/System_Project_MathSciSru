@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { Suspense } from "react";
 import { auth } from "@/auth";
@@ -80,15 +81,17 @@ function deriveAdminCurrentRoundFocus({
   };
 }
 
-function getAdminStatusGroups() {
+async function getAdminStatusGroups() {
   return prisma.project.groupBy({
     by: ["status"],
+    where: { courseOfferingId: await selectedOfferingId() },
     _count: { _all: true }
   });
 }
 
-function getRecentAdminProjects() {
+async function getRecentAdminProjects() {
   return prisma.project.findMany({
+    where: { courseOfferingId: await selectedOfferingId() },
     select: {
       id: true,
       courseOfferingId: true,
@@ -112,8 +115,9 @@ function getUnreadAdminNotifications() {
   });
 }
 
-function getLatestAdminTimelineEvents() {
+async function getLatestAdminTimelineEvents() {
   return prisma.projectTimelineEvent.findMany({
+    where: { project: { courseOfferingId: await selectedOfferingId() } },
     select: { id: true, occurredAt: true, eventTitle: true, eventDescription: true, actor: { select: { name: true } } },
     orderBy: { occurredAt: "desc" },
     take: 8
@@ -172,8 +176,9 @@ export default async function AdminDashboardPage({
   }
   const params = (await searchParams) ?? {};
 
-  const offeringsQuery = timer.measure("course_offerings", () =>
+  const offeringsQuery = timer.measure("course_offerings", async () =>
     prisma.courseOffering.findMany({
+      where: { id: await selectedOfferingId() },
       select: { id: true, term: { select: { displayName: true } } },
       orderBy: { id: "desc" },
       take: 5
@@ -185,18 +190,18 @@ export default async function AdminDashboardPage({
   const timelineQuery = timer.measure("admin_timeline", getLatestAdminTimelineEvents);
   const readyCloseoutQuery = timer.measure("admin_closeout_eligibility", async () => {
     const projects = await prisma.project.findMany({
-      where: { status: "ADVISOR_SCORING" },
+    where: { courseOfferingId: await selectedOfferingId(), status: "ADVISOR_SCORING" },
       select: { id: true }
     });
     const eligibilities = await Promise.all(projects.map((project) => getCompletionEligibility(project.id)));
     return eligibilities.filter((eligibility) => eligibility.eligible).length;
   });
-  const independentDashboardQueries = timer.measure("admin_independent_queries", () => Promise.all([
-    prisma.student.count(),
+  const independentDashboardQueries = timer.measure("admin_independent_queries", async () => Promise.all([
+    prisma.student.count({ where: { projects: { some: { courseOfferingId: await selectedOfferingId() } } } }),
     prisma.teacherAccountClaim.count({ where: { status: "PENDING" } }),
     statusGroupsQuery,
     prisma.project.findMany({
-      where: { status: "PENDING_ADMIN" },
+    where: { courseOfferingId: await selectedOfferingId(), status: "PENDING_ADMIN" },
       select: {
         id: true,
         currentTitleTh: true,
@@ -333,6 +338,7 @@ export default async function AdminDashboardPage({
               โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
             </span>
             <Link className="button-secondary" href="/admin/evidence">หลักฐานและ AUN-QA</Link>
+            <Link className="button-secondary" href="/admin/term-results">ปิดผล / สะสาง I</Link>
             <Link className="button-secondary" href="/admin/teachers">จัดการอาจารย์</Link>
           </>
         }

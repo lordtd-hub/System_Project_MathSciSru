@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import type { Prisma } from "@prisma/client";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -59,7 +60,7 @@ export default async function AdminRoundExceptionsPage({
   const query = getParam(params.q).trim().toLowerCase();
 
   const offering = await prisma.courseOffering.findFirst({
-    where: { status: "ACTIVE" },
+    where: { id: await selectedOfferingId() },
     orderBy: { id: "desc" },
     include: { term: true }
   });

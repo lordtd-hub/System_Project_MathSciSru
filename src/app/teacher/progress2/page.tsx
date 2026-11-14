@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -38,11 +39,12 @@ export default async function TeacherProgress2Page({
   if (!teacher) return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาส่งคำขอผูกบัญชีอาจารย์ก่อนใช้งาน" />;
 
   const params = (await searchParams) ?? {};
+  const chosenOfferingId = await selectedOfferingId();
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
   const progressRubricItemLabels = new Map(progressQaRubricItems().map((item) => [item.itemKey, item]));
   const [progress2Round, rubric] = await Promise.all([
     prisma.assessmentRound.findFirst({
-      where: { roundType: "PROGRESS_2" },
+      where: { roundType: "PROGRESS_2", courseOfferingId: chosenOfferingId },
       orderBy: { createdAt: "desc" }
     }),
     prisma.rubric.findFirst({
@@ -58,15 +60,10 @@ export default async function TeacherProgress2Page({
           courseOfferingId: progress2Round.courseOfferingId,
           scheduleProposals: { some: { assessmentKind: "PROGRESS_2", status: "CONFIRMED" } },
           committeeAssignments: { some: { teacherId: teacher.id, active: true, role: { in: ["HEAD", "MEMBER"] } } },
-          ...(isRoundOpen(progress2Round.status) ? {} : {
-            roundExceptions: {
-              some: {
-                assessmentRoundId: progress2Round.id,
-                status: "OPEN",
-                exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] }
-              }
-            }
-          })
+          ...(isRoundOpen(progress2Round.status) ? {} : { OR: [
+    { roundExceptions: { some: { assessmentRoundId: progress2Round.id, status: "OPEN", exceptionType: { in: [LATE_ROUND_EXCEPTION_TYPE, LATE_ROUND_EXCUSED_EXCEPTION_TYPE] } } } },
+    { academicResult: { status: "INCOMPLETE", continuations: { some: { assessmentRoundId: progress2Round.id, status: "OPEN" } } } }
+  ] })
         },
         include: {
           student: true,

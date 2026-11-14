@@ -1,3 +1,4 @@
+import { selectedOfferingId as currentOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InfoAlert, WarningAlert } from "@/components/ui/Alert";
@@ -39,7 +40,7 @@ export default async function AdminEvidencePage({
 
   const params = (await searchParams) ?? {};
   const selectedParam = Array.isArray(params.course_offering_id) ? params.course_offering_id[0] : params.course_offering_id;
-  const data = await getEvidenceDashboardData(selectedParam);
+  const data = await getEvidenceDashboardData(selectedParam ?? await currentOfferingId());
   const totalProjects = data.projectRows.length;
   const completedProjects = data.projectRows.filter((row) => row.completed).length;
   const missingEvidenceProjects = data.projectRows.filter((row) => row.missingEvidence.length > 0).length;

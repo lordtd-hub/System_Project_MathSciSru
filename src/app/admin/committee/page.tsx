@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -21,7 +22,7 @@ export default async function AdminCommitteePage({
 
   const [projects, teachers] = await Promise.all([
     prisma.project.findMany({
-      where: { status: "TOPIC_APPROVED" },
+    where: { courseOfferingId: await selectedOfferingId(), status: "TOPIC_APPROVED" },
       include: {
         student: true,
         committeeAssignments: { include: { teacher: true } },

@@ -10,7 +10,6 @@ import { seedBaselineRubrics } from "@/lib/admin/rubricBaseline";
 import { seedBaselineTeacherProfiles } from "@/lib/admin/teacherBaseline";
 import { resetCourseOfferingForTesting } from "@/lib/admin/testCourseReset";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
-import { parseStudentImportCsv } from "@/lib/admin/studentImportCsv";
 import { validateCourseOfferingInput } from "@/lib/admin/courseOffering";
 import { manualDemoStudents } from "@/lib/qa/manualDemo";
 import { courseLevelRoundTypes, defaultCourseRoundName, defaultCourseRoundWeight, isRoundClosed } from "@/lib/assessments/courseRounds";
@@ -30,8 +29,8 @@ import {
   lateRoundPenaltyNotice,
   roundExceptionLabel
 } from "@/lib/assessments/roundExceptions";
+import { openOfferingAtomic, importCohortAtomic } from "@/lib/terms/offeringLifecycle";
 import { termDisplayName } from "@/lib/terms/display";
-import { generatedStudentEmail, hasImportErrors, validateStudentImportRows } from "@/lib/validators/studentImport";
 import { getCompletionEligibility } from "@/lib/lifecycle/completionEligibility";
 import { adminConfirmProjectTransition } from "@/lib/lifecycle/transitions";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
@@ -85,57 +84,9 @@ function parseCourseRoundType(value: FormDataEntryValue | null): CourseRoundType
 export async function openCourseOffering(formData: FormData) {
   const adminUserId = await requireAdminUserId();
   assertRateLimit(`admin:${adminUserId}:openCourseOffering`, pilotRateLimits.workflowMutation);
-  const parsed = validateCourseOfferingInput({
-    yearBe: formData.get("year_be"),
-    termType: formData.get("term_type"),
-    courseTitle: formData.get("course_title")
-  });
+  const parsed = validateCourseOfferingInput({ yearBe: formData.get("year_be"), termType: formData.get("term_type"), courseTitle: formData.get("course_title"), courseCode: formData.get("course_code"), section: formData.get("section") });
   if (!parsed.ok) redirectWithQuery("/admin/import-students", { error: parsed.error });
-  const { yearBe, termType, courseTitle, termDisplayName: displayName } = parsed.data;
-
-  const academicYear = await prisma.academicYear.upsert({
-    where: { yearBe },
-    update: { active: true },
-    create: { yearBe, active: true }
-  });
-  const term = await prisma.term.upsert({
-    where: { academicYearId_termType: { academicYearId: academicYear.id, termType } },
-    update: { displayName, status: "ACTIVE" },
-    create: { academicYearId: academicYear.id, termType, displayName, status: "ACTIVE" }
-  });
-
-  const existingOffering = await prisma.courseOffering.findFirst({ where: { termId: term.id, courseTitle } });
-  if (existingOffering) redirect("/admin/import-students?error=course_offering_duplicate");
-
-  const offering = await prisma.courseOffering.create({
-    data: { termId: term.id, courseTitle, status: "ACTIVE" }
-  });
-
-  for (const roundType of courseLevelRoundTypes) {
-    await prisma.assessmentRound.upsert({
-      where: { courseOfferingId_roundType: { courseOfferingId: offering.id, roundType } },
-      update: { name: defaultCourseRoundName(roundType), courseWeight: defaultCourseRoundWeight(roundType), rawScoreMax: 100 },
-      create: {
-        courseOfferingId: offering.id,
-        roundType,
-        name: defaultCourseRoundName(roundType),
-        courseWeight: defaultCourseRoundWeight(roundType),
-        rawScoreMax: 100,
-        showEvaluatorNameToStudent: false
-      }
-    });
-  }
-
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: adminUserId,
-      action: "COURSE_OFFERING_OPENED",
-      entityType: "CourseOffering",
-      entityId: offering.id,
-      afterJson: { yearBe, termType, courseTitle }
-    }
-  });
-
+  const offering = await openOfferingAtomic(prisma, adminUserId, parsed.data);
   revalidatePath("/admin/import-students");
   redirectWithQuery("/admin/import-students", { success: "course_offering_opened", course_offering_id: offering.id });
 }
@@ -219,68 +170,12 @@ export async function resetCourseOfferingTestData(formData: FormData) {
 export async function importStudents(formData: FormData) {
   const adminUserId = await requireAdminUserId();
   assertRateLimit(`admin:${adminUserId}:importStudents`, pilotRateLimits.importExport);
-  const timer = createActionTimer("admin.importStudents");
-  const courseOfferingId = String(formData.get("course_offering_id"));
+  const courseOfferingId = String(formData.get("course_offering_id") ?? "");
   const csv = String(formData.get("csv") ?? "");
   assertTextSize(csv, requestSizeLimits.studentImportCsvBytes, "ไฟล์ CSV รายชื่อนักศึกษา");
-
-  const offering = await timer.measure("load_offering", () => prisma.courseOffering.findUnique({ where: { id: courseOfferingId }, select: { id: true } }));
-  if (!offering) redirect("/admin/import-students?error=course_offering_missing");
-
-  const parsedCsv = parseStudentImportCsv(csv);
-  if (!parsedCsv.ok) redirectWithQuery("/admin/import-students", { error: parsedCsv.error });
-
-  const existingProjects = await timer.measure("load_existing_projects", () => prisma.project.findMany({
-    where: { courseOfferingId },
-    include: { student: true }
-  }));
-  const existingStudents = await timer.measure("load_existing_students", () => prisma.student.findMany({ select: { studentCode: true, generatedEmail: true } }));
-  const preview = validateStudentImportRows(
-    parsedCsv.rows,
-    new Set(existingProjects.map((project) => project.student.studentCode)),
-    new Set(existingStudents.map((student) => student.generatedEmail))
-  );
-
-  if (hasImportErrors(preview)) {
-    throw new Error(preview.flatMap((row) => row.errors.map((error) => `แถว ${row.rowNumber}: ${error}`)).join("\n"));
-  }
-
-  for (const row of preview) {
-    const student = await prisma.student.upsert({
-      where: { studentCode: row.student_code },
-      update: {
-        firstNameTh: row.first_name_th,
-        lastNameTh: row.last_name_th,
-        generatedEmail: generatedStudentEmail(row.student_code)
-      },
-      create: {
-        studentCode: row.student_code,
-        firstNameTh: row.first_name_th,
-        lastNameTh: row.last_name_th,
-        generatedEmail: generatedStudentEmail(row.student_code)
-      }
-    });
-
-    await prisma.project.upsert({
-      where: { courseOfferingId_studentId: { courseOfferingId, studentId: student.id } },
-      update: {},
-      create: { courseOfferingId, studentId: student.id, status: "STUDENT_PROFILE" }
-    });
-  }
-
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: adminUserId,
-      action: "STUDENT_IMPORT",
-      entityType: "CourseOffering",
-      entityId: courseOfferingId,
-      afterJson: { importedCount: preview.length }
-    }
-  });
-
+  await importCohortAtomic(prisma, adminUserId, courseOfferingId, csv);
   revalidatePath("/admin/import-students");
   revalidatePath("/admin/students");
-  timer.end("redirect");
   redirectWithQuery("/admin/import-students", { success: "students_imported", course_offering_id: courseOfferingId });
 }
 

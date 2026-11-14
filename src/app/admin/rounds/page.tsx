@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { AdminRoundActionForm } from "@/components/ui/AdminRoundActionForm";
@@ -55,7 +56,7 @@ export default async function AdminRoundsPage({
   const params = (await searchParams) ?? {};
 
   const offering = await prisma.courseOffering.findFirst({
-    where: { status: "ACTIVE" },
+    where: { id: await selectedOfferingId() },
     orderBy: { id: "desc" },
     include: { term: true }
   });

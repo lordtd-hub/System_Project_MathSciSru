@@ -97,7 +97,10 @@ export function parseFormSnapshot(
 }
 
 export function reconcileFormValues(renderedValues: DraftMap, snapshotValues: DraftMap): DraftMap {
-  return { ...renderedValues, ...snapshotValues };
+  const values = { ...renderedValues, ...snapshotValues };
+  if (renderedValues.project_id !== undefined) values.project_id = renderedValues.project_id;
+  else delete values.project_id;
+  return values;
 }
 
 export function cancelScheduledDraftSave(timer: { current: ReturnType<typeof setTimeout> | null }) {
@@ -203,7 +206,7 @@ export function readForm(form: HTMLFormElement): DraftMap {
     if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
       continue;
     }
-    if (!element.name) continue;
+    if (!element.name || element.name === "project_id") continue;
 
     if (element instanceof HTMLInputElement && element.type === "checkbox") {
       appendCheckboxDraftValue(values, element.name, element.value, element.checked);
@@ -223,7 +226,7 @@ export function restoreForm(form: HTMLFormElement, values: DraftMap) {
     if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
       continue;
     }
-    if (!element.name || !(element.name in values)) continue;
+    if (!element.name || element.name === "project_id" || !(element.name in values)) continue;
 
     const value = values[element.name];
     if (element instanceof HTMLInputElement && element.type === "checkbox") {
@@ -235,8 +238,10 @@ export function restoreForm(form: HTMLFormElement, values: DraftMap) {
     }
   }
 
-  window.dispatchEvent(new CustomEvent("draft-form-restore", { detail: values }));
-  window.dispatchEvent(new CustomEvent("proposal-draft-restore", { detail: values }));
+  const restoredValues = { ...values };
+  delete restoredValues.project_id;
+  window.dispatchEvent(new CustomEvent("draft-form-restore", { detail: restoredValues }));
+  window.dispatchEvent(new CustomEvent("proposal-draft-restore", { detail: restoredValues }));
 }
 
 type StorageScope = "local" | "session";
@@ -261,6 +266,7 @@ export function StudentRecoverableActionForm({
   action,
   resultMode = "redirect",
   storageKey,
+  projectId,
   storage = "local",
   className,
   children,
@@ -275,6 +281,7 @@ export function StudentRecoverableActionForm({
   storage?: StorageScope;
   className?: string;
   children: React.ReactNode;
+  projectId?: string;
   successHref?: string;
   successAction?: StudentSuccessAction;
 } & Omit<React.ComponentPropsWithoutRef<"form">, "action" | "children" | "className" | "onChange" | "onInput" | "onSubmit">) {
@@ -403,6 +410,7 @@ export function StudentRecoverableActionForm({
     >
       <StudentActionResultContext.Provider value={result}>
         {resultMode === "typed" ? <StudentActionFeedback className="mb-4" /> : null}
+        {projectId ? <input type="hidden" name="project_id" value={projectId} /> : null}
         {children}
         {resultMode === "typed" ? <StudentSuccessActionView result={result} action={successAction} /> : null}
         {status !== "idle" ? (

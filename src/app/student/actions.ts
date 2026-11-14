@@ -38,7 +38,7 @@ import {
 } from "@/lib/projects/studentFutureStageMutations";
 import { notifyAdvisorRequestSubmitted } from "@/lib/notifications/workflowEmail";
 
-async function requireStudentContext() {
+async function requireStudentContext(formData: FormData) {
   const session = await auth();
   if (session?.user.role !== "STUDENT" || !session.user.id || !session.user.email) {
     throw new Error("หน้านี้สำหรับนักศึกษาเท่านั้น");
@@ -46,10 +46,12 @@ async function requireStudentContext() {
   const student = await prisma.student.findUniqueOrThrow({
     where: { generatedEmail: session.user.email.toLowerCase() }
   });
+  if (!student.active) throw new Error("บัญชีนักศึกษาไม่อยู่ในสถานะใช้งาน");
   const project = await prisma.project.findFirstOrThrow({
-    where: { studentId: student.id },
-    orderBy: { createdAt: "desc" }
+    where: { id: String(formData.get("project_id") ?? ""), studentId: student.id },
+    include: { courseOffering: true, academicResult: true }
   });
+  if (project.courseOffering.status === "CLOSED" && project.academicResult?.status !== "INCOMPLETE") throw new Error("รายวิชาปิดผลแล้ว เลือกภาคเรียนที่ต้องการก่อนส่งงาน");
   return { userId: session.user.id, student, project };
 }
 
@@ -125,7 +127,7 @@ export async function saveStudentProfile(
   formData: FormData
 ): Promise<StudentActionResult> {
   return runStudentAction("saveStudentProfile", async (requestId) => {
-    const { userId, student, project } = await requireStudentContext();
+    const { userId, student, project } = await requireStudentContext(formData);
     const outcome = await saveStudentProfileAtomic(
       prisma,
       mutationContext(userId, student, project.id),
@@ -151,7 +153,7 @@ export async function saveProjectOrigin(
   formData: FormData
 ): Promise<StudentActionResult> {
   return runStudentAction("saveProjectOrigin", async (requestId) => {
-    const { userId, student, project } = await requireStudentContext();
+    const { userId, student, project } = await requireStudentContext(formData);
     assertRateLimit(`student:${userId}:saveProjectOrigin`, pilotRateLimits.workflowMutation);
     const materialLink = typedRequiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
     const linkResult = validateMaterialLink(materialLink);
@@ -230,7 +232,7 @@ export async function saveProposalSubmission(
   formData: FormData
 ): Promise<StudentActionResult> {
   return runStudentAction("saveProposalSubmission", async (requestId) => {
-    const { userId, student, project } = await requireStudentContext();
+    const { userId, student, project } = await requireStudentContext(formData);
     assertRateLimit(`student:${userId}:saveProposalSubmission`, pilotRateLimits.workflowMutation);
     const materialLink = typedRequiredText(formData, "material_link", "ลิงก์เอกสารประกอบ");
     const linkResult = validateMaterialLink(materialLink);
@@ -325,7 +327,7 @@ export async function saveAssessmentEvidence(
   formData: FormData
 ): Promise<StudentActionResult> {
   return runStudentAction("saveAssessmentEvidence", async (requestId) => {
-    const { userId, student, project } = await requireStudentContext();
+    const { userId, student, project } = await requireStudentContext(formData);
     assertRateLimit(`student:${userId}:saveAssessmentEvidence`, pilotRateLimits.workflowMutation);
     const kindValue = String(formData.get("assessment_kind") ?? "");
     const roundTypeValue = kindValue === "FINAL_PRESENT" ? "FINAL_PRESENTATION" : kindValue;
@@ -412,7 +414,7 @@ export async function submitExamSchedule(
   formData: FormData
 ): Promise<StudentActionResult> {
   return runStudentAction("submitExamSchedule", async (requestId) => {
-    const { userId, student, project } = await requireStudentContext();
+    const { userId, student, project } = await requireStudentContext(formData);
     assertRateLimit(`student:${userId}:submitExamSchedule`, pilotRateLimits.workflowMutation);
     const roundType = String(formData.get("round_type") ?? "");
     if (!isSchedulableRoundType(roundType)) {
@@ -490,7 +492,7 @@ export async function submitReportVersion(
   formData: FormData
 ): Promise<StudentActionResult> {
   return runStudentAction("submitReportVersion", async (requestId) => {
-    const { userId, student, project } = await requireStudentContext();
+    const { userId, student, project } = await requireStudentContext(formData);
     assertRateLimit(`student:${userId}:submitReportVersion`, pilotRateLimits.workflowMutation);
     const reportLink = typedRequiredText(formData, "report_drive_link", "ลิงก์เล่มรายงาน");
     const linkResult = validateMaterialLink(reportLink);

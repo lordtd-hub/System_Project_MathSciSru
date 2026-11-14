@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { AdminOperationalSummary, AdminQueueBadge } from "@/components/ui/AdminOperationalQueue";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,6 +34,7 @@ export default async function AdminSchedulesPage() {
   if (session?.user.role !== "ADMIN") return <div className="panel">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</div>;
 
   const schedules = await prisma.examScheduleProposal.findMany({
+    where: { project: { courseOfferingId: await selectedOfferingId() } },
     include: {
       courseOffering: { include: { term: true } },
       assessmentRound: true,

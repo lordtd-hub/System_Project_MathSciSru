@@ -1,3 +1,4 @@
+import { selectedOfferingId } from "@/lib/terms/selection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -58,7 +59,7 @@ export default async function AdminProposalsPage({
   const params = (await searchParams) ?? {};
 
   const rounds = await prisma.assessmentRound.findMany({
-    where: { roundType: "PROPOSAL" },
+    where: { roundType: "PROPOSAL", courseOfferingId: await selectedOfferingId() },
     orderBy: { updatedAt: "desc" },
     include: {
       closedByAdmin: true,
@@ -109,7 +110,7 @@ export default async function AdminProposalsPage({
   const progress1Eligibility = latestProposalRound ? await getRoundEligibility(latestProposalRound.courseOfferingId, "PROGRESS_1") : { eligible: [], notReady: [] };
   const missingProposalProjects = latestProposalRound
     ? await prisma.project.findMany({
-        where: { courseOfferingId: latestProposalRound.courseOfferingId, presentationSubmissions: { none: {} } },
+    where: { courseOfferingId: latestProposalRound.courseOfferingId, presentationSubmissions: { none: {} } },
         orderBy: { student: { studentCode: "asc" } },
         select: { id: true, student: { select: { studentCode: true, firstNameTh: true, lastNameTh: true } } }
       })
