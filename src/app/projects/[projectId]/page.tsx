@@ -1,3 +1,4 @@
+import { CourseContextBadge } from "@/components/ui/CourseContextBadge";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -77,6 +78,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-5">
+      <CourseContextBadge offering={{ ...record.courseOffering, term: { displayName: record.courseOffering.termDisplayName } }} label="รายวิชาของแฟ้มนี้ — อ่านอย่างเดียว" />
       <PageHeader
         title="แฟ้มโครงงาน"
         description="อ่านข้อมูลรวมของโครงงานนี้แบบย้อนหลัง โดยไม่มีการบันทึกหรือเปลี่ยนสถานะจากหน้านี้"

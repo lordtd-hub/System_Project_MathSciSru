@@ -1,3 +1,4 @@
+import { lockTeacherProject } from "@/lib/terms/teacherWritable";
 import type { AssessmentRoundType, AttemptType, ProjectStatus } from "@prisma/client";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { applyLatePenalty, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
@@ -75,7 +76,7 @@ function snapshotFromSubmission(submission: {
 export async function persistPresentationScore(input: PersistPresentationScoreInput) {
   return retryScoreTransaction(() => prisma.$transaction(async (tx) => {
     await tx.$executeRawUnsafe("SET LOCAL lock_timeout = '5000ms'");
-    await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${input.projectId} FOR UPDATE`;
+    await lockTeacherProject(tx, input.projectId);
 
     const [project, round, roundExceptions, confirmedSchedule] = await Promise.all([
       tx.project.findUnique({
@@ -94,7 +95,7 @@ export async function persistPresentationScore(input: PersistPresentationScoreIn
     ]);
 
     if (!project || !round || round.roundType !== input.roundType || project.courseOfferingId !== round.courseOfferingId) throw new ScorePersistenceConflict("score_context_missing");
-    if (project.courseOffering.status === "CLOSED" && project.academicResult?.status !== "INCOMPLETE") throw new ScorePersistenceConflict("score_course_results_closed");
+    if (project.courseOffering.status !== "ACTIVE") throw new ScorePersistenceConflict("score_course_results_closed");
     if (!input.allowedProjectStatuses.includes(project.status)) throw new ScorePersistenceConflict("score_project_state_changed");
     if (!confirmedSchedule) throw new ScorePersistenceConflict("score_schedule_not_confirmed");
     if (!project.committeeAssignments.some(

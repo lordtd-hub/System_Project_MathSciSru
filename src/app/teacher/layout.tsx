@@ -5,7 +5,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   return (
     <>
       <RoleDashboardNav role="teacher" />
-      <AcademicContextBar />
+      <AcademicContextBar contextRole="TEACHER" />
       {children}
     </>
   );

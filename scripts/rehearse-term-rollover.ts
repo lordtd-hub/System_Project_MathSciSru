@@ -187,6 +187,38 @@ async function main() {
     await rejects(() => importCohortAtomic(prisma, admin.id, next.id, csv(["9600000000001,Synthetic,Rollback", "9900000000010,Wrong,Identity"])), "identity overwrite denied");
     check(!await prisma.student.findUnique({ where: { studentCode: "9600000000001" } }), "partial import rolled back");
     pass("new2/2569 P01 synthetic7 isolated; reused student identity retained; duplicate/racing imports and partial-failure rollback verified");
+
+    stage = "successive late enrollment imports after an offering is already open";
+    const lateInput = { ...input("SEMESTER_1", "L01"), yearBe: 2570, termDisplayName: "Synthetic late-enrollment test only" };
+    const late = await openOfferingAtomic(prisma, admin.id, lateInput);
+    const firstRow = "9500000000001,Synthetic,LateOne";
+    check((await importCohortAtomic(prisma, admin.id, late.id, csv([firstRow]))).createdProjects === 1, "initial import after empty opening");
+    const firstStudent = await prisma.student.findUniqueOrThrow({ where: { studentCode: "9500000000001" } });
+    const firstProject = await prisma.project.findUniqueOrThrow({ where: { courseOfferingId_studentId: { courseOfferingId: late.id, studentId: firstStudent.id } } });
+    await prisma.project.update({ where: { id: firstProject.id }, data: { currentTitleTh: "Synthetic existing project evidence must remain" } });
+    const retainedFirstProject = JSON.stringify(await prisma.project.findUniqueOrThrow({ where: { id: firstProject.id } }));
+    const laterRows = [firstRow, "9500000000002,Synthetic,LateTwo"];
+    check((await importCohortAtomic(prisma, admin.id, late.id, csv(laterRows))).createdProjects === 1, "later import adds only the new student");
+    check(JSON.stringify(await prisma.project.findUniqueOrThrow({ where: { id: firstProject.id } })) === retainedFirstProject, "later import retains initial project fields and ID");
+    const repeat = await importCohortAtomic(prisma, admin.id, late.id, csv(laterRows));
+    check(repeat.createdProjects === 0 && repeat.unchanged, "later duplicate import is unchanged");
+    const racingLateRows = csv([...laterRows, "9500000000003,Synthetic,LateThree"]);
+    const lateRace = await Promise.all([importCohortAtomic(prisma, admin.id, late.id, racingLateRows), importCohortAtomic(prisma, admin.id, late.id, racingLateRows)]);
+    check(lateRace.reduce((sum, result) => sum + result.createdProjects, 0) === 1 && await prisma.project.count({ where: { courseOfferingId: late.id } }) === 3, "concurrent later import creates one enrollment only");
+    const studentActor = await prisma.user.create({ data: { email: "synthetic.late.student@student.sru.ac.th", name: "Synthetic student actor", globalRole: "STUDENT" } });
+    const deniedCsv = csv(["9500000000004,Synthetic,Denied"]);
+    await rejects(() => importCohortAtomic(prisma, teachers[1].userId, late.id, deniedCsv), "teacher cannot add late enrollment");
+    await rejects(() => importCohortAtomic(prisma, studentActor.id, late.id, deniedCsv), "student cannot add late enrollment");
+    const laterTerm = await openOfferingAtomic(prisma, admin.id, { ...lateInput, termType: "SEMESTER_2", section: "L02" });
+    check((await importCohortAtomic(prisma, admin.id, laterTerm.id, csv([firstRow]))).createdProjects === 1, "same student can enroll separately in another term");
+    const laterProject = await prisma.project.findUniqueOrThrow({ where: { courseOfferingId_studentId: { courseOfferingId: laterTerm.id, studentId: firstStudent.id } } });
+    check(laterProject.id !== firstProject.id && laterProject.studentId === firstStudent.id, "same Student ID, separate Project IDs");
+    // Fixture state only: this tests the import gate, not the academic-result closing workflow.
+    await prisma.courseOffering.update({ where: { id: late.id }, data: { status: "CLOSED" } });
+    await rejects(() => importCohortAtomic(prisma, admin.id, late.id, deniedCsv), "even admin cannot import into closed offering");
+    check(!await prisma.student.findUnique({ where: { studentCode: "9500000000004" } }), "denied imports create no student");
+    check(JSON.stringify(await prisma.project.findUniqueOrThrow({ where: { id: firstProject.id } })) === retainedFirstProject && await oldEvidence() === before, "late and cross-term imports retain all original project/score/report/schedule evidence");
+    pass("successive late import: first then new/duplicate/racing additions, same student across terms, teacher/student/closed denial and old evidence retention");
     stage = "I continuation policy and actor/term permission guards";
     const noPenalty = { actorId: admin.id, projectId: iProjects[0].id, roundId: round("PROGRESS_2").id, expectedVersion: 1, reason: "Synthetic continuation", reference: "SYNTHETIC-EXPLICIT-POLICY", penaltyDecision: "NO_ADDITIONAL_PENALTY" as const };
     await rejects(() => openIncompleteContinuation(prisma, { ...noPenalty, actorId: teachers[1].userId }), "only admin opens continuation");
@@ -282,7 +314,13 @@ async function main() {
     check(rlsResult.split(/\r?\n/).includes("0"), "RLS exposes zero result rows even with accidental SELECT");
     await rejects(async () => sql("term_rollover_main", "BEGIN; SET LOCAL ROLE anon; SELECT count(*) FROM project_academic_results; ROLLBACK;"), "browser table remains ungranted");
     pass("RLS blocks synthetic result disclosure; temporary SELECT rolled back, browser role remains ungranted");
-    if (pg17) await writeFile(join(workspace, "term-postgres17-core-verification.json"), JSON.stringify({ utc: new Date().toISOString(), runId, serverVersion, passed, syntheticOnly: true, productionConnections: 0, emailsSent: 0, uiCompleted: false, migrationSHA256: createHash("sha256").update(await readFile(join(app, "prisma/migrations/20261113160000_term_results_and_cohorts/migration.sql"))).digest("hex") }, null, 2));
+    const { adminProposalDecisionScope, adminNotificationScope } = await import("../src/lib/admin/dashboardScope");
+    check(await prisma.assessmentAttempt.count({ where: adminProposalDecisionScope(old.id) }) > 0, "old proposal evidence supplies a positive cross-term regression");
+    check(await prisma.assessmentAttempt.count({ where: adminProposalDecisionScope(next.id) }) === 0, "new-term dashboard excludes old proposal decision counts");
+    check(await prisma.notification.count({ where: adminNotificationScope(old.id) }) > 0, "old project notifications exist for cross-term regression");
+    check(await prisma.notification.count({ where: adminNotificationScope(next.id) }) === 0, "new-term dashboard excludes old project notifications");
+    pass("admin proposal queue and project notifications use the selected offering; old positive/new negative database regression");
+    if (pg17) await writeFile(join(workspace, "staff-controls-postgres17-core-verification.json"), JSON.stringify({ utc: new Date().toISOString(), runId, serverVersion, passed, syntheticOnly: true, productionConnections: 0, emailsSent: 0, uiCompleted: false, migrationSHA256: createHash("sha256").update(await readFile(join(app, "prisma/migrations/20261113160000_term_results_and_cohorts/migration.sql"))).digest("hex") }, null, 2));
     if (withUi) {
       const uiTools = fullUi ? await import("./term-ui-fixture") : null;
       const scenario = uiTools ? await uiTools.prepareFullUiFixture(prisma, admin.id, teachers) : null;
@@ -294,28 +332,28 @@ async function main() {
       check(ready, "local UI ready");
       const stop = join(root, "ui-complete");
       const checkFile = join(root, "ui-check");
-      await writeFile(join(workspace, "term-local-ui-session.json"), JSON.stringify({ runId, url: `http://127.0.0.1:${uiPort}`, stopFile: stop, checkFile, scenario, oldOfferingId: old.id, newOfferingId: next.id, oldIProjectId: iProjects[1].id, oldIStudentId: iProjects[1].studentId, resolvedIProjectId: context.projectId, resolvedIStudentId: context.studentId, teacherIds: teachers.map(teacher => ({ id: teacher.id, role: teacher.role })), syntheticOnly: true }, null, 2));
-      console.log("UI_READY: see term-local-ui-session.json (no credentials); local server only, QA disabled.");
+      await writeFile(join(workspace, "staff-controls-local-ui-session.json"), JSON.stringify({ runId, url: `http://127.0.0.1:${uiPort}`, stopFile: stop, checkFile, scenario, oldOfferingId: old.id, newOfferingId: next.id, oldIProjectId: iProjects[1].id, oldIStudentId: iProjects[1].studentId, resolvedIProjectId: context.projectId, resolvedIStudentId: context.studentId, teacherIds: teachers.map(teacher => ({ id: teacher.id, role: teacher.role })), syntheticOnly: true }, null, 2));
+      console.log("UI_READY: see staff-controls-local-ui-session.json (no credentials); local server only, QA disabled.");
       for (let attempt = 0; attempt < (fullUi ? 7200 : 2400); attempt++) {
         if (scenario && uiTools && existsSync(checkFile)) {
           await unlink(checkFile);
-          try { await writeFile(join(workspace, "term-full-ui-progress.json"), JSON.stringify(await uiTools.verifyFullUiFixture(prisma, scenario), null, 2)); }
-          catch (error) { await writeFile(join(workspace, "term-full-ui-progress.json"), JSON.stringify({ passed: false, stage: String((error as Error).message), syntheticOnly: true }, null, 2)); }
+          try { await writeFile(join(workspace, "staff-controls-term-full-ui-progress.json"), JSON.stringify(await uiTools.verifyFullUiFixture(prisma, scenario), null, 2)); }
+          catch (error) { await writeFile(join(workspace, "staff-controls-term-full-ui-progress.json"), JSON.stringify({ passed: false, stage: String((error as Error).message), syntheticOnly: true }, null, 2)); }
         }
         if (existsSync(stop)) break;
         if (attempt === (fullUi ? 7199 : 2399)) throw new Error("UI test window expired"); await pause(500);
       }
       if (scenario && uiTools) {
-        await writeFile(join(workspace, "term-full-ui-verification.json"), JSON.stringify({ utc: new Date().toISOString(), runId, ...await uiTools.verifyFullUiFixture(prisma, scenario) }, null, 2));
+        await writeFile(join(workspace, "staff-controls-term-full-ui-verification.json"), JSON.stringify({ utc: new Date().toISOString(), runId, ...await uiTools.verifyFullUiFixture(prisma, scenario) }, null, 2));
         pass("full actual browser I/E closure, continuation,6 committee approvals,4 scores,2 report versions/3 passes,advisor score,Admin closeout and explicit I resolution; pre-existing scores preserved");
       }
       pass("local UI inspection window completed");
     }
-    await writeFile(join(workspace, pg17 ? "term-postgres17-verification.json" : "term-postgres-verification.json"), JSON.stringify({ utc: new Date().toISOString(), runId, serverVersion, passed, syntheticOnly: true, productionConnections: 0, emailsSent: 0, uiRequested: withUi, fullBrowserWorkflowRequested: fullUi, migration: "20261113160000_term_results_and_cohorts", migrationSHA256: createHash("sha256").update(await readFile(join(app, "prisma/migrations/20261113160000_term_results_and_cohorts/migration.sql"))).digest("hex") }, null, 2));
+    await writeFile(join(workspace, pg17 ? "staff-controls-postgres17-verification.json" : "staff-controls-postgres-verification.json"), JSON.stringify({ utc: new Date().toISOString(), runId, serverVersion, passed, syntheticOnly: true, productionConnections: 0, emailsSent: 0, uiRequested: withUi, fullBrowserWorkflowRequested: fullUi, migration: "20261113160000_term_results_and_cohorts", migrationSHA256: createHash("sha256").update(await readFile(join(app, "prisma/migrations/20261113160000_term_results_and_cohorts/migration.sql"))).digest("hex") }, null, 2));
   } catch (error) {
     const value = error as { message?: string; code?: string; stderr?: Buffer };
     console.error(`FAIL at ${stage}: ${clean(String(value.code ?? value.message ?? "unknown"))}`);
-    if (value.stderr) await writeFile(join(workspace, "term-postgres-error.log"), clean(value.stderr.toString("utf8")));
+    if (value.stderr) await writeFile(join(workspace, "staff-controls-term-postgres-error.log"), clean(value.stderr.toString("utf8")));
     process.exitCode = 1;
   } finally {
     if (web && web.exitCode === null && web.pid) { try { execFileSync("taskkill.exe", ["/PID", String(web.pid), "/T", "/F"], { stdio: "pipe", windowsHide: true }); } catch { process.exitCode = 1; } }
@@ -324,8 +362,8 @@ async function main() {
     if (started) { try { execFileSync(join(pg, "pg_ctl.exe"), ["-D", data, "-m", "fast", "-w", "-t", "30", "stop"], { stdio: "pipe", windowsHide: true }); safelyStopped = true; } catch { process.exitCode = 1; console.error("Test database stop requires attention; retaining directory."); } }
     const actualRoot = await realpath(root), actualWorkspace = await realpath(workspace);
     check(actualRoot.toLowerCase().startsWith(`${actualWorkspace}${sep}`.toLowerCase()) && basename(actualRoot).startsWith("term-rehearsal-") && await readFile(marker, "utf8") === runId, "bounded synthetic cleanup");
-    if (existsSync(pgLog)) await writeFile(join(workspace, "term-postgres-server.log"), clean(await readFile(pgLog, "utf8")));
-    await writeFile(join(workspace, "term-local-web.log"), clean(webLog));
+    if (existsSync(pgLog)) await writeFile(join(workspace, "staff-controls-term-postgres-server.log"), clean(await readFile(pgLog, "utf8")));
+    await writeFile(join(workspace, "staff-controls-term-local-web.log"), clean(webLog));
     if (safelyStopped) {
       await rm(actualRoot, { recursive: true, force: true });
       console.log("CLEANUP: stopped only own test processes; removed nonce-verified synthetic database directory; sanitized logs retained.");

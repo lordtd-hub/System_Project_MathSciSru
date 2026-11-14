@@ -3,9 +3,10 @@ import { canViewerSeeAttemptScore, canViewProjectRecord } from "./projectRecord"
 
 function baseProject() {
   return {
+    courseOffering: { status: "ACTIVE" },
     student: { generatedEmail: "student01@student.sru.ac.th" },
     advisorRequests: [{ advisorTeacherId: "teacher-advisor", status: "APPROVED" }],
-    committeeAssignments: [{ teacherId: "teacher-committee", active: true }],
+    committeeAssignments: [{ teacherId: "teacher-committee", active: true, role: "MEMBER" }],
     scheduleProposals: [{ approvals: [{ teacherId: "teacher-schedule" }] }],
     attempts: [{ evaluatorAssignments: [{ teacherId: "teacher-evaluator" }] }],
     reportVersions: [{ reviews: [{ reviewerTeacherId: "teacher-report" }] }],
@@ -38,6 +39,16 @@ describe("canViewProjectRecord", () => {
   it("denies unrelated or unlinked teachers", () => {
     expect(canViewProjectRecord(baseProject(), { role: "TEACHER", teacherId: "teacher-other", email: "other@sru.test" }).allowed).toBe(false);
     expect(canViewProjectRecord(baseProject(), { role: "TEACHER", email: "missing-profile@sru.test" }).allowed).toBe(false);
+  });
+
+  it("limits closed history to former advisors, including inactive former advisor appointments", () => {
+    const project = baseProject();
+    project.courseOffering.status = "CLOSED";
+    for (const teacherId of ["teacher-advisor", "teacher-score"]) expect(canViewProjectRecord(project, { role: "TEACHER", teacherId }).allowed).toBe(true);
+    for (const teacherId of ["teacher-committee", "teacher-schedule", "teacher-evaluator", "teacher-report"]) expect(canViewProjectRecord(project, { role: "TEACHER", teacherId }).allowed).toBe(false);
+    project.committeeAssignments.push({ teacherId: "former-advisor", active: false, role: "ADVISOR" });
+    expect(canViewProjectRecord(project, { role: "TEACHER", teacherId: "former-advisor" }).allowed).toBe(true);
+    expect(canViewProjectRecord(project, { role: "STUDENT", email: project.student.generatedEmail }).allowed).toBe(true);
   });
 
   it.each(["PENDING", "REJECTED", "CANCELLED"])("does not grant project access from a %s advisor request", (status) => {

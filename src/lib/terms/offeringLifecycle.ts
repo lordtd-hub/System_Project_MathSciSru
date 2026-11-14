@@ -12,22 +12,29 @@ export async function openOfferingAtomic(db: Db, actorId: string, input: {
   return retryScoreTransaction(() => db.$transaction(async tx => {
     const actor = await tx.user.findUnique({ where: { id: actorId }, select: { active: true, globalRole: true } });
     if (!actor?.active || actor.globalRole !== "ADMIN") throw new AcademicWorkflowError("ไม่อนุญาต");
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('course-offerings:single-active'))::text`;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`offering:${input.yearBe}:${input.termType}`}))::text`;
     const year = await tx.academicYear.upsert({ where: { yearBe: input.yearBe }, update: {}, create: { yearBe: input.yearBe } });
     const previousTerm = await tx.term.findUnique({ where: { academicYearId_termType: { academicYearId: year.id, termType: input.termType } } });
-    if (previousTerm?.status === "CLOSED") throw new AcademicWorkflowError("ภาคเรียนปิดผลแล้ว ต้องตรวจข้อมูลก่อนเปิดใหม่");
     const term = previousTerm ?? await tx.term.create({ data: { academicYearId: year.id, termType: input.termType, displayName: input.termDisplayName, status: "ACTIVE" } });
     const existing = await tx.courseOffering.findFirst({ where: { termId: term.id, ...(input.courseCode
       ? { courseCode: input.courseCode, section: input.section } : { courseTitle: input.courseTitle, courseCode: null, section: null }) } });
     if (existing) {
       if (existing.status === "CLOSED") throw new AcademicWorkflowError("รายวิชาปิดผลแล้ว ไม่เปิดซ้ำอัตโนมัติ");
-      return { id: existing.id, unchanged: true };
+      if (existing.status === "ACTIVE") return { id: existing.id, unchanged: true };
     }
-    const offering = await tx.courseOffering.create({ data: { termId: term.id, courseTitle: input.courseTitle, courseCode: input.courseCode, section: input.section, status: "ACTIVE" } });
-    for (const roundType of courseLevelRoundTypes) await tx.assessmentRound.create({ data: {
+    const active = await tx.courseOffering.findFirst({ where: { status: "ACTIVE" }, include: { term: true } });
+    if (active) throw new AcademicWorkflowError(`ยังมีรายวิชาเปิดอยู่: ${active.courseCode ?? active.courseTitle} ${active.section ?? ""} ${active.term.displayName} กรุณาปิดผลรายวิชานั้นก่อนเปิดรายวิชาใหม่ ระบบไม่ปิดหรือส่ง REG อัตโนมัติ`);
+    if (term.status === "CLOSED") await tx.term.update({ where: { id: term.id }, data: { status: "ACTIVE" } });
+    const offering = existing
+      ? await tx.courseOffering.update({ where: { id: existing.id }, data: { status: "ACTIVE" } })
+      : await tx.courseOffering.create({ data: { termId: term.id, courseTitle: input.courseTitle, courseCode: input.courseCode, section: input.section, status: "ACTIVE" } });
+    for (const roundType of courseLevelRoundTypes) await tx.assessmentRound.upsert({
+      where: { courseOfferingId_roundType: { courseOfferingId: offering.id, roundType } }, update: {}, create: {
       courseOfferingId: offering.id, roundType, name: defaultCourseRoundName(roundType), courseWeight: defaultCourseRoundWeight(roundType), rawScoreMax: 100
     } });
-    await tx.auditLog.create({ data: { actorUserId: actorId, action: "COURSE_OFFERING_OPENED", entityType: "CourseOffering", entityId: offering.id,
+    await tx.auditLog.create({ data: { actorUserId: actorId, action: existing ? "COURSE_OFFERING_ACTIVATED" : "COURSE_OFFERING_OPENED", entityType: "CourseOffering", entityId: offering.id,
+      beforeJson: { offeringStatus: existing?.status ?? null, termStatus: previousTerm?.status ?? null },
       afterJson: { yearBe: input.yearBe, termType: input.termType, courseCode: input.courseCode, section: input.section, courseTitle: input.courseTitle } } });
     return { id: offering.id, unchanged: false };
   }, { isolationLevel: "Serializable", timeout: 20000 }));

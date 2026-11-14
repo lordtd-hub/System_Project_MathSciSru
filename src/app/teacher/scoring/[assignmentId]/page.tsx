@@ -43,7 +43,7 @@ export default async function ProposalScoringPage({
             assessmentRound: true,
             proposalResult: true,
             presentationSubmission: true,
-            project: { include: { student: true } }
+            project: { include: { student: true, courseOffering: true } }
           }
         },
         teacher: { select: { active: true, isInternal: true, canEvaluateProposal: true } },
@@ -64,6 +64,7 @@ export default async function ProposalScoringPage({
     );
   }
 
+  if (assignment.assessmentAttempt.project.courseOffering.status !== "ACTIVE") return <div className="panel">รายวิชานี้ไม่ได้เปิดอยู่ งาน I ของวิชาปิดให้ผู้ดูแลระบบบันทึก</div>;
   if (assignment.evaluatorUserId !== session.user.id) return <div className="panel">ไม่สามารถประเมินงานของผู้อื่นได้</div>;
   if (!assignment.teacher?.active || !assignment.teacher.isInternal || !assignment.teacher.canEvaluateProposal) {
     return (

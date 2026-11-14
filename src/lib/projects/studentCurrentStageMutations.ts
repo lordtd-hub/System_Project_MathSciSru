@@ -72,9 +72,8 @@ async function lockProject(tx: Prisma.TransactionClient, projectId: string, stud
   await tx.$queryRaw`SELECT co.id FROM course_offerings co JOIN projects p ON p.course_offering_id=co.id WHERE p.id=${projectId} AND p.student_id=${studentId} FOR SHARE OF co`;
   const rows = await tx.$queryRaw<Array<{ id: string }>>`
     SELECT p.id FROM projects p JOIN course_offerings co ON co.id=p.course_offering_id
-LEFT JOIN project_academic_results r ON r.project_id=p.id
 WHERE p.id=${projectId} AND p.student_id=${studentId}
-AND (co.status <> 'CLOSED' OR r.status='INCOMPLETE') FOR UPDATE OF p
+AND co.status = 'ACTIVE' FOR UPDATE OF p
   `;
   if (!rows.length) throw new StudentActionConflictError("PROJECT_NOT_FOUND", "ไม่พบโครงงานล่าสุด กรุณารีเฟรชหน้าแล้วลองใหม่");
 }

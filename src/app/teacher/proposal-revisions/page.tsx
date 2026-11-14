@@ -1,4 +1,4 @@
-import { selectedOfferingId } from "@/lib/terms/selection";
+import { selectedTeacherOfferingId as selectedOfferingId } from "@/lib/terms/teacherSelection";
 import { auth } from "@/auth";
 import { reviewProposalRevision } from "@/app/teacher/actions";
 import { EmptyState } from "@/components/ui/EmptyState";

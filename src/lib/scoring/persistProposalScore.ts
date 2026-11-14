@@ -1,3 +1,4 @@
+import { lockTeacherProject } from "@/lib/terms/teacherWritable";
 import { applyLatePenalty, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
 import { isProposalScoreEditable } from "./scoreEditability";
@@ -69,7 +70,7 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
       select: { assessmentAttempt: { select: { projectId: true } } }
     });
     if (!context) throw new ScorePersistenceConflict("score_context_missing");
-    await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${context.assessmentAttempt.projectId} FOR UPDATE`;
+    await lockTeacherProject(tx, context.assessmentAttempt.projectId);
     await tx.$queryRaw`SELECT id FROM "evaluator_assignments" WHERE id = ${input.assignmentId} FOR UPDATE`;
 
     const assignment = await tx.evaluatorAssignment.findUnique({
@@ -96,7 +97,7 @@ export async function persistProposalScore(input: PersistProposalScoreInput) {
       throw new ScorePersistenceConflict("score_evaluator_not_eligible");
     }
     if (assignment.assessmentAttempt.proposalResult) throw new ScorePersistenceConflict("proposal_decision_already_saved");
-    if (assignment.assessmentAttempt.project.courseOffering.status === "CLOSED" && assignment.assessmentAttempt.project.academicResult?.status !== "INCOMPLETE") throw new ScorePersistenceConflict("score_course_results_closed");
+    if (assignment.assessmentAttempt.project.courseOffering.status !== "ACTIVE") throw new ScorePersistenceConflict("score_course_results_closed");
     const latestProposalAttempt = await tx.assessmentAttempt.findFirst({
       where: {
         projectId: assignment.assessmentAttempt.projectId,

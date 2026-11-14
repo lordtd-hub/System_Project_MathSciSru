@@ -1,4 +1,4 @@
-import { selectedOfferingId } from "@/lib/terms/selection";
+import { selectedTeacherOfferingId as selectedOfferingId } from "@/lib/terms/teacherSelection";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";

@@ -140,7 +140,7 @@ function createHarness(
       })
     },
     project: {
-      findUnique: vi.fn(async () => ({ ...state.project, student: { ...state.project.student } })),
+      findUnique: vi.fn(async () => ({ ...state.project, courseOffering: { status: "ACTIVE" }, student: { ...state.project.student } })),
       update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         Object.assign(state.project, data);
         return { ...state.project };
