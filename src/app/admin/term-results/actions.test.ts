@@ -4,7 +4,7 @@ vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/db", () => ({ prisma: {} }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: mocks.set }) }));
-vi.mock("@/lib/terms/selection", () => ({ COURSE_OFFERING_COOKIE: "selected-course-offering" }));
+vi.mock("@/lib/terms/selection", () => ({ COURSE_OFFERING_COOKIE: "selected-course-offering", getCourseOfferingChoices: async () => [{ id: "other-active", status: "ACTIVE", term: { id: "current-term", termType: "SEMESTER_2", academicYear: { yearBe: 2569 } } }] }));
 vi.mock("@/lib/security/rateLimit", () => ({ assertRateLimit: vi.fn(), pilotRateLimits: { workflowMutation: {} } }));
 vi.mock("@/lib/terms/incomplete", () => ({ closeOfferingWithIncomplete: mocks.close, openIncompleteContinuation: vi.fn(), resolveIncomplete: vi.fn() }));
 import { closeAcademicOffering } from "./actions";
@@ -20,6 +20,7 @@ describe("course closure keeps the reviewed academic context", () => {
     expect(mocks.close).toHaveBeenCalledWith({}, expect.objectContaining({ offeringId: "reviewed-old-course", decisions: [{ projectId: "old-i", grade: "I", reason: "more time" }] }));
     expect(mocks.set).toHaveBeenCalledWith("selected-course-offering", "reviewed-old-course", expect.objectContaining({ httpOnly: true, sameSite: "lax", path: "/" }));
     expect(mocks.close.mock.invocationCallOrder[0]).toBeLessThan(mocks.set.mock.invocationCallOrder[0]);
+    expect(mocks.set).toHaveBeenCalledWith("selected-admin-course-anchor", "other-active", expect.objectContaining({ httpOnly: true, sameSite: "lax" }));
   });
   it("does not pin a course after a failed or stale closure", async () => {
     mocks.close.mockRejectedValueOnce(new Error("stale roster"));

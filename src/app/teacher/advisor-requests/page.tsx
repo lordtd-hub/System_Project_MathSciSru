@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { selectedOfferingId } from "@/lib/terms/selection";
+import { selectedTeacherOfferingId as selectedOfferingId } from "@/lib/terms/teacherSelection";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { reviewAdvisorRequest } from "@/app/teacher/actions";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";

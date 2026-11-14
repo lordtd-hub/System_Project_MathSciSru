@@ -1,4 +1,5 @@
 import { selectedOfferingId } from "@/lib/terms/selection";
+import { adminNotificationScope, adminProposalDecisionScope, adminProposalVoteScope } from "@/lib/admin/dashboardScope";
 import Link from "next/link";
 import { Suspense } from "react";
 import { auth } from "@/auth";
@@ -106,9 +107,9 @@ async function getRecentAdminProjects() {
   });
 }
 
-function getUnreadAdminNotifications() {
+async function getUnreadAdminNotifications() {
   return prisma.notification.findMany({
-    where: { status: "UNREAD" },
+    where: adminNotificationScope(await selectedOfferingId()),
     select: { id: true, title: true, body: true },
     orderBy: { createdAt: "desc" },
     take: 5
@@ -211,7 +212,7 @@ export default async function AdminDashboardPage({
       take: 12
     }),
     prisma.proposalVote.findMany({
-      where: { project: { status: { in: ["PROPOSAL_REVIEW", "PROPOSAL_ADMIN_DECISION"] } } },
+      where: adminProposalVoteScope(await selectedOfferingId()),
       select: {
         projectId: true,
         teacherId: true,
@@ -226,16 +227,7 @@ export default async function AdminDashboardPage({
       }
     }),
     prisma.assessmentAttempt.count({
-      where: {
-        assessmentRound: { roundType: "PROPOSAL" },
-        proposalResult: null,
-        evaluatorAssignments: {
-          some: {
-            status: "SUBMITTED",
-            scoreSubmission: { status: "SUBMITTED" }
-          }
-        }
-      }
+      where: adminProposalDecisionScope(await selectedOfferingId())
     })
   ]));
 
@@ -330,6 +322,7 @@ export default async function AdminDashboardPage({
         description="ติดตามขั้นตอนโครงงานทั้งระบบ ยืนยันโครงงาน จัดการการเสนอหัวข้อ แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
         actions={
           <>
+            <Link className="button-primary" href="/admin/import-students">จัดการรายวิชา / เปิดรายวิชาใหม่</Link>
             <span
               className={`inline-flex min-h-11 items-center rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm ${
                 testingToolsEnabled ? "badge-warn" : "badge-lock"
@@ -338,7 +331,8 @@ export default async function AdminDashboardPage({
               โหมดทดสอบ: {testingToolsEnabled ? "เปิด" : "ปิด"}
             </span>
             <Link className="button-secondary" href="/admin/evidence">หลักฐานและ AUN-QA</Link>
-            <Link className="button-secondary" href="/admin/term-results">ปิดผล / สะสาง I</Link>
+            <Link className="button-secondary" href="/admin/term-results">ปิดผลรายวิชา</Link>
+            <Link className="button-secondary" href="/admin/i-score-entry">สะสาง I</Link>
             <Link className="button-secondary" href="/admin/teachers">จัดการอาจารย์</Link>
           </>
         }

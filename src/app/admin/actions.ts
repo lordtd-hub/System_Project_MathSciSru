@@ -1,9 +1,11 @@
 "use server";
+import { completeProjectAtomic } from "@/lib/lifecycle/completeProject";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { AcademicWorkflowError } from "@/lib/terms/errors";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { assertNoDuplicateTeacherEmail, normalizeTeacherEmail } from "@/lib/admin/teacherEmail";
 import { seedBaselineRubrics } from "@/lib/admin/rubricBaseline";
@@ -86,7 +88,14 @@ export async function openCourseOffering(formData: FormData) {
   assertRateLimit(`admin:${adminUserId}:openCourseOffering`, pilotRateLimits.workflowMutation);
   const parsed = validateCourseOfferingInput({ yearBe: formData.get("year_be"), termType: formData.get("term_type"), courseTitle: formData.get("course_title"), courseCode: formData.get("course_code"), section: formData.get("section") });
   if (!parsed.ok) redirectWithQuery("/admin/import-students", { error: parsed.error });
-  const offering = await openOfferingAtomic(prisma, adminUserId, parsed.data);
+  let offering: Awaited<ReturnType<typeof openOfferingAtomic>>;
+  try { offering = await openOfferingAtomic(prisma, adminUserId, parsed.data); }
+  catch (error) {
+    if (error instanceof AcademicWorkflowError || (error && typeof error === "object" && "code" in error && error.code === "P2002")) {
+      redirectWithQuery("/admin/import-students", { error: "course_offering_open_failed" });
+    }
+    throw error;
+  }
   revalidatePath("/admin/import-students");
   redirectWithQuery("/admin/import-students", { success: "course_offering_opened", course_offering_id: offering.id });
 }
@@ -1083,60 +1092,7 @@ export async function completeProjectCloseout(formData: FormData) {
   const projectId = String(formData.get("project_id") ?? "");
   if (!projectId) throw new Error("ไม่พบโครงงานที่ต้องการยืนยันจบ");
 
-  const project = await timer.measure("load_project", () => prisma.project.findUniqueOrThrow({ where: { id: projectId } }));
-  if (project.status === "COMPLETED") {
-    throw new Error("โครงงานนี้เสร็จสมบูรณ์แล้ว");
-  }
-
-  const eligibility = await timer.measure("completion_eligibility", () => getCompletionEligibility(projectId));
-  if (!eligibility.eligible) {
-    throw new Error(`ยังยืนยันจบโครงงานไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
-  }
-
-  await timer.measure("closeout_transaction", () => prisma.$transaction(async (tx) => {
-    const updated = await tx.project.updateMany({
-      where: { id: projectId, status: "ADVISOR_SCORING" },
-      data: { status: "COMPLETED" }
-    });
-    if (updated.count !== 1) throw new Error("โครงงานนี้ถูกยืนยันจบแล้วหรือสถานะเปลี่ยนไป กรุณารีเฟรชหน้า");
-
-    await tx.projectStatusHistory.create({
-      data: {
-        projectId,
-        fromStatus: project.status,
-        toStatus: "COMPLETED",
-        reason: "ADMIN_MARKED_COMPLETED",
-        actorUserId: adminUserId,
-        metadataJson: {
-          progress1Score: eligibility.hasProgress1Score,
-          progress2Score: eligibility.hasProgress2Score,
-          finalPresentationScore: eligibility.hasFinalPresentationScore,
-          reportApproved: eligibility.hasReachedReportApproved,
-          advisorScore: eligibility.hasAdvisorScore
-        }
-      }
-    });
-    await tx.projectTimelineEvent.create({
-      data: {
-        projectId,
-        eventType: "PROJECT_COMPLETED",
-        eventTitle: "โครงงานเสร็จสมบูรณ์",
-        eventDescription: "ผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้วและยืนยันจบโครงงานเสร็จสมบูรณ์",
-        actorUserId: adminUserId,
-        relatedEntityType: "Project",
-        relatedEntityId: projectId
-      }
-    });
-    await tx.auditLog.create({
-      data: {
-        actorUserId: adminUserId,
-        action: "PROJECT_COMPLETED",
-        entityType: "Project",
-        entityId: projectId,
-        afterJson: { status: "COMPLETED" }
-      }
-    });
-  }));
+  await completeProjectAtomic(prisma, { actorId: adminUserId, projectId, expectedVersion: String(formData.get("workflow_version") ?? ""), requestId: String(formData.get("request_id") ?? "") });
 
   revalidatePath("/admin/closeout");
   timer.end("redirect");

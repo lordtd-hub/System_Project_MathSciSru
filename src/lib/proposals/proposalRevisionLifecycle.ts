@@ -1,3 +1,4 @@
+import { lockTeacherProject } from "@/lib/terms/teacherWritable";
 import type { Decision, Prisma, PrismaClient, ProjectStatus, SubmissionStatus } from "@prisma/client";
 import { summarizeProposalScores } from "@/lib/scoring/proposalSummary";
 import {
@@ -496,11 +497,13 @@ export async function submitProposalRevisionAtomic(
   const now = hooks.now?.() ?? new Date();
   return db.$transaction(async (tx) => {
     await requireActiveActor(tx, input.actorUserId, ["STUDENT"]);
+    await tx.$queryRaw`SELECT co.id FROM course_offerings co JOIN projects p ON p.course_offering_id=co.id WHERE p.id=${input.projectId} FOR SHARE OF co`;
     await lockProject(tx, input.projectId);
     const project = await tx.project.findUnique({
       where: { id: input.projectId },
-      include: { student: { select: { id: true } } }
+      include: { student: { select: { id: true } }, courseOffering: true }
     });
+    if (project?.courseOffering.status !== "ACTIVE") throw new ProposalLifecycleConflictError("COURSE_CLOSED", "รายวิชานี้ไม่ได้เปิดอยู่ ประวัติเดิมอ่านได้ แต่การสะสาง I ให้ผู้ดูแลระบบบันทึก");
     if (!project || project.student.id !== input.actorStudentId) {
       throw new ProposalLifecycleConflictError(
         "STUDENT_PROJECT_NOT_AUTHORIZED",
@@ -663,7 +666,7 @@ export async function reviewProposalRevisionByAdvisorAtomic(
   const now = hooks.now?.() ?? new Date();
   return db.$transaction(async (tx) => {
     await requireActiveActor(tx, input.actorUserId, ["TEACHER", "ADMIN"]);
-    await lockProject(tx, input.projectId);
+    await lockTeacherProject(tx, input.projectId);
     const [teacher, project, context, advisor] = await Promise.all([
       tx.teacher.findUnique({
         where: { userId: input.actorUserId },

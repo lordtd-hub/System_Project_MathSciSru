@@ -8,7 +8,7 @@ import { isRoundOpen } from "@/lib/assessments/courseRounds";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
 import { applyLatePenalty, hasOpenLateRoundException, requiresLateRoundPenalty } from "@/lib/assessments/roundExceptions";
 import { prisma } from "@/lib/db";
-import { assertProjectCourseWritable, lockWritableProject } from "@/lib/terms/writableProject";
+import { assertTeacherProjectWritable as assertProjectCourseWritable, lockTeacherProject as lockWritableProject } from "@/lib/terms/teacherWritable";
 import { createActionTimer } from "@/lib/diagnostics/actionTiming";
 import { redirectWithQuery } from "@/lib/navigation/redirectWithQuery";
 import { isCurrentAdvisorRequestReviewable } from "@/lib/projects/currentAdvisorRequest";
@@ -201,7 +201,7 @@ export async function openProposalScoring(
           select: { projectId: true }
         });
         if (!context) return null;
-        await tx.$queryRaw`SELECT id FROM "projects" WHERE id = ${context.projectId} FOR UPDATE`;
+        await lockWritableProject(tx, context.projectId);
         const attempt = await tx.assessmentAttempt.findUnique({
           where: { id },
           select: {
@@ -313,6 +313,7 @@ export async function reviewAdvisorRequest(formData: FormData) {
   if (!requestContext) redirectWithQuery("/teacher/advisor-requests", { error: "advisor_request_stale" });
 
   const reviewOutcome = await prisma.$transaction(async (tx) => {
+    await lockWritableProject(tx, requestContext.projectId);
     await tx.$queryRaw<Array<{ id: string }>>`
       SELECT "id" FROM "projects" WHERE "id" = ${requestContext.projectId} FOR UPDATE
     `;
@@ -495,6 +496,7 @@ export async function reviewExamSchedule(formData: FormData) {
   }
 
   const scheduleReviewOutcome = await prisma.$transaction(async (tx) => {
+    await lockWritableProject(tx, schedule.projectId);
     await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "projects" WHERE "id" = ${schedule.projectId} FOR UPDATE`;
     const currentSchedule = await tx.examScheduleProposal.findUnique({ where: { id: schedule.id } });
     if (
@@ -1393,6 +1395,7 @@ export async function reviewReportVersion(formData: FormData) {
     reportVersion.project.advisorRequests
   );
   const reviewOutcome = await timer.measure("review_transaction", () => prisma.$transaction(async (tx) => {
+    await lockWritableProject(tx, reportVersion.projectId);
     await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "projects" WHERE "id" = ${reportVersion.projectId} FOR UPDATE`;
     const [currentProject, latestReportVersion] = await Promise.all([
       tx.project.findUnique({ where: { id: reportVersion.projectId }, select: { status: true } }),

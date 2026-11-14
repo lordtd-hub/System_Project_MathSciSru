@@ -1,6 +1,10 @@
-import type { AssessmentRoundType, ProjectStatus } from "@prisma/client";
+import type { AssessmentRoundType, Prisma, ProjectStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isSubmittedScoreStatus } from "@/lib/scoring/scoreSubmissionStatus";
+import { allRequiredReportReviewersPassed, requiredReportReviewerIds } from "@/lib/reports/reportWorkflow";
+import { readExternalEvidence } from "@/lib/terms/incompleteExternalEvidence";
+import { workflowDigest } from "@/lib/terms/workflowDigest";
+import { advisorCriteria, totalAdvisorScore, validateAdvisorScore, type AdvisorScoreInput } from "@/lib/scoring/advisorScoring";
 
 export type CompletionCheckInput = {
   currentState: ProjectStatus;
@@ -15,6 +19,9 @@ export type CompletionCheckInput = {
 export type CompletionEligibility = CompletionCheckInput & {
   eligible: boolean;
   missingRequirements: string[];
+  workflowVersion?: string;
+  closedIncomplete?: boolean;
+  externalEvidenceId?: string | null;
 };
 
 export const completionRequirementLabels = {
@@ -27,10 +34,10 @@ export const completionRequirementLabels = {
   reportRevision: "ยังมีคำขอแก้ไขรายงานที่ยังไม่เสร็จสิ้น"
 } as const;
 
-export function evaluateCompletionEligibility(input: CompletionCheckInput): CompletionEligibility {
+export function evaluateCompletionEligibility(input: CompletionCheckInput, options: { allowVerifiedExternalState?: boolean } = {}): CompletionEligibility {
   const missingRequirements: string[] = [];
 
-  if (input.currentState !== "ADVISOR_SCORING") missingRequirements.push(completionRequirementLabels.state);
+  if (input.currentState !== "ADVISOR_SCORING" && !options.allowVerifiedExternalState) missingRequirements.push(completionRequirementLabels.state);
   if (!input.hasProgress1Score) missingRequirements.push(completionRequirementLabels.progress1);
   if (!input.hasProgress2Score) missingRequirements.push(completionRequirementLabels.progress2);
   if (!input.hasFinalPresentationScore) missingRequirements.push(completionRequirementLabels.final);
@@ -62,15 +69,22 @@ function hasSubmittedScoreForRound(
   );
 }
 
-export async function getCompletionEligibility(projectId: string): Promise<CompletionEligibility> {
-  const project = await prisma.project.findUniqueOrThrow({
+type Reader = Pick<Prisma.TransactionClient, "project" | "auditLog">;
+export async function getCompletionEligibilityFromDb(db: Reader, projectId: string, options: { allowCompleted?: boolean } = {}): Promise<CompletionEligibility> {
+  const project = await db.project.findUniqueOrThrow({
     where: { id: projectId },
     include: {
+      academicResult: true,
+      courseOffering: { include: { term: true } },
+      committeeAssignments: { orderBy: { id: "asc" } },
+      advisorRequests: { orderBy: { id: "asc" } },
       attempts: {
+        orderBy: [{ attemptNo: "desc" }, { id: "asc" }],
         include: {
           assessmentRound: true,
           evaluatorAssignments: {
-            include: { scoreSubmission: true }
+            orderBy: { id: "asc" },
+            include: { scoreSubmission: { include: { scoreItems: { orderBy: { id: "asc" } } } } }
           }
         }
       },
@@ -80,29 +94,59 @@ export async function getCompletionEligibility(projectId: string): Promise<Compl
       },
       reportVersions: {
         orderBy: { versionNo: "desc" },
-        take: 1,
-        include: { reviews: true }
+        include: { reviews: { orderBy: { id: "asc" } } }
       },
       advisorScore: true
     }
   });
 
+  const closedIncomplete = project.courseOffering.status === "CLOSED" && project.academicResult?.status === "INCOMPLETE";
+  const external = closedIncomplete ? await readExternalEvidence(db, project) : null;
+
   const latestReportVersion = project.reportVersions[0];
-  const hasUnresolvedReportRevision = latestReportVersion?.reviews.some((review) => review.decision === "FAIL") ?? false;
-  const hasReportApprovalEvidence =
+  const hasUnresolvedReportRevision = !external?.valid && (latestReportVersion?.reviews.some((review) => review.decision === "FAIL") ?? false);
+  const hasReportApprovalEvidence = closedIncomplete
+    ? external?.valid || !!latestReportVersion && allRequiredReportReviewersPassed({ requiredReviewerIds: requiredReportReviewerIds(project.committeeAssignments, project.advisorRequests), reviews: latestReportVersion.reviews })
+    :
     project.status === "REPORT_APPROVED" ||
     project.status === "ADVISOR_SCORING" ||
     project.status === "COMPLETED" ||
     project.statusHistory.length > 0 ||
     Boolean(latestReportVersion?.reviews.some((review) => review.decision === "PASS"));
 
-  return evaluateCompletionEligibility({
+  const strictRoundComplete = (roundType: AssessmentRoundType) => {
+    const committee = project.committeeAssignments.filter(a => a.active && ["HEAD", "MEMBER"].includes(a.role));
+    if (!committee.some(a => a.role === "HEAD") || !committee.some(a => a.role === "MEMBER") || new Set(committee.map(a => a.teacherId)).size < 2) return false;
+    const attempt = project.attempts.find(a => a.assessmentRound.roundType === roundType);
+    return committee.every(a => attempt?.evaluatorAssignments.some(e => e.teacherId === a.teacherId
+      && isSubmittedScoreStatus(e.scoreSubmission?.status) && e.scoreSubmission?.totalScore != null
+      && Number.isFinite(Number(e.scoreSubmission.totalScore)) && Number(e.scoreSubmission.totalScore) >= 0 && Number(e.scoreSubmission.totalScore) <= 100));
+  };
+  const advisor = project.advisorScore;
+  const advisorMarks = advisor ? { responsibility: advisor.responsibilityScore, researchProcess: advisor.researchProcessScore,
+    problemSolving: advisor.problemSolvingScore, communication: advisor.communicationScore, professionalism: advisor.professionalismScore } : null;
+  const actualAdvisor = !!advisor && (project.committeeAssignments.some(a => a.active && a.role === "ADVISOR" && a.teacherId === advisor.advisorTeacherId)
+    || project.advisorRequests.some(a => a.status === "APPROVED" && a.advisorTeacherId === advisor.advisorTeacherId));
+  const strictAdvisor = actualAdvisor && advisor?.status === "SUBMITTED" && advisor.score != null && advisorMarks
+    && advisorCriteria.every(c => advisorMarks[c.key] !== null) && validateAdvisorScore(advisorMarks as AdvisorScoreInput).length === 0
+    && Number(advisor.score) === totalAdvisorScore(advisorMarks as AdvisorScoreInput);
+  const scoreIds = project.attempts.flatMap(a => a.evaluatorAssignments.flatMap(e => e.scoreSubmission ? [e.scoreSubmission.id] : []));
+  const auditVersions = await db.auditLog.findMany({ where: { OR: [
+    { entityType: "ScoreSubmission", entityId: { in: scoreIds } }, ...(advisor ? [{ entityType: "AdvisorScore", entityId: advisor.id }] : [])
+  ] }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], distinct: ["entityType", "entityId"], select: { id: true, entityType: true, entityId: true } });
+  const allowedExternalState = closedIncomplete && ["IN_PROGRESS", "FINAL_DONE", "REPORT_REVIEW", "REPORT_APPROVED", "ADVISOR_SCORING"].includes(project.status);
+  const evaluated = evaluateCompletionEligibility({
     currentState: project.status,
-    hasProgress1Score: hasSubmittedScoreForRound(project.attempts, "PROGRESS_1"),
-    hasProgress2Score: hasSubmittedScoreForRound(project.attempts, "PROGRESS_2"),
-    hasFinalPresentationScore: hasSubmittedScoreForRound(project.attempts, "FINAL_PRESENTATION"),
-    hasReachedReportApproved: hasReportApprovalEvidence,
-    hasAdvisorScore: project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null,
+    hasProgress1Score: closedIncomplete ? strictRoundComplete("PROGRESS_1") : hasSubmittedScoreForRound(project.attempts, "PROGRESS_1"),
+    hasProgress2Score: closedIncomplete ? strictRoundComplete("PROGRESS_2") : hasSubmittedScoreForRound(project.attempts, "PROGRESS_2"),
+    hasFinalPresentationScore: closedIncomplete ? strictRoundComplete("FINAL_PRESENTATION") : hasSubmittedScoreForRound(project.attempts, "FINAL_PRESENTATION"),
+    hasReachedReportApproved: !!hasReportApprovalEvidence,
+    hasAdvisorScore: closedIncomplete ? !!strictAdvisor : project.advisorScore?.status === "SUBMITTED" && project.advisorScore.score != null,
     hasUnresolvedReportRevision
-  });
+  }, { allowVerifiedExternalState: allowedExternalState || !!options.allowCompleted && project.status === "COMPLETED" });
+  return { ...evaluated, closedIncomplete, externalEvidenceId: external?.valid ? external.latest!.id : null,
+    workflowVersion: workflowDigest({ project, externalEvidenceId: external?.latest?.id ?? null, externalValid: external?.valid ?? false, auditVersions }) };
+}
+export async function getCompletionEligibility(projectId: string): Promise<CompletionEligibility> {
+  return getCompletionEligibilityFromDb(prisma, projectId);
 }

@@ -37,7 +37,7 @@ describe("admin course offering workflow source", () => {
     expect(service).toContain("unchanged: true");
     expect(service).toContain("tx.courseOffering.create");
     expect(service).toContain("COURSE_OFFERING_OPENED");
-    expect(service).toContain("tx.assessmentRound.create");
+    expect(service).toContain("tx.assessmentRound.upsert");
     expect(service).toContain('isolationLevel: "Serializable"');
   });
 

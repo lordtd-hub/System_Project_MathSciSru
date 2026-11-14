@@ -1,4 +1,4 @@
-import { selectedOfferingId } from "@/lib/terms/selection";
+import { selectedTeacherOfferingId as selectedOfferingId } from "@/lib/terms/teacherSelection";
 import { scheduleRoundAccessWhere } from "@/lib/terms/scheduleAccessWhere";
 import Link from "next/link";
 import type { AssessmentRoundType, AssessmentStatus, CommitteeRole, Prisma, ScoreStatus } from "@prisma/client";

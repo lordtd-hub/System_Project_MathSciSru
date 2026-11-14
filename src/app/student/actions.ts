@@ -51,7 +51,7 @@ async function requireStudentContext(formData: FormData) {
     where: { id: String(formData.get("project_id") ?? ""), studentId: student.id },
     include: { courseOffering: true, academicResult: true }
   });
-  if (project.courseOffering.status === "CLOSED" && project.academicResult?.status !== "INCOMPLETE") throw new Error("รายวิชาปิดผลแล้ว เลือกภาคเรียนที่ต้องการก่อนส่งงาน");
+  if (project.courseOffering.status !== "ACTIVE") throw new Error("รายวิชานี้ไม่ได้เปิดอยู่ ประวัติเดิมอ่านได้ แต่การสะสาง I ของวิชาปิดให้ผู้ดูแลระบบบันทึก");
   return { userId: session.user.id, student, project };
 }
 

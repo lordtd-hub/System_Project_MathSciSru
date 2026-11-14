@@ -155,6 +155,7 @@ const fake = vi.hoisted(() => {
       })
     },
     project: {
+      findUnique: async () => ({ courseOffering: { status: "ACTIVE" } }),
       findUniqueOrThrow: async () => ({ id: "project-1", status: working.projectStatus }),
       update: async () => write(() => {
         working.projectStatus = "PROPOSAL_ADMIN_DECISION";

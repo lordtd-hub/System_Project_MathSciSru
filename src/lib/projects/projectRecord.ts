@@ -19,9 +19,10 @@ export function canViewerSeeAttemptScore(
 }
 
 type ProjectRecordAccessProject = {
+  courseOffering: { status: string };
   student: { generatedEmail: string };
   advisorRequests: { advisorTeacherId: string; status: string }[];
-  committeeAssignments: { teacherId: string; active: boolean }[];
+  committeeAssignments: { teacherId: string; active: boolean; role: string }[];
   scheduleProposals: { approvals: { teacherId: string }[] }[];
   attempts: { evaluatorAssignments: { teacherId: string | null }[] }[];
   reportVersions: { reviews: { reviewerTeacherId: string }[] }[];
@@ -49,6 +50,11 @@ export function canViewProjectRecord(project: ProjectRecordAccessProject, viewer
   if (!roles.has("TEACHER") || !teacherId) {
     return { allowed: false };
   }
+
+  const previousAdvisor = project.advisorRequests.some(request => request.status === "APPROVED" && request.advisorTeacherId === teacherId)
+    || project.committeeAssignments.some(assignment => assignment.role === "ADVISOR" && assignment.teacherId === teacherId)
+    || project.advisorScore?.advisorTeacherId === teacherId;
+  if (project.courseOffering.status !== "ACTIVE") return previousAdvisor ? { allowed: true, viewerRole: "TEACHER" } : { allowed: false };
 
   const teacherRelated =
     project.advisorRequests.some((request) => request.status === "APPROVED" && request.advisorTeacherId === teacherId) ||
@@ -86,6 +92,9 @@ export type ProjectRecordDto = {
   courseOffering: {
     id: string;
     courseTitle: string;
+    courseCode: string | null;
+    section: string | null;
+    status: string;
     termDisplayName: string;
   };
   advisorRequests: {
@@ -210,6 +219,11 @@ function buildActionLinks(viewerRole: ProjectRecordViewerRole): ProjectRecordAct
 }
 
 export async function getProjectRecordForViewer(projectId: string, viewer: Viewer): Promise<ProjectRecordResult> {
+  // Re-read current privileges for direct history URLs, including revoked/deactivated profiles.
+  if (!viewer?.id) return { status: "UNAUTHORIZED" };
+  const current = await prisma.user.findUnique({ where: { id: viewer.id }, select: { active: true, globalRole: true, email: true, teacher: { select: { id: true, active: true } } } });
+  if (!current?.active) return { status: "UNAUTHORIZED" };
+  viewer = { ...viewer, role: current.globalRole, email: current.email, roles: [current.globalRole], teacherId: current.teacher?.active ? current.teacher.id : null };
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
@@ -231,7 +245,7 @@ export async function getProjectRecordForViewer(projectId: string, viewer: Viewe
       courseOffering: {
         select: {
           id: true,
-          courseTitle: true,
+          courseTitle: true, courseCode: true, section: true, status: true,
           term: { select: { displayName: true } }
         }
       },
@@ -394,6 +408,7 @@ export async function getProjectRecordForViewer(projectId: string, viewer: Viewe
       courseOffering: {
         id: project.courseOffering.id,
         courseTitle: project.courseOffering.courseTitle,
+        courseCode: project.courseOffering.courseCode, section: project.courseOffering.section, status: project.courseOffering.status,
         termDisplayName: project.courseOffering.term.displayName
       },
       advisorRequests: project.advisorRequests.map((request) => ({
@@ -492,7 +507,9 @@ export async function getProjectRecordForViewer(projectId: string, viewer: Viewe
         occurredAt: event.occurredAt,
         actorName: event.actor?.name ?? event.actor?.email ?? null
       })),
-      actionLinks: buildActionLinks(viewerRole)
+      actionLinks: project.courseOffering.status !== "ACTIVE" && viewerRole !== "ADMIN"
+        ? [{ label: viewerRole === "STUDENT" ? "กลับประวัติโครงงาน" : "กลับงานที่เคยเป็นที่ปรึกษา", href: viewerRole === "STUDENT" ? "/student/history" : "/teacher/advisor-history" }]
+        : buildActionLinks(viewerRole)
     }
   };
 }

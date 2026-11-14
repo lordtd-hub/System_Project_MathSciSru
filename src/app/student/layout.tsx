@@ -12,7 +12,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
     <>
       <RoleDashboardNav role="student" />
       <StudentSchedulePostSubmitGuard />
-      <AcademicContextBar />
+      <AcademicContextBar contextRole="STUDENT" />
       {readOnly ? <p className="panel mb-3">รายวิชานี้ปิดผลแล้ว เปิดอ่านข้อมูลเดิมได้ การส่ง/แก้งานปิดอยู่</p> : null}
       <fieldset disabled={readOnly} className="contents">{children}</fieldset>
     </>

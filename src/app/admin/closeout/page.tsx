@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import type { ProjectStatus } from "@prisma/client";
 import { selectedOfferingId } from "@/lib/terms/selection";
 import { auth } from "@/auth";
 import { ActionFeedback } from "@/components/ui/ActionFeedback";
@@ -13,7 +15,7 @@ import { completeProjectCloseout } from "../actions";
 type CloseoutProject = {
   id: string;
   currentTitleTh: string | null;
-  status: "REPORT_APPROVED" | "ADVISOR_SCORING" | "COMPLETED";
+  status: ProjectStatus;
   student: {
     studentCode: string;
     firstNameTh: string;
@@ -33,7 +35,7 @@ function ChecklistRow({ label, done }: { label: string; done: boolean }) {
 function CloseoutCard({ project, eligibility }: { project: CloseoutProject; eligibility: CompletionEligibility }) {
   const completed = project.status === "COMPLETED";
   const displayStatus =
-    completed ? "โครงงานเสร็จสมบูรณ์" : eligibility.hasAdvisorScore ? "พร้อมให้ผู้ดูแลระบบยืนยันจบโครงงาน" : undefined;
+    completed ? "โครงงานเสร็จสมบูรณ์" : eligibility.eligible ? "พร้อมให้ผู้ดูแลระบบยืนยันจบโครงงาน" : undefined;
   return (
     <article className="panel space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -59,7 +61,7 @@ function CloseoutCard({ project, eligibility }: { project: CloseoutProject; elig
         <div className="app-alert alert-success text-sm font-medium">โครงงานเสร็จสมบูรณ์แล้ว</div>
       ) : eligibility.eligible ? (
         <form action={completeProjectCloseout} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <input type="hidden" name="project_id" value={project.id} />
+          <input type="hidden" name="project_id" value={project.id} /><input type="hidden" name="workflow_version" value={eligibility.workflowVersion} /><input type="hidden" name="request_id" value={randomUUID()} />
           <SubmitButton confirmMessage="ยืนยันว่าโครงงานเสร็จสมบูรณ์หรือไม่? ระบบจะบันทึกประวัติว่าผู้ดูแลระบบตรวจสอบเงื่อนไขครบแล้ว" pendingText="กำลังยืนยัน...">
             ยืนยันจบโครงงาน
           </SubmitButton>
@@ -88,7 +90,7 @@ export default async function AdminCloseoutPage({
   const params = (await searchParams) ?? {};
 
   const projects = await prisma.project.findMany({
-    where: { courseOfferingId: await selectedOfferingId(), status: { in: ["REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] } },
+    where: { courseOfferingId: await selectedOfferingId(), OR: [{ status: { in: ["REPORT_APPROVED", "ADVISOR_SCORING", "COMPLETED"] } }, { courseOffering: { status: "CLOSED" }, academicResult: { status: "INCOMPLETE" } }] },
     include: { student: true },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }]
   });

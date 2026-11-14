@@ -24,23 +24,24 @@ describe("admin closeout source guards", () => {
     const slice = actions.slice(start);
 
     expect(slice).toContain("requireAdminUserId()");
-    expect(slice).toContain("getCompletionEligibility(projectId)");
-    expect(slice).toContain("!eligibility.eligible");
-    expect(slice).toContain("project.updateMany");
-    expect(slice).toContain('status: "ADVISOR_SCORING"');
-    expect(slice).toContain("updated.count !== 1");
-    expect(slice).toContain('toStatus: "COMPLETED"');
-    expect(slice).toContain('reason: "ADMIN_MARKED_COMPLETED"');
-    expect(slice).toContain('eventType: "PROJECT_COMPLETED"');
-    expect(slice).toContain('action: "PROJECT_COMPLETED"');
+    expect(slice).toContain("completeProjectAtomic(prisma");
+    const service = read("src/lib/lifecycle/completeProject.ts");
+    expect(service).toContain("getCompletionEligibilityFromDb(tx, project.id)");
+    expect(service).toContain("!eligibility.eligible");
+    expect(service).toContain("project.updateMany");
+    expect(service).toContain("eligibility.workflowVersion !== input.expectedVersion");
+    expect(service).toContain("changed.count !== 1");
+    expect(service).toContain('toStatus: "COMPLETED"');
+    expect(service).toContain('"ADMIN_MARKED_COMPLETED"');
+    expect(service).toContain('eventType: "PROJECT_COMPLETED"');
+    expect(service).toContain('action: "PROJECT_COMPLETED"');
   });
 
   it("does not allow repeated closeout to write duplicate completion history", () => {
-    const actions = read("src/app/admin/actions.ts");
-    const start = actions.indexOf("export async function completeProjectCloseout");
-    const slice = actions.slice(start);
-
-    expect(slice).toContain('project.status === "COMPLETED"');
-    expect(slice).toContain("โครงงานนี้เสร็จสมบูรณ์แล้ว");
+    const service = read("src/lib/lifecycle/completeProject.ts");
+    expect(service).toContain('project.status === "COMPLETED"');
+    expect(service).toContain("payloadHash");
+    expect(service).toContain("unchanged: true");
+    expect(service).toContain("โครงงานปิดจบแล้ว");
   });
 });

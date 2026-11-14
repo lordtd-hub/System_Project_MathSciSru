@@ -2,7 +2,8 @@
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { COURSE_OFFERING_COOKIE } from "@/lib/terms/selection";
+import { COURSE_OFFERING_COOKIE, getCourseOfferingChoices } from "@/lib/terms/selection";
+import { COURSE_CONTEXT_ANCHOR_COOKIE, defaultStaffOffering } from "@/lib/terms/staffSelection";
 import { prisma } from "@/lib/db";
 import { closeOfferingWithIncomplete, openIncompleteContinuation, resolveIncomplete } from "@/lib/terms/incomplete";
 import { assertRateLimit, pilotRateLimits } from "@/lib/security/rateLimit";
@@ -34,6 +35,8 @@ export async function closeAcademicOffering(_previous: AcademicActionResult, for
   await closeOfferingWithIncomplete(prisma, { actorId, offeringId, expectedProjectIds: ids(form, "project_ids"), decisions, reason: text(form, "reason"), reference: text(form, "reference") });
   // Keep the just-reviewed course visible when another offering remains ACTIVE.
   (await cookies()).set(COURSE_OFFERING_COOKIE, offeringId, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
+  const current = defaultStaffOffering(await getCourseOfferingChoices());
+  if (current) (await cookies()).set(COURSE_CONTEXT_ANCHOR_COOKIE, current.id, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
   revalidatePath("/", "layout");
   });
 }

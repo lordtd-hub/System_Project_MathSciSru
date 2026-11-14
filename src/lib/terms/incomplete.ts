@@ -3,6 +3,8 @@ import { retryScoreTransaction } from "@/lib/scoring/transactionRetry";
 import type { IncompletePenaltyDecision, Prisma, PrismaClient } from "@prisma/client";
 import { missingPresentationTypes, validateClosingDecisions } from "./incompletePolicy";
 import { isPresentationAssessmentComplete } from "@/lib/assessments/presentationCompletion";
+import { getCompletionEligibilityFromDb } from "@/lib/lifecycle/completionEligibility";
+import { loadExternalEvidence } from "./incompleteExternalEvidence";
 
 const resolutionGrades = new Set(["A", "B+", "B", "C+", "C", "D+", "D", "E", "S", "U"]);
 type Db = Pick<PrismaClient, "$transaction">;
@@ -30,13 +32,14 @@ export async function closeOfferingWithIncomplete(db: Db, input: {
   requireText(input.reason, "เหตุผล"); requireText(input.reference, "หลักฐาน");
   return retryScoreTransaction(() => db.$transaction(async tx => {
     await requireAdmin(tx, input.actorId);
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('course-offerings:single-active'))::text`;
     const initialOffering = await tx.courseOffering.findUniqueOrThrow({ where: { id: input.offeringId } });
     await tx.$queryRaw`SELECT id FROM terms WHERE id=${initialOffering.termId} FOR UPDATE`;
     await lockOffering(tx, input.offeringId);
     const offering = await tx.courseOffering.findUniqueOrThrow({ where: { id: input.offeringId } });
     await tx.$queryRaw`SELECT id FROM projects WHERE course_offering_id=${offering.id} ORDER BY id FOR UPDATE`;
     const projects = await tx.project.findMany({ where: { courseOfferingId: offering.id }, include: { academicResult: true, attempts: { include: { assessmentRound: { select: { roundType: true } }, evaluatorAssignments: { select: { scoreSubmission: { select: { status: true } } } } } } }, orderBy: { id: "asc" } });
-    if (!projects.length || !exactProjectSet(projects.map(p => p.id), input.expectedProjectIds)) throw new AcademicWorkflowError("รายชื่อเปลี่ยน กรุณาตรวจใหม่");
+    if (!exactProjectSet(projects.map(p => p.id), input.expectedProjectIds)) throw new AcademicWorkflowError("รายชื่อเปลี่ยน กรุณาตรวจใหม่");
     if (projects.some(project => project.status === "COMPLETED" && missingPresentationTypes(project.attempts).length)) throw new AcademicWorkflowError("พบงาน COMPLETED ที่หลักฐานคะแนนสอบไม่ครบ ต้องตรวจเป็นกรณี ไม่บันทึกผลหรือเติมคะแนนแทน");
     const unfinished = projects.filter(p => p.status !== "COMPLETED");
     if (!validateClosingDecisions(unfinished.map(p => p.id), input.decisions)) throw new AcademicWorkflowError("ต้องยืนยัน I หรือ E พร้อมเหตุผลให้ตรงกับผู้ที่ผลยังไม่ครบทุกคน");
@@ -96,9 +99,9 @@ export async function openIncompleteContinuation(db: Db, input: {
   }, { isolationLevel: "Serializable" }));
 }
 
-export async function resolveIncomplete(db: Db, input: { actorId: string; projectId: string; expectedVersion: number; grade: string; reference: string; reason: string }) {
+export async function resolveIncomplete(db: Db, input: { actorId: string; projectId: string; expectedVersion: number; grade: string; reference?: string; reason?: string; useExternalEvidence?: boolean; expectedWorkflowVersion?: string }) {
   if (!resolutionGrades.has(input.grade)) throw new AcademicWorkflowError("ต้องระบุผลที่ผู้มีอำนาจยืนยัน ไม่คำนวณเกรดอัตโนมัติ");
-  requireText(input.reference, "หลักฐาน"); requireText(input.reason, "เหตุผล");
+  if (!input.useExternalEvidence) { requireText(input.reference ?? "", "หลักฐาน"); requireText(input.reason ?? "", "เหตุผล"); }
   return retryScoreTransaction(() => db.$transaction(async tx => {
     await requireAdmin(tx, input.actorId);
     const initial = await tx.project.findUniqueOrThrow({ where: { id: input.projectId } });
@@ -106,16 +109,24 @@ export async function resolveIncomplete(db: Db, input: { actorId: string; projec
     await tx.$queryRaw`SELECT id FROM projects WHERE id=${initial.id} FOR UPDATE`;
     const project = await tx.project.findUniqueOrThrow({ where: { id: initial.id }, include: { academicResult: true } });
     const previous = project.academicResult;
-    if (previous?.status === "RESOLVED" && previous.version === input.expectedVersion + 1 && previous.resolutionGrade === input.grade && previous.resolutionReference === input.reference) return { unchanged: true };
+    if (previous?.status === "RESOLVED" && previous.version === input.expectedVersion + 1 && previous.resolutionGrade === input.grade
+      && (input.useExternalEvidence ? previous.resolutionReference?.startsWith("ADMIN_EXTERNAL_EVIDENCE:") : previous.resolutionReference === input.reference)) return { unchanged: true };
     if (previous?.status !== "INCOMPLETE" || previous.version !== input.expectedVersion || project.status !== "COMPLETED") throw new AcademicWorkflowError("ยังสะสางงานไม่ครบ หรือสถานะ I เปลี่ยน");
+    const eligibility = await getCompletionEligibilityFromDb(tx, project.id, { allowCompleted: true });
+    if (!eligibility.eligible) throw new AcademicWorkflowError(`ยังสะสาง I ไม่ได้: ${eligibility.missingRequirements.join(", ")}`);
+    if (input.useExternalEvidence && eligibility.workflowVersion !== input.expectedWorkflowVersion) throw new AcademicWorkflowError("คะแนนหรือหลักฐานเปลี่ยนแล้ว กรุณาตรวจข้อมูลล่าสุดก่อนบันทึกผล");
+    const external = input.useExternalEvidence ? await loadExternalEvidence(tx, project.id) : null;
+    if (input.useExternalEvidence && !external?.valid) throw new AcademicWorkflowError("ยังไม่มีการรับรองเอกสารจริงปัจจุบันจากผู้ดูแลระบบ");
+    const reference = external?.valid ? `ADMIN_EXTERNAL_EVIDENCE:${external.latest!.id}` : input.reference!;
+    const reason = external?.valid ? "ผู้ดูแลระบบตรวจเอกสารจริงและคะแนนครบแล้ว บันทึกผลที่ผู้มีอำนาจยืนยัน" : input.reason!;
     const changed = await tx.projectAcademicResult.updateMany({ where: { projectId: project.id, status: "INCOMPLETE", version: input.expectedVersion }, data: {
-      status: "RESOLVED", resolutionGrade: input.grade, resolvedAt: new Date(), resolutionReason: input.reason, resolutionReference: input.reference, version: { increment: 1 }
+      status: "RESOLVED", resolutionGrade: input.grade, resolvedAt: new Date(), resolutionReason: reason, resolutionReference: reference, version: { increment: 1 }
     } });
     if (changed.count !== 1) throw new AcademicWorkflowError("สถานะ I เปลี่ยน กรุณาตรวจใหม่");
     await tx.incompleteContinuation.updateMany({ where: { projectId: project.id, status: "OPEN" }, data: { status: "RESOLVED", resolvedAt: new Date() } });
     await tx.auditLog.create({ data: { actorUserId: input.actorId, action: "ACADEMIC_I_RESOLVED", entityType: "Project", entityId: project.id,
-      beforeJson: { status: previous.status, originalGrade: "I", version: previous.version, reason: previous.reason, reference: previous.reference }, afterJson: { status: "RESOLVED", grade: input.grade, reference: input.reference, version: previous.version + 1 }, metadataJson: { reason: input.reason } } });
-    await tx.projectTimelineEvent.create({ data: { projectId: project.id, eventType: "ACADEMIC_I_RESOLVED", eventTitle: "สะสางผล I แล้ว", eventDescription: input.reason, actorUserId: input.actorId } });
+      beforeJson: { status: previous.status, originalGrade: "I", version: previous.version, reason: previous.reason, reference: previous.reference }, afterJson: { status: "RESOLVED", grade: input.grade, reference, version: previous.version + 1 }, metadataJson: { reason } } });
+    await tx.projectTimelineEvent.create({ data: { projectId: project.id, eventType: "ACADEMIC_I_RESOLVED", eventTitle: "สะสางผล I แล้ว", eventDescription: reason, actorUserId: input.actorId } });
     return { unchanged: false };
   }, { isolationLevel: "Serializable" }));
 }

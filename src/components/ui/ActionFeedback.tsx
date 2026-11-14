@@ -39,6 +39,7 @@ const successMessages: Record<string, string> = {
 };
 
 const errorMessages: Record<string, string> = {
+  course_offering_open_failed: "ยังเปิดรายวิชาไม่ได้ อาจมีรายวิชาเปิดอยู่ กรุณาตรวจบริบทและปิดผลรายวิชาเดิมก่อน ไม่มีการปิดหรือส่ง REG อัตโนมัติ",
   action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง",
   material_link_invalid: "อนุญาตเฉพาะลิงก์ https จาก Google Drive, Google Docs หรือ Google Classroom เท่านั้น กรุณาอัปโหลดไฟล์ไว้ใน Google Drive/Docs/Classroom แล้วส่งลิงก์ใหม่",
   project_not_editable: "ขั้นตอนนี้ยังไม่เปิดให้แก้ไขข้อมูลโครงงาน กรุณาตรวจสอบสถานะล่าสุดของโครงงาน",

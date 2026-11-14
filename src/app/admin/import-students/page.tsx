@@ -4,6 +4,7 @@ import { ActionFeedback } from "@/components/ui/ActionFeedback";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { CourseContextBadge } from "@/components/ui/CourseContextBadge";
 import { courseOfferingLabel, defaultCourseTitle } from "@/lib/admin/courseOffering";
 import { isAdminTestingToolsEnabled } from "@/lib/admin/testingMode";
 import { prisma } from "@/lib/db";
@@ -25,6 +26,7 @@ export default async function ImportStudentsPage({
     include: { term: { include: { academicYear: true } }, _count: { select: { projects: true } } },
     orderBy: { id: "desc" }
   });
+  const activeOfferings = offerings.filter(offering => offering.status === "ACTIVE");
 
   return (
     <div className="space-y-6">
@@ -33,6 +35,15 @@ export default async function ImportStudentsPage({
         description="เริ่มจากเปิดรายวิชาด้วยปีการศึกษาและภาคเรียน จากนั้นนำเข้านักศึกษาให้ผูกกับรายวิชานั้น"
       />
       <ActionFeedback success={params.success} error={params.error} />
+
+      {activeOfferings.length ? <section className="panel" aria-label="รายวิชาที่ยังเปิดอยู่">
+        <h2 className="font-semibold">ปิดผลรายวิชาปัจจุบันก่อนเปิดรายวิชาใหม่</h2>
+        <p className="mt-1 text-sm">ระบบเปิดได้ครั้งละหนึ่งรายวิชา เมื่อสรุปผลปลายเทอมแล้วให้ไปปิดผลก่อน ระบบไม่ปิดหรือส่งเกรด REG อัตโนมัติ</p>
+        {activeOfferings.map(offering => <div key={offering.id} className="mt-3">
+          <p>{courseOfferingLabel(offering)} · เปิดอยู่</p>
+          <Link className="button-secondary mt-2" href={`/admin/term-results?offering_id=${offering.id}`}>ไปปิดผลรายวิชานี้</Link>
+        </div>)}
+      </section> : null}
 
       <section className="panel">
         <h2 className="text-lg font-semibold">เปิดรายวิชา</h2>
@@ -57,7 +68,7 @@ export default async function ImportStudentsPage({
             <input name="course_title" defaultValue={defaultCourseTitle} placeholder="Mathematical Project Course" />
           </div>
           <div className="md:col-span-4">
-            <SubmitButton pendingText="กำลังเปิดรายวิชา...">เปิดรายวิชา</SubmitButton>
+            <SubmitButton disabled={activeOfferings.length > 0} pendingText="กำลังเปิดรายวิชา...">เปิดรายวิชา</SubmitButton>
           </div>
         </form>
       </section>
@@ -70,12 +81,15 @@ export default async function ImportStudentsPage({
           </div>
           <Link className="button-secondary" href="/admin/students">ดูรายชื่อนักศึกษาทั้งหมด</Link>
         </div>
-        {offerings.length ? (
+        {activeOfferings.length ? (
           <form action={importStudents} className="mt-4 space-y-4">
+            <CourseContextBadge offering={activeOfferings[0]} label="รายวิชาที่เปิดให้นำเข้ารายชื่อ" />
+            {selectedOfferingId && !activeOfferings.some(o => o.id === selectedOfferingId) ? <p role="alert">รายวิชาที่ระบุไม่ได้เปิดอยู่ กรุณาเลือกรายวิชาที่เปิดก่อนนำเข้า ไม่ย้ายรายชื่อข้ามวิชาอัตโนมัติ</p> : null}
             <div>
               <label>รายวิชา / ปีการศึกษา / ภาคเรียน</label>
-              <select name="course_offering_id" required defaultValue={selectedOfferingId ?? offerings[0]?.id}>
-                {offerings.map((offering) => (
+              <select name="course_offering_id" required defaultValue={selectedOfferingId ? activeOfferings.find(o => o.id === selectedOfferingId)?.id ?? "" : activeOfferings[0]?.id}>
+                <option value="" disabled>เลือกรายวิชาที่เปิดอยู่</option>
+                {activeOfferings.map((offering) => (
                   <option key={offering.id} value={offering.id}>
                     {courseOfferingLabel(offering)} ({offering._count.projects} คน)
                   </option>
@@ -139,8 +153,8 @@ export default async function ImportStudentsPage({
                 <div className="flex justify-between gap-3"><dt>สถานะ</dt><dd>{offering.status}</dd></div>
                 <div className="flex justify-between gap-3"><dt>นักศึกษาในรายวิชา</dt><dd>{offering._count.projects}</dd></div>
               </dl>
-              <Link className="button-secondary mt-3 inline-flex" href={`/admin/import-students?course_offering_id=${offering.id}`}>
-                นำเข้านักศึกษาในรายวิชานี้
+              <Link className="button-secondary mt-3 inline-flex" href={offering.status === "ACTIVE" ? `/admin/import-students?course_offering_id=${offering.id}` : `/admin/term-results?offering_id=${offering.id}`}>
+                {offering.status === "ACTIVE" ? "นำเข้านักศึกษาในรายวิชานี้" : "ดูผลรายวิชา / ประวัติ"}
               </Link>
               {testingToolsEnabled ? (
                 <form action={resetCourseOfferingTestData} className="mt-3">
