@@ -22,8 +22,8 @@ export default async function TeacherProposalsPage() {
   if (!teacher || !teacher.active || !teacher.isInternal || !teacher.canEvaluateProposal) {
     return (
       <EmptyState
-        title="บัญชีนี้ยังไม่มีสิทธิ์ประเมิน Proposal"
-        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบโปรไฟล์ สถานะอาจารย์ภายใน และสิทธิ์ประเมิน Proposal"
+        title="บัญชีนี้ยังไม่มีสิทธิ์ประเมินการเสนอหัวข้อ"
+        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบโปรไฟล์ สถานะอาจารย์ภายใน และสิทธิ์ประเมินการเสนอหัวข้อ"
         actionLabel="ตรวจสอบการผูกบัญชี"
         href="/teacher/claim"
       />
@@ -76,14 +76,14 @@ export default async function TeacherProposalsPage() {
     <div className="space-y-6">
       <PageHeader title="ประเมินการเสนอหัวข้อ" description="อ่านบทคัดย่อและเอกสารแนบก่อนประเมินตามเกณฑ์" />
       <InfoAlert title="ข้อควรระวัง">
-        การเลือก REVISE หรือ FAIL ควรระบุเหตุผลชัดเจนเพื่อให้นักศึกษาแก้ไขได้ตรงจุด
+        เมื่อเลือกให้แก้ไขหรือไม่ผ่าน ควรระบุเหตุผลให้ชัดเจนเพื่อให้นักศึกษาแก้ไขได้ตรงจุด
       </InfoAlert>
       <TeacherWorkloadSummary
         metrics={[
-          { label: "ต้องดำเนินการ", count: pendingAttempts.length, tone: "action", description: "ยังไม่ได้ส่งคะแนน Proposal" },
+          { label: "ต้องดำเนินการ", count: pendingAttempts.length, tone: "action", description: "ยังไม่ได้ส่งคะแนนการเสนอหัวข้อ" },
           { label: "รอ", count: 0, tone: "waiting", description: "ไม่มีสถานะรอในหน้านี้" },
           { label: "เสร็จแล้ว", count: completedAttempts.length, tone: "completed", description: "ส่งคะแนนแล้ว ดูย้อนหลังได้" },
-          { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับ Proposal scoring" },
+          { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการประเมินการเสนอหัวข้อ" },
           { label: "ยังไม่เปิด", count: 0, tone: "locked", description: "รายการที่ไม่เกี่ยวข้องไม่แสดง" }
         ]}
       />
@@ -96,7 +96,7 @@ export default async function TeacherProposalsPage() {
             description="รายการที่อาจารย์ยังไม่ได้ส่งคะแนน"
             count={pendingAttempts.length}
             tone="action"
-            emptyState={<EmptyState title="ไม่มี Proposal ที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วถูกแยกไปอยู่ในส่วนเสร็จแล้ว" />}
+            emptyState={<EmptyState title="ไม่มีการเสนอหัวข้อที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วถูกแยกไปอยู่ในส่วนเสร็จแล้ว" />}
           >
             <div className="space-y-3">
               <TeacherCompactQueueList
@@ -120,7 +120,7 @@ export default async function TeacherProposalsPage() {
             description="รายการที่ส่งคะแนนแล้วไม่ปนกับงานที่ต้องทำ"
             count={completedAttempts.length}
             tone="completed"
-            emptyState={<EmptyState title="ยังไม่มี Proposal ที่ประเมินเสร็จ" description="เมื่อส่งคะแนนแล้ว รายการจะย้ายมาที่ส่วนนี้" />}
+            emptyState={<EmptyState title="ยังไม่มีการเสนอหัวข้อที่ประเมินเสร็จ" description="เมื่อส่งคะแนนแล้ว รายการจะย้ายมาที่ส่วนนี้" />}
           >
             <div className="space-y-3">{completedAttempts.map((attempt) => renderAttempt(attempt, true))}</div>
           </TeacherQueueSection>

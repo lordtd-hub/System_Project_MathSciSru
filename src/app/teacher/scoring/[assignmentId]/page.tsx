@@ -57,8 +57,8 @@ export default async function ProposalScoringPage({
     return (
       <EmptyState
         title="ไม่พบแบบประเมินนี้"
-        description="รายการอาจถูกเปลี่ยนแปลงหรือ URL ไม่ถูกต้อง กรุณากลับไปเลือก Proposal จากหน้ารวมอีกครั้ง"
-        actionLabel="กลับหน้าประเมิน Proposal"
+        description="รายการอาจถูกเปลี่ยนแปลงหรือ URL ไม่ถูกต้อง กรุณากลับไปเลือกการเสนอหัวข้อจากหน้ารวมอีกครั้ง"
+        actionLabel="กลับหน้าประเมินการเสนอหัวข้อ"
         href="/teacher/proposals"
       />
     );
@@ -69,9 +69,9 @@ export default async function ProposalScoringPage({
   if (!assignment.teacher?.active || !assignment.teacher.isInternal || !assignment.teacher.canEvaluateProposal) {
     return (
       <EmptyState
-        title="บัญชีนี้ไม่มีสิทธิ์ประเมิน Proposal"
-        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบสถานะอาจารย์ภายในและสิทธิ์ประเมิน Proposal"
-        actionLabel="กลับหน้าประเมิน Proposal"
+        title="บัญชีนี้ไม่มีสิทธิ์ประเมินการเสนอหัวข้อ"
+        description="กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบสถานะอาจารย์ภายในและสิทธิ์ประเมินการเสนอหัวข้อ"
+        actionLabel="กลับหน้าประเมินการเสนอหัวข้อ"
         href="/teacher/proposals"
       />
     );
@@ -123,7 +123,7 @@ export default async function ProposalScoringPage({
           ) : null}
           <div className="mt-4">
             <div className="mb-2 text-sm font-semibold">Abstract</div>
-            <MarkdownLatexViewer value={submission?.abstractText} emptyText="ยังไม่มี abstract" />
+            <MarkdownLatexViewer value={submission?.abstractText} emptyText="ยังไม่มีบทคัดย่อ" />
           </div>
           <div className="mt-4 grid gap-3">
             {[
@@ -221,15 +221,16 @@ export default async function ProposalScoringPage({
       />
       <ActionFeedback success={query.success} error={query.error} />
       {isReproposal && !isScoreFormUnavailable ? (
-        <InfoAlert title="การประเมิน Re-proposal เฉพาะโครงการ">
-          รายการนี้เป็นการสอบหัวข้อรอบใหม่ ระบบไม่เปิดรอบ Proposal ทั้งรายวิชาและไม่หักคะแนนส่งสาย
+        <InfoAlert title="การประเมินการสอบหัวข้อรอบใหม่เฉพาะโครงการ">
+
+          รายการนี้เป็นการสอบหัวข้อรอบใหม่ระบบไม่เปิดรอบการเสนอหัวข้อทั้งรายวิชาและไม่หักคะแนนส่งสาย
         </InfoAlert>
       ) : null}
       {isLateProposalOverride ? (
         <WarningAlert title="เปิดประเมินย้อนหลังเป็นรายกรณี">
           {latePenaltyRequired
-            ? "รายการนี้ถูกเปิดหลังปิดรอบ Proposal ระบบจะหักคะแนน 10% จากคะแนนที่อาจารย์ประเมินในรอบนี้"
-            : "รายการนี้ถูกเปิดหลังปิดรอบ Proposal เป็นกรณีพิเศษโดยไม่หักคะแนน"}
+            ? "รายการนี้ถูกเปิดหลังปิดรอบการเสนอหัวข้อระบบจะหักคะแนน 10% จากคะแนนที่อาจารย์ประเมินในรอบนี้"
+            : "รายการนี้ถูกเปิดหลังปิดรอบการเสนอหัวข้อเป็นกรณีพิเศษโดยไม่หักคะแนน"}
         </WarningAlert>
       ) : null}
       {isProposalRoundClosed ? (
@@ -244,7 +245,8 @@ export default async function ProposalScoringPage({
       ) : null}
       {hasSubmittedScore && !isScoreFormUnavailable ? (
         <InfoAlert title="คะแนนถูกส่งแล้วและยังแก้ไขได้">
-          อาจารย์สามารถแก้คะแนน ผลประเมิน และข้อเสนอแนะได้จนกว่าผู้ดูแลระบบจะบันทึกผลตัดสิน Proposal
+
+          อาจารย์สามารถแก้คะแนน ผลประเมิน และข้อเสนอแนะได้จนกว่าผู้ดูแลระบบจะบันทึกผลตัดสินการเสนอหัวข้อ
         </InfoAlert>
       ) : null}
       <InfoAlert title="การมองเห็นของนักศึกษา">
@@ -262,7 +264,7 @@ export default async function ProposalScoringPage({
           ) : null}
           <div className="mt-4">
             <div className="mb-2 text-sm font-semibold">Abstract</div>
-            <MarkdownLatexViewer value={submission?.abstractText} emptyText="ยังไม่มี abstract" />
+            <MarkdownLatexViewer value={submission?.abstractText} emptyText="ยังไม่มีบทคัดย่อ" />
           </div>
           <div className="mt-4 grid gap-3">
             {[
@@ -285,7 +287,7 @@ export default async function ProposalScoringPage({
             หากไม่ผ่านรายการสำคัญ ควรอธิบายในข้อเสนอแนะให้ชัดเจน โดยเฉพาะกรณีให้แก้ไขหรือไม่ผ่าน
           </WarningAlert>
           <section className="panel">
-            <h2 className="font-semibold">Rubric groups</h2>
+            <h2 className="font-semibold">หมวดเกณฑ์ประเมิน</h2>
             <div className="mt-3 space-y-2 text-sm text-muted">
               {rubricGroupSummaries.map((group) => (
                 <div key={group.groupLabel} className="flex items-center justify-between gap-3">
@@ -328,7 +330,7 @@ export default async function ProposalScoringPage({
           ) : null}
           {assignment.scoreSubmission?.overallComment ? (
             <div>
-              <div className="mb-2 text-sm font-semibold">Comment ถึงนักศึกษา</div>
+              <div className="mb-2 text-sm font-semibold">ข้อเสนอแนะถึงนักศึกษา</div>
               <MarkdownLatexViewer value={assignment.scoreSubmission.overallComment} />
             </div>
           ) : null}
@@ -387,7 +389,7 @@ export default async function ProposalScoringPage({
                           {item.itemLabelTh} ({item.points} คะแนน)
                         </div>
                         {item.evidenceHint ? <div className="mt-1 text-xs text-muted">{item.evidenceHint}</div> : null}
-                        {item.isCritical ? <div className="mt-1 text-xs font-semibold text-red-700">Critical item</div> : null}
+                        {item.isCritical ? <div className="mt-1 text-xs font-semibold text-red-700">รายการสำคัญ</div> : null}
                       </div>
                       <label className="min-w-44 text-sm font-medium">
                         เงื่อนไขที่ผ่าน
@@ -427,7 +429,7 @@ export default async function ProposalScoringPage({
                       {item.itemLabelTh} ({item.points} คะแนน)
                     </span>
                     {item.evidenceHint ? <span className="text-xs text-muted">{item.evidenceHint}</span> : null}
-                    {item.isCritical ? <span className="mt-1 block text-xs font-semibold text-red-700">Critical item</span> : null}
+                    {item.isCritical ? <span className="mt-1 block text-xs font-semibold text-red-700">รายการสำคัญ</span> : null}
                   </span>
                 </label>
               );
@@ -445,7 +447,7 @@ export default async function ProposalScoringPage({
             </select>
           </div>
           <div className="md:col-span-2">
-            <MarkdownLatexEditor name="reason" label="เหตุผลเมื่อให้ REVISE หรือ FAIL" defaultValue={assignment.scoreSubmission?.proposalDecision?.reason ?? ""} rows={3} required={false} />
+            <MarkdownLatexEditor name="reason" label="เหตุผลเมื่อเลือกให้แก้ไขหรือไม่ผ่าน" defaultValue={assignment.scoreSubmission?.proposalDecision?.reason ?? ""} rows={3} required={false} />
           </div>
           <div className="md:col-span-2">
             <MarkdownLatexEditor name="overall_comment" label="ข้อเสนอแนะถึงนักศึกษา" defaultValue={assignment.scoreSubmission?.overallComment ?? ""} rows={5} />

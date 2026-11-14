@@ -17,7 +17,7 @@ export function ProposalRevisionDetails({ revision }: { revision: ProposalRevisi
     <section className="space-y-4" data-testid="proposal-revision-latest-details">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
         <div>
-          <h3 className="font-semibold">ข้อมูล Proposal ฉบับล่าสุดที่นักศึกษาส่ง</h3>
+          <h3 className="font-semibold">ข้อมูลเอกสารเสนอหัวข้อฉบับล่าสุดที่นักศึกษาส่ง</h3>
           <p className="mt-1 text-sm text-muted">ตรวจข้อมูลในระบบให้ครบทุกช่องก่อนรับรองการแก้ไข</p>
         </div>
         <span className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold">

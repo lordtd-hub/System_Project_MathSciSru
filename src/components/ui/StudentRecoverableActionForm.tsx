@@ -424,7 +424,8 @@ export function StudentRecoverableActionForm({
         ) : null}
         {storageUnavailable ? (
           <p className="mt-2 text-xs text-amber-800" role="status">
-            เบราว์เซอร์นี้ไม่อนุญาตให้เก็บร่างในเครื่อง แต่ยังส่งข้อมูลเข้าระบบได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
+
+            เบราว์เซอร์นี้ไม่อนุญาตให้เก็บร่างในเครื่อง แต่ยังส่งข้อมูลเข้าระบบได้ตามปกติ กรุณาอย่าปิดหรือโหลดหน้านี้ใหม่ก่อนส่งสำเร็จ
           </p>
         ) : null}
       </StudentActionResultContext.Provider>

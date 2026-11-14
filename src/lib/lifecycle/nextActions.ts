@@ -83,16 +83,16 @@ export function getProposalStudentNextAction(
       };
     case "PROPOSAL_PENDING":
       return {
-        title: "พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป",
-        description: "หัวข้อใหม่และอาจารย์ที่ปรึกษาได้รับการอนุมัติแล้ว กรุณาตรวจสอบข้อมูลและส่ง Proposal ฉบับใหม่เพื่อเข้าสู่การประเมินอีกครั้ง ผลการสอบครั้งก่อนทั้งหมดจะถูกเก็บไว้เป็นประวัติ",
-        actionLabel: "กรอกและส่ง Proposal ฉบับใหม่",
+        title: "พร้อมส่งเอกสารเสนอหัวข้อสำหรับการสอบหัวข้อครั้งถัดไป",
+        description: "หัวข้อใหม่และอาจารย์ที่ปรึกษาได้รับการอนุมัติแล้ว กรุณาตรวจสอบข้อมูลและส่งเอกสารเสนอหัวข้อฉบับใหม่เพื่อเข้าสู่การประเมินอีกครั้ง ผลการสอบครั้งก่อนทั้งหมดจะถูกเก็บไว้เป็นประวัติ",
+        actionLabel: "กรอกและส่งเอกสารเสนอหัวข้อฉบับใหม่",
         href: "/student/proposal"
       };
     case "PROPOSAL_REVIEW":
       return {
-        title: "ส่ง Proposal ฉบับใหม่แล้ว",
-        description: "ระบบบันทึก Proposal สำหรับการสอบหัวข้อรอบใหม่แล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน โดยผลการสอบครั้งก่อนยังคงอยู่ในประวัติ",
-        actionLabel: "ดูสถานะ Proposal",
+        title: "ส่งเอกสารเสนอหัวข้อฉบับใหม่แล้ว",
+        description: "ระบบบันทึกการเสนอหัวข้อสำหรับการสอบหัวข้อรอบใหม่แล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน โดยผลการสอบครั้งก่อนยังคงอยู่ในประวัติ",
+        actionLabel: "ดูสถานะการเสนอหัวข้อ",
         href: "/student/proposal",
         tone: "success"
       };
@@ -100,7 +100,7 @@ export function getProposalStudentNextAction(
       return {
         title: "รอบันทึกมติการสอบหัวข้อรอบใหม่",
         description: "อาจารย์ประเมินแล้ว ขณะนี้อยู่ระหว่างรอผู้ดูแลระบบบันทึกมติของการสอบหัวข้อรอบนี้",
-        actionLabel: "ดูสถานะ Proposal",
+        actionLabel: "ดูสถานะการเสนอหัวข้อ",
         href: "/student/proposal",
         tone: "warning"
       };
@@ -158,7 +158,7 @@ export function getStudentAvailableActions(
       case "DRAFT":
         result.available_now.push(action("reproposal_project", proposalNextAction.title, proposalNextAction.description, "available", proposalNextAction.href));
         result.locked_future.push(
-          action("proposal", "Proposal สำหรับการสอบหัวข้อครั้งถัดไป", "ส่งได้หลังอาจารย์ที่ปรึกษาและผู้ดูแลระบบยืนยัน", "locked"),
+          action("proposal", "การเสนอหัวข้อสำหรับการสอบหัวข้อครั้งถัดไป", "ส่งได้หลังอาจารย์ที่ปรึกษาและผู้ดูแลระบบยืนยัน", "locked"),
           action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "ยังไม่ถึงขั้นตอน", "locked")
         );
         return result;
@@ -177,7 +177,7 @@ export function getStudentAvailableActions(
         return result;
       case "PROPOSAL_REVIEW":
       case "PROPOSAL_ADMIN_DECISION":
-        result.read_only_history.push(action("reproposal", "Proposal สำหรับการสอบหัวข้อรอบใหม่", "ส่งแล้ว ดูสถานะและข้อเสนอแนะได้", "history", "/student/proposal"));
+        result.read_only_history.push(action("reproposal", "การเสนอหัวข้อสำหรับการสอบหัวข้อรอบใหม่", "ส่งแล้ว ดูสถานะและข้อเสนอแนะได้", "history", "/student/proposal"));
         result.blocked_waiting_for.push(action("waiting_reproposal_decision", proposalNextAction.title, proposalNextAction.description, "blocked"));
         result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอผลการสอบหัวข้อรอบใหม่", "locked"));
         return result;
@@ -214,7 +214,7 @@ export function getStudentAvailableActions(
       break;
     case "PROPOSAL_PENDING":
       if (context.proposalRoundOpen === false) {
-        result.blocked_waiting_for.push(action("proposal_round_closed", "รอบส่ง Proposal ครั้งแรกสิ้นสุดแล้ว", "หากยังไม่เคยส่ง Proposal กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดให้ส่งเป็นรายกรณี", "blocked"));
+        result.blocked_waiting_for.push(action("proposal_round_closed", "รอบส่งเอกสารเสนอหัวข้อครั้งแรกสิ้นสุดแล้ว", "หากยังไม่เคยส่งเอกสารเสนอหัวข้อกรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดให้ส่งเป็นรายกรณี", "blocked"));
         break;
       }
       result.available_now.push(action("proposal", "ส่งเอกสารเสนอหัวข้อ", "แนบบทคัดย่อและลิงก์เอกสารประกอบ", "available", "/student/proposal"));
@@ -229,12 +229,12 @@ export function getStudentAvailableActions(
       break;
     case "PROPOSAL_REVISION_REQUIRED":
       if (context.proposalRevisionSubmitted) {
-        result.read_only_history.push(action("proposal_revision", "Proposal ฉบับแก้ไข", "ส่งฉบับแก้ไขให้ที่ปรึกษาแล้ว", "history", "/student/proposal"));
+        result.read_only_history.push(action("proposal_revision", "เอกสารเสนอหัวข้อฉบับแก้ไข", "ส่งฉบับแก้ไขให้ที่ปรึกษาแล้ว", "history", "/student/proposal"));
       } else {
-        result.available_now.push(action("proposal_revision", "แก้ไข Proposal ตามมติ", "ส่งฉบับแก้ไขให้ที่ปรึกษารับรองโดยไม่สอบใหม่", "available", "/student/proposal"));
+        result.available_now.push(action("proposal_revision", "แก้ไขเอกสารเสนอหัวข้อตามมติ", "ส่งฉบับแก้ไขให้ที่ปรึกษารับรองโดยไม่สอบใหม่", "available", "/student/proposal"));
       }
       result.blocked_waiting_for.push(action("waiting_revision_approval", "รอที่ปรึกษารับรอง", "ขั้นแต่งตั้งกรรมการจะเปิดหลังที่ปรึกษารับรองฉบับแก้ไข", "blocked"));
-      result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอที่ปรึกษารับรอง Proposal ฉบับแก้ไข", "locked"));
+      result.locked_future.push(action("progress_1", "สอบความก้าวหน้าครั้งที่ 1", "รอที่ปรึกษารับรองเอกสารเสนอหัวข้อฉบับแก้ไข", "locked"));
       break;
     case "TOPIC_APPROVED":
       result.read_only_history.push(action("proposal", "การเสนอหัวข้อผ่านแล้ว", "ดูข้อมูลย้อนหลังได้", "history", "/student/proposal"));
@@ -381,9 +381,9 @@ export function getNextActionForStudent(status?: ProjectStatus | null): NextActi
       };
     case "PROPOSAL_REVISION_REQUIRED":
       return {
-        title: "แก้ไข Proposal ตามมติ",
+        title: "แก้ไขเอกสารเสนอหัวข้อตามมติ",
         description: "ส่งฉบับแก้ไขให้ที่ปรึกษารับรอง ขั้นตอนนี้ไม่ต้องสอบหรือให้คะแนนใหม่",
-        actionLabel: "แก้ไข Proposal",
+        actionLabel: "แก้ไขเอกสารเสนอหัวข้อ",
         href: "/student/proposal",
         tone: "warning"
       };

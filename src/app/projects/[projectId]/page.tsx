@@ -88,7 +88,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
       <section className="panel">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Project Record</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">แฟ้มโครงงาน</div>
             <h1 className="mt-2 text-2xl font-semibold leading-snug text-ink">{record.summary.titleTh}</h1>
             {record.summary.titleEn ? <p className="mt-1 text-sm text-muted">{record.summary.titleEn}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -111,7 +111,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="space-y-4">
-          <MiniSection title="ข้อมูลตั้งต้นและ Proposal">
+          <MiniSection title="ข้อมูลตั้งต้นและการเสนอหัวข้อ">
             {record.origin ? (
               <div className="grid gap-3 md:grid-cols-2">
                 <InfoRow label="ชื่อหัวข้อแรก" value={record.origin.titleTh} />

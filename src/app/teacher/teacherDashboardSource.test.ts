@@ -30,7 +30,7 @@ describe("teacher dashboard source", () => {
     expect(page).not.toContain("การแจ้งเตือน");
     expect(page).not.toContain("prisma.notification.findMany");
     expect(page).not.toContain("assignmentSubmitted");
-    expect(page).toContain("Proposal ที่ต้องประเมิน");
+    expect(page).toContain("การเสนอหัวข้อที่ต้องประเมิน");
     expect(page).toContain("pendingProposalScoreCount");
     expect(page).toContain("pendingProposalScoringAttemptWhere(evaluatorUserId)");
     expect(page).toContain("prisma.assessmentAttempt.count");

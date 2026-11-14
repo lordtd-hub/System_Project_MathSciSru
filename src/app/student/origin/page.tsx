@@ -15,7 +15,7 @@ export default async function ProjectOriginPage() {
     where: { generatedEmail: session.user.email.toLowerCase() },
     include: { projects: { where: await selectedStudentProjectWhere(session.user.email!), include: { origin: true } } }
   });
-  if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
+  if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ในรายชื่อที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
 
   const project = student?.projects[0];
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="บัญชีนี้ยังไม่มีโครงงานในรายวิชา กรุณาติดต่อผู้ดูแลระบบ" />;

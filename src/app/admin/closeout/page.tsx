@@ -113,10 +113,10 @@ export default async function AdminCloseoutPage({
         title="สรุปการปิดโครงงาน"
         description="รายการที่พร้อมให้ผู้ดูแลระบบกดยืนยันจบจะแยกออกจากรายการที่ยังรอรายงานหรือคะแนนอาจารย์ที่ปรึกษา"
         metrics={[
-          { label: "ต้องกดยืนยัน", count: readyToClose.length, tone: readyToClose.length ? "action" : "completed", description: "ครบเงื่อนไขและยังไม่เป็น COMPLETED" },
+          { label: "ต้องกดยืนยัน", count: readyToClose.length, tone: readyToClose.length ? "action" : "completed", description: "ครบเงื่อนไขแล้ว แต่ยังไม่ได้ยืนยันจบ" },
           { label: "รอคะแนนที่ปรึกษา", count: waitingAdvisorScore, tone: waitingAdvisorScore ? "waiting" : "completed", description: "รายงานผ่านแล้วหรืออยู่ช่วงก่อนบันทึกคะแนนสรุป" },
-          { label: "รอรายงาน/แก้ไข", count: waitingReport, tone: waitingReport ? "waiting" : "completed", description: "ยังไม่ผ่านรายงานฉบับล่าสุด หรือมี revision ค้าง" },
-          { label: "เสร็จสมบูรณ์", count: completed.length, tone: "completed", description: "Admin closeout เสร็จแล้ว" }
+          { label: "รอรายงาน/แก้ไข", count: waitingReport, tone: waitingReport ? "waiting" : "completed", description: "ยังไม่ผ่านรายงานฉบับล่าสุด หรือมีรายการแก้ไขค้าง" },
+          { label: "เสร็จสมบูรณ์", count: completed.length, tone: "completed", description: "ผู้ดูแลระบบยืนยันจบโครงงานแล้ว" }
         ]}
       />
 
@@ -138,7 +138,7 @@ export default async function AdminCloseoutPage({
       {projectCards.length ? (
         <div className="space-y-4">
           <AdminQueueSection
-            title="Needs admin action"
+            title="รอผู้ดูแลระบบดำเนินการ"
             description="ครบเงื่อนไขแล้ว ผู้ดูแลระบบต้องตรวจและยืนยันจบโครงงาน"
             count={readyToClose.length}
             tone={readyToClose.length ? "action" : "completed"}
@@ -150,8 +150,8 @@ export default async function AdminCloseoutPage({
           </AdminQueueSection>
 
           <AdminQueueSection
-            title="Waiting"
-            description="ยังไม่ควรแสดงเป็นงานให้กดปิด เพราะมีเงื่อนไขรายงานหรือคะแนนที่ยังไม่ครบ"
+            title="รอข้อมูลให้ครบ"
+            description="ต้องมีผลตรวจรายงานและคะแนนครบก่อน จึงจะยืนยันจบโครงงานได้"
             count={waiting.length}
             tone={waiting.length ? "waiting" : "completed"}
             emptyState={<EmptyState title="ไม่มีรายการค้างเงื่อนไขปิดโครงงาน" />}
@@ -162,8 +162,8 @@ export default async function AdminCloseoutPage({
           </AdminQueueSection>
 
           <AdminQueueSection
-            title="Completed"
-            description="แยกออกจากงานที่ต้องกด เพื่อไม่ให้รายการที่เสร็จแล้วบังรายการที่ยังต้องดำเนินการ"
+            title="ยืนยันจบแล้ว"
+            description="เก็บรายการที่ยืนยันจบแล้วไว้ที่นี่ เพื่อให้ค้นย้อนหลังได้"
             count={completed.length}
             tone="completed"
             emptyState={<EmptyState title="ยังไม่มีโครงงานที่ปิดจบแล้ว" />}

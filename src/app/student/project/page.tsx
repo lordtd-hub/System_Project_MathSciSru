@@ -46,7 +46,7 @@ export default async function StudentProjectPage({
     })
   ]);
   const project = student?.projects[0];
-  if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
+  if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ในรายชื่อที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาติดต่อผู้ดูแลระบบให้นำเข้ารายชื่อและสร้างรายวิชาก่อน" />;
 
   const teachers = await prisma.teacher.findMany({ where: { active: true, isInternal: true }, orderBy: [{ firstNameTh: "asc" }] });
@@ -79,7 +79,7 @@ export default async function StudentProjectPage({
       />
       <ActionFeedback success={params.success} error={params.error} />
       {isReproposalRestart ? (
-        <InfoAlert title="เริ่มหัวข้อใหม่สำหรับ Re-proposal">
+        <InfoAlert title="เริ่มหัวข้อใหม่สำหรับการสอบหัวข้อรอบใหม่">
           มติรอบล่าสุดคือไม่ผ่าน กรุณากรอกหัวข้อและเลือกอาจารย์ที่ปรึกษาใหม่ ข้อมูลรอบเดิมยังเก็บไว้ในประวัติและจะไม่ถูกนำมาเติมในแบบฟอร์มนี้
         </InfoAlert>
       ) : null}

@@ -208,27 +208,27 @@ export function ProposalTimelineBuilder({
         </p>
         {showAssessmentHint ? (
           <div className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">
-            <div className="font-semibold text-ink">Assessment alignment hint</div>
+            <div className="font-semibold text-ink">เขียนแผนงานให้ใช้ติดตามและประเมินได้</div>
             <p className="mt-1">
               แผนดำเนินงานด้านล่างจะถูกใช้ประกอบการประเมินการสอบความก้าวหน้าครั้งที่ 1 และครั้งที่ 2 แต่ละงานควรเป็นงานที่สังเกตหรือตรวจสอบได้ พร้อมระบุหลักฐานที่คาดว่าจะส่ง ไม่ใช่เพียงกิจกรรมกว้าง ๆ
             </p>
             <div className="mt-2 grid gap-2 md:grid-cols-2">
               <div>
-                <div className="font-medium text-ink">Good examples</div>
+                <div className="font-medium text-ink">ตัวอย่างที่ระบุงานและหลักฐานชัดเจน</div>
                 <ul className="mt-1 list-disc space-y-1 pl-5">
-                  <li>Study related fixed point theorems and summarize assumptions used in each theorem.</li>
-                  <li>Implement prototype login and role guard, with screenshots or test account evidence.</li>
-                  <li>Prove Lemma 1 and prepare the proof draft.</li>
-                  <li>Run numerical experiment and record dataset/result table.</li>
+                  <li>ศึกษาทฤษฎีบทจุดตรึงที่เกี่ยวข้อง และสรุปสมมติฐานของแต่ละทฤษฎีบท</li>
+                  <li>พัฒนาต้นแบบการเข้าสู่ระบบและการตรวจสิทธิ์ พร้อมภาพหน้าจอหรือบัญชีทดสอบเป็นหลักฐาน</li>
+                  <li>พิสูจน์บทตั้ง 1 และจัดทำร่างบทพิสูจน์</li>
+                  <li>ทดลองเชิงตัวเลขและบันทึกชุดข้อมูลหรือตารางผลลัพธ์</li>
                 </ul>
               </div>
               <div>
-                <div className="font-medium text-ink">Weak examples</div>
+                <div className="font-medium text-ink">ตัวอย่างที่ยังระบุงานไม่ชัดเจน</div>
                 <ul className="mt-1 list-disc space-y-1 pl-5">
-                  <li>Study more</li>
-                  <li>Continue working</li>
+                  <li>ศึกษาเพิ่มเติม</li>
+                  <li>ทำงานต่อ</li>
                   <li>ปรับปรุงชิ้นงานตามข้อเสนอแนะที่ระบุไว้</li>
-                  <li>Prepare presentation</li>
+                  <li>เตรียมนำเสนอ</li>
                 </ul>
               </div>
             </div>
@@ -281,7 +281,7 @@ export function ProposalTimelineBuilder({
       {hasInvalidRange ? <p className="text-sm text-brand">สัปดาห์สิ้นสุดต้องไม่อยู่ก่อนสัปดาห์เริ่ม</p> : null}
       <div className="flex flex-col gap-2 sm:flex-row">
         <button type="button" className="button-secondary" onClick={addRow}>+ เพิ่มงาน</button>
-        <button type="button" className="button-secondary" onClick={exportCsv} disabled={!filledRows(rows).length}>Export แผนงาน CSV</button>
+        <button type="button" className="button-secondary" onClick={exportCsv} disabled={!filledRows(rows).length}>ส่งออกแผนงานเป็น CSV</button>
       </div>
       <div className="rounded-md border border-line bg-paper p-3 text-sm">
         <div className="mb-2 font-semibold">ตัวอย่างแผนงาน 16 สัปดาห์ที่จะส่ง</div>

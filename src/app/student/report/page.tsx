@@ -62,7 +62,7 @@ export default async function StudentReportPage({
     }
   });
   if (!student) {
-    return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
+    return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ในรายชื่อที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   }
 
   const project = student.projects[0];

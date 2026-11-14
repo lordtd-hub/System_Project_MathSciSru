@@ -31,7 +31,7 @@ export function AcademicContextPicker({ choices, selectedId, action, contextRole
         <optgroup label="ผลการค้นหา">{filtered.map(choice => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</optgroup>
       </select>
     </label>
-    <SubmitButton pendingText="กำลังเปลี่ยน...">เลือกภาคเรียน</SubmitButton>
+    <SubmitButton pendingText="กำลังเปลี่ยนรายวิชา...">ใช้รายวิชาที่เลือก</SubmitButton>
     <p className="w-full text-sm text-muted" role="status">พบ {filtered.length} รายการ{!filtered.length ? " — ยังไม่เปลี่ยนรายวิชาที่เลือกอยู่" : ""}</p>
   </form>;
 }

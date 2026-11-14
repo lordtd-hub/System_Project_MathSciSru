@@ -25,10 +25,10 @@ function readinessActionForReason(reason: string) {
     return { href: "/admin/committee", label: "ไปจัดการกรรมการ" };
   }
   if (["proposal", "waiting proposal final decision", "proposal failed/revise", "previous proposal gate not passed"].includes(reason)) {
-    return { href: "/admin/proposals", label: "ไปตรวจผล Proposal" };
+    return { href: "/admin/proposals", label: "ไปตรวจผลการเสนอหัวข้อ" };
   }
   if (["project_state", "project still PENDING_ADMIN", "project in DRAFT", "project still PENDING_ADVISOR"].includes(reason)) {
-    return { href: "/admin", label: "กลับแดชบอร์ดผู้ดูแลระบบ" };
+    return { href: "/admin", label: "กลับหน้าหลักผู้ดูแลระบบ" };
   }
   return null;
 }
@@ -38,7 +38,7 @@ function readinessReasonGroup(reason: string) {
     return { key: "committee", label: "ยังไม่ได้แต่งตั้งกรรมการครบ" };
   }
   if (["waiting proposal final decision", "proposal failed/revise", "previous proposal gate not passed"].includes(reason)) {
-    return { key: "proposal", label: "ยังไม่ผ่าน/ยังไม่จบขั้น Proposal" };
+    return { key: "proposal", label: "ยังไม่ผ่าน/ยังไม่จบขั้นการเสนอหัวข้อ" };
   }
   if (["project still PENDING_ADMIN", "project in DRAFT", "project still PENDING_ADVISOR"].includes(reason)) {
     return { key: "project_state", label: "สถานะโครงงานยังไม่พร้อม" };
@@ -168,11 +168,11 @@ export default async function AdminRoundsPage({
         description="แยกรายการที่ต้องกดดำเนินการ ออกจากรายการที่รอนักศึกษา/อาจารย์ และรายการที่ยังไม่เข้าเกณฑ์ของรอบ"
         metrics={[
           { label: "เปิดรอบได้", count: openableRoundCount, tone: openableRoundCount ? "action" : "locked", description: "รอบที่ผ่านเงื่อนไขลำดับแล้ว แต่ยังไม่ได้เปิด" },
-          { label: "พร้อมปิดรอบ", count: readyToCloseRoundCount, tone: readyToCloseRoundCount ? "ready" : "locked", description: "รอบที่เปิดอยู่และไม่มี eligible-but-incomplete" },
+          { label: "พร้อมปิดรอบ", count: readyToCloseRoundCount, tone: readyToCloseRoundCount ? "ready" : "locked", description: "รอบที่เปิดอยู่ โดยไม่มีงานที่เข้าเกณฑ์แต่ยังดำเนินการไม่ครบ" },
           { label: "รออาจารย์", count: waitingTeacherCount, tone: waitingTeacherCount ? "waiting" : "completed", description: "มีหลักฐานแล้ว แต่คะแนน/การประเมินยังไม่ครบ" },
           { label: "รอนักศึกษา", count: waitingStudentCount, tone: waitingStudentCount ? "waiting" : "completed", description: "เข้าเกณฑ์รอบนี้แล้ว แต่หลักฐานหรือขั้นตอนยังไม่ครบ" },
-          { label: "ข้อยกเว้น/ย้อนหลัง", count: exceptionCount, tone: exceptionCount ? "exception" : "locked", description: "รายการเปิดส่งย้อนหลังหรือข้อยกเว้นที่ยังไม่ resolved" },
-          { label: "ยังไม่เข้าเกณฑ์", count: notEligibleCount, tone: "locked", description: "ไม่ใช่ blocker ของรอบปัจจุบัน" }
+          { label: "ข้อยกเว้น/ย้อนหลัง", count: exceptionCount, tone: exceptionCount ? "exception" : "locked", description: "รายการเปิดส่งย้อนหลังหรือข้อยกเว้นที่ยังไม่สิ้นสุด" },
+          { label: "ยังไม่เข้าเกณฑ์", count: notEligibleCount, tone: "locked", description: "ไม่ขัดขวางการดำเนินการของรอบปัจจุบัน" }
         ]}
       />
 
@@ -277,7 +277,7 @@ export default async function AdminRoundsPage({
               </div>
 
               {requireProposalCloseAck ? (
-                <WarningAlert title={`มีนักศึกษายังไม่ส่ง Proposal ${missingProposalProjects.length} ราย`}>
+                <WarningAlert title={`มีนักศึกษายังไม่ส่งเอกสารเสนอหัวข้อ ${missingProposalProjects.length} ราย`}>
                   <div className="space-y-2">
                     <p>ก่อนปิดรอบ โปรดยืนยันว่ารับทราบรายชื่อนักศึกษาที่ค้างส่งแล้ว ระบบจะล็อกการส่งปกติหลังปิดรอบ</p>
                     <ul className="list-disc space-y-1 pl-5">
@@ -295,10 +295,10 @@ export default async function AdminRoundsPage({
                   <div className="space-y-2">
                     <p>
                       รายการนี้นับเฉพาะโครงงานที่ผ่านเกณฑ์จากรอบก่อนหน้าแล้ว แต่ยังส่งหลักฐานหรือประเมินรอบปัจจุบันไม่ครบ
-                      โครงงานที่ยังไม่ผ่านรอบก่อนหน้าจะแยกอยู่ในกลุ่ม &quot;ยังไม่พร้อมรอบนี้&quot; และไม่ใช่ตัวบล็อกของรอบนี้
+                      โครงงานที่ยังไม่ผ่านรอบก่อนหน้าจะแยกอยู่ในกลุ่ม &quot;ยังไม่พร้อมรอบนี้&quot; และไม่ขัดขวางการดำเนินการของรอบนี้
                     </p>
                     {roundType === "FINAL_PRESENTATION" ? (
-                      <p className="font-semibold">หากปิดรอบ Final ขณะที่รายการเหล่านี้ยังไม่ครบ นักศึกษาอาจได้รับเกรด I</p>
+                      <p className="font-semibold">หากปิดรอบขั้นสุดท้ายขณะที่รายการเหล่านี้ยังไม่ครบ นักศึกษาอาจได้รับเกรด I</p>
                     ) : null}
                     <ul className="list-disc space-y-1 pl-5">
                       {eligibility.eligibleButIncomplete.slice(0, 8).map((item) => (
@@ -317,12 +317,13 @@ export default async function AdminRoundsPage({
                 <WarningAlert title="จัดการผู้ส่งย้อนหลัง / นักศึกษาที่พลาดรอบ">
                   <div className="space-y-3">
                     <p>
-                      มีนักศึกษาที่ยังไม่ส่ง Proposal {missingProposalProjects.length} รายการ ใช้หน้าเฉพาะเพื่อค้นหา กรองสถานะ และเปิดส่งย้อนหลังรายกรณีอย่างปลอดภัย
+
+                      มีนักศึกษาที่ยังไม่ส่งเอกสารเสนอหัวข้อ {missingProposalProjects.length} รายการ ใช้หน้าเฉพาะเพื่อค้นหา กรองสถานะ และเปิดส่งย้อนหลังรายกรณีอย่างปลอดภัย
                     </p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       <div className="rounded-md border border-amber-200 bg-surface p-2">
                         <div className="text-lg font-semibold text-amber-900">{missingProposalProjects.length}</div>
-                        <div className="text-xs text-muted">ยังไม่ส่ง Proposal</div>
+                        <div className="text-xs text-muted">ยังไม่ส่งเอกสารเสนอหัวข้อ</div>
                       </div>
                       <div className="rounded-md border border-amber-200 bg-surface p-2">
                         <div className="text-lg font-semibold text-amber-900">
@@ -366,7 +367,8 @@ export default async function AdminRoundsPage({
                       <input type="hidden" name="round_type" value="PROGRESS_1" />
                       <input type="hidden" name="open_mode" value="SCHEDULED_ZERO_READY" />
                       <WarningAlert title="ขณะนี้ยังไม่มีโครงงานพร้อมเข้าสู่รอบ">
-                        การเปิดตามกำหนดการจะเปิดเฉพาะรอบระดับรายวิชา โครงงานที่ยังไม่ผ่าน Proposal หรือยังแต่งตั้งกรรมการไม่ครบจะยังส่งหลักฐานและเสนอวันสอบไม่ได้
+
+                        การเปิดตามกำหนดการจะเปิดเฉพาะรอบระดับรายวิชา โครงงานที่ยังไม่ผ่านการเสนอหัวข้อหรือยังแต่งตั้งกรรมการไม่ครบจะยังส่งหลักฐานและเสนอวันสอบไม่ได้
                       </WarningAlert>
                       <label className="block text-sm font-medium" htmlFor="progress1-zero-ready-reason">
                         เหตุผลการเปิดรอบตามกำหนดการ
@@ -379,7 +381,7 @@ export default async function AdminRoundsPage({
                         maxLength={500}
                         placeholder="เช่น เปิดรอบล่วงหน้าเพื่อให้นักศึกษาที่พร้อมภายหลังดำเนินการได้ตามปฏิทินรายวิชา"
                       />
-                      <p className="text-xs text-muted">ไม่เกิน 500 ตัวอักษร และจะถูกเก็บใน Audit Log</p>
+                      <p className="text-xs text-muted">ไม่เกิน 500 ตัวอักษร และจะเก็บไว้ในประวัติการทำรายการ</p>
                       <SubmitButton
                         pendingText="กำลังเปิดรอบ..."
                         confirmMessage="ยืนยันเปิดรอบสอบความก้าวหน้าครั้งที่ 1 ขณะที่มีโครงงานพร้อม 0 โครงงานหรือไม่? โครงงานที่ยังไม่พร้อมจะยังส่งหลักฐานหรือนัดสอบไม่ได้"
@@ -394,7 +396,7 @@ export default async function AdminRoundsPage({
                 {round ? (
                   <AdminDangerZone
                     title="การปิดหรือรีเซตรอบ"
-                    description="ตรวจ bucket ด้านบนและรายการที่ต้องรับทราบก่อนกดปิดรอบ การรีเซตใช้เฉพาะรอบที่ยังไม่มีหลักฐานผูกอยู่"
+                    description="ตรวจกลุ่มรายการด้านบนและรายการที่ต้องรับทราบก่อนกดปิดรอบ การรีเซตใช้เฉพาะรอบที่ยังไม่มีหลักฐานผูกอยู่"
                   >
                     <div className="flex flex-wrap gap-2">
                       <form action={closeCourseRound} className={requiresCloseAck ? "basis-full space-y-2" : ""}>
@@ -404,7 +406,8 @@ export default async function AdminRoundsPage({
                             <input className="mt-1" type="checkbox" name="acknowledge_missing_projects" value="yes" />
                             <span>
                               <span className="block font-semibold">ยืนยันก่อนปิดรอบ</span>
-                              รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+
+                              รับทราบรายชื่อนักศึกษาที่ยังไม่ส่งเอกสารเสนอหัวข้อแล้ว
                             </span>
                           </label>
                         ) : null}

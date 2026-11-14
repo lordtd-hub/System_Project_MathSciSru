@@ -25,7 +25,7 @@ export default async function AcademicResultsPage({ searchParams }: { searchPara
   return <div className="space-y-5">
     <PageHeader title="ปิดผลรายวิชา / สะสาง I" description={courseOfferingLabel(offering)} />
     <CourseContextBadge offering={offering} label="เป้าหมายของแบบฟอร์มหน้านี้" />
-    <div className="panel space-y-2"><p>ผล I คือยังไม่ครบผลการศึกษา ไม่ใช่ศูนย์/ตก/ถอน และไม่เปลี่ยนงานเป็น COMPLETED</p>
+    <div className="panel space-y-2"><p>ผล I หมายถึงงานหรือการประเมินยังไม่ครบ ไม่ใช่ผลศูนย์ ตก หรือถอน และยังไม่ถือว่าโครงงานเสร็จสมบูรณ์</p>
       <p>หน้านี้ไม่ส่งหรือแก้ REG และไม่คำนวณเกรดใหม่ ผลที่ส่งไปแล้วและคะแนนจริงยังคงเดิม</p>
       <p>สูตรรายวิชา 40/50/10 คงเดิม ข้อมูลคะแนนองค์ประกอบในระบบไม่ใช่เกรดสุดท้ายที่คำนวณแทนผู้สอน</p></div>
     <section className="panel"><h2 className="font-semibold">ตรวจรายชื่อก่อนปิดผล</h2>

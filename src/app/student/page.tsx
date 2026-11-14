@@ -652,7 +652,8 @@ export default async function StudentDashboardPage() {
 
       {hasIncompleteAfterFinal ? (
         <WarningAlert title="รอบสอบขั้นสุดท้ายปิดแล้ว แต่โครงงานยังไม่ครบถ้วน">
-          หากยังมีรายการค้างหลังปิดรอบ Final นักศึกษาอาจได้รับเกรด I กรุณาติดต่ออาจารย์ผู้รับผิดชอบและดำเนินการตามรายการที่ระบบแจ้งให้ครบถ้วน
+
+          หากยังมีรายการค้างหลังปิดรอบขั้นสุดท้ายนักศึกษาอาจได้รับเกรด I กรุณาติดต่ออาจารย์ผู้รับผิดชอบและดำเนินการตามรายการที่ระบบแจ้งให้ครบถ้วน
         </WarningAlert>
       ) : null}
 
@@ -748,7 +749,7 @@ export default async function StudentDashboardPage() {
                   {latestSchedulePendingCount ? ` · รอ ${latestSchedulePendingCount}` : ""}
                 </p>
               ) : (
-                <p>ยังไม่มีการเสนอวันสอบ Progress/Final</p>
+                <p>ยังไม่มีการเสนอวันสอบความก้าวหน้าหรือขั้นสุดท้าย</p>
               )}
             </div>
           </div>

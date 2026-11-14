@@ -52,7 +52,7 @@ export default async function TeacherProposalRevisionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ตรวจ Proposal ฉบับแก้ไข"
+        title="ตรวจเอกสารเสนอหัวข้อฉบับแก้ไข"
         description="ตรวจการแก้ไขตามมติผ่านโดยให้แก้ไข ขั้นตอนนี้ไม่ใช่การสอบหรือให้คะแนนใหม่"
       />
       <div className="space-y-4">
@@ -101,7 +101,7 @@ export default async function TeacherProposalRevisionsPage() {
                       name="decision"
                       value="APPROVE"
                       pendingText="กำลังรับรองการแก้ไข..."
-                      confirmMessage="ยืนยันว่าการแก้ไข Proposal ครบถ้วนและพร้อมเข้าสู่ขั้นแต่งตั้งกรรมการหรือไม่?"
+                      confirmMessage="ยืนยันว่าการแก้ไขเอกสารเสนอหัวข้อครบถ้วนและพร้อมเข้าสู่ขั้นแต่งตั้งกรรมการหรือไม่?"
                       autoRecovery={false}
                     >
                       รับรองการแก้ไข
@@ -126,7 +126,7 @@ export default async function TeacherProposalRevisionsPage() {
             </section>
           );
         }) : (
-          <EmptyState title="ยังไม่มี Proposal ฉบับแก้ไขที่ต้องตรวจ" description="รายการจะแสดงเมื่อนักศึกษาที่ท่านเป็นที่ปรึกษาส่งฉบับแก้ไขตามมติแล้ว" />
+          <EmptyState title="ยังไม่มีเอกสารเสนอหัวข้อฉบับแก้ไขที่ต้องตรวจ" description="รายการจะแสดงเมื่อนักศึกษาที่ท่านเป็นที่ปรึกษาส่งฉบับแก้ไขตามมติแล้ว" />
         )}
       </div>
     </div>

@@ -10,7 +10,7 @@ export function OwnerPasswordForm({ mode }: { mode: "login" | "setup" | "change"
     {mode === "login" && <label className="block">อีเมลสำหรับเข้าสู่ระบบ
       <input name="email" type="email" autoComplete="username" maxLength={254} required className="mt-1 w-full" />
     </label>}
-    {mode === "setup" && <label className="block">รหัสตั้งค่าที่ได้รับจากผู้ดูแล
+    {mode === "setup" && <label className="block">รหัสตั้งค่าแบบใช้ครั้งเดียวที่ได้รับจากผู้ดูแลระบบ
       <input name="code" type="password" autoComplete="off" minLength={43} maxLength={43} required className="mt-1 w-full" />
     </label>}
     {mode === "change" && <label className="block">รหัสผ่านปัจจุบัน

@@ -584,7 +584,7 @@ async function AdminRoundGateSection({
                   <dl className="mt-3 space-y-1 text-sm text-muted">
                     <div className="flex justify-between gap-3"><dt>เปิด</dt><dd>{formatDate(round.submissionOpenAt)}</dd></div>
                     <div className="flex justify-between gap-3"><dt>ปิด</dt><dd>{round.closedAt ? formatDate(round.closedAt) : formatDate(round.submissionDeadline)}</dd></div>
-                    <div className="flex justify-between gap-3"><dt>attempt ทั้งหมด</dt><dd>{attemptCount}</dd></div>
+                    <div className="flex justify-between gap-3"><dt>การสอบทั้งหมด</dt><dd>{attemptCount}</dd></div>
                     <div className="flex justify-between gap-3"><dt>มีปัญหาเฉพาะราย</dt><dd>{exceptionCount}</dd></div>
                   </dl>
                   <div className="mt-3 flex flex-wrap gap-2">

@@ -16,7 +16,7 @@ export default async function LoginPage() {
 
     return (
       <div className="mx-auto max-w-md panel">
-        <div className="text-xs font-semibold uppercase tracking-wide text-brand">Signed in</div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-brand">เข้าสู่ระบบแล้ว</div>
         <h1 className="mt-1 text-xl font-semibold">เข้าสู่ระบบแล้ว</h1>
         <p className="mt-2 text-sm leading-6 text-muted">
           {displayName}
@@ -46,7 +46,7 @@ export default async function LoginPage() {
   if (!getAuthRuntimeConfiguration().ready) {
     return (
       <div className="mx-auto max-w-md panel">
-        <h1 className="text-xl font-semibold">ระบบเข้าสู่ระบบยังไม่พร้อมใช้งาน</h1>
+        <h1 className="text-xl font-semibold">ยังเข้าสู่ระบบไม่ได้</h1>
         <p className="mt-2 text-sm leading-6 text-muted">
           สภาพแวดล้อมนี้ยังไม่ได้ตั้งค่าการเข้าสู่ระบบ โปรดลองอีกครั้งภายหลังหรือติดต่อผู้ดูแลระบบ
         </p>

@@ -10,6 +10,6 @@ describe("ActionFeedback", () => {
 
   it("renders Thai error guidance", () => {
     const html = renderToStaticMarkup(<ActionFeedback error="action_failed" />);
-    expect(html).toContain("ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง");
+    expect(html).toContain("ทำรายการไม่สำเร็จ กรุณาตรวจสถานะล่าสุดก่อนลองอีกครั้ง");
   });
 });

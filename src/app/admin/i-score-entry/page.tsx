@@ -60,7 +60,7 @@ export default async function AdminIScoreEntryPage({ searchParams }: { searchPar
     {project && evidence && eligibility ? <>
       <section className="panel space-y-3">
         <h2 className="text-lg font-semibold">1. ตรวจหลักฐานจริง</h2>
-        <p className="text-sm text-muted">ใช้ผลเอกสารที่ตรวจแล้ว ไม่ต้องแนบไฟล์หรือกรอกข้อความอ้างอิงซ้ำ การรับรองนี้เป็นของแอดมิน ไม่ใช่การกดผลตรวจแทนอาจารย์</p>
+        <p className="text-sm text-muted">ยืนยันผลจากเอกสารจริงที่ตรวจแล้ว โดยไม่ต้องแนบไฟล์หรือกรอกอ้างอิงซ้ำ ระบบบันทึกผู้ดูแลระบบเป็นผู้รับรอง ไม่ใช่ผู้ประเมินแทนอาจารย์</p>
         {evidence.valid ? <>
           <p className="app-alert alert-success">ตรวจรับรองแล้วโดย {evidence.latest!.actor?.name ?? "ผู้ดูแลระบบ"} · {formatThaiDateTime24(evidence.latest!.occurredAt)}</p>
           <details><summary className="cursor-pointer text-sm text-muted">แก้ไขการรับรอง</summary><AcademicResultActionForm action={verifyIncompleteDocuments} className="mt-3">
@@ -77,8 +77,8 @@ export default async function AdminIScoreEntryPage({ searchParams }: { searchPar
       </section>
       <section className="panel space-y-3">
         <h2 className="text-lg font-semibold">2. ตรวจคะแนนจริง</h2>
-        <div className="grid gap-2 sm:grid-cols-2">{[["Progress 1",eligibility.hasProgress1Score],["Progress 2",eligibility.hasProgress2Score],["Final",eligibility.hasFinalPresentationScore],["อาจารย์ที่ปรึกษา",eligibility.hasAdvisorScore]].map(([label,done])=><p key={String(label)} className="rounded border border-line px-3 py-2 text-sm"><span className="font-medium">{label}</span> · {done ? "ครบแล้ว" : "ยังไม่ครบ"}</p>)}</div>
-        <p className="text-sm text-muted">การติ๊กเอกสารไม่แทนคะแนนที่ขาด ระบบต้องมีคะแนนจริงของกรรมการแต่ละคนและที่ปรึกษา คงเกณฑ์และการหักคะแนนเดิม</p>
+        <div className="grid gap-2 sm:grid-cols-2">{[["ความก้าวหน้าครั้งที่ 1",eligibility.hasProgress1Score],["ความก้าวหน้าครั้งที่ 2",eligibility.hasProgress2Score],["นำเสนอขั้นสุดท้าย",eligibility.hasFinalPresentationScore],["อาจารย์ที่ปรึกษา",eligibility.hasAdvisorScore]].map(([label,done])=><p key={String(label)} className="rounded border border-line px-3 py-2 text-sm"><span className="font-medium">{label}</span> · {done ? "ครบแล้ว" : "ยังไม่ครบ"}</p>)}</div>
+        <p className="text-sm text-muted">การยืนยันเอกสารไม่แทนคะแนนที่ยังขาด ต้องมีคะแนนจริงของกรรมการแต่ละคนและที่ปรึกษา โดยใช้เกณฑ์และการหักคะแนนเดิม</p>
         {project.status !== "COMPLETED" ? <details open={!!version} className="border-t border-line pt-3"><summary className="cursor-pointer font-medium">บันทึก / แก้คะแนนจริง</summary>
           <div className="mt-3 flex flex-wrap gap-2"><Link className={advisorMode ? "button-secondary" : "button-primary"} href={`/admin/i-score-entry?project_id=${project.id}&mode=PRESENTATION`}>คะแนนนำเสนอ</Link><Link className={advisorMode ? "button-primary" : "button-secondary"} href={`/admin/i-score-entry?project_id=${project.id}&mode=ADVISOR`}>คะแนนที่ปรึกษา</Link></div>
           <form method="get" className="mt-3 grid items-end gap-3 md:grid-cols-3">
@@ -98,7 +98,7 @@ export default async function AdminIScoreEntryPage({ searchParams }: { searchPar
         const previous = target!.previous?.scoreItems.find(i => i.rubricItemId === item.id);
         const choices = allowedAdminRubricPoints(target!.round.roundType, item);
         return <label key={item.id} className="block">{item.itemLabelTh} (เต็ม {item.points})<input type="hidden" name="item_id" value={item.id} />
-          {choices ? <select name={`mark_${item.id}`} required defaultValue={previous ? String(previous.pointsAwarded) : ""}><option value="" disabled>เลือกคะแนนจริง</option>{choices.map(points => <option key={points} value={points}>{points}</option>)}</select>
+          {choices ? <select name={`mark_${item.id}`} required defaultValue={previous ? String(previous.pointsAwarded) : ""}><option value="" disabled>เลือกคะแนนที่ได้รับการยืนยัน</option>{choices.map(points => <option key={points} value={points}>{points}</option>)}</select>
             : <input type="number" name={`mark_${item.id}`} min={0} max={item.points} step={1} required defaultValue={previous ? Number(previous.pointsAwarded) : undefined} />}</label>;
       }) : advisorCriteria.map(criterion => <label key={criterion.key} className="block">{criterion.label} (เต็ม {criterion.max})<input type="number" name={`mark_${criterion.key}`} min={0} max={criterion.max} step={1} required defaultValue={advisorValues?.[criterion.key] ?? undefined} /></label>)}
       <label className="block">หมายเหตุ (ถ้ามี)<textarea name="comment" maxLength={2000} defaultValue={target?.previous?.overallComment ?? previousAdvisor?.comment ?? ""} /></label>
@@ -111,12 +111,12 @@ export default async function AdminIScoreEntryPage({ searchParams }: { searchPar
         <h2 className="text-lg font-semibold">3. ยืนยันจบและบันทึกผลแก้ I</h2>
         {project.status !== "COMPLETED" ? eligibility.eligible ? <AcademicResultActionForm action={closeIncompleteProject}>
           <input type="hidden" name="project_id" value={project.id} /><input type="hidden" name="workflow_version" value={eligibility.workflowVersion} /><input type="hidden" name="request_id" value={randomUUID()} />
-          <p className="mb-3">คะแนนและหลักฐานครบแล้ว แอดมินเป็นผู้ยืนยันจบโครงงาน</p><SubmitButton pendingText="กำลังยืนยัน...">ยืนยันจบโครงงาน</SubmitButton>
+          <p className="mb-3">คะแนนและหลักฐานครบแล้ว ผู้ดูแลระบบเป็นผู้ยืนยันจบโครงงาน</p><SubmitButton pendingText="กำลังยืนยัน...">ยืนยันจบโครงงาน</SubmitButton>
         </AcademicResultActionForm> : <><p className="font-medium">ยังยืนยันจบไม่ได้</p><ul className="list-disc space-y-1 pl-5 text-sm">{eligibility.missingRequirements.map(item=><li key={item}>{item}</li>)}</ul></>
         : evidence.valid && eligibility.eligible ? <AcademicResultActionForm action={resolveVerifiedIncomplete} className="space-y-3">
           <p className="app-alert alert-success">ยืนยันจบโครงงานแล้ว เหลือบันทึกผลที่ผู้มีอำนาจยืนยัน</p>
           <input type="hidden" name="project_id" value={project.id} /><input type="hidden" name="result_version" value={project.academicResult!.version} /><input type="hidden" name="workflow_version" value={eligibility.workflowVersion} />
-          <label>ผลที่ยืนยันแล้ว<select name="grade" required defaultValue=""><option value="" disabled>เลือกผลตามคำยืนยันจริง</option>{["A","B+","B","C+","C","D+","D","E","S","U"].map(grade=><option key={grade}>{grade}</option>)}</select></label>
+          <label>ผลที่ยืนยันแล้ว<select name="grade" required defaultValue=""><option value="" disabled>เลือกผลที่ได้รับการยืนยันแล้ว</option>{["A","B+","B","C+","C","D+","D","E","S","U"].map(grade=><option key={grade}>{grade}</option>)}</select></label>
           <SubmitButton pendingText="กำลังบันทึก...">บันทึกผลแก้ I</SubmitButton><p className="text-sm text-muted">ระบบเก็บผู้บันทึก เวลา และการรับรองเดิมให้อัตโนมัติ ไม่คำนวณเกรดหรือส่ง REG</p>
         </AcademicResultActionForm> : <p className="app-alert alert-warning">ตรวจการรับรองเอกสารและคะแนนปัจจุบันให้ครบก่อนบันทึกผลแก้ I</p>}
       </section>
