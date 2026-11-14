@@ -228,3 +228,46 @@ Patch ที่ปล่อย:
 
 - ปิด rollout PR #28 สำเร็จ โดย Production คงอยู่ที่ `main@d3a32a0`
 - เหตุข้อมูลหาย ปุ่มค้าง `500/digest`, auth failure, lifecycle regression, workload mismatch หรือ Student Proposal ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
+
+## 2026-09-21 - Teacher schedule current/history rollout closeout
+
+ประเภท: Production usability maintenance
+
+Production:
+
+- URL: `https://system-project-math-sci-sru.vercel.app`
+- GitHub main ก่อนปล่อย: `a5038fbebd5bdd86784d9b580324539a97300264`
+- Final GitHub main: `6035142937e42e28b45c82d85ac3958a08858688`
+- Final Vercel deployment: `dpl_34cbv8RSKWyLQDvFntBuPY3BJTQx`
+- Vercel deployment status: `READY`
+- Rollback deployment: `dpl_P74NUvjvkGoTzQ2hP8uvpUUbA7Nb`
+- Rollback tag: `prod-before-pr42-20260921-2202`
+
+Patch ที่ปล่อย:
+
+| Patch | PR | Merge commit |
+| --- | --- | --- |
+| แยกตารางสอบปัจจุบันและประวัติสำหรับอาจารย์ | #42 | `6035142937e42e28b45c82d85ac3958a08858688` |
+
+ผลการเฝ้าดู Production:
+
+- เฝ้าดู Production ครบมากกว่า 60 นาที โดยตรวจทันทีและตรวจซ้ำตลอด observation window
+- Production HTTP ที่ `/`, `/login`, `/teacher` และ `/teacher/schedules` ตอบ HTTP 200 ทุก checkpoint
+- Read-only browser smoke หลัง deploy ผ่านหน้าแรกและ access guard โดยไม่พบ application error, digest หรือ auth failure; checkpoint สุดท้ายยืนยันซ้ำด้วย HTTP เนื่องจากเครื่องมือ browser automation ไม่พร้อมใช้งาน
+- Vercel deployment คงเป็น `READY`; ไม่พบ error-level runtime log ตลอด observation window
+- Production Supabase `project-course-system` (`moowtfeoxgmkerfrtxyz`) เป็น `ACTIVE_HEALTHY` และ read-only `SELECT 1` สำเร็จทุก checkpoint
+- GitHub main คงอยู่ที่ merge commit ของ PR #42 และ rollback tag resolve ไปยัง Production baseline เดิมอย่างถูกต้อง
+- ไม่ได้รับรายงานจากผู้ใช้ที่ตรงกับเงื่อนไข rollback
+
+ขอบเขตและความปลอดภัย:
+
+- QA Preview ไม่ได้ใช้โดยตั้งใจ เนื่องจาก infrastructure ไม่ได้ใช้งานมานานและ Preview ของ PR #42 ไม่มี `DATABASE_URL`; ไม่มีการแก้ Preview หรือ Production environment variable
+- PR #42 ไม่มี database migration, environment change หรือ Production database mutation
+- การตรวจ Production เป็น read-only; ผู้ทดสอบไม่ได้ส่ง Production form หรือเปลี่ยนข้อมูลใด
+- ไม่มี rollback และไม่มีการลบหรือแก้ไข audit/evidence history
+- สิทธิ์เปิดเอกสารประกอบการสอบตาม PR #40 และจำนวนงานให้คะแนนไม่ถูกเปลี่ยน
+
+ผลลัพธ์:
+
+- ปิด rollout PR #42 สำเร็จ โดย Production คงอยู่ที่ `main@6035142`
+- เหตุ current teacher work หาย รอบเก่ากลับมาอยู่ในคิวงาน กรองภาคเรียนผิด สิทธิ์เปิดเอกสารลดลง จำนวนงานผิด หรือ Teacher dashboard/schedules ใช้งานไม่ได้ที่พบภายหลัง ให้เปิดเป็น Production incident ใหม่
