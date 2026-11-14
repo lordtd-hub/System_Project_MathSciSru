@@ -8,9 +8,9 @@ describe("role dashboard navigation source", () => {
     const component = source();
     const css = readFileSync("src/app/globals.css", "utf8");
 
-    expect(component).toContain("กลับแดชบอร์ดผู้ดูแลระบบ");
-    expect(component).toContain("กลับแดชบอร์ดอาจารย์");
-    expect(component).toContain("กลับแดชบอร์ดนักศึกษา");
+    expect(component).toContain("กลับหน้าหลักผู้ดูแลระบบ");
+    expect(component).toContain("กลับหน้าหลักอาจารย์");
+    expect(component).toContain("กลับหน้าหลักนักศึกษา");
     expect(component).toContain("role-dashboard-return");
     expect(component).not.toContain("secondaryHref");
     expect(component).not.toContain("helper:");

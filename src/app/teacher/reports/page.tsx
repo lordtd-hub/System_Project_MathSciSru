@@ -214,7 +214,7 @@ export default async function TeacherReportsPage({
                         <input type="hidden" name="report_version_id" value={latestReport.id} />
                         <MarkdownLatexEditor
                           name="comment"
-                          label="Comment สำหรับนักศึกษา"
+                          label="ข้อเสนอแนะสำหรับนักศึกษา"
                           defaultValue={previousReview?.comment ?? ""}
                           rows={4}
                         />

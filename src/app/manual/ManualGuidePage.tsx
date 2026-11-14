@@ -39,7 +39,7 @@ export function ManualGuidePage({ guide }: { guide: ManualGuide }) {
       />
 
       <section className="panel">
-        <SectionHeading title="คู่มือนี้ใช้กับใคร" description="Audience and scope" compact />
+        <SectionHeading title="คู่มือนี้ใช้กับใคร" description="ผู้ใช้และขั้นตอนที่คู่มือนี้ครอบคลุม" compact />
         <p className="text-sm leading-7 text-muted">{guide.audience}</p>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <ScopeList title="ครอบคลุมในคู่มือนี้" items={guide.normalScope} />
@@ -48,7 +48,7 @@ export function ManualGuidePage({ guide }: { guide: ManualGuide }) {
       </section>
 
       <section className="panel">
-        <SectionHeading title="ลำดับขั้นตอน" description="Step-by-step guide" compact />
+        <SectionHeading title="ลำดับขั้นตอน" description="เลือกขั้นตอนที่ต้องการดู" compact />
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {guide.steps.map((step, index) => (
             <a key={step.id} href={`#${step.id}`} className="rounded-lg border border-line bg-paperSoft p-4 transition hover:border-brand hover:bg-red-50">

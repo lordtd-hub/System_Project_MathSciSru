@@ -79,7 +79,7 @@ export function MarkdownLatexEditor({
       </div>
       <div className="space-y-1.5">
         <div className="text-sm font-medium">แสดงตัวอย่าง</div>
-        <div className="rounded-t-md border border-b-0 border-line bg-paper px-3 py-2 text-xs font-medium">Preview</div>
+        <div className="rounded-t-md border border-b-0 border-line bg-paper px-3 py-2 text-xs font-medium">ผลลัพธ์</div>
         <MarkdownLatexViewer value={draft} emptyText="ตัวอย่าง Markdown และ LaTeX จะแสดงที่นี่" />
       </div>
     </div>

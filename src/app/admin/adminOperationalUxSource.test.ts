@@ -37,9 +37,9 @@ describe("admin operational UX source", () => {
     expect(source).toContain("readyToClose");
     expect(source).toContain("waitingAdvisorScore");
     expect(source).toContain("AdminQueueSection");
-    expect(source).toContain("Needs admin action");
-    expect(source).toContain("Waiting");
-    expect(source).toContain("Completed");
+    expect(source).toContain("รอผู้ดูแลระบบดำเนินการ");
+    expect(source).toContain("รอข้อมูลให้ครบ");
+    expect(source).toContain("ยืนยันจบแล้ว");
   });
 
   it("groups admin schedules by actionable status without changing approval queries", () => {

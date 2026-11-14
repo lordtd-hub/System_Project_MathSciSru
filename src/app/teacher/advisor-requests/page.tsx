@@ -44,7 +44,7 @@ export default async function TeacherAdvisorRequestsPage({
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) {
-    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณา claim โปรไฟล์ก่อนใช้งาน" />;
+    return <EmptyState title="ยังไม่พบโปรไฟล์อาจารย์" description="กรุณาขอผูกบัญชีกับรายชื่ออาจารย์ก่อนใช้งาน" />;
   }
 
   const requests = await prisma.advisorRequest.findMany({

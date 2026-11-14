@@ -16,10 +16,10 @@ function percent(value: number, total: number) {
 const exportItems = [
   { kind: "grades", label: "สรุปคะแนนรายบุคคล", description: "คะแนนแต่ละรอบและสถานะจบรายคน" },
   { kind: "projects", label: "หลักฐานรายโครงงาน", description: "สถานะหลักฐานและผู้เกี่ยวข้องของแต่ละโครงงาน" },
-  { kind: "timeline", label: "เหตุการณ์หลักฐาน", description: "เหตุการณ์ตาม lifecycle ของโครงงาน" },
-  { kind: "scores", label: "หลักฐานคะแนนตามเกณฑ์", description: "คะแนนที่ผูกกับ rubric และผู้ประเมิน" },
+  { kind: "timeline", label: "เหตุการณ์หลักฐาน", description: "เหตุการณ์ตามขั้นตอนของโครงงาน" },
+  { kind: "scores", label: "หลักฐานคะแนนตามเกณฑ์", description: "คะแนนพร้อมเกณฑ์ประเมินและชื่อผู้ประเมิน" },
   { kind: "reports", label: "ผลตรวจรายงาน", description: "เวอร์ชันรายงานและผลตรวจล่าสุด" },
-  { kind: "audit", label: "ประวัติการดำเนินการทั้งระบบ", description: "audit log รวม ไม่จำกัดเฉพาะรายวิชา" }
+  { kind: "audit", label: "ประวัติการดำเนินการทั้งระบบ", description: "ประวัติการทำรายการทั้งระบบ ไม่จำกัดเฉพาะรายวิชา" }
 ] as const;
 
 function exportHref(kind: string, format: "csv" | "xlsx", courseOfferingId?: string) {
@@ -88,7 +88,7 @@ export default async function AdminEvidencePage({
             description="ใช้ตรวจความครบถ้วนก่อนดาวน์โหลด ไม่เปลี่ยนกฎการปิดโครงงานหรือการคำนวณคะแนน"
             metrics={[
               { label: "โครงงานทั้งหมด", count: totalProjects, tone: totalProjects ? "ready" : "locked", description: "จำนวนโครงงานในรายวิชาที่เลือก" },
-              { label: "เสร็จสมบูรณ์", count: completedProjects, tone: "completed", description: "ผ่าน Admin closeout แล้ว" },
+              { label: "เสร็จสมบูรณ์", count: completedProjects, tone: "completed", description: "ผู้ดูแลระบบยืนยันจบโครงงานแล้ว" },
               { label: "หลักฐานยังไม่ครบ", count: missingEvidenceProjects, tone: missingEvidenceProjects ? "exception" : "completed", description: "ควรตรวจรายการก่อนใช้เป็นชุดหลักฐานทางการ" },
               { label: "รายงานผ่าน", count: reportCount, tone: reportCount ? "completed" : "locked", description: "มีหลักฐานผลตรวจรายงาน" },
               { label: "คะแนนที่ปรึกษา", count: advisorScoreCount, tone: advisorScoreCount ? "completed" : "locked", description: "มีคะแนนส่วนที่ปรึกษา 25%" }
@@ -147,7 +147,7 @@ export default async function AdminEvidencePage({
                     <th>สถานะ</th>
                     <th>หลักฐาน P1</th>
                     <th>หลักฐาน P2</th>
-                    <th>หลักฐาน Final</th>
+                    <th>หลักฐานขั้นสุดท้าย</th>
                     <th>หลักฐานรายงาน</th>
                     <th>คะแนนที่ปรึกษา</th>
                     <th>ประวัติ</th>
@@ -222,7 +222,7 @@ export default async function AdminEvidencePage({
             </div>
 
             <div className="panel dashboard-console-panel">
-              <DashboardSectionHeader title="กรอบการใช้หลักฐานสำหรับ AUN-QA" description="คำอธิบายประกอบสำหรับการทบทวนหลักฐาน ยังไม่ใช่การ mapping CLO/PLO อย่างเป็นทางการ" />
+              <DashboardSectionHeader title="กรอบการใช้หลักฐานสำหรับ AUN-QA" description="คำอธิบายประกอบสำหรับการทบทวนหลักฐาน ยังไม่ใช่การเชื่อมโยง CLO/PLO อย่างเป็นทางการ" />
               <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
                 <li><strong className="text-ink">หลักฐานการประเมิน:</strong> เกณฑ์ประเมิน การบันทึกคะแนน รายการคะแนน และข้อมูลผู้ประเมินขณะบันทึก</li>
                 <li><strong className="text-ink">หลักฐานข้อเสนอแนะและการแก้ไข:</strong> ความเห็นจากการเสนอหัวข้อ ผลตรวจรายงาน และคำขอแก้ไขรายงาน</li>

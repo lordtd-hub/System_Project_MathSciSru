@@ -39,7 +39,7 @@ export default async function ClaimsPage({
               </div>
               <div>
                 <div>{claim.claimedEmail}</div>
-                <div className="text-muted">อีเมลที่ claim</div>
+                <div className="text-muted">อีเมลที่ขอผูกบัญชี</div>
               </div>
               <div>
                 <div>{claim.status}</div>

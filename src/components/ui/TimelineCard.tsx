@@ -10,7 +10,7 @@ export type TimelineCardEvent = {
   actorName?: string | null;
 };
 
-export function TimelineCard({ title = "Evidence timeline", events }: { title?: string; events: TimelineCardEvent[] }) {
+export function TimelineCard({ title = "ประวัติการดำเนินงาน", events }: { title?: string; events: TimelineCardEvent[] }) {
   return (
     <section className="panel">
       <SectionHeading title={title} description="ประวัติหลักฐาน" compact />

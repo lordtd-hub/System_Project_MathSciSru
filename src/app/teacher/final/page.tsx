@@ -106,7 +106,7 @@ export default async function TeacherFinalPage({
         <>
           <TeacherWorkloadSummary
             metrics={[
-              { label: "ต้องดำเนินการ", count: pendingCount, tone: "action", description: "ยังไม่ได้ส่งคะแนน Final" },
+              { label: "ต้องดำเนินการ", count: pendingCount, tone: "action", description: "ยังไม่ได้ส่งคะแนนนำเสนอขั้นสุดท้าย" },
               { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
               { label: "แก้ไขได้", count: submittedCount, tone: "completed", description: "คะแนนที่ส่งแล้ว แก้ได้จนปิดรอบ" },
               { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
@@ -119,7 +119,7 @@ export default async function TeacherFinalPage({
               href: `#project-${project.id}`,
               title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
               description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
-              meta: "Final",
+              meta: "นำเสนอขั้นสุดท้าย",
               badges: [{
                 label: project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION")?.evaluatorAssignments.some((assignment) => assignment.evaluatorUserId === session.user.id && assignment.scoreSubmission) ? "แก้ไขคะแนนได้" : "ต้องให้คะแนน",
                 tone: project.attempts.find((attempt) => attempt.assessmentRound.roundType === "FINAL_PRESENTATION")?.evaluatorAssignments.some((assignment) => assignment.evaluatorUserId === session.user.id && assignment.scoreSubmission) ? "completed" : "action"
@@ -222,7 +222,7 @@ export default async function TeacherFinalPage({
                   <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
                 </div>
                 <div>
-                  <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Final ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"} scoreGuard autoRecovery={false}>
+                  <SubmitButton pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนนนำเสนอขั้นสุดท้ายที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้ายหรือไม่?"} scoreGuard autoRecovery={false}>
                     {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบนำเสนอขั้นสุดท้าย"}
                   </SubmitButton>
                 </div>

@@ -12,11 +12,11 @@ const roleGuides = [
   {
     title: "สำหรับอาจารย์",
     href: "/teacher",
-    description: "ใช้ติดตามงานที่เกี่ยวข้องกับตนเอง เช่น คำขอเป็นที่ปรึกษา การประเมินการเสนอหัวข้อ/ความก้าวหน้า/ขั้นสุดท้าย ตารางสอบ และการตรวจเล่มรายงาน",
+    description: "ติดตามคำขอเป็นที่ปรึกษา งานประเมิน ตารางสอบ และรายงานที่ต้องตรวจของโครงงานที่ตนรับผิดชอบ",
     steps: [
       "เข้าสู่ระบบด้วยอีเมล @sru.ac.th",
       "ถ้ายังไม่ผูกบัญชี ให้เลือกโปรไฟล์อาจารย์และรอผู้ดูแลระบบอนุมัติ",
-      "เมื่อได้รับสิทธิ์แล้ว ให้ตรวจงานใน Teacher dashboard และตอบรายการที่ระบบแจ้ง"
+      "เมื่อได้รับสิทธิ์แล้ว ให้เปิดหน้าหลักอาจารย์เพื่อดูและดำเนินการกับงานที่รออยู่"
     ],
     note: "อาจารย์จะเห็นเฉพาะงานที่เกี่ยวข้องกับบทบาทหรือการแต่งตั้งของตนเอง"
   },
@@ -26,8 +26,8 @@ const roleGuides = [
     description: "ใช้ส่งข้อมูลโครงงาน เอกสารเสนอหัวข้อ นัดสอบ ติดตามข้อเสนอแนะ และส่งเล่มรายงานตามสถานะของโครงงาน",
     steps: [
       "เข้าสู่ระบบด้วยอีเมลรูปแบบ student_code@student.sru.ac.th",
-      "ต้องมีรายชื่ออยู่ใน roster ที่ผู้ดูแลระบบนำเข้าก่อน จึงจะเข้าหน้านักศึกษาได้",
-      "ทำตาม Next Action บน Student dashboard ทีละขั้น ระบบจะล็อกขั้นที่ยังไม่ถึง"
+      "ต้องมีชื่อในรายชื่อนักศึกษาที่ผู้ดูแลระบบนำเข้า จึงจะเข้าหน้านักศึกษาได้",
+      "ดู “สิ่งที่ต้องทำต่อ” บนหน้าหลักนักศึกษา แล้วทำตามลำดับ ระบบจะเปิดแต่ละขั้นเมื่อพร้อม"
     ],
     note: "นักศึกษาจะเห็นข้อเสนอแนะที่เปิดให้ดู แต่คะแนนบางส่วนจะถูกซ่อนตามนโยบายของรายวิชา"
   }
@@ -88,7 +88,7 @@ export default async function HomePage() {
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Link className="button w-full sm:w-auto" href={user ? dashboardLinks[0]?.href ?? "/login" : "/login"}>
-                {user ? "ไปยังแดชบอร์ดของฉัน" : "เข้าสู่ระบบด้วย Google"}
+                {user ? "ไปหน้าหลักของฉัน" : "เข้าสู่ระบบด้วย Google"}
               </Link>
               <Link className="button-secondary w-full sm:w-auto" href="/manual">
                 เปิดคู่มือการใช้งาน
@@ -129,7 +129,7 @@ export default async function HomePage() {
         <div className="next-action-card sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div className="next-action-rail" aria-hidden="true" />
           <div>
-            <h2 className="text-lg font-semibold text-ink">เลือกแดชบอร์ดที่เกี่ยวข้องกับบัญชีนี้</h2>
+            <h2 className="text-lg font-semibold text-ink">เลือกหน้าทำงานตามบทบาท</h2>
             <p className="mt-1 text-sm leading-6 text-muted">
               ระบบแสดงทางเข้าตามสิทธิ์ของบัญชีที่เข้าสู่ระบบไว้แล้ว หากมีหลายบทบาทให้เลือกหน้าที่ต้องทำงานต่อ
             </p>
@@ -145,7 +145,7 @@ export default async function HomePage() {
       )}
 
       <section className="panel">
-        <SectionHeading title="ระบบนี้ใช้ทำอะไร" description="What this system does" compact />
+        <SectionHeading title="ระบบนี้ใช้ทำอะไร" description="ติดตามงาน ประเมิน และเก็บหลักฐานในที่เดียว" compact />
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-line p-4">
             <h3 className="font-semibold text-ink">ติดตามสถานะโครงงาน</h3>

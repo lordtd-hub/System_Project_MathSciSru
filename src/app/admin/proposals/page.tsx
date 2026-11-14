@@ -140,13 +140,13 @@ export default async function AdminProposalsPage({
       {hasProposalAttempts ? (
         <>
           <AdminOperationalSummary
-            title="สรุปปฏิบัติการ Proposal"
-            description="แยกงานที่ Admin ต้องตัดสิน ออกจากงานที่รอคะแนนอาจารย์หรือเสร็จแล้ว"
+            title="สรุปงานเสนอหัวข้อ"
+            description="ดูรายการที่ต้องตัดสินก่อน ส่วนงานที่รอคะแนนหรือเสร็จแล้วแยกไว้ด้านล่าง"
             metrics={[
               { label: "รอตัดสิน", count: waitingDecisionCount, tone: waitingDecisionCount ? "action" : "completed", description: "มีคะแนน/เอกสารแล้วแต่ยังไม่มีมติสุดท้าย" },
-              { label: "คะแนนยังไม่ครบ", count: missingScoreCount, tone: missingScoreCount ? "waiting" : "completed", description: "ไม่ใช่ blocker เสมอไป แต่ควรตรวจสอบก่อนปิดรอบ" },
+              { label: "คะแนนยังไม่ครบ", count: missingScoreCount, tone: missingScoreCount ? "waiting" : "completed", description: "อาจไม่ขัดขวางการปิดรอบ แต่ควรตรวจสอบก่อน" },
               { label: "ไม่ผ่านตั้งแต่ 50%", count: failAlertCount, tone: failAlertCount ? "exception" : "completed", description: "ต้องอ่านเหตุผลและมติประชุมอย่างระมัดระวัง" },
-              { label: "ตัดสินแล้ว", count: decidedCount, tone: "completed", description: "มี final decision แล้ว" },
+              { label: "ตัดสินแล้ว", count: decidedCount, tone: "completed", description: "มีผลตัดสินสุดท้ายแล้ว" },
               { label: "เปิดผลแล้ว", count: releasedCount, tone: "completed", description: "นักศึกษาเห็นข้อเสนอแนะแล้ว" }
             ]}
           />
@@ -187,7 +187,7 @@ export default async function AdminProposalsPage({
             {waitingDecisionCount ? (
               <WarningAlert title={`รอผู้ดูแลระบบตัดสิน ${waitingDecisionCount} รายการ`} />
             ) : (
-              <InfoAlert title="ไม่มีรายการรอ Admin ตัดสิน" />
+              <InfoAlert title="ไม่มีรายการรอผู้ดูแลระบบตัดสิน" />
             )}
           </div>
         </>
@@ -220,7 +220,7 @@ export default async function AdminProposalsPage({
                     </p>
                   ) : (
                     <p className="mt-1 text-sm text-muted">
-                      {closed ? "ปิดรอบแล้ว แต่ยังไม่มีเวลา closed_at ในข้อมูลเดิม" : "ยังเปิดอยู่ เมื่อปิดรอบแล้วอาจารย์จะไม่สามารถแก้คะแนนได้ตามปกติ"}
+                      {closed ? "ปิดรอบแล้ว แต่ข้อมูลเดิมยังไม่ได้บันทึกเวลาปิด" : "เมื่อปิดรอบแล้ว อาจารย์จะไม่สามารถแก้คะแนนได้ตามปกติ"}
                     </p>
                   )}
                 </div>
@@ -229,7 +229,8 @@ export default async function AdminProposalsPage({
                   {!closed && missingProposalProjects.length ? (
                     <label className="mb-2 flex items-center gap-2 text-xs text-muted">
                       <input type="checkbox" name="acknowledge_missing_projects" value="yes" />
-                      รับทราบรายชื่อนักศึกษาที่ยังไม่ส่ง Proposal แล้ว
+
+                      รับทราบรายชื่อนักศึกษาที่ยังไม่ส่งเอกสารเสนอหัวข้อแล้ว
                     </label>
                   ) : null}
                   <SubmitButton
@@ -243,7 +244,7 @@ export default async function AdminProposalsPage({
               </div>
 
               {!closed && missingProposalProjects.length ? (
-                <WarningAlert title={`มีนักศึกษายังไม่ส่ง Proposal ${missingProposalProjects.length} ราย`}>
+                <WarningAlert title={`มีนักศึกษายังไม่ส่งเอกสารเสนอหัวข้อ ${missingProposalProjects.length} ราย`}>
                   <div className="space-y-1">
                     <p>ก่อนปิดรอบ โปรดยืนยันว่ารับทราบรายชื่อนักศึกษาที่ค้างส่งแล้ว</p>
                     <ul className="list-disc pl-5">
@@ -362,13 +363,13 @@ export default async function AdminProposalsPage({
                         <div className="mb-2 text-xs font-semibold text-muted">การทำงาน</div>
                         {!isLatestAttempt ? (
                           <InfoAlert title="ประวัติการสอบหัวข้อ">
-                            Attempt นี้ถูกล็อกแบบอ่านอย่างเดียว การบันทึกมติและคะแนนใช้ได้เฉพาะ Attempt ล่าสุด
+                            การสอบครั้งนี้เปิดให้อ่านอย่างเดียว บันทึกมติและคะแนนได้เฉพาะการสอบครั้งล่าสุด
                           </InfoAlert>
                         ) : certifiedRevision ? (
                           <ProposalLifecycleActionForm action={unlockProposalRevisionDecision} className="grid gap-2">
                             <input type="hidden" name="attempt_id" value={attempt.id} />
                             <input name="reason" required placeholder="เหตุผลที่ต้องปลดล็อกมติ" />
-                            <SubmitButton className="button-secondary" pendingText="กำลังปลดล็อก..." confirmMessage="ยืนยันการปลดล็อกมติและส่ง Proposal กลับเข้าสู่ขั้นแก้ไขหรือไม่?" autoRecovery={false}>
+                            <SubmitButton className="button-secondary" pendingText="กำลังปลดล็อก..." confirmMessage="ยืนยันการปลดล็อกมติและส่งเอกสารเสนอหัวข้อกลับเข้าสู่ขั้นแก้ไขหรือไม่?" autoRecovery={false}>
                               ปลดล็อกมติ
                             </SubmitButton>
                           </ProposalLifecycleActionForm>
@@ -535,13 +536,13 @@ export default async function AdminProposalsPage({
                             </div>
                             {!isLatestAttempt ? (
                               <InfoAlert title="ประวัติการสอบหัวข้อ">
-                                Attempt นี้ถูกล็อกแบบอ่านอย่างเดียว การบันทึกมติและคะแนนใช้ได้เฉพาะ Attempt ล่าสุด
+                                การสอบครั้งนี้เปิดให้อ่านอย่างเดียว บันทึกมติและคะแนนได้เฉพาะการสอบครั้งล่าสุด
                               </InfoAlert>
                             ) : certifiedRevision ? (
                               <ProposalLifecycleActionForm action={unlockProposalRevisionDecision} className="grid gap-2">
                                 <input type="hidden" name="attempt_id" value={attempt.id} />
                                 <input name="reason" required placeholder="เหตุผลที่ต้องปลดล็อกมติ" />
-                                <SubmitButton className="button-secondary" pendingText="กำลังปลดล็อก..." confirmMessage="ยืนยันการปลดล็อกมติและส่ง Proposal กลับเข้าสู่ขั้นแก้ไขหรือไม่?" autoRecovery={false}>
+                                <SubmitButton className="button-secondary" pendingText="กำลังปลดล็อก..." confirmMessage="ยืนยันการปลดล็อกมติและส่งเอกสารเสนอหัวข้อกลับเข้าสู่ขั้นแก้ไขหรือไม่?" autoRecovery={false}>
                                   ปลดล็อกมติ
                                 </SubmitButton>
                               </ProposalLifecycleActionForm>

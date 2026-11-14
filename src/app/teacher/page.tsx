@@ -379,14 +379,14 @@ export default async function TeacherDashboardPage() {
       }
     : proposalRevisionReviewCount
       ? {
-          title: "มี Proposal ฉบับแก้ไขรอรับรอง",
+          title: "มีเอกสารเสนอหัวข้อฉบับแก้ไขรอรับรอง",
           description: "ตรวจการแก้ไขตามมติผ่านโดยให้แก้ไข โดยไม่ให้คะแนนหรือสอบใหม่",
           href: "/teacher/proposal-revisions"
         }
     : nextAction;
   const workloadCards = [
     { label: "คำขอที่ปรึกษา", value: advisorRequestCount, href: "/teacher/advisor-requests", tone: advisorRequestCount ? "ready" as const : "quiet" as const },
-    { label: "Proposal ฉบับแก้ไข", value: proposalRevisionReviewCount, href: "/teacher/proposal-revisions", tone: proposalRevisionReviewCount ? "ready" as const : "quiet" as const },
+    { label: "เอกสารเสนอหัวข้อฉบับแก้ไข", value: proposalRevisionReviewCount, href: "/teacher/proposal-revisions", tone: proposalRevisionReviewCount ? "ready" as const : "quiet" as const },
     { label: "เสนอหัวข้อรอประเมิน", value: pendingProposalScoreCount, href: "/teacher/proposals", tone: pendingProposalScoreCount ? "ready" as const : "quiet" as const },
     { label: "ตารางสอบรออนุมัติ", value: scheduleApprovalCount, href: "/teacher/schedules", tone: scheduleApprovalCount ? "waiting" as const : "quiet" as const },
     { label: "พร้อมให้คะแนน", value: presentationScoreReadyCount, href: progress1ScoreReadyCount ? "/teacher/progress1" : progress2ScoreReadyCount ? "/teacher/progress2" : "/teacher/final", tone: presentationScoreReadyCount ? "ready" as const : "quiet" as const },
@@ -418,8 +418,8 @@ export default async function TeacherDashboardPage() {
       statusLabel: pendingProposalScoreCount ? "พร้อมประเมิน" : "ปกติ"
     },
     {
-      title: "Proposal ฉบับแก้ไขรอรับรอง",
-      description: proposalRevisionReviewCount ? "นักศึกษาส่งฉบับแก้ไขตามมติและรอที่ปรึกษาตรวจ" : "ยังไม่มี Proposal ฉบับแก้ไขที่ต้องตรวจ",
+      title: "เอกสารเสนอหัวข้อฉบับแก้ไขรอรับรอง",
+      description: proposalRevisionReviewCount ? "นักศึกษาส่งฉบับแก้ไขตามมติและรอที่ปรึกษาตรวจ" : "ยังไม่มีเอกสารเสนอหัวข้อฉบับแก้ไขที่ต้องตรวจ",
       href: "/teacher/proposal-revisions",
       count: proposalRevisionReviewCount,
       tone: proposalRevisionReviewCount ? "ready" as const : "quiet" as const,
@@ -545,7 +545,7 @@ export default async function TeacherDashboardPage() {
       />
       <div className="grid gap-4">
         <section className="panel dashboard-console-panel">
-          <h2 className="text-lg font-semibold">Proposal ที่ต้องประเมิน</h2>
+          <h2 className="text-lg font-semibold">การเสนอหัวข้อที่ต้องประเมิน</h2>
           <div className="mt-3 space-y-3">
             {pendingProposalAttempts.length ? (
               pendingProposalAttempts.map((attempt) => {
@@ -570,14 +570,14 @@ export default async function TeacherDashboardPage() {
                 );
               })
             ) : (
-              <EmptyState title="ไม่มี Proposal ที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วสามารถดูย้อนหลังได้จากหน้าประเมินการเสนอหัวข้อ" />
+              <EmptyState title="ไม่มีการเสนอหัวข้อที่ต้องประเมินตอนนี้" description="รายการที่ส่งคะแนนแล้วสามารถดูย้อนหลังได้จากหน้าประเมินการเสนอหัวข้อ" />
             )}
             {pendingProposalScoreCount > pendingProposalAttempts.length ? (
               <Link className="button-secondary inline-flex" href="/teacher/proposals">
                 ยังมีอีก {pendingProposalScoreCount - pendingProposalAttempts.length} งาน ดูทั้งหมด
               </Link>
             ) : pendingProposalScoreCount > 0 ? (
-              <Link className="text-sm font-medium text-brand" href="/teacher/proposals">ดูหน้า Proposal ทั้งหมด</Link>
+              <Link className="text-sm font-medium text-brand" href="/teacher/proposals">ดูหน้าการเสนอหัวข้อทั้งหมด</Link>
             ) : null}
           </div>
         </section>

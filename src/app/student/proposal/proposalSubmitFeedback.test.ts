@@ -15,8 +15,8 @@ describe("student Proposal submit feedback wiring", () => {
 
   it("uses the shared general Re-proposal copy without hard-coded attempt numbers", () => {
     expect(page).toContain("getProposalStudentNextAction");
-    expect(page).toContain("พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป");
-    expect(page).toContain("กรอกและส่ง Proposal ฉบับใหม่");
+    expect(page).toContain("พร้อมส่งเอกสารเสนอหัวข้อสำหรับการสอบหัวข้อครั้งถัดไป");
+    expect(page).toContain("กรอกและส่งเอกสารเสนอหัวข้อฉบับใหม่");
     expect(page).not.toContain("ส่ง Proposal สำหรับ Re-proposal");
   });
   it("navigates successful submissions to the refreshed submitted summary", () => {

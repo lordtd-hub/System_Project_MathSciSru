@@ -132,7 +132,7 @@ export default async function ProposalSubmissionPage({
   );
   const showLateSubmittedNotice = hasLateOverride && showSubmittedProposalState && !canSubmitRevision;
   const showQaProgressPlanCheck = isQaProgressPlanCheckEnabled();
-  if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ใน roster ที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
+  if (!student) return <EmptyState title="ยังไม่พบข้อมูลนักศึกษา" description="บัญชีนี้ยังไม่อยู่ในรายชื่อที่นำเข้า กรุณาติดต่อผู้ดูแลระบบ" />;
   if (!project) return <EmptyState title="ยังไม่มีโครงงาน" description="กรุณาสร้างโครงงานก่อนส่งเอกสารเสนอหัวข้อ" actionLabel="ไปหน้าโครงงาน" href="/student/project" />;
 
   return (
@@ -168,13 +168,13 @@ export default async function ProposalSubmissionPage({
         </section>
       ) : null}
       <StudentReadabilitySummary
-        title="สรุปสถานะ Proposal"
+        title="สรุปสถานะการเสนอหัวข้อ"
         description="แยกงานที่ต้องส่งตอนนี้ออกจากสถานะที่ส่งแล้วหรือกำลังรอรอบเปิด เพื่อให้นักศึกษาเห็นขั้นตอนถัดไปชัดเจนขึ้น"
         items={[
           {
             label: "ต้องทำตอนนี้",
             value: canSubmitProposal ? 1 : 0,
-            detail: "กรอกข้อมูล Proposal และส่งหลักฐานเมื่อรอบเปิดหรือได้รับสิทธิ์ส่งย้อนหลัง",
+            detail: "กรอกข้อมูลเสนอหัวข้อและส่งหลักฐานเมื่อรอบเปิดหรือได้รับสิทธิ์ส่งย้อนหลัง",
             tone: canSubmitProposal ? "action" : "locked"
           },
           {
@@ -192,36 +192,37 @@ export default async function ProposalSubmissionPage({
           {
             label: "ความเห็น",
             value: proposalComments.length,
-            detail: "จำนวนความเห็น Proposal ที่เปิดให้นักศึกษาอ่านได้",
+            detail: "จำนวนความเห็นการเสนอหัวข้อที่เปิดให้นักศึกษาอ่านได้",
             tone: proposalComments.length ? "info" : "locked"
           }
         ]}
       />
       {showLateSubmittedNotice ? (
         <div data-testid="student-proposal-late-submitted-notice">
-          <WarningAlert title="ส่ง Proposal หลังปิดรอบแล้ว">
+          <WarningAlert title="ส่งเอกสารเสนอหัวข้อหลังปิดรอบแล้ว">
             {latePenaltyRequired
-              ? "ระบบบันทึกรายการนี้เป็นการส่งหลังปิดรอบ และจะติดป้ายส่งหลังปิดรอบพร้อมหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
+              ? "ระบบบันทึกรายการนี้เป็นการส่งหลังปิดรอบ และจะติดป้ายส่งหลังปิดรอบพร้อมหักคะแนนรอบการเสนอหัวข้อ 10% จากคะแนนที่อาจารย์ประเมิน"
               : "ระบบบันทึกรายการนี้เป็นการส่งหลังปิดรอบแบบได้รับอนุญาตเป็นกรณีพิเศษ โดยไม่หักคะแนน แต่ยังเก็บป้ายกำกับไว้เป็นหลักฐาน"}
           </WarningAlert>
         </div>
       ) : hasLateOverride ? (
-        <WarningAlert title="เปิดให้ส่ง Proposal รายกรณีหลังปิดรอบ">
+        <WarningAlert title="เปิดให้ส่งเอกสารเสนอหัวข้อรายกรณีหลังปิดรอบ">
           {latePenaltyRequired
-            ? "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษ ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนรอบ Proposal 10% จากคะแนนที่อาจารย์ประเมิน"
+            ? "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษ ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนรอบการเสนอหัวข้อ 10% จากคะแนนที่อาจารย์ประเมิน"
             : "รายการนี้ถูกเปิดย้อนหลังเป็นกรณีพิเศษโดยผู้ดูแลระบบ กรุณาส่งข้อมูลให้ครบตามที่ได้รับอนุญาต"}
         </WarningAlert>
       ) : canPrepareInitialProposal && !canSubmitReproposal && proposalRound && !isRoundOpen(proposalRound.status) ? (
-        <WarningAlert title="รอบส่ง Proposal ครั้งแรกสิ้นสุดแล้ว">
-          หากยังไม่เคยส่ง Proposal กรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดให้ส่งเป็นรายกรณี
+        <WarningAlert title="รอบส่งเอกสารเสนอหัวข้อครั้งแรกสิ้นสุดแล้ว">
+
+          หากยังไม่เคยส่งเอกสารเสนอหัวข้อกรุณาติดต่ออาจารย์ผู้รับผิดชอบหรือผู้ดูแลระบบเพื่อพิจารณาเปิดให้ส่งเป็นรายกรณี
         </WarningAlert>
       ) : null}
       {params.success === "proposal_submitted" ? (
         <InfoAlert title={isSubmittedRevision
-          ? "ส่ง Proposal ฉบับแก้ไขแล้ว"
+          ? "ส่งเอกสารเสนอหัวข้อฉบับแก้ไขแล้ว"
           : isCurrentReproposal
-            ? proposalNextAction?.title ?? "ส่ง Proposal ฉบับใหม่แล้ว"
-            : "ส่ง Proposal สำเร็จ"}>
+            ? proposalNextAction?.title ?? "ส่งเอกสารเสนอหัวข้อฉบับใหม่แล้ว"
+            : "ส่งเอกสารเสนอหัวข้อสำเร็จ"}>
           {isSubmittedRevision
             ? "ระบบบันทึกฉบับแก้ไขแล้ว ขั้นตอนถัดไปคือรออาจารย์ที่ปรึกษาตรวจและรับรอง"
             : isCurrentReproposal
@@ -230,13 +231,13 @@ export default async function ProposalSubmissionPage({
         </InfoAlert>
       ) : null}
       {canSubmitRevision ? (
-        <InfoAlert title="ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษาตรวจ">
+        <InfoAlert title="ส่งเอกสารเสนอหัวข้อฉบับแก้ไขให้ที่ปรึกษาตรวจ">
           แก้ข้อมูลในแบบฟอร์มให้ครบตามมติและข้อเสนอแนะ เมื่อส่งแล้วระบบจะเพิ่มประวัติฉบับใหม่โดยไม่สร้างการสอบหรือคะแนนชุดใหม่
         </InfoAlert>
       ) : null}
       {canSubmitReproposal ? (
-        <InfoAlert title={proposalNextAction?.title ?? "พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป"}>
-          {proposalNextAction?.description ?? "กรุณาตรวจสอบข้อมูลและส่ง Proposal ฉบับใหม่เพื่อเข้าสู่การประเมินอีกครั้ง"}
+        <InfoAlert title={proposalNextAction?.title ?? "พร้อมส่งเอกสารเสนอหัวข้อสำหรับการสอบหัวข้อครั้งถัดไป"}>
+          {proposalNextAction?.description ?? "กรุณาตรวจสอบข้อมูลและส่งเอกสารเสนอหัวข้อฉบับใหม่เพื่อเข้าสู่การประเมินอีกครั้ง"}
           {" "}การส่งครั้งนี้เปิดเฉพาะโครงการของคุณแม้รอบรวมปิดแล้ว และไม่ถือเป็นการส่งล่าช้า
         </InfoAlert>
       ) : null}
@@ -253,13 +254,13 @@ export default async function ProposalSubmissionPage({
         <section id="student-proposal-submitted-summary" className="panel space-y-4" data-testid="student-proposal-submitted-summary" tabIndex={-1}>
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-accent">สถานะเอกสารเสนอหัวข้อ</p>
-            <h2 className="text-lg font-semibold">{isSubmittedRevision ? "ส่ง Proposal ฉบับแก้ไขแล้ว" : isCurrentReproposal ? proposalNextAction?.title ?? "ส่ง Proposal ฉบับใหม่แล้ว" : "ส่งเอกสารเสนอหัวข้อแล้ว"}</h2>
+            <h2 className="text-lg font-semibold">{isSubmittedRevision ? "ส่งเอกสารเสนอหัวข้อฉบับแก้ไขแล้ว" : isCurrentReproposal ? proposalNextAction?.title ?? "ส่งเอกสารเสนอหัวข้อฉบับใหม่แล้ว" : "ส่งเอกสารเสนอหัวข้อแล้ว"}</h2>
             <p className="mt-1 text-sm text-muted">
               {isSubmittedRevision
                 ? "ระบบบันทึกฉบับแก้ไขแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ที่ปรึกษาตรวจและรับรอง นักศึกษาติดตามสถานะได้จากหน้านี้"
                 : isCurrentReproposal
                   ? proposalNextAction?.description ?? "ระบบบันทึก Proposal ฉบับใหม่แล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน"
-                  : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วน Comment ด้านล่าง"}
+                  : "ระบบบันทึกเอกสารเสนอหัวข้อแล้ว ขณะนี้อยู่ระหว่างรออาจารย์ประเมิน นักศึกษาสามารถติดตามข้อเสนอแนะได้จากส่วนข้อเสนอแนะด้านล่าง"}
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -356,9 +357,9 @@ export default async function ProposalSubmissionPage({
             <StudentActionFeedback
               className="w-full sm:basis-full"
               successTitle={canSubmitRevision
-                ? "ส่ง Proposal ฉบับแก้ไขแล้ว"
+                ? "ส่งเอกสารเสนอหัวข้อฉบับแก้ไขแล้ว"
                 : canSubmitReproposal
-                  ? "ส่ง Proposal ฉบับใหม่แล้ว"
+                  ? "ส่งเอกสารเสนอหัวข้อฉบับใหม่แล้ว"
                   : "ส่งแล้ว"}
               successNextStep={canSubmitRevision
                 ? "รออาจารย์ที่ปรึกษาตรวจและรับรองฉบับแก้ไข"
@@ -369,9 +370,9 @@ export default async function ProposalSubmissionPage({
             </button>
             <SubmitButton disabled={!project.origin || !canSubmitProposal} pendingText="กำลังส่งเอกสารเสนอหัวข้อ..." className="w-full sm:w-auto" autoRecovery={false}>
               {canSubmitRevision
-                ? "ส่ง Proposal ฉบับแก้ไขให้ที่ปรึกษา"
+                ? "ส่งเอกสารเสนอหัวข้อฉบับแก้ไขให้ที่ปรึกษา"
                 : canSubmitReproposal
-                  ? proposalNextAction?.actionLabel ?? "กรอกและส่ง Proposal ฉบับใหม่"
+                  ? proposalNextAction?.actionLabel ?? "กรอกและส่งเอกสารเสนอหัวข้อฉบับใหม่"
                 : canSubmitProposal
                   ? "ส่งเอกสารเสนอหัวข้อ"
                   : "ยังไม่เปิดให้ส่งเอกสารเสนอหัวข้อ"}
@@ -381,7 +382,7 @@ export default async function ProposalSubmissionPage({
       </StudentRecoverableActionForm>
       )}
       <section className="panel">
-        <h2 className="text-lg font-semibold">Comment จากอาจารย์</h2>
+        <h2 className="text-lg font-semibold">ข้อเสนอแนะจากอาจารย์</h2>
         <p className="mt-1 text-sm text-muted">ส่วนนี้แสดงข้อเสนอแนะทันที พร้อมชื่ออาจารย์ แต่ไม่แสดงคะแนนการเสนอหัวข้อ</p>
         <div className="mt-3 space-y-3">
           {proposalComments.length ? (

@@ -65,7 +65,8 @@ export default async function AdminCommitteePage({
                   <StatusBadge status={project.status} />
                 </div>
                 <div className="mt-4 rounded-md border border-line bg-paper p-3 text-sm">
-                  Advisor อัตโนมัติ: {approvedAdvisor ? teacherDisplayName(approvedAdvisor) : "ยังไม่พบข้อมูล advisor"}
+
+                  อาจารย์ที่ปรึกษาที่ระบบกำหนด: {approvedAdvisor ? teacherDisplayName(approvedAdvisor) : "ยังไม่พบข้อมูลอาจารย์ที่ปรึกษา"}
                 </div>
                 <form action={assignProjectCommittee} className="mt-4 grid gap-3 md:grid-cols-3">
                   <input type="hidden" name="project_id" value={project.id} />
@@ -88,7 +89,7 @@ export default async function AdminCommitteePage({
                     </select>
                   </div>
                   <div className="flex items-end">
-                    <SubmitButton className="w-full" pendingText="กำลังบันทึก..." confirmMessage="ยืนยันการบันทึกการแต่งตั้งกรรมการหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานไป IN_PROGRESS">
+                    <SubmitButton className="w-full" pendingText="กำลังบันทึก..." confirmMessage="ยืนยันการบันทึกการแต่งตั้งกรรมการหรือไม่? ระบบจะเปลี่ยนสถานะโครงงานเป็นดำเนินโครงงาน">
                       บันทึกการแต่งตั้งประธานและกรรมการ
                     </SubmitButton>
                   </div>

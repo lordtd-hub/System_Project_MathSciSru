@@ -71,7 +71,7 @@ describe("next action helpers", () => {
     const closedProposal = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, { proposalRoundOpen: false });
     expect(closedProposal.available_now.map((item) => item.key)).not.toContain("proposal");
     expect(closedProposal.blocked_waiting_for.map((item) => item.key)).toContain("proposal_round_closed");
-    expect(closedProposal.blocked_waiting_for[0].title).toBe("รอบส่ง Proposal ครั้งแรกสิ้นสุดแล้ว");
+    expect(closedProposal.blocked_waiting_for[0].title).toBe("รอบส่งเอกสารเสนอหัวข้อครั้งแรกสิ้นสุดแล้ว");
 
     const openProposal = getStudentAvailableActions("PROPOSAL_PENDING", {}, undefined, { proposalRoundOpen: true });
     expect(openProposal.available_now.map((item) => item.key)).toContain("proposal");
@@ -90,9 +90,9 @@ describe("next action helpers", () => {
       proposal
     });
 
-    expect(nextAction?.title).toBe("พร้อมส่ง Proposal สำหรับการสอบหัวข้อครั้งถัดไป");
+    expect(nextAction?.title).toBe("พร้อมส่งเอกสารเสนอหัวข้อสำหรับการสอบหัวข้อครั้งถัดไป");
     expect(nextAction?.title).not.toMatch(/ครั้งที่\s*\d/);
-    expect(nextAction?.actionLabel).toBe("กรอกและส่ง Proposal ฉบับใหม่");
+    expect(nextAction?.actionLabel).toBe("กรอกและส่งเอกสารเสนอหัวข้อฉบับใหม่");
     expect(actions.available_now.map((item) => item.key)).toContain("reproposal");
     expect(actions.blocked_waiting_for.map((item) => item.key)).not.toContain("proposal_round_closed");
   });
@@ -113,7 +113,7 @@ describe("next action helpers", () => {
     });
 
     expect(nextPreparation?.title).toBe("เริ่มเตรียมการสอบหัวข้อครั้งถัดไป");
-    expect(submittedAgain?.title).toBe("ส่ง Proposal ฉบับใหม่แล้ว");
+    expect(submittedAgain?.title).toBe("ส่งเอกสารเสนอหัวข้อฉบับใหม่แล้ว");
     expect(`${nextPreparation?.title} ${submittedAgain?.title}`).not.toMatch(/ครั้งที่\s*\d/);
   });
 

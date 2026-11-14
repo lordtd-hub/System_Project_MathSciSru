@@ -23,7 +23,7 @@ export default async function TeacherClaimPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Claim โปรไฟล์อาจารย์</h1>
+      <h1 className="text-2xl font-semibold">ขอผูกบัญชีอาจารย์</h1>
       <ActionFeedback success={params.success} error={params.error} />
       {claims.length ? (
         <section className="panel">
@@ -44,7 +44,7 @@ export default async function TeacherClaimPage({
             </option>
           ))}
         </select>
-        <SubmitButton pendingText="กำลังส่งคำขอ...">ส่งคำขอ Claim</SubmitButton>
+        <SubmitButton pendingText="กำลังส่งคำขอ...">ส่งคำขอผูกบัญชี</SubmitButton>
       </form>
     </div>
   );

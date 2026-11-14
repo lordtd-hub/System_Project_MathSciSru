@@ -17,7 +17,7 @@ export function NextActionCard({ action }: { action: NextAction }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
           <span className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[10px] font-bold uppercase tracking-wide text-white shadow-sm ${markerClass}`}>
-            now
+            ตอนนี้
           </span>
           <div className="relative">
             <div className={`text-xs font-bold uppercase tracking-[0.16em] ${labelClass}`}>สิ่งที่ต้องทำต่อไป</div>

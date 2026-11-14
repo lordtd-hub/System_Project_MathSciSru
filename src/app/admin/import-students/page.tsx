@@ -84,7 +84,7 @@ export default async function ImportStudentsPage({
         {activeOfferings.length ? (
           <form action={importStudents} className="mt-4 space-y-4">
             <CourseContextBadge offering={activeOfferings[0]} label="รายวิชาที่เปิดให้นำเข้ารายชื่อ" />
-            {selectedOfferingId && !activeOfferings.some(o => o.id === selectedOfferingId) ? <p role="alert">รายวิชาที่ระบุไม่ได้เปิดอยู่ กรุณาเลือกรายวิชาที่เปิดก่อนนำเข้า ไม่ย้ายรายชื่อข้ามวิชาอัตโนมัติ</p> : null}
+            {selectedOfferingId && !activeOfferings.some(o => o.id === selectedOfferingId) ? <p role="alert">รายวิชาที่เลือกยังไม่เปิดหรือปิดผลแล้ว กรุณาเลือกรายวิชาที่เปิดอยู่เพื่อนำเข้ารายชื่อ ระบบไม่ย้ายรายชื่อข้ามวิชาอัตโนมัติ</p> : null}
             <div>
               <label>รายวิชา / ปีการศึกษา / ภาคเรียน</label>
               <select name="course_offering_id" required defaultValue={selectedOfferingId ? activeOfferings.find(o => o.id === selectedOfferingId)?.id ?? "" : activeOfferings[0]?.id}>
@@ -117,7 +117,8 @@ export default async function ImportStudentsPage({
           <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4">
             <h3 className="text-sm font-semibold text-amber-900">ชุดข้อมูลคู่มือ</h3>
             <p className="mt-1 text-sm text-amber-800">
-              เพิ่มนักศึกษาคู่มือ 3 คนเข้า roster ของรายวิชาที่เลือก เพื่อใช้ถ่ายคู่มือใน QA เท่านั้น
+
+              เพิ่มนักศึกษาคู่มือ 3 คนเข้ารายชื่อของรายวิชาที่เลือก เพื่อใช้ถ่ายคู่มือใน QA เท่านั้น
             </p>
             <form action={importManualDemoStudents} className="mt-3 flex flex-wrap items-end gap-3">
               <div className="min-w-72 flex-1">
@@ -133,9 +134,10 @@ export default async function ImportStudentsPage({
               <SubmitButton
                 className="button-secondary"
                 pendingText="กำลังเพิ่มนักศึกษาคู่มือ..."
-                confirmMessage="ยืนยันเพิ่มนักศึกษาคู่มือ 3 คนเข้า roster ของรายวิชาที่เลือกหรือไม่?"
+                confirmMessage="ยืนยันเพิ่มนักศึกษาคู่มือ 3 คนเข้ารายชื่อของรายวิชาที่เลือกหรือไม่?"
               >
-                เพิ่มนักศึกษาคู่มือเข้า roster
+
+                เพิ่มนักศึกษาคู่มือเข้ารายชื่อ
               </SubmitButton>
             </form>
           </div>

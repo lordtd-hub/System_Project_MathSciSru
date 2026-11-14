@@ -185,7 +185,8 @@ export function RecoverableScoreActionForm({
       ) : null}
       {storageUnavailable ? (
         <p className="mt-2 text-sm font-medium text-amber-800" role="status" aria-live="polite">
-          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูลสำรองในเครื่อง แต่ยังส่งแบบประเมินได้ตามปกติ กรุณาอย่าปิดหรือรีเฟรชหน้านี้ก่อนส่งสำเร็จ
+
+          เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูลสำรองในเครื่อง แต่ยังส่งแบบประเมินได้ตามปกติ กรุณาอย่าปิดหรือโหลดหน้านี้ใหม่ก่อนส่งสำเร็จ
         </p>
       ) : null}
       {message ? (

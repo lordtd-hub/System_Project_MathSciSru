@@ -15,7 +15,7 @@ export default async function OwnerLoginPage({ searchParams }: { searchParams: P
     <p className="mt-2 text-sm text-muted">สำหรับบัญชีเจ้าของระบบที่ได้รับการเปิดใช้งานแล้ว</p>
     {(query.setup === "complete" || query.changed === "complete") && <p role="status" className="mt-3 text-sm">บันทึกรหัสผ่านแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่</p>}
     {session?.user.id === ownerId && session.user.role === "ADMIN" ? <div className="mt-4 flex gap-3">
-      <Link href="/admin">เปิดหน้าแอดมิน</Link><Link href="/account/password">เปลี่ยนรหัสผ่าน</Link>
+      <Link href="/admin">เปิดหน้าผู้ดูแลระบบ</Link><Link href="/account/password">เปลี่ยนรหัสผ่าน</Link>
     </div> : <OwnerPasswordForm mode="login" />}
     <p className="mt-4 text-sm"><Link href="/login">ตัวเลือกเข้าสู่ระบบอื่น</Link></p>
   </div>;

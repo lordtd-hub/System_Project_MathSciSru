@@ -39,12 +39,12 @@ const successMessages: Record<string, string> = {
 };
 
 const errorMessages: Record<string, string> = {
-  course_offering_open_failed: "ยังเปิดรายวิชาไม่ได้ อาจมีรายวิชาเปิดอยู่ กรุณาตรวจบริบทและปิดผลรายวิชาเดิมก่อน ไม่มีการปิดหรือส่ง REG อัตโนมัติ",
-  action_failed: "ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง",
+  course_offering_open_failed: "ยังเปิดรายวิชาไม่ได้ กรุณาตรวจรายวิชาที่ยังเปิดอยู่และปิดผลรายวิชาเดิมก่อน ระบบไม่ปิดผลหรือส่งเกรด REG อัตโนมัติ",
+  action_failed: "ทำรายการไม่สำเร็จ กรุณาตรวจสถานะล่าสุดก่อนลองอีกครั้ง",
   material_link_invalid: "อนุญาตเฉพาะลิงก์ https จาก Google Drive, Google Docs หรือ Google Classroom เท่านั้น กรุณาอัปโหลดไฟล์ไว้ใน Google Drive/Docs/Classroom แล้วส่งลิงก์ใหม่",
   project_not_editable: "ขั้นตอนนี้ยังไม่เปิดให้แก้ไขข้อมูลโครงงาน กรุณาตรวจสอบสถานะล่าสุดของโครงงาน",
   student_required_field_missing: "กรุณากรอกข้อมูลในช่องที่จำเป็นให้ครบถ้วนก่อนส่งอีกครั้ง",
-  student_declaration_missing: "กรุณาติ๊กยืนยันคำรับรองของนักศึกษาก่อนส่งข้อมูล",
+  student_declaration_missing: "กรุณาเลือกช่องยืนยันคำรับรองของนักศึกษาก่อนส่งข้อมูล",
   student_text_too_long: "ข้อความที่กรอกยาวเกินกว่าที่ระบบรองรับ กรุณาย่อข้อความหรือแนบรายละเอียดเพิ่มเติมเป็นลิงก์ Google Drive/Docs",
   student_markdown_invalid: "ข้อความที่กรอกมีรูปแบบที่ระบบไม่รองรับ กรุณาลบ HTML หรือปรับข้อความแล้วส่งใหม่อีกครั้ง",
   student_timeline_invalid: "แผนดำเนินงานไม่ถูกต้อง กรุณาระบุสัปดาห์เป็นตัวเลข 1-16 และให้สัปดาห์สิ้นสุดไม่อยู่ก่อนสัปดาห์เริ่ม",
@@ -59,10 +59,10 @@ const errorMessages: Record<string, string> = {
   score_rubric_incomplete: "ยังไม่ได้ให้คะแนนครบทุกหัวข้อ กรุณาเลือกคะแนนในหัวข้อที่ยังขาดก่อนยืนยันส่งคะแนน",
   schedule_review_decision_invalid: "ผลการพิจารณาวันสอบไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
   schedule_reject_reason_required: "กรุณาระบุเหตุผลในช่องหมายเหตุก่อนกดไม่อนุมัติวันสอบ",
-  proposal_decision_invalid: "ผลการพิจารณา Proposal ไม่ถูกต้อง กรุณาเลือกผลการประเมินแล้วลองอีกครั้ง",
+  proposal_decision_invalid: "ผลการพิจารณาการเสนอหัวข้อไม่ถูกต้อง กรุณาเลือกผลการประเมินแล้วลองอีกครั้ง",
   proposal_decision_reason_required: "กรุณาระบุเหตุผลเมื่อเลือกผ่านแบบแก้ไขหรือไม่ผ่าน",
   proposal_feedback_required: "กรุณาระบุข้อเสนอแนะเพื่อให้นักศึกษาใช้ปรับปรุงงาน",
-  proposal_reason_too_long: "เหตุผลประกอบผล Proposal ยาวเกินกว่าที่ระบบรองรับ กรุณาย่อข้อความแล้วลองอีกครั้ง",
+  proposal_reason_too_long: "เหตุผลประกอบผลการเสนอหัวข้อยาวเกินกว่าที่ระบบรองรับ กรุณาย่อข้อความแล้วลองอีกครั้ง",
   report_review_decision_invalid: "ผลการตรวจรายงานไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
   report_review_comment_required: "กรุณาระบุข้อเสนอแนะก่อนบันทึกผลตรวจรายงาน",
   schedule_time_invalid: "วันหรือเวลาสอบไม่ถูกต้อง กรุณาเลือกวันที่ เวลาเริ่ม และเวลาสิ้นสุดให้ถูกต้อง",
@@ -81,7 +81,7 @@ successMessages.signed_out = "ออกจาก QA session แล้ว";
 successMessages.schedule_approved = "อนุมัติวันสอบเรียบร้อยแล้ว";
 successMessages.schedule_rejected = "บันทึกผลไม่อนุมัติวันสอบเรียบร้อยแล้ว";
 errorMessages.invalid_year = "ปีการศึกษาไม่ถูกต้อง กรุณากรอกเป็นปี พ.ศ. เช่น 2569";
-errorMessages.invalid_term = "ภาคเรียนไม่ถูกต้อง กรุณาเลือก 1, 2 หรือ summer";
+errorMessages.invalid_term = "ภาคเรียนไม่ถูกต้อง กรุณาเลือก 1, 2 หรือภาคฤดูร้อน";
 errorMessages.invalid_course_title = "ชื่อรายวิชายาวเกินไป";
 errorMessages.course_offering_duplicate = "มีรายวิชานี้ในปีการศึกษาและภาคเรียนที่เลือกแล้ว";
 errorMessages.course_offering_missing = "ไม่พบรายวิชาที่เลือก กรุณาเปิดรายวิชาก่อนนำเข้านักศึกษา";

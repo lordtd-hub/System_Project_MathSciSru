@@ -154,7 +154,7 @@ export default async function AdminRoundExceptionsPage({
         เลือกรอบ กรองรายชื่อ แล้วเปิดส่งย้อนหลังเป็นรายกรณี ระบบจะติดป้ายส่งหลังปิดรอบและหักคะแนนเริ่มต้น 10% เว้นแต่ระบุเป็นเหตุสุดวิสัย
       </InfoAlert>
       {selectedRoundType !== "PROPOSAL" ? (
-        <InfoAlert title="Progress/Final แสดงเฉพาะโครงการที่เข้าเกณฑ์รอบนี้แต่ยังไม่ครบ">
+        <InfoAlert title="ความก้าวหน้า/ขั้นสุดท้าย แสดงเฉพาะโครงการที่เข้าเกณฑ์รอบนี้แต่ยังไม่ครบ">
           โครงการที่ยังไม่ผ่านรอบก่อนหน้าจะไม่แสดงเป็นผู้พลาดรอบนี้ รายการในตารางคือเคสที่เข้ารอบแล้วแต่ปิดรอบก่อนหลักฐาน/นัดสอบ/คะแนนจะครบ จึงต้องพิจารณาเปิดย้อนหลังเป็นรายกรณี
         </InfoAlert>
       ) : null}
@@ -275,7 +275,7 @@ export default async function AdminRoundExceptionsPage({
                           </form>
                         </details>
                       ) : (
-                        <span className="text-muted">{hasSubmission ? "ไม่มี action เพิ่ม" : isOpen ? "เปิดไว้แล้ว" : "รอบยังไม่ปิด"}</span>
+                        <span className="text-muted">{hasSubmission ? "ไม่มีรายการที่ต้องดำเนินการเพิ่ม" : isOpen ? "เปิดไว้แล้ว" : "รอบยังไม่ปิด"}</span>
                       )}
                     </td>
                   </tr>

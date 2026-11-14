@@ -10,15 +10,15 @@ type RoleDashboardNavProps = {
 const roleConfig = {
   admin: {
     href: "/admin",
-    label: "กลับแดชบอร์ดผู้ดูแลระบบ",
+    label: "กลับหน้าหลักผู้ดูแลระบบ",
   },
   teacher: {
     href: "/teacher",
-    label: "กลับแดชบอร์ดอาจารย์",
+    label: "กลับหน้าหลักอาจารย์",
   },
   student: {
     href: "/student",
-    label: "กลับแดชบอร์ดนักศึกษา",
+    label: "กลับหน้าหลักนักศึกษา",
   }
 } as const;
 

@@ -114,7 +114,7 @@ export default async function TeacherProgress1Page({
       ) : null}
       <TeacherWorkloadSummary
         metrics={[
-          { label: "ต้องดำเนินการ", count: pendingCount, tone: "action", description: "ยังไม่ได้ส่งคะแนน Progress 1" },
+          { label: "ต้องดำเนินการ", count: pendingCount, tone: "action", description: "ยังไม่ได้ส่งคะแนนความก้าวหน้าครั้งที่ 1" },
           { label: "รอ", count: 0, tone: "waiting", description: "รายการที่ยังไม่พร้อมไม่แสดงในหน้านี้" },
           { label: "แก้ไขได้", count: submittedCount, tone: "completed", description: "คะแนนที่ส่งแล้ว แก้ได้จนปิดรอบ" },
           { label: "ส่งกลับ", count: 0, tone: "returned", description: "ไม่ใช้กับการให้คะแนนรอบนี้" },
@@ -127,7 +127,7 @@ export default async function TeacherProgress1Page({
           href: `#project-${project.id}`,
           title: project.currentTitleTh ?? "ยังไม่มีชื่อหัวข้อ",
           description: `${project.student.studentCode} ${project.student.firstNameTh} ${project.student.lastNameTh}`,
-          meta: "Progress 1",
+          meta: "ความก้าวหน้าครั้งที่ 1",
           badges: [{ label: project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission ? "แก้ไขคะแนนได้" : "ต้องให้คะแนน", tone: project.attempts[0]?.evaluatorAssignments[0]?.scoreSubmission ? "completed" : "action" }, { label: "กรรมการ", tone: "waiting" }]
         }))}
       />
@@ -246,7 +246,7 @@ export default async function TeacherProgress1Page({
                   <EmptyState title="ยังไม่มีเกณฑ์ประเมินสำหรับการสอบความก้าวหน้าครั้งที่ 1" description="ผู้ดูแลระบบต้องตั้งค่าเกณฑ์ประเมินมาตรฐานก่อนจึงจะบันทึกคะแนนได้" />
                 )}
                 <MarkdownLatexEditor name="comment" label="ข้อเสนอแนะสำหรับนักศึกษา" defaultValue={previous?.overallComment ?? ""} rows={4} required={false} />
-                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนน Progress 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"} scoreGuard autoRecovery={false}>
+                <SubmitButton disabled={!rubric?.items.length} pendingText="กำลังส่งคะแนน..." confirmMessage={previous ? "ยืนยันส่งคะแนนความก้าวหน้าครั้งที่ 1 ที่แก้ไขหรือไม่? ระบบจะเก็บรายการแก้ไขเป็นหลักฐาน" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1 หรือไม่?"} scoreGuard autoRecovery={false}>
                   {previous ? "ยืนยันส่งคะแนนที่แก้ไข" : "ยืนยันส่งคะแนนการสอบความก้าวหน้าครั้งที่ 1"}
                 </SubmitButton>
               </RecoverableScoreActionForm>

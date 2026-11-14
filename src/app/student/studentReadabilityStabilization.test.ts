@@ -39,7 +39,7 @@ describe("student readability stabilization", () => {
     const page = source("src/app/student/proposal/page.tsx");
 
     expect(page).toContain("StudentReadabilitySummary");
-    expect(page).toContain("สรุปสถานะ Proposal");
+    expect(page).toContain("สรุปสถานะการเสนอหัวข้อ");
     expect(page).toContain("รอรอบ/รออนุญาต");
     expect(page).toContain("proposalComments.length");
     expect(page).toContain("proposalVoteLabel");
