@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { CompactLifecycleBadge } from "@/components/ui/LifecycleStepper";
 import { NextActionCard } from "@/components/ui/NextActionCard";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { CompactDisclosure } from "@/components/ui/CompactDisclosure";
 import { TaskListCard } from "@/components/ui/TaskListCard";
 import { TimelineCard } from "@/components/ui/TimelineCard";
 import { WarningAlert } from "@/components/ui/Alert";
@@ -318,11 +319,14 @@ export default async function AdminDashboardPage({
   return (
     <div className="space-y-4">
       <PageHeader
+        compact
         title="แดชบอร์ดผู้ดูแลระบบ"
         description="ติดตามขั้นตอนโครงงานทั้งระบบ ยืนยันโครงงาน จัดการการเสนอหัวข้อ แต่งตั้งกรรมการ และดูหลักฐานล่าสุด"
         actions={
           <>
-            <Link className="button-primary" href="/admin/import-students">จัดการรายวิชา / เปิดรายวิชาใหม่</Link>
+            <Link className="button" href="/admin/import-students">จัดการรายวิชา / เปิดรายวิชาใหม่</Link>
+            <Link className="button-secondary" href="/admin/i-score-entry">สะสาง I</Link>
+            <CompactDisclosure key={activeOffering?.id} label="จัดการเพิ่มเติม" className="admin-more-actions" panelClassName="admin-more-actions-panel">
             <span
               className={`inline-flex min-h-11 items-center rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm ${
                 testingToolsEnabled ? "badge-warn" : "badge-lock"
@@ -332,8 +336,8 @@ export default async function AdminDashboardPage({
             </span>
             <Link className="button-secondary" href="/admin/evidence">หลักฐานและ AUN-QA</Link>
             <Link className="button-secondary" href="/admin/term-results">ปิดผลรายวิชา</Link>
-            <Link className="button-secondary" href="/admin/i-score-entry">สะสาง I</Link>
             <Link className="button-secondary" href="/admin/teachers">จัดการอาจารย์</Link>
+            </CompactDisclosure>
           </>
         }
       />

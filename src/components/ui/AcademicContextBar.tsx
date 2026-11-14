@@ -5,7 +5,10 @@ import { getCourseOfferingChoices, getStudentProjectChoices, selectedOfferingId 
 import { getTeacherOfferingChoices } from "@/lib/terms/teacherSelection";
 import { hasApprovedTeacherCapability } from "@/lib/auth/capabilities";
 import { AcademicContextPicker } from "./AcademicContextPicker";
-import { CourseContextBadge, courseStatusText } from "./CourseContextBadge";
+import { courseStatusText } from "./CourseContextBadge";
+import { HeaderContextPlacement } from "./HeaderContextPlacement";
+import { CompactDisclosure } from "./CompactDisclosure";
+import { compactCourseTerm } from "./compactCourseLabel";
 
 export async function AcademicContextBar({ contextRole }: { contextRole?: "ADMIN" | "TEACHER" | "STUDENT" }) {
   const session = await auth();
@@ -24,12 +27,23 @@ export async function AcademicContextBar({ contextRole }: { contextRole?: "ADMIN
   }));
   const selected = student?.selected?.id ?? teacher?.selected?.id ?? (admin ? await selectedOfferingId() : undefined);
   const current = student?.selected?.courseOffering ?? teacher?.selected ?? teacher?.current ?? admin?.find(offering => offering.id === selected);
-  return <section className="mb-4" aria-label="บริบทรายวิชาปัจจุบัน">
-    {current ? <CourseContextBadge offering={current} label={student ? "รายวิชาที่กำลังเรียน" : "บริบทการจัดการปัจจุบัน"} /> : null}
-    {choices.length && (mode === "ADMIN" || choices.length > 1) ? <div className="panel mb-3"><AcademicContextPicker key={selected} choices={choices} selectedId={selected ?? ""} action={selectAcademicContext} contextRole={mode} allowHistoricalSearch={mode === "ADMIN"} /></div> : null}
-    {student && !student.selected ? <p className="panel mb-3">ยังไม่มีรายวิชาที่เปิดและลงทะเบียนอยู่ ไม่เลือกวิชาปิดแทนโดยอัตโนมัติ</p> : null}
-    {teacher && !teacher.selected ? <p className="panel mb-3">{teacher.current ? "ยังไม่มีโครงงานหรือบทบาทของท่านในรายวิชาปัจจุบัน" : "ขณะนี้ไม่มีรายวิชาเปิด"} ไม่ย้อนกลับไปจัดการวิชาปิด</p> : null}
-    {student?.history.length ? <Link className="button-secondary" href="/student/history">ประวัติโครงงาน / ผล I</Link> : null}
-    {teacher ? <Link className="button-secondary" href="/teacher/advisor-history">งานที่เคยเป็นที่ปรึกษา — อ่านอย่างเดียว</Link> : null}
-  </section>;
+  return <HeaderContextPlacement><section className="academic-context-compact" aria-label="บริบทรายวิชาปัจจุบัน">
+    <div className="academic-context-current">
+      <span className="text-muted">{student ? "กำลังเรียน" : "รายวิชา"}</span>
+      {current ? <>
+        <span className="font-semibold text-ink" title={current.courseTitle}>{current.courseCode ?? current.courseTitle}</span>
+        {current.section ? <span>· {current.section}</span> : null}
+        <span title={current.term.displayName}>· {compactCourseTerm(current.term)}</span>
+        <strong className={`academic-context-status ${current.status === "ACTIVE" ? "academic-context-active" : ""}`}>{courseStatusText(current.status)}</strong>
+      </> : <span>ยังไม่มีรายวิชาที่เปิดอยู่</span>}
+    </div>
+    {choices.length && (mode === "ADMIN" || choices.length > 1) ? <CompactDisclosure key={`${mode}:${selected}`} label="เปลี่ยนรายวิชา" className="academic-context-switcher">
+      <p className="mb-3 text-sm text-muted">เลือกแล้วกด “ใช้รายวิชาที่เลือก” เพื่อยืนยัน การค้นหาหรือเลือกในช่องนี้ยังไม่เปลี่ยนรายวิชา</p>
+      <AcademicContextPicker key={selected} choices={choices} selectedId={selected ?? ""} action={selectAcademicContext} contextRole={mode} allowHistoricalSearch={mode === "ADMIN"} />
+    </CompactDisclosure> : null}
+    {student?.history.length ? <Link className="academic-context-history" href="/student/history">ประวัติโครงงาน / ผล I</Link> : null}
+    {teacher ? <Link className="academic-context-history" href="/teacher/advisor-history">งานที่เคยเป็นที่ปรึกษา — อ่านอย่างเดียว</Link> : null}
+    {student && !student.selected ? <p className="academic-context-note">ยังไม่มีรายวิชาที่เปิดและลงทะเบียนอยู่ ไม่เลือกวิชาปิดแทนโดยอัตโนมัติ</p> : null}
+    {teacher && !teacher.selected ? <p className="academic-context-note">{teacher.current ? "ยังไม่มีโครงงานหรือบทบาทของท่านในรายวิชาปัจจุบัน" : "ขณะนี้ไม่มีรายวิชาเปิด"} ไม่ย้อนกลับไปจัดการวิชาปิด</p> : null}
+  </section></HeaderContextPlacement>;
 }

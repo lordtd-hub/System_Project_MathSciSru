@@ -14,7 +14,7 @@ export function AcademicContextPicker({ choices, selectedId, action, contextRole
   const years = [...new Set(choices.map(choice => choice.yearBe))].sort((a, b) => b - a);
   const filtered = filterAcademicChoices(choices, year, query);
   const retained = retainSelectedAcademicChoice(choices, filtered, selected);
-  return <form action={action} className="flex flex-wrap items-end gap-3">
+  return <form action={action} className="grid grid-cols-1 items-end gap-3 sm:flex sm:flex-wrap">
     <input type="hidden" name="view_role" value={contextRole} />
     {allowHistoricalSearch ? <label>ปีการศึกษา
       <select value={year} onChange={event => setYear(event.target.value)}>
