@@ -1,17 +1,19 @@
 export function PageHeader({
   title,
   description,
-  actions
+  actions,
+  compact = false
 }: {
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="page-header">
+    <div className={`page-header${compact ? " page-header-compact" : ""}`}>
       <div className="min-w-0">
         <div className="page-kicker">ระบบจัดการโครงงาน</div>
-        <div className="mt-2 flex gap-3">
+        <div className="page-header-heading mt-2 flex gap-3">
           <span className="page-header-accent" aria-hidden="true" />
           <div className="min-w-0">
             <h1 className="page-title">{title}</h1>

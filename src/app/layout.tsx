@@ -126,6 +126,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                 ) : null}
               </nav>
             </div>
+            {user ? <div id="academic-context-header" className="academic-context-header-slot" /> : null}
           </header>
           <PageShell>{children}</PageShell>
           <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-2 text-center text-xs leading-6 text-muted sm:px-6 lg:px-8">
